@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../common/Icon';
-import { Theme, lightTheme } from '../../lib/theme';
+import { Theme, lightTheme, useTheme } from '../../lib/theme';
 
 interface TopBarProps {
   title?: string;
@@ -22,19 +22,21 @@ export function TopBar({
   theme = lightTheme
 }: TopBarProps) {
   const insets = useSafeAreaInsets();
+  const { theme: ctxTheme } = useTheme();
+  const resolvedTheme = theme || ctxTheme;
   const topPadding = Math.max(insets.top, 0);
 
   return (
     <View style={[
       styles.container, 
-      { paddingTop: topPadding, backgroundColor: theme.surface, borderBottomColor: theme.border }
+      { paddingTop: topPadding, backgroundColor: resolvedTheme.surface, borderBottomColor: resolvedTheme.border }
     ]}>
       <View style={styles.content}>
         <View style={styles.leftSection}>
-          <View style={[styles.logo, { backgroundColor: theme.primary }]}>
+          <View style={[styles.logo, { backgroundColor: resolvedTheme.primary }]}>
             <Text style={styles.logoText}>E</Text>
           </View>
-          <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
+          <Text style={[styles.title, { color: resolvedTheme.text }]}>{title}</Text>
         </View>
         
         <View style={styles.rightSection}>
@@ -44,7 +46,7 @@ export function TopBar({
               style={styles.iconButton}
               activeOpacity={0.7}
             >
-              <AppIcon name="search" size={22} color={theme.muted} />
+              <AppIcon name="search" size={22} color={resolvedTheme.muted} />
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -53,8 +55,8 @@ export function TopBar({
             activeOpacity={0.7}
           >
             <View style={styles.notificationContainer}>
-              <AppIcon name="bell" size={22} color={theme.muted} />
-              <View style={[styles.notificationBadge, { backgroundColor: theme.primary, borderColor: theme.surface }]} />
+              <AppIcon name="bell" size={22} color={resolvedTheme.muted} />
+              <View style={[styles.notificationBadge, { backgroundColor: resolvedTheme.primary, borderColor: resolvedTheme.surface }]} />
             </View>
           </TouchableOpacity>
         </View>

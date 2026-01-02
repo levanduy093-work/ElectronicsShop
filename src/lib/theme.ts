@@ -1,3 +1,5 @@
+import React, { createContext, useContext } from 'react';
+
 export type Theme = {
   background: string;
   surface: string;
@@ -36,3 +38,19 @@ export const darkTheme: Theme = {
   tabActive: '#3B82F6',
   badge: '#F97316',
 };
+
+type ThemeContextValue = {
+  theme: Theme;
+  isDarkMode: boolean;
+};
+
+const ThemeContext = createContext<ThemeContextValue>({
+  theme: lightTheme,
+  isDarkMode: false,
+});
+
+export const ThemeProvider = ThemeContext.Provider;
+
+export function useTheme() {
+  return useContext(ThemeContext);
+}

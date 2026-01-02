@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../common/Icon';
-import { Theme, lightTheme } from '../../lib/theme';
+import { Theme, lightTheme, useTheme } from '../../lib/theme';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 
@@ -13,8 +13,10 @@ interface BottomNavProps {
   theme?: Theme;
 }
 
-export function BottomNav({ currentTab, onTabChange, cartCount = 0, theme = lightTheme }: BottomNavProps) {
+export function BottomNav({ currentTab, onTabChange, cartCount = 0, theme }: BottomNavProps) {
   const insets = useSafeAreaInsets();
+  const { theme: ctxTheme } = useTheme();
+  const resolvedTheme = theme || ctxTheme;
 
   const TabButton = ({ 
     tab, 
@@ -28,8 +30,8 @@ export function BottomNav({ currentTab, onTabChange, cartCount = 0, theme = ligh
     isSpecial?: boolean;
   }) => {
     const isActive = currentTab === tab;
-    const activeColor = theme.tabActive;
-    const inactiveColor = theme.tabInactive;
+    const activeColor = resolvedTheme.tabActive;
+    const inactiveColor = resolvedTheme.tabInactive;
 
     if (isSpecial) {
       return (
@@ -76,7 +78,7 @@ export function BottomNav({ currentTab, onTabChange, cartCount = 0, theme = ligh
   return (
     <View style={[
       styles.container,
-      { paddingBottom: Math.max(insets.bottom, 16), backgroundColor: theme.surface, borderTopColor: theme.border }
+      { paddingBottom: Math.max(insets.bottom, 16), backgroundColor: resolvedTheme.surface, borderTopColor: resolvedTheme.border }
     ]}>
       <TabButton tab="home" icon="home" label="Home" />
       <TabButton tab="catalog" icon="grid" label="Danh mục" />

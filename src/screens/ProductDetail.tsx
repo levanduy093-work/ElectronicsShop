@@ -5,6 +5,7 @@ import { Product } from '../lib/data';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
 import { formatPrice } from '../lib/utils';
+import { useTheme } from '../lib/theme';
 
 interface ProductDetailProps {
   product: Product;
@@ -31,6 +32,7 @@ export function ProductDetail({
   const insets = useSafeAreaInsets();
   const [expandedReviews, setExpandedReviews] = useState<Record<string, boolean>>({});
   const reviewImageSize = (width - 16 * 2 - 8 * 3) / 4; // content padding 16, gap 8
+  const { theme } = useTheme();
 
   const handleShare = async () => {
     try {
@@ -106,7 +108,7 @@ export function ProductDetail({
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Product Image */}
         <View style={styles.imageContainer}>
@@ -145,11 +147,11 @@ export function ProductDetail({
           {/* Title & Price */}
           <View style={styles.titleSection}>
             <View style={styles.titleRow}>
-              <Text style={styles.title} numberOfLines={2}>{product.name}</Text>
+              <Text style={[styles.title, { color: theme.text }]} numberOfLines={2}>{product.name}</Text>
               <View style={styles.priceColumn}>
-                <Text style={styles.price}>{formatPrice(product.price)}</Text>
+                <Text style={[styles.price, { color: theme.primary }]}>{formatPrice(product.price)}</Text>
                 {product.originalPrice && (
-                  <Text style={styles.originalPrice}>{formatPrice(product.originalPrice)}</Text>
+                  <Text style={[styles.originalPrice, { color: theme.muted }]}>{formatPrice(product.originalPrice)}</Text>
                 )}
               </View>
             </View>
@@ -157,12 +159,12 @@ export function ProductDetail({
             <View style={styles.ratingRow}>
               <View style={styles.ratingContainer}>
                 <AppIcon name="star" size={16} color="#FBBF24" />
-                <Text style={styles.ratingText}>{product.rating}</Text>
+                <Text style={[styles.ratingText, { color: theme.text }]}>{product.rating}</Text>
               </View>
               <Text style={styles.separator}>|</Text>
-              <Text style={styles.reviewsText}>{product.reviews} đánh giá</Text>
+              <Text style={[styles.reviewsText, { color: theme.muted }]}>{product.reviews} đánh giá</Text>
               <Text style={styles.separator}>|</Text>
-              <Text style={styles.soldText}>Đã bán 1.2k</Text>
+              <Text style={[styles.soldText, { color: '#10B981' }]}>Đã bán 1.2k</Text>
             </View>
           </View>
 
@@ -186,12 +188,12 @@ export function ProductDetail({
           <View style={styles.tabContent}>
             {activeTab === 'desc' && (
               <View>
-                <Text style={styles.description}>{product.description}</Text>
-                <View style={styles.guaranteeCard}>
-                  <AppIcon name="shield-check" size={24} color="#2563EB" />
+                <Text style={[styles.description, { color: theme.text }]}>{product.description}</Text>
+                <View style={[styles.guaranteeCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  <AppIcon name="shield-check" size={24} color={theme.primary} />
                   <View style={styles.guaranteeContent}>
-                    <Text style={styles.guaranteeTitle}>Cam kết chính hãng</Text>
-                    <Text style={styles.guaranteeText}>
+                    <Text style={[styles.guaranteeTitle, { color: theme.text }]}>Cam kết chính hãng</Text>
+                    <Text style={[styles.guaranteeText, { color: theme.primary }]}>
                       Sản phẩm được kiểm tra kỹ lưỡng bởi đội ngũ kỹ thuật ElectroAI.
                     </Text>
                   </View>
@@ -203,8 +205,8 @@ export function ProductDetail({
               <View style={styles.specsContainer}>
                 {Object.entries(product.specs).map(([key, value]) => (
                   <View key={key} style={styles.specRow}>
-                    <Text style={styles.specKey}>{key}</Text>
-                    <Text style={styles.specValue}>{value}</Text>
+                    <Text style={[styles.specKey, { color: theme.muted }]}>{key}</Text>
+                    <Text style={[styles.specValue, { color: theme.text }]}>{value}</Text>
                   </View>
                 ))}
               </View>
@@ -435,6 +437,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+    backgroundColor: 'transparent',
   },
   titleSection: {
     marginBottom: 24,

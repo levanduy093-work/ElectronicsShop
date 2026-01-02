@@ -2,13 +2,17 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
+import { Theme, lightTheme, useTheme } from '../lib/theme';
 
 interface NotificationsProps {
   onBack: () => void;
+  theme?: Theme;
 }
 
-export function Notifications({ onBack }: NotificationsProps) {
+export function Notifications({ onBack, theme }: NotificationsProps) {
   const insets = useSafeAreaInsets();
+  const { theme: ctxTheme } = useTheme();
+  const t = theme || ctxTheme || lightTheme;
   const [notifications, setNotifications] = useState([
     {
       id: 1,
@@ -49,37 +53,37 @@ export function Notifications({ onBack }: NotificationsProps) {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'order': return <AppIcon name="package" size={20} color="#2563EB" />;
+      case 'order': return <AppIcon name="package" size={20} color={t.primary} />;
       case 'promo': return <AppIcon name="tag" size={20} color="#F97316" />;
       case 'system': return <AppIcon name="info" size={20} color="#9333EA" />;
-      default: return <AppIcon name="info" size={20} color="#6B7280" />;
+      default: return <AppIcon name="info" size={20} color={t.muted} />;
     }
   };
 
   const getBgColor = (type: string) => {
     switch (type) {
-      case 'order': return '#EFF6FF';
+      case 'order': return t.primary + '22';
       case 'promo': return '#FFF7ED';
       case 'system': return '#FAF5FF';
-      default: return '#F3F4F6';
+      default: return t.surface;
     }
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: t.background }]}>
       <StatusBar 
-        barStyle="dark-content" 
-        backgroundColor="#FFFFFF"
+        barStyle={t === lightTheme ? 'dark-content' : 'light-content'} 
+        backgroundColor={t.surface}
         translucent={false}
       />
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 0) }]}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 0), backgroundColor: t.surface, borderBottomColor: t.border }]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
-          <AppIcon name="arrow-left" size={24} color="#6B7280" />
+          <AppIcon name="arrow-left" size={24} color={t.muted} />
         </TouchableOpacity>
-        <Text style={styles.title}>Thông báo</Text>
+        <Text style={[styles.title, { color: t.text }]}>Thông báo</Text>
         {hasUnreadNotifications && (
           <TouchableOpacity onPress={handleMarkAllAsRead} activeOpacity={0.7}>
-            <Text style={styles.markAllRead}>Đã đọc tất cả</Text>
+            <Text style={[styles.markAllRead, { color: t.primary }]}>Đã đọc tất cả</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -91,6 +95,7 @@ export function Notifications({ onBack }: NotificationsProps) {
             style={[
               styles.notificationCard,
               item.read && styles.notificationCardRead,
+              { backgroundColor: item.read ? t.surface : t.card, borderColor: item.read ? 'transparent' : t.border, shadowOpacity: t === lightTheme && !item.read ? 0.05 : 0, elevation: t === lightTheme && !item.read ? 2 : 0 }
             ]}
           >
             <View style={[styles.iconContainer, { backgroundColor: getBgColor(item.type) }]}>
@@ -98,21 +103,21 @@ export function Notifications({ onBack }: NotificationsProps) {
             </View>
             <View style={styles.notificationContent}>
               <View style={styles.notificationHeader}>
-                <Text style={[styles.notificationTitle, item.read && styles.notificationTitleRead]}>
+                <Text style={[styles.notificationTitle, { color: item.read ? t.muted : t.text }]}>
                   {item.title}
                 </Text>
-                <Text style={styles.notificationTime}>{item.time}</Text>
+                <Text style={[styles.notificationTime, { color: t.muted }]}>{item.time}</Text>
               </View>
-              <Text style={styles.notificationMessage} numberOfLines={2}>
+              <Text style={[styles.notificationMessage, { color: t.muted }]} numberOfLines={2}>
                 {item.message}
               </Text>
             </View>
-            {!item.read && <View style={styles.unreadDot} />}
+            {!item.read && <View style={[styles.unreadDot, { backgroundColor: t.primary }]} />}
           </View>
         ))}
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Bạn đã xem hết thông báo</Text>
+          <Text style={[styles.footerText, { color: t.muted }]}>Bạn đã xem hết thông báo</Text>
         </View>
       </ScrollView>
     </View>

@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'rea
 import { AppIcon } from '../components/common/Icon';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AVAILABLE_VOUCHERS } from '../lib/data';
+import { Theme, lightTheme, useTheme } from '../lib/theme';
 
 interface UserProfile {
   name: string;
@@ -20,6 +21,7 @@ interface ProfileProps {
   onLogout?: () => void;
   userProfile?: UserProfile;
   onUpdateProfile?: (data: Partial<UserProfile>) => void;
+  theme?: Theme;
 }
 
 export function Profile({
@@ -32,8 +34,11 @@ export function Profile({
   onLogout,
   userProfile = { name: "Nguyễn Văn A", email: "nguyenva@example.com", avatar: "" },
   onUpdateProfile,
+  theme,
 }: ProfileProps) {
   const [showVouchers, setShowVouchers] = useState(false);
+  const { theme: ctxTheme } = useTheme();
+  const t = theme || ctxTheme || lightTheme;
 
   const handleCopyVoucher = (code: string) => {
     Alert.alert('Thông báo', `Đã sao chép mã ${code}`);
@@ -41,100 +46,106 @@ export function Profile({
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView style={[styles.container, { backgroundColor: t.background }]} contentContainerStyle={styles.contentContainer}>
       {/* Header Profile */}
-      <View style={styles.profileHeader}>
-        <View style={styles.avatarContainer}>
+      <View style={[styles.profileHeader, { borderColor: t.border, backgroundColor: t.card }]}>
+        <View style={[styles.avatarContainer, { borderColor: t.primary }]}>
           {userProfile.avatar ? (
             <ImageWithFallback
               source={{ uri: userProfile.avatar }}
               style={styles.avatar}
             />
           ) : (
-            <View style={styles.avatarPlaceholder}>
-              <AppIcon name="user" size={32} color="#9CA3AF" />
+            <View style={[styles.avatarPlaceholder, { backgroundColor: t.surface }]}>
+              <AppIcon name="user" size={32} color={t.muted} />
             </View>
           )}
         </View>
         <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>{userProfile.name}</Text>
-          <Text style={styles.profileEmail}>{userProfile.email}</Text>
+          <Text style={[styles.profileName, { color: t.text }]}>{userProfile.name}</Text>
+          <Text style={[styles.profileEmail, { color: t.muted }]}>{userProfile.email}</Text>
         </View>
       </View>
 
       {/* Stats */}
-      <View style={styles.statsContainer}>
+      <View style={[styles.statsContainer, { backgroundColor: t.card, borderColor: t.border }]}>
         <TouchableOpacity
           onPress={onNavigateToOrders}
-          style={styles.statCard}
+          style={[styles.statCard, { backgroundColor: t.card, borderColor: t.border, shadowOpacity: t === lightTheme ? 0.05 : 0 }]}
           activeOpacity={0.7}
         >
-          <Text style={styles.statValue}>12</Text>
-          <Text style={styles.statLabel}>Đơn hàng</Text>
+          <Text style={[styles.statValue, { color: t.text }]}>12</Text>
+          <Text style={[styles.statLabel, { color: t.muted }]}>Đơn hàng</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setShowVouchers(true)}
-          style={styles.statCard}
+          style={[styles.statCard, { backgroundColor: t.card, borderColor: t.border, shadowOpacity: t === lightTheme ? 0.05 : 0 }]}
           activeOpacity={0.7}
         >
-          <Text style={styles.statValue}>{AVAILABLE_VOUCHERS.length}</Text>
-          <Text style={styles.statLabel}>Voucher</Text>
+          <Text style={[styles.statValue, { color: t.text }]}>{AVAILABLE_VOUCHERS.length}</Text>
+          <Text style={[styles.statLabel, { color: t.muted }]}>Voucher</Text>
         </TouchableOpacity>
       </View>
 
       {/* Menu Groups */}
       <View style={styles.menuContainer}>
-        <View style={styles.menuGroup}>
+        <View style={[styles.menuGroup, { backgroundColor: t.card, shadowOpacity: t === lightTheme ? 0.05 : 0, borderColor: t.border }]}>
           <MenuItem
             icon="package"
             label="Đơn hàng của tôi"
             onPress={onNavigateToOrders}
+            theme={t}
           />
-          <View style={styles.menuDivider} />
+          <View style={[styles.menuDivider, { backgroundColor: t.border }]} />
           <MenuItem
             icon="heart"
             label="Sản phẩm yêu thích"
             onPress={onNavigateToWishlist}
+            theme={t}
           />
-          <View style={styles.menuDivider} />
+          <View style={[styles.menuDivider, { backgroundColor: t.border }]} />
           <MenuItem
             icon="map-pin"
             label="Sổ địa chỉ"
             onPress={onNavigateToAddress}
+            theme={t}
           />
-          <View style={styles.menuDivider} />
+          <View style={[styles.menuDivider, { backgroundColor: t.border }]} />
           <MenuItem
             icon="credit-card"
             label="Phương thức thanh toán"
             onPress={onNavigateToPayment}
+            theme={t}
           />
         </View>
 
-        <View style={styles.menuGroup}>
+        <View style={[styles.menuGroup, { backgroundColor: t.card, shadowOpacity: t === lightTheme ? 0.05 : 0, borderColor: t.border }]}>
           <MenuItem
             icon="settings"
             label="Cài đặt"
             onPress={onNavigateToSettings}
+            theme={t}
           />
-          <View style={styles.menuDivider} />
+          <View style={[styles.menuDivider, { backgroundColor: t.border }]} />
           <MenuItem
             icon="help-circle"
             label="Trung tâm hỗ trợ"
             onPress={onNavigateToSupport}
+            theme={t}
           />
         </View>
 
         <TouchableOpacity
           onPress={onLogout}
-          style={styles.logoutButton}
+          style={[styles.logoutButton, { backgroundColor: t.card, borderColor: t.border }]}
           activeOpacity={0.7}
         >
           <AppIcon name="log-out" size={18} color="#EF4444" />
-          <Text style={styles.logoutText}>Đăng xuất</Text>
+          <Text style={[styles.logoutText, { color: '#EF4444' }]}>Đăng xuất</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.version}>Version 1.0.0 (Build 2024)</Text>
+      <Text style={[styles.version, { color: t.muted }]}>Version 1.0.0 (Build 2024)</Text>
 
       {/* Vouchers Modal */}
       {showVouchers && (
@@ -144,33 +155,33 @@ export function Profile({
             activeOpacity={1}
             onPress={() => setShowVouchers(false)}
           />
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: t.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Kho Voucher của tôi</Text>
+              <Text style={[styles.modalTitle, { color: t.text }]}>Kho Voucher của tôi</Text>
               <TouchableOpacity
                 onPress={() => setShowVouchers(false)}
                 activeOpacity={0.7}
               >
-                <AppIcon name="close" size={24} color="#9CA3AF" />
+                <AppIcon name="close" size={24} color={t.muted} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.voucherList}>
               {AVAILABLE_VOUCHERS.map((voucher) => (
-                <View key={voucher.code} style={styles.voucherCard}>
-                  <View style={styles.voucherIconContainer}>
-                    <AppIcon name="ticket" size={24} color="#2563EB" />
+                <View key={voucher.code} style={[styles.voucherCard, { borderColor: t.border, backgroundColor: t.surface }]}>
+                  <View style={[styles.voucherIconContainer, { backgroundColor: t.primary + '22' }]}>
+                    <AppIcon name="ticket" size={24} color={t.primary} />
                   </View>
                   <View style={styles.voucherInfo}>
-                    <Text style={styles.voucherCode}>{voucher.code}</Text>
-                    <Text style={styles.voucherDescription}>{voucher.description}</Text>
-                    <Text style={styles.voucherExpiry}>HSD: 31/12/2026</Text>
+                    <Text style={[styles.voucherCode, { color: t.text }]}>{voucher.code}</Text>
+                    <Text style={[styles.voucherDescription, { color: t.muted }]}>{voucher.description}</Text>
+                    <Text style={[styles.voucherExpiry, { color: t.primary }]}>HSD: 31/12/2026</Text>
                   </View>
                   <TouchableOpacity
                     onPress={() => handleCopyVoucher(voucher.code)}
-                    style={styles.voucherCopyButton}
+                    style={[styles.voucherCopyButton, { backgroundColor: t.primary + '22' }]}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.voucherCopyText}>Sao chép</Text>
+                    <Text style={[styles.voucherCopyText, { color: t.primary }]}>Sao chép</Text>
                   </TouchableOpacity>
                 </View>
               ))}
@@ -182,7 +193,7 @@ export function Profile({
   );
 }
 
-function MenuItem({ icon, label, onPress }: { icon: string; label: string; onPress?: () => void }) {
+function MenuItem({ icon, label, onPress, theme }: { icon: string; label: string; onPress?: () => void; theme: Theme }) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -190,12 +201,12 @@ function MenuItem({ icon, label, onPress }: { icon: string; label: string; onPre
       activeOpacity={0.7}
     >
       <View style={styles.menuItemLeft}>
-        <View style={styles.menuIconContainer}>
-          <AppIcon name={icon} size={16} color="#2563EB" />
+        <View style={[styles.menuIconContainer, { backgroundColor: theme.surface }]}>
+          <AppIcon name={icon} size={16} color={theme.primary} />
         </View>
-        <Text style={styles.menuLabel}>{label}</Text>
+        <Text style={[styles.menuLabel, { color: theme.text }]}>{label}</Text>
       </View>
-      <AppIcon name="chevron-right" size={16} color="#9CA3AF" />
+      <AppIcon name="chevron-right" size={16} color={theme.muted} />
     </TouchableOpacity>
   );
 }
@@ -215,6 +226,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
     marginBottom: 32,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   avatarContainer: {
     width: 64,
@@ -254,6 +269,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginBottom: 24,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 4,
   },
   statCard: {
     flex: 1,
@@ -265,6 +284,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   statValue: {
     fontSize: 24,

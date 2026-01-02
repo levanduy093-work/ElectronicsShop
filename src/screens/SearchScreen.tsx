@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PRODUCTS, Product } from '../lib/data';
 import { ProductCard } from '../components/ui/ProductCard';
 import { AppIcon } from '../components/common/Icon';
+import { Theme, lightTheme, useTheme } from '../lib/theme';
 
 interface SearchScreenProps {
   onBack: () => void;
@@ -11,6 +12,7 @@ interface SearchScreenProps {
   onFilterClick?: () => void;
   initialQuery?: string;
   onQueryChange?: (query: string) => void;
+  theme?: Theme;
 }
 
 export function SearchScreen({
@@ -19,8 +21,11 @@ export function SearchScreen({
   onFilterClick,
   initialQuery = '',
   onQueryChange,
+  theme,
 }: SearchScreenProps) {
   const insets = useSafeAreaInsets();
+  const { theme: ctxTheme } = useTheme();
+  const t = theme || ctxTheme || lightTheme;
   const [query, setQuery] = useState(initialQuery);
   const [recentSearches, setRecentSearches] = useState(['Arduino Uno', 'ESP32', 'Mạch nạp']);
 
@@ -40,20 +45,23 @@ export function SearchScreen({
   const trendingSearches = ['Raspberry Pi 5', 'ESP32 Cam', 'Mỏ hàn', 'Cảm biến nhiệt độ', 'Led RGB'];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: t.background }]}>
       {/* Search Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+      <View style={[
+        styles.header,
+        { paddingTop: Math.max(insets.top, 16), backgroundColor: t.surface, borderBottomColor: t.border }
+      ]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
-          <AppIcon name="arrow-left" size={24} color="#6B7280" />
+          <AppIcon name="arrow-left" size={24} color={t.muted} />
         </TouchableOpacity>
-        <View style={styles.searchContainer}>
-          <AppIcon name="search" size={18} color="#9CA3AF" style={styles.searchIcon} />
+        <View style={[styles.searchContainer, { backgroundColor: t.background, borderColor: t.border, shadowOpacity: t === lightTheme ? 0.05 : 0 }]}>
+          <AppIcon name="search" size={18} color={t.muted} style={styles.searchIcon} />
           <TextInput
             value={query}
             onChangeText={updateQuery}
             placeholder="Tìm kiếm sản phẩm, linh kiện..."
-            style={styles.searchInput}
-            placeholderTextColor="#9CA3AF"
+            style={[styles.searchInput, { color: t.text }]}
+            placeholderTextColor={t.muted}
             autoFocus
           />
           {query.length > 0 && (
@@ -62,7 +70,7 @@ export function SearchScreen({
               style={styles.clearButton}
               activeOpacity={0.7}
             >
-              <AppIcon name="close" size={16} color="#9CA3AF" />
+              <AppIcon name="close" size={16} color={t.muted} />
             </TouchableOpacity>
           )}
         </View>
@@ -72,21 +80,22 @@ export function SearchScreen({
             style={styles.filterButton}
             activeOpacity={0.7}
           >
-            <AppIcon name="sliders-horizontal" size={20} color="#6B7280" />
+            <AppIcon name="sliders-horizontal" size={20} color={t.muted} />
           </TouchableOpacity>
         )}
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={[styles.content, { backgroundColor: t.background }]} showsVerticalScrollIndicator={false}>
         {query ? (
           <View style={styles.resultsContainer}>
-            <Text style={styles.resultsTitle}>Kết quả tìm kiếm ({filteredProducts.length})</Text>
+            <Text style={[styles.resultsTitle, { color: t.muted }]}>Kết quả tìm kiếm ({filteredProducts.length})</Text>
             {filteredProducts.length > 0 ? (
               <View style={styles.productsGrid}>
                 {filteredProducts.map(p => (
                   <ProductCard
                     key={p.id}
                     product={p}
+                    theme={t}
                     onPress={() => onProductClick?.(p)}
                   />
                 ))}
@@ -94,24 +103,24 @@ export function SearchScreen({
             ) : (
               <View style={styles.emptyContainer}>
                 <View style={styles.emptyIcon}>
-                  <AppIcon name="search" size={32} color="#9CA3AF" />
+                  <AppIcon name="search" size={32} color={t.muted} />
                 </View>
-                <Text style={styles.emptyText}>Không tìm thấy sản phẩm nào phù hợp.</Text>
+                <Text style={[styles.emptyText, { color: t.muted }]}>Không tìm thấy sản phẩm nào phù hợp.</Text>
               </View>
             )}
           </View>
         ) : (
-          <View style={styles.emptyStateContainer}>
+          <View style={[styles.emptyStateContainer, { backgroundColor: t.background }]}>
             {/* Recent Searches */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Tìm kiếm gần đây</Text>
+                <Text style={[styles.sectionTitle, { color: t.text }]}>Tìm kiếm gần đây</Text>
                 {recentSearches.length > 0 && (
                   <TouchableOpacity
                     onPress={() => setRecentSearches([])}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.clearHistoryText}>Xóa lịch sử</Text>
+                    <Text style={[styles.clearHistoryText, { color: t.primary }]}>Xóa lịch sử</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -121,35 +130,35 @@ export function SearchScreen({
                     <TouchableOpacity
                       key={i}
                       onPress={() => updateQuery(term)}
-                      style={styles.recentItem}
+                      style={[styles.recentItem, { backgroundColor: t.surface, borderColor: t.border }]}
                       activeOpacity={0.7}
                     >
-                      <AppIcon name="clock" size={16} color="#9CA3AF" />
-                      <Text style={styles.recentText}>{term}</Text>
-                      <AppIcon name="chevron-right" size={16} color="#D1D5DB" />
+                      <AppIcon name="clock" size={16} color={t.muted} />
+                      <Text style={[styles.recentText, { color: t.text }]}>{term}</Text>
+                      <AppIcon name="chevron-right" size={16} color={t.border} />
                     </TouchableOpacity>
                   ))}
                 </View>
               ) : (
-                <Text style={styles.noHistoryText}>Chưa có lịch sử tìm kiếm</Text>
+                <Text style={[styles.noHistoryText, { color: t.muted }]}>Chưa có lịch sử tìm kiếm</Text>
               )}
             </View>
 
             {/* Trending */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <AppIcon name="trending-up" size={16} color="#EF4444" />
-                <Text style={styles.sectionTitle}>Tìm kiếm phổ biến</Text>
+                <AppIcon name="trending-up" size={16} color={t.primary} />
+                <Text style={[styles.sectionTitle, { color: t.text }]}>Tìm kiếm phổ biến</Text>
               </View>
               <View style={styles.trendingContainer}>
                 {trendingSearches.map((tag) => (
                   <TouchableOpacity
                     key={tag}
                     onPress={() => updateQuery(tag)}
-                    style={styles.trendingTag}
+                    style={[styles.trendingTag, { backgroundColor: t.surface, borderColor: t.border }]}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.trendingText}>{tag}</Text>
+                    <Text style={[styles.trendingText, { color: t.text }]}>{tag}</Text>
                   </TouchableOpacity>
                 ))}
               </View>

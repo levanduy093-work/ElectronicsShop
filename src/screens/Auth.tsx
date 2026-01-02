@@ -2,10 +2,12 @@ import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { AppIcon } from '../components/common/Icon';
+import { Theme, lightTheme, useTheme } from '../lib/theme';
 
 interface AuthProps {
   onBack: () => void;
   onLoginSuccess: () => void;
+  theme?: Theme;
 }
 
 // Google Icon component from google-icon-logo.svg
@@ -37,7 +39,9 @@ const GoogleIcon = ({ size = 24 }: { size?: number }) => {
   );
 };
 
-export function Auth({ onBack, onLoginSuccess }: AuthProps) {
+export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
+  const { theme: ctxTheme } = useTheme();
+  const t = theme || ctxTheme || lightTheme;
   const [isRegister, setIsRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);

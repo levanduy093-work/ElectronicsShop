@@ -4,7 +4,7 @@ import { CATEGORIES, PRODUCTS, Product } from '../lib/data';
 import { ProductCard } from '../components/ui/ProductCard';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
-import { Theme, lightTheme } from '../lib/theme';
+import { Theme, lightTheme, useTheme } from '../lib/theme';
 
 interface HomeProps {
   onNavigate: (tab: string) => void;
@@ -14,14 +14,16 @@ interface HomeProps {
 
 const { width } = Dimensions.get('window');
 
-export function Home({ onNavigate, onProductClick, theme = lightTheme }: HomeProps) {
+export function Home({ onNavigate, onProductClick, theme }: HomeProps) {
+  const { theme: ctxTheme } = useTheme();
+  const resolvedTheme = theme || ctxTheme || lightTheme;
   const featuredProducts = PRODUCTS.slice(0, 4);
   const raspberryProduct = PRODUCTS.find(p => p.name.includes("Raspberry")) || PRODUCTS[0];
 
   return (
     <ScrollView 
-      style={[styles.container, { backgroundColor: theme.background }]}
-      contentContainerStyle={[styles.contentContainer, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: resolvedTheme.background }]}
+      contentContainerStyle={[styles.contentContainer, { backgroundColor: resolvedTheme.background }]}
       showsVerticalScrollIndicator={false}
     >
       {/* Banner */}
@@ -48,14 +50,14 @@ export function Home({ onNavigate, onProductClick, theme = lightTheme }: HomePro
       {/* Categories Shortcut */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Danh mục</Text>
+          <Text style={[styles.sectionTitle, { color: resolvedTheme.text }]}>Danh mục</Text>
           <TouchableOpacity
             onPress={() => onNavigate('catalog')}
             style={styles.seeAllButton}
             activeOpacity={0.7}
           >
-            <Text style={styles.seeAllText}>Xem tất cả</Text>
-            <AppIcon name="chevron-right" size={16} color="#2563EB" />
+            <Text style={[styles.seeAllText, { color: resolvedTheme.primary }]}>Xem tất cả</Text>
+            <AppIcon name="chevron-right" size={16} color={resolvedTheme.primary} />
           </TouchableOpacity>
         </View>
         <ScrollView
@@ -70,10 +72,10 @@ export function Home({ onNavigate, onProductClick, theme = lightTheme }: HomePro
               style={styles.categoryItem}
               activeOpacity={0.7}
             >
-              <View style={styles.categoryIcon}>
-                <AppIcon name={cat.icon} size={28} color="#4B5563" />
+              <View style={[styles.categoryIcon, { backgroundColor: resolvedTheme.surface }]}>
+                <AppIcon name={cat.icon} size={28} color={resolvedTheme.muted} />
               </View>
-              <Text style={styles.categoryName}>{cat.name}</Text>
+              <Text style={[styles.categoryName, { color: resolvedTheme.text }]}>{cat.name}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -105,13 +107,13 @@ export function Home({ onNavigate, onProductClick, theme = lightTheme }: HomePro
 
       {/* Featured Products */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Sản phẩm nổi bật</Text>
+        <Text style={[styles.sectionTitle, { color: resolvedTheme.text }]}>Sản phẩm nổi bật</Text>
         <View style={styles.productsGrid}>
           {featuredProducts.map((p) => (
             <ProductCard
               key={p.id}
               product={p}
-              theme={theme}
+              theme={resolvedTheme}
               onPress={() => onProductClick?.(p)}
             />
           ))}

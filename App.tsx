@@ -27,7 +27,7 @@ import { Notifications } from './src/screens/Notifications';
 import { BottomNav } from './src/components/layout/BottomNav';
 import { TopBar } from './src/components/layout/TopBar';
 import { Product, CartItem } from './src/lib/data';
-import { darkTheme, lightTheme } from './src/lib/theme';
+import { darkTheme, lightTheme, ThemeProvider } from './src/lib/theme';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'payment-methods' | 'settings' | 'support' | 'wishlist';
@@ -151,6 +151,7 @@ function App(): React.JSX.Element {
             onRemoveItem={removeFromCart}
             onExplore={() => handleTabChange('catalog')}
             onCheckout={navigateToCheckout}
+            theme={theme}
           />
         );
       case 'profile':
@@ -166,6 +167,7 @@ function App(): React.JSX.Element {
             onLogout={() => setIsLoggedIn(false)}
             userProfile={userProfile}
             onUpdateProfile={(data) => setUserProfile(prev => ({ ...prev, ...data }))}
+            theme={theme}
           />
         );
 
@@ -182,6 +184,7 @@ function App(): React.JSX.Element {
               setPreviousScreen('product-detail');
               setCurrentScreen('auth');
             }}
+            theme={theme}
           />
         ) : null;
 
@@ -194,22 +197,23 @@ function App(): React.JSX.Element {
               handleTabChange('home');
             }}
             totalAmount={cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) + 30000}
+            theme={theme}
           />
         );
 
       case 'order-history':
-        return <OrderHistory onBack={() => handleTabChange('profile')} onViewDetail={navigateToOrderDetail} />;
+        return <OrderHistory onBack={() => handleTabChange('profile')} onViewDetail={navigateToOrderDetail} theme={theme} />;
 
       case 'order-detail':
         return selectedOrderId ? (
-          <OrderDetail orderId={selectedOrderId} onBack={navigateToOrderHistory} />
+          <OrderDetail orderId={selectedOrderId} onBack={navigateToOrderHistory} theme={theme} />
         ) : null;
 
       case 'auth':
-        return <Auth onBack={() => handleTabChange(currentTab)} onLoginSuccess={handleLoginSuccess} />;
+        return <Auth onBack={() => handleTabChange(currentTab)} onLoginSuccess={handleLoginSuccess} theme={theme} />;
 
       case 'notifications':
-        return <Notifications onBack={() => handleTabChange(currentTab)} />;
+        return <Notifications onBack={() => handleTabChange(currentTab)} theme={theme} />;
 
       case 'search':
         return (
@@ -231,14 +235,15 @@ function App(): React.JSX.Element {
               console.log("Filters applied:", filters);
               setCurrentScreen(previousScreen);
             }}
+            theme={theme}
           />
         );
 
       case 'address-book':
-        return <AddressBook onBack={() => handleTabChange('profile')} />;
+        return <AddressBook onBack={() => handleTabChange('profile')} theme={theme} />;
 
       case 'payment-methods':
-        return <PaymentMethods onBack={() => handleTabChange('profile')} />;
+        return <PaymentMethods onBack={() => handleTabChange('profile')} theme={theme} />;
 
       case 'settings':
         return (
@@ -246,11 +251,12 @@ function App(): React.JSX.Element {
             onBack={() => handleTabChange('profile')}
             isDarkMode={isDarkMode}
             onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+            theme={theme}
           />
         );
 
       case 'support':
-        return <SupportCenter onBack={() => handleTabChange('profile')} />;
+        return <SupportCenter onBack={() => handleTabChange('profile')} theme={theme} />;
 
       case 'wishlist':
         return (
@@ -259,6 +265,7 @@ function App(): React.JSX.Element {
             onBack={() => handleTabChange('profile')}
             onRemove={(id) => setWishlist(prev => prev.filter(p => p.id !== id))}
             onProductClick={navigateToProduct}
+            theme={theme}
           />
         );
 
@@ -272,36 +279,38 @@ function App(): React.JSX.Element {
 
   return (
     <SafeAreaProvider>
-      <StatusBar 
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
-        backgroundColor={theme.surface}
-        translucent={true}
-      />
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
-        {showTopBar && (
-          <TopBar
-            title={currentScreen === 'cart' ? 'Giỏ hàng' : 'ElectroAI'}
-            showSearch={currentScreen === 'home'}
-            onSearchClick={() => setCurrentScreen('search')}
-            onFilterClick={openFilter}
-            onNotificationClick={() => setCurrentScreen('notifications')}
-            theme={theme}
-          />
-        )}
+      <ThemeProvider value={{ theme, isDarkMode }}>
+        <StatusBar 
+          barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
+          backgroundColor={theme.surface}
+          translucent={true}
+        />
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
+          {showTopBar && (
+            <TopBar
+              title={currentScreen === 'cart' ? 'Giỏ hàng' : 'ElectroAI'}
+              showSearch={currentScreen === 'home'}
+              onSearchClick={() => setCurrentScreen('search')}
+              onFilterClick={openFilter}
+              onNotificationClick={() => setCurrentScreen('notifications')}
+              theme={theme}
+            />
+          )}
 
-        <View style={[styles.content, { backgroundColor: theme.background }]}>
-          {renderContent()}
+          <View style={[styles.content, { backgroundColor: theme.background }]}>
+            {renderContent()}
+          </View>
+
+          {!isFullScreen && (
+            <BottomNav
+              currentTab={currentTab}
+              onTabChange={handleTabChange}
+              cartCount={cartCount}
+              theme={theme}
+            />
+          )}
         </View>
-
-        {!isFullScreen && (
-          <BottomNav
-            currentTab={currentTab}
-            onTabChange={handleTabChange}
-            cartCount={cartCount}
-            theme={theme}
-          />
-        )}
-      </View>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
