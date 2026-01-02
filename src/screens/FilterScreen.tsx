@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch } from 'react-native';
-import { Slider } from '@react-native-community/slider';
+import React, { useRef, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, PanResponder } from 'react-native';
 import { CATEGORIES } from '../lib/data';
 import { AppIcon } from '../components/common/Icon';
 import { formatPrice } from '../lib/utils';
@@ -15,6 +14,7 @@ export function FilterScreen({ onClose, onApply }: FilterScreenProps) {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [rating, setRating] = useState<number | null>(null);
   const [onlyInStock, setOnlyInStock] = useState(false);
+  const [sliderWidth, setSliderWidth] = useState(0);
 
   const toggleCategory = (cat: string) => {
     if (selectedCategories.includes(cat)) {
@@ -40,6 +40,26 @@ export function FilterScreen({ onClose, onApply }: FilterScreenProps) {
     setRating(null);
     setOnlyInStock(false);
   };
+
+  const handlePriceDrag = (evt: any) => {
+    if (!sliderWidth) return;
+    const x = Math.max(0, Math.min(evt.nativeEvent.locationX, sliderWidth));
+    const ratio = x / sliderWidth;
+    const rawValue = ratio * 10000000;
+    const stepped = Math.round(rawValue / 100000) * 100000;
+    setPriceRange([priceRange[0], stepped]);
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: handlePriceDrag,
+      onPanResponderMove: handlePriceDrag,
+      onPanResponderRelease: handlePriceDrag,
+    })
+  ).current;
 
   return (
     <View style={styles.container}>
@@ -68,17 +88,16 @@ export function FilterScreen({ onClose, onApply }: FilterScreenProps) {
               <Text style={styles.priceValue}>{formatPrice(priceRange[1])}</Text>
             </View>
           </View>
-          <Slider
-            style={styles.slider}
-            minimumValue={0}
-            maximumValue={10000000}
-            step={100000}
-            value={priceRange[1]}
-            onValueChange={(value) => setPriceRange([priceRange[0], value])}
-            minimumTrackTintColor="#2563EB"
-            maximumTrackTintColor="#E5E7EB"
-            thumbTintColor="#2563EB"
-          />
+          <View
+            style={styles.sliderWrapper}
+            onLayout={(e) => setSliderWidth(e.nativeEvent.layout.width)}
+            {...panResponder.panHandlers}
+          >
+            <View style={styles.sliderTrack}>
+              <View style={[styles.sliderFill, { width: `${(priceRange[1] / 10000000) * 100}%` }]} />
+              <View style={[styles.sliderThumb, { left: `${(priceRange[1] / 10000000) * 100}%` }]} />
+            </View>
+          </View>
           <View style={styles.sliderLabels}>
             <Text style={styles.sliderLabel}>0₫</Text>
             <Text style={styles.sliderLabel}>10.000.000₫</Text>
@@ -246,9 +265,38 @@ const styles = StyleSheet.create({
     height: 2,
     backgroundColor: '#D1D5DB',
   },
-  slider: {
+  sliderWrapper: {
     width: '100%',
-    height: 40,
+    paddingVertical: 12,
+  },
+  sliderTrack: {
+    height: 8,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 999,
+    overflow: 'hidden',
+    justifyContent: 'center',
+  },
+  sliderFill: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: '#2563EB',
+  },
+  sliderThumb: {
+    position: 'absolute',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#2563EB',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+    marginLeft: -11,
   },
   sliderLabels: {
     flexDirection: 'row',

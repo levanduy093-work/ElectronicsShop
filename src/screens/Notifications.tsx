@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 
 interface NotificationsProps {
@@ -7,6 +8,7 @@ interface NotificationsProps {
 }
 
 export function Notifications({ onBack }: NotificationsProps) {
+  const insets = useSafeAreaInsets();
   const notifications = [
     {
       id: 1,
@@ -54,7 +56,12 @@ export function Notifications({ onBack }: NotificationsProps) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <StatusBar 
+        barStyle="dark-content" 
+        backgroundColor="#FFFFFF"
+        translucent={false}
+      />
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 0) }]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color="#6B7280" />
         </TouchableOpacity>
@@ -103,17 +110,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F7FA',
-    paddingTop: 64,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
     gap: 16,
+    ...Platform.select({
+      android: {
+        elevation: 0,
+      },
+    }),
   },
   backButton: {
     padding: 4,

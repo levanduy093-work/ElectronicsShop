@@ -144,11 +144,12 @@ const styles = StyleSheet.create({
   },
   categoriesContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 12,
     gap: 8,
+    alignItems: 'center',
   },
   categoriesScroll: {
-    maxHeight: 60,
+    maxHeight: 72,
   },
   categoryTab: {
     paddingHorizontal: 16,

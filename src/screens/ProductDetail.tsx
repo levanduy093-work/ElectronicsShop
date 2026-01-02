@@ -26,7 +26,7 @@ export function ProductDetail({
   onRequireLogin,
 }: ProductDetailProps) {
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState<'desc' | 'specs'>('desc');
+  const [activeTab, setActiveTab] = useState<'desc' | 'specs' | 'reviews' | 'datasheet'>('desc');
   const insets = useSafeAreaInsets();
 
   const handleShare = async () => {
@@ -53,6 +53,38 @@ export function ProductDetail({
     onAddToCart(product, quantity);
     Alert.alert('Thành công', 'Đã thêm vào giỏ hàng');
   };
+
+  const reviews = [
+    {
+      id: 'r1',
+      name: 'Nguyễn Văn Nam',
+      rating: 5,
+      date: '20/01/2026',
+      comment: 'Sản phẩm chính hãng, đóng gói rất cẩn thận. Shop tư vấn nhiệt tình, sẽ ủng hộ dài dài.',
+      image: 'https://images.unsplash.com/photo-1581093588401-99f9c5ae695a?auto=format&fit=crop&q=80&w=300',
+    },
+    {
+      id: 'r2',
+      name: 'Trần Thị Hạnh',
+      rating: 4,
+      date: '18/01/2026',
+      comment: 'Giao hàng hơi chậm một chút nhưng chất lượng sản phẩm tốt, đúng mô tả.',
+      image: '',
+    },
+    {
+      id: 'r3',
+      name: 'Lê Minh Tuấn',
+      rating: 5,
+      date: '15/01/2026',
+      comment: 'Đã test chạy ổn định, hiệu năng tốt. Sẽ quay lại mua thêm linh kiện.',
+      image: '',
+    },
+  ];
+
+  const datasheetFiles = [
+    { id: 'd1', name: 'Datasheet.pdf', size: '2.4 MB', desc: 'Tài liệu kỹ thuật', icon: 'file-text' as const },
+    { id: 'd2', name: 'Library & Example Code', size: '156 KB', desc: 'Arduino/C++', icon: 'file-code' as const },
+  ];
 
   return (
     <View style={styles.container}>
@@ -117,7 +149,7 @@ export function ProductDetail({
 
           {/* Tabs */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsContainer}>
-            {(['desc', 'specs'] as const).map((tab) => (
+            {(['desc', 'specs', 'reviews', 'datasheet'] as const).map((tab) => (
               <TouchableOpacity
                 key={tab}
                 onPress={() => setActiveTab(tab)}
@@ -125,7 +157,7 @@ export function ProductDetail({
                 activeOpacity={0.7}
               >
                 <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-                  {tab === 'desc' ? 'Mô tả' : 'Thông số'}
+                  {tab === 'desc' ? 'Mô tả' : tab === 'specs' ? 'Thông số' : tab === 'reviews' ? 'Đánh giá' : 'Datasheet'}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -155,6 +187,94 @@ export function ProductDetail({
                     <Text style={styles.specKey}>{key}</Text>
                     <Text style={styles.specValue}>{value}</Text>
                   </View>
+                ))}
+              </View>
+            )}
+
+            {activeTab === 'reviews' && (
+              <View style={styles.reviewsContainer}>
+                <View style={styles.ratingSummary}>
+                  <View style={styles.ratingScore}>
+                    <Text style={styles.ratingScoreText}>{product.rating.toFixed(1)}</Text>
+                    <View style={styles.ratingStarsRow}>
+                      {Array.from({ length: 5 }).map((_, idx) => (
+                        <AppIcon
+                          key={idx}
+                          name="star"
+                          size={16}
+                          color={idx < Math.round(product.rating) ? '#FBBF24' : '#E5E7EB'}
+                        />
+                      ))}
+                    </View>
+                    <Text style={styles.ratingCount}>{product.reviews} đánh giá</Text>
+                  </View>
+                  <View style={styles.ratingBars}>
+                    {[5, 4, 3, 2, 1].map((star) => (
+                      <View key={star} style={styles.ratingBarRow}>
+                        <Text style={styles.starLabel}>{star}</Text>
+                        <View style={styles.barTrack}>
+                          <View style={[styles.barFill, { width: `${(star / 5) * 80}%` }]} />
+                        </View>
+                        <AppIcon name="star" size={14} color="#FBBF24" />
+                      </View>
+                    ))}
+                  </View>
+                </View>
+
+                <TouchableOpacity activeOpacity={0.8} style={styles.writeReviewButton}>
+                  <AppIcon name="edit" size={18} color="#2563EB" />
+                  <Text style={styles.writeReviewText}>Viết đánh giá của bạn</Text>
+                </TouchableOpacity>
+
+                {reviews.map((r) => (
+                  <View key={r.id} style={styles.reviewCard}>
+                    <View style={styles.reviewHeader}>
+                      <View style={styles.avatarPlaceholder}>
+                        <AppIcon name="user" size={20} color="#9CA3AF" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.reviewName}>{r.name}</Text>
+                        <View style={styles.ratingStarsRow}>
+                          {Array.from({ length: 5 }).map((_, idx) => (
+                            <AppIcon
+                              key={idx}
+                              name="star"
+                              size={14}
+                              color={idx < r.rating ? '#FBBF24' : '#E5E7EB'}
+                            />
+                          ))}
+                        </View>
+                      </View>
+                      <Text style={styles.reviewDate}>{r.date}</Text>
+                    </View>
+                    <Text style={styles.reviewComment}>{r.comment}</Text>
+                    {r.image ? (
+                      <ImageWithFallback
+                        source={{ uri: r.image }}
+                        style={styles.reviewImage}
+                        resizeMode="cover"
+                      />
+                    ) : null}
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {activeTab === 'datasheet' && (
+              <View style={styles.datasheetContainer}>
+                {datasheetFiles.map((file) => (
+                  <TouchableOpacity key={file.id} activeOpacity={0.8} style={styles.dataCard}>
+                    <View style={styles.dataLeft}>
+                      <View style={styles.dataIcon}>
+                        <AppIcon name={file.icon} size={18} color="#2563EB" />
+                      </View>
+                      <View>
+                        <Text style={styles.dataName}>{file.name}</Text>
+                        <Text style={styles.dataDesc}>{file.size} · {file.desc}</Text>
+                      </View>
+                    </View>
+                    <AppIcon name="download" size={20} color="#2563EB" />
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
@@ -391,6 +511,154 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#111827',
+  },
+  reviewsContainer: {
+    gap: 16,
+  },
+  ratingSummary: {
+    flexDirection: 'row',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    padding: 16,
+    gap: 16,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  ratingScore: {
+    alignItems: 'center',
+    width: 120,
+    gap: 6,
+  },
+  ratingScoreText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  ratingStarsRow: {
+    flexDirection: 'row',
+    gap: 2,
+  },
+  ratingCount: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  ratingBars: {
+    flex: 1,
+    gap: 10,
+    justifyContent: 'center',
+  },
+  ratingBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  starLabel: {
+    width: 14,
+    textAlign: 'center',
+    color: '#6B7280',
+  },
+  barTrack: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: 8,
+    backgroundColor: '#FBBF24',
+    borderRadius: 999,
+  },
+  writeReviewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#2563EB',
+    borderRadius: 12,
+    paddingVertical: 10,
+  },
+  writeReviewText: {
+    color: '#2563EB',
+    fontWeight: '600',
+  },
+  reviewCard: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    gap: 8,
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  avatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reviewName: {
+    fontWeight: '700',
+    fontSize: 14,
+    color: '#111827',
+  },
+  reviewDate: {
+    color: '#9CA3AF',
+    fontSize: 12,
+  },
+  reviewComment: {
+    color: '#374151',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  reviewImage: {
+    marginTop: 8,
+    borderRadius: 12,
+    width: '100%',
+    height: 140,
+    backgroundColor: '#F3F4F6',
+  },
+  datasheetContainer: {
+    gap: 12,
+  },
+  dataCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  dataLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  dataIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dataName: {
+    fontWeight: '600',
+    fontSize: 14,
+    color: '#111827',
+  },
+  dataDesc: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
   },
   actionBar: {
     flexDirection: 'row',

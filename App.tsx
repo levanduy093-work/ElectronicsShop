@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import { StatusBar, StyleSheet, useColorScheme, View, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Home } from './src/screens/Home';
 import { Catalog } from './src/screens/Catalog';
