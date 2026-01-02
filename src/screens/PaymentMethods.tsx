@@ -58,7 +58,11 @@ export function PaymentMethods({ onBack, theme }: PaymentMethodsProps) {
           <View style={{ width: 24 }} />
         </View>
 
-        <ScrollView style={[styles.content, { backgroundColor: t.background }]} contentContainerStyle={{ paddingBottom: 96 }} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={[styles.content, { backgroundColor: t.background }]} 
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }} 
+          showsVerticalScrollIndicator={false}
+        >
           {/* Tabs */}
           <View style={[styles.tabsContainer, { backgroundColor: t.surface }]}>
             <TouchableOpacity

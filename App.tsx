@@ -27,6 +27,7 @@ import { Notifications } from './src/screens/Notifications';
 import { BottomNav } from './src/components/layout/BottomNav';
 import { TopBar } from './src/components/layout/TopBar';
 import { Product, CartItem, Order, PRODUCTS } from './src/lib/data';
+import { Address, DEFAULT_ADDRESSES } from './src/lib/address';
 import { darkTheme, lightTheme, ThemeProvider } from './src/lib/theme';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
@@ -222,6 +223,7 @@ function App(): React.JSX.Element {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [addresses, setAddresses] = useState<Address[]>(DEFAULT_ADDRESSES);
   const [wishlist, setWishlist] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -238,6 +240,10 @@ function App(): React.JSX.Element {
     email: "nguyenva@example.com",
     avatar: ""
   });
+
+  const handleUpdateProfile = (data: Partial<typeof userProfile>) => {
+    setUserProfile(prev => ({ ...prev, ...data }));
+  };
 
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const theme = isDarkMode ? darkTheme : lightTheme;
@@ -435,6 +441,8 @@ function App(): React.JSX.Element {
             totalAmount={cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) + 30000}
             cartItems={cartItems}
             theme={theme}
+            addresses={addresses}
+            onUpdateAddresses={setAddresses}
           />
         );
 
@@ -483,7 +491,14 @@ function App(): React.JSX.Element {
         );
 
       case 'address-book':
-        return <AddressBook onBack={() => handleTabChange('profile')} theme={theme} />;
+        return (
+          <AddressBook
+            onBack={() => handleTabChange('profile')}
+            theme={theme}
+            addresses={addresses}
+            onUpdateAddresses={setAddresses}
+          />
+        );
 
       case 'payment-methods':
         return <PaymentMethods onBack={() => handleTabChange('profile')} theme={theme} />;

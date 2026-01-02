@@ -1,40 +1,63 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, StatusBar, Platform, TextInput, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
+import { Address, AddressFormValues, DEFAULT_ADDRESSES, buildFullAddress } from '../lib/address';
+import { AddressForm } from '../components/address/AddressForm';
+import { CartItem } from '../lib/data';
 import { formatPrice } from '../lib/utils';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
 
 interface CheckoutProps {
   onBack: () => void;
-  onSuccess: () => void;
+  onSuccess?: (orderId: string) => void;
   totalAmount: number;
+  cartItems: CartItem[];
   theme?: Theme;
+  onAddAddress?: () => void;
+  addresses?: Address[];
+  onUpdateAddresses?: React.Dispatch<React.SetStateAction<Address[]>>;
 }
 
 type Step = 'address' | 'shipping' | 'payment' | 'success';
 
-export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme }: CheckoutProps) {
+export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme, onAddAddress, addresses, onUpdateAddresses }: CheckoutProps) {
   const { theme: ctxTheme, isDarkMode } = useTheme();
   const t = theme || ctxTheme || lightTheme;
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>('address');
   const [selectedShipping, setSelectedShipping] = useState(0);
   const [selectedPayment, setSelectedPayment] = useState(0);
-  const [addresses, setAddresses] = useState([
-    {
-      id: 'addr-1',
-      label: 'Nhà riêng',
-      detail: 'Số 1, Đại Cồ Việt, Hai Bà Trưng, Hà Nội',
-      phone: '0987 654 321',
-      isDefault: true,
-    },
-  ]);
-  const [selectedAddressId, setSelectedAddressId] = useState('addr-1');
-  const [showAddressForm, setShowAddressForm] = useState(false);
-  const [newAddress, setNewAddress] = useState({ label: 'Nhà riêng', detail: '', phone: '' });
+  const [localAddresses, setLocalAddresses] = useState<Address[]>(addresses ?? DEFAULT_ADDRESSES);
+  const addressList = addresses ?? localAddresses;
+  const updateAddresses = onUpdateAddresses ?? setLocalAddresses;
+  const [selectedAddressId, setSelectedAddressId] = useState<string | undefined>(
+    addressList.find(a => a.isDefault)?.id || addressList[0]?.id
+  );
+  const [isAddingAddress, setIsAddingAddress] = useState(false);
   const accentBg = t === lightTheme ? 'rgba(37,99,235,0.08)' : 'rgba(255,255,255,0.06)';
   const lineBg = t === lightTheme ? '#E5E7EB' : t.border;
+
+  useEffect(() => {
+    if (addresses) {
+      setLocalAddresses(addresses);
+    }
+  }, [addresses]);
+
+  useEffect(() => {
+    const exists = selectedAddressId && addressList.some(a => a.id === selectedAddressId);
+    if (exists) {
+      return;
+    }
+    const defaultAddr = addressList.find(a => a.isDefault);
+    if (defaultAddr) {
+      setSelectedAddressId(defaultAddr.id);
+    } else if (addressList[0]) {
+      setSelectedAddressId(addressList[0].id);
+    } else {
+      setSelectedAddressId(undefined);
+    }
+  }, [addressList, selectedAddressId]);
 
   const steps = [
     { id: 'address', title: 'Địa chỉ', icon: 'map-pin' },
@@ -55,25 +78,33 @@ export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme }: C
     }
   };
 
-  const handleSaveAddress = () => {
-    if (!newAddress.detail || !newAddress.phone) {
-      Alert.alert('Thông báo', 'Vui lòng nhập đầy đủ địa chỉ và số điện thoại');
-      return;
-    }
+  const handleSaveAddress = (data: AddressFormValues) => {
     const newId = `addr-${Date.now()}`;
-    const updated = addresses.map(a => ({ ...a, isDefault: false }));
-    updated.push({
-      id: newId,
-      label: newAddress.label || 'Nhà riêng',
-      detail: newAddress.detail,
-      phone: newAddress.phone,
-      isDefault: true,
+    const fullAddress = buildFullAddress(data);
+    updateAddresses(prev => {
+      const updatedExisting = data.isDefault ? prev.map(a => ({ ...a, isDefault: false })) : [...prev];
+      const newAddress: Address = {
+        ...data,
+        id: newId,
+        address: fullAddress,
+      };
+      return [...updatedExisting, newAddress];
     });
-    setAddresses(updated);
     setSelectedAddressId(newId);
-    setShowAddressForm(false);
-    setNewAddress({ label: 'Nhà riêng', detail: '', phone: '' });
+    setIsAddingAddress(false);
   };
+
+  if (isAddingAddress) {
+    return (
+      <AddressForm
+        theme={t}
+        onCancel={() => setIsAddingAddress(false)}
+        onSubmit={handleSaveAddress}
+        initialValues={{ isDefault: addressList.length === 0, type: 'Nhà riêng' }}
+        title="Thêm địa chỉ mới"
+      />
+    );
+  }
 
   if (step === 'success') {
     return (
@@ -87,9 +118,7 @@ export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme }: C
         </Text>
         <TouchableOpacity
           onPress={() => {
-            if (orderId) {
-              onSuccess(orderId);
-            }
+            onSuccess?.(orderId);
           }}
           style={[styles.successButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
           activeOpacity={0.8}
@@ -171,25 +200,50 @@ export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme }: C
           <View style={styles.stepContent}>
             <Text style={[styles.stepTitle, { color: t.muted }]}>Địa chỉ nhận hàng</Text>
 
-            <View style={[styles.addressCard, { backgroundColor: t.card, borderColor: t.primary }]}>
-              <View style={[styles.defaultBadge, { backgroundColor: t.primary }]}>
-                <Text style={styles.defaultBadgeText}>Mặc định</Text>
-              </View>
-              <View style={styles.addressContent}>
-                <View style={[styles.addressIcon, { backgroundColor: accentBg }]}>
-                  <AppIcon name="map-pin" size={20} color={t.primary} />
-                </View>
-                <View style={styles.addressInfo}>
-                  <Text style={[styles.addressType, { color: t.text }]}>Nhà riêng</Text>
-                  <Text style={[styles.addressText, { color: t.text }]}>
-                    Số 1, Đại Cồ Việt, Hai Bà Trưng, Hà Nội
-                  </Text>
-                  <Text style={[styles.addressPhone, { color: t.muted }]}>0987 654 321</Text>
-                </View>
-              </View>
-            </View>
+            {addressList.map((addr) => {
+              const isSelected = addr.id === selectedAddressId;
+              const contactLine = addr.name ? `${addr.name} | ${addr.phone}` : addr.phone;
+              return (
+                <TouchableOpacity
+                  key={addr.id}
+                  onPress={() => setSelectedAddressId(addr.id)}
+                  style={[
+                    styles.addressCard,
+                    { backgroundColor: t.card, borderColor: isSelected ? t.primary : t.border },
+                    isSelected && styles.addressCardDefault,
+                  ]}
+                  activeOpacity={0.8}
+                >
+                  {addr.isDefault && (
+                    <View style={[styles.defaultBadge, { backgroundColor: t.primary }]}>
+                      <Text style={styles.defaultBadgeText}>Mặc định</Text>
+                    </View>
+                  )}
+                  <View style={styles.addressContent}>
+                    <View style={[styles.addressIcon, { backgroundColor: accentBg }]}>
+                      <AppIcon name="map-pin" size={20} color={t.primary} />
+                    </View>
+                    <View style={styles.addressInfo}>
+                      <Text style={[styles.addressType, { color: t.text }]}>{addr.type}</Text>
+                      <Text style={[styles.addressText, { color: t.text }]}>{addr.address}</Text>
+                      <Text style={[styles.addressPhone, { color: t.muted }]}>{contactLine}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
 
-            <TouchableOpacity style={[styles.addAddressButton, { borderColor: t.border }]} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={[styles.addAddressButton, { borderColor: t.border }]}
+              activeOpacity={0.7}
+              onPress={() => {
+                if (onAddAddress) {
+                  onAddAddress();
+                } else {
+                  setIsAddingAddress(true);
+                }
+              }}
+            >
               <Text style={[styles.addAddressText, { color: t.text }]}>+ Thêm địa chỉ mới</Text>
             </TouchableOpacity>
           </View>

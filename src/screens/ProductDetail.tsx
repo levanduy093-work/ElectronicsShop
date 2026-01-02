@@ -32,7 +32,7 @@ export function ProductDetail({
   const insets = useSafeAreaInsets();
   const [expandedReviews, setExpandedReviews] = useState<Record<string, boolean>>({});
   const reviewImageSize = (width - 16 * 2 - 8 * 3) / 4; // content padding 16, gap 8
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
 
   const handleShare = async () => {
     try {
@@ -118,18 +118,48 @@ export function ProductDetail({
             resizeMode="contain"
           />
           <View style={[styles.headerOverlay, { top: insets.top + 8 }]}>
-            <TouchableOpacity onPress={onBack} style={styles.headerButton} activeOpacity={0.7}>
-              <AppIcon name="arrow-left" size={24} color="#111827" />
+            <TouchableOpacity 
+              onPress={onBack} 
+              style={[
+                styles.headerButton,
+                {
+                  backgroundColor: theme.surface,
+                  shadowOpacity: !isDarkMode ? 0.12 : 0.3,
+                }
+              ]} 
+              activeOpacity={0.7}
+            >
+              <AppIcon name="arrow-left" size={24} color={theme.text} />
             </TouchableOpacity>
             <View style={styles.headerRight}>
-              <TouchableOpacity onPress={handleShare} style={styles.headerButton} activeOpacity={0.7}>
-                <AppIcon name="share2" size={24} color="#111827" />
+              <TouchableOpacity 
+                onPress={handleShare} 
+                style={[
+                  styles.headerButton,
+                  {
+                    backgroundColor: theme.surface,
+                    shadowOpacity: !isDarkMode ? 0.12 : 0.3,
+                  }
+                ]} 
+                activeOpacity={0.7}
+              >
+                <AppIcon name="share2" size={24} color={theme.text} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleHeartClick} style={styles.headerButton} activeOpacity={0.7}>
+              <TouchableOpacity 
+                onPress={handleHeartClick} 
+                style={[
+                  styles.headerButton,
+                  {
+                    backgroundColor: theme.surface,
+                    shadowOpacity: !isDarkMode ? 0.12 : 0.3,
+                  }
+                ]} 
+                activeOpacity={0.7}
+              >
                 <AppIcon 
                   name="heart" 
                   size={24} 
-                  color={isFavorite ? "#EF4444" : "#111827"} 
+                  color={isFavorite ? "#EF4444" : theme.text} 
                 />
               </TouchableOpacity>
             </View>
@@ -174,10 +204,21 @@ export function ProductDetail({
               <TouchableOpacity
                 key={tab}
                 onPress={() => setActiveTab(tab)}
-                style={[styles.tab, activeTab === tab && styles.tabActive]}
+                style={[
+                  styles.tab,
+                  {
+                    borderColor: activeTab === tab ? theme.primary : 'transparent',
+                    backgroundColor: activeTab === tab ? theme.card : 'transparent',
+                  }
+                ]}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+                <Text style={[
+                  styles.tabText,
+                  {
+                    color: activeTab === tab ? theme.primary : theme.muted,
+                  }
+                ]}>
                   {tab === 'desc' ? 'Mô tả' : tab === 'specs' ? 'Thông số' : tab === 'reviews' ? 'Đánh giá' : 'Datasheet'}
                 </Text>
               </TouchableOpacity>
@@ -214,26 +255,32 @@ export function ProductDetail({
 
             {activeTab === 'reviews' && (
               <View style={styles.reviewsContainer}>
-                <View style={styles.ratingSummary}>
+                <View style={[
+                  styles.ratingSummary,
+                  {
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  }
+                ]}>
                   <View style={styles.ratingScore}>
-                    <Text style={styles.ratingScoreText}>{product.rating.toFixed(1)}</Text>
+                    <Text style={[styles.ratingScoreText, { color: theme.text }]}>{product.rating.toFixed(1)}</Text>
                     <View style={styles.ratingStarsRow}>
                       {Array.from({ length: 5 }).map((_, idx) => (
                         <AppIcon
                           key={idx}
                           name="star"
                           size={16}
-                          color={idx < Math.round(product.rating) ? '#FBBF24' : '#E5E7EB'}
+                          color={idx < Math.round(product.rating) ? '#FBBF24' : theme.border}
                         />
                       ))}
                     </View>
-                    <Text style={styles.ratingCount}>{product.reviews} đánh giá</Text>
+                    <Text style={[styles.ratingCount, { color: theme.muted }]}>{product.reviews} đánh giá</Text>
                   </View>
                   <View style={styles.ratingBars}>
                     {[5, 4, 3, 2, 1].map((star) => (
                       <View key={star} style={styles.ratingBarRow}>
-                        <Text style={styles.starLabel}>{star}</Text>
-                        <View style={styles.barTrack}>
+                        <Text style={[styles.starLabel, { color: theme.muted }]}>{star}</Text>
+                        <View style={[styles.barTrack, { backgroundColor: theme.border }]}>
                           <View style={[styles.barFill, { width: `${(star / 5) * 80}%` }]} />
                         </View>
                         <AppIcon name="star" size={14} color="#FBBF24" />
@@ -242,33 +289,50 @@ export function ProductDetail({
                   </View>
                 </View>
 
-                <TouchableOpacity activeOpacity={0.8} style={styles.writeReviewButton}>
-                  <AppIcon name="edit" size={18} color="#2563EB" />
-                  <Text style={styles.writeReviewText}>Viết đánh giá của bạn</Text>
+                <TouchableOpacity 
+                  activeOpacity={0.8} 
+                  style={[
+                    styles.writeReviewButton,
+                    {
+                      borderColor: theme.primary,
+                      backgroundColor: theme.surface,
+                    }
+                  ]}
+                >
+                  <AppIcon name="edit" size={18} color={theme.primary} />
+                  <Text style={[styles.writeReviewText, { color: theme.primary }]}>Viết đánh giá của bạn</Text>
                 </TouchableOpacity>
 
                 {reviews.map((r) => (
-                  <View key={r.id} style={styles.reviewCard}>
+                  <View 
+                    key={r.id} 
+                    style={[
+                      styles.reviewCard,
+                      {
+                        borderBottomColor: theme.border,
+                      }
+                    ]}
+                  >
                     <View style={styles.reviewHeader}>
-                      <View style={styles.avatarPlaceholder}>
-                        <AppIcon name="user" size={20} color="#9CA3AF" />
+                      <View style={[styles.avatarPlaceholder, { backgroundColor: theme.surface }]}>
+                        <AppIcon name="user" size={20} color={theme.muted} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.reviewName}>{r.name}</Text>
+                        <Text style={[styles.reviewName, { color: theme.text }]}>{r.name}</Text>
                         <View style={styles.ratingStarsRow}>
                           {Array.from({ length: 5 }).map((_, idx) => (
                             <AppIcon
                               key={idx}
                               name="star"
                               size={14}
-                              color={idx < r.rating ? '#FBBF24' : '#E5E7EB'}
+                              color={idx < r.rating ? '#FBBF24' : theme.border}
                             />
                           ))}
                         </View>
                       </View>
-                      <Text style={styles.reviewDate}>{r.date}</Text>
+                      <Text style={[styles.reviewDate, { color: theme.muted }]}>{r.date}</Text>
                     </View>
-                    <Text style={styles.reviewComment}>{r.comment}</Text>
+                    <Text style={[styles.reviewComment, { color: theme.text }]}>{r.comment}</Text>
                     {r.images && r.images.length > 0 && (
                       <View style={styles.reviewImagesRow}>
                         {r.images
@@ -287,6 +351,7 @@ export function ProductDetail({
                                     height: reviewImageSize,
                                     marginRight: (idx + 1) % 4 === 0 ? 0 : 8,
                                     marginBottom: 8,
+                                    backgroundColor: theme.surface,
                                   },
                                 ]}
                                 activeOpacity={0.8}
@@ -319,17 +384,32 @@ export function ProductDetail({
             {activeTab === 'datasheet' && (
               <View style={styles.datasheetContainer}>
                 {datasheetFiles.map((file) => (
-                  <TouchableOpacity key={file.id} activeOpacity={0.8} style={styles.dataCard}>
+                  <TouchableOpacity 
+                    key={file.id} 
+                    activeOpacity={0.8} 
+                    style={[
+                      styles.dataCard,
+                      {
+                        backgroundColor: theme.card,
+                        borderColor: theme.border,
+                      }
+                    ]}
+                  >
                     <View style={styles.dataLeft}>
-                      <View style={styles.dataIcon}>
-                        <AppIcon name={file.icon} size={18} color="#2563EB" />
+                      <View style={[
+                        styles.dataIcon,
+                        {
+                          backgroundColor: !isDarkMode ? '#EFF6FF' : theme.surface,
+                        }
+                      ]}>
+                        <AppIcon name={file.icon} size={18} color={theme.primary} />
                       </View>
                       <View>
-                        <Text style={styles.dataName}>{file.name}</Text>
-                        <Text style={styles.dataDesc}>{file.size} · {file.desc}</Text>
+                        <Text style={[styles.dataName, { color: theme.text }]}>{file.name}</Text>
+                        <Text style={[styles.dataDesc, { color: theme.muted }]}>{file.size} · {file.desc}</Text>
                       </View>
                     </View>
-                    <AppIcon name="download" size={20} color="#2563EB" />
+                    <AppIcon name="download" size={20} color={theme.primary} />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -339,28 +419,39 @@ export function ProductDetail({
       </ScrollView>
 
       {/* Bottom Action Bar */}
-      <View style={styles.actionBar}>
-        <View style={styles.quantityContainer}>
+      <View style={[
+        styles.actionBar,
+        {
+          backgroundColor: theme.surface,
+          borderTopColor: theme.border,
+        }
+      ]}>
+        <View style={[
+          styles.quantityContainer,
+          {
+            backgroundColor: theme.card,
+          }
+        ]}>
           <TouchableOpacity
             onPress={() => setQuantity(Math.max(1, quantity - 1))}
             style={styles.quantityButton}
             activeOpacity={0.7}
           >
-            <AppIcon name="minus" size={20} color="#374151" />
+            <AppIcon name="minus" size={20} color={theme.text} />
           </TouchableOpacity>
-          <Text style={styles.quantityText}>{quantity}</Text>
+          <Text style={[styles.quantityText, { color: theme.text }]}>{quantity}</Text>
           <TouchableOpacity
             onPress={() => setQuantity(quantity + 1)}
             style={styles.quantityButton}
             activeOpacity={0.7}
           >
-            <AppIcon name="plus" size={20} color="#374151" />
+            <AppIcon name="plus" size={20} color={theme.text} />
           </TouchableOpacity>
         </View>
         
         <TouchableOpacity
           onPress={handleAddToCart}
-          style={styles.addToCartButton}
+          style={[styles.addToCartButton, { backgroundColor: theme.primary }]}
           activeOpacity={0.8}
         >
           <AppIcon name="shopping-cart" size={20} color="#FFFFFF" />
@@ -380,16 +471,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
     shadowRadius: 6,
     elevation: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
   },
   headerRight: {
     flexDirection: 'row',
@@ -510,23 +597,20 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   tabActive: {
-    borderColor: '#2563EB',
-    backgroundColor: '#FFFFFF',
+    borderColor: 'transparent',
   },
   tabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6B7280',
   },
   tabTextActive: {
-    color: '#2563EB',
+    color: 'transparent',
   },
   tabContent: {
     minHeight: 150,
   },
   description: {
     fontSize: 14,
-    color: '#374151',
     lineHeight: 22,
     marginBottom: 24,
   },
@@ -574,12 +658,10 @@ const styles = StyleSheet.create({
   },
   ratingSummary: {
     flexDirection: 'row',
-    backgroundColor: '#F9FAFB',
     borderRadius: 16,
     padding: 16,
     gap: 16,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
   },
   ratingScore: {
     alignItems: 'center',
@@ -589,7 +671,6 @@ const styles = StyleSheet.create({
   ratingScoreText: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#111827',
   },
   ratingStarsRow: {
     flexDirection: 'row',
@@ -597,7 +678,6 @@ const styles = StyleSheet.create({
   },
   ratingCount: {
     fontSize: 12,
-    color: '#6B7280',
   },
   ratingBars: {
     flex: 1,
@@ -612,12 +692,10 @@ const styles = StyleSheet.create({
   starLabel: {
     width: 14,
     textAlign: 'center',
-    color: '#6B7280',
   },
   barTrack: {
     flex: 1,
     height: 8,
-    backgroundColor: '#E5E7EB',
     borderRadius: 999,
     overflow: 'hidden',
   },
@@ -632,18 +710,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     borderWidth: 1,
-    borderColor: '#2563EB',
     borderRadius: 12,
     paddingVertical: 10,
   },
   writeReviewText: {
-    color: '#2563EB',
     fontWeight: '600',
   },
   reviewCard: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
     gap: 8,
   },
   reviewHeader: {
@@ -655,21 +730,17 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
   reviewName: {
     fontWeight: '700',
     fontSize: 14,
-    color: '#111827',
   },
   reviewDate: {
-    color: '#9CA3AF',
     fontSize: 12,
   },
   reviewComment: {
-    color: '#374151',
     fontSize: 14,
     lineHeight: 20,
   },
@@ -681,7 +752,6 @@ const styles = StyleSheet.create({
   reviewImageWrapper: {
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#F3F4F6',
     position: 'relative',
   },
   reviewImage: {
@@ -710,11 +780,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
   },
   dataLeft: {
     flexDirection: 'row',
@@ -726,18 +794,15 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   dataName: {
     fontWeight: '600',
     fontSize: 14,
-    color: '#111827',
   },
   dataDesc: {
     fontSize: 12,
-    color: '#6B7280',
     marginTop: 2,
   },
   actionBar: {
@@ -745,13 +810,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
     gap: 12,
   },
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
     borderRadius: 12,
     padding: 4,
     gap: 12,
@@ -766,7 +829,6 @@ const styles = StyleSheet.create({
   quantityText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
     minWidth: 32,
     textAlign: 'center',
   },
@@ -775,7 +837,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2563EB',
     borderRadius: 12,
     paddingVertical: 14,
     gap: 8,

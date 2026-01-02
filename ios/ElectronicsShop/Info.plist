@@ -35,6 +35,8 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Need Location Permission</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Cần quyền truy cập thư viện ảnh để chọn ảnh đại diện</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>

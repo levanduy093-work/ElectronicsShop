@@ -1,10 +1,24 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, StatusBar, Platform, Modal, TextInput, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AVAILABLE_VOUCHERS } from '../lib/data';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
+
+// Dynamic import để tránh lỗi khi module chưa được link
+let launchImageLibrary: any = null;
+let ImagePickerResponse: any = null;
+let MediaType: any = null;
+
+try {
+  const ImagePicker = require('react-native-image-picker');
+  launchImageLibrary = ImagePicker.launchImageLibrary;
+  ImagePickerResponse = ImagePicker.ImagePickerResponse;
+  MediaType = ImagePicker.MediaType;
+} catch (error) {
+  console.warn('react-native-image-picker not available:', error);
+}
 
 interface UserProfile {
   name: string;
@@ -40,7 +54,12 @@ export function Profile({
   theme,
 }: ProfileProps) {
   const [showVouchers, setShowVouchers] = useState(false);
-  const { theme: ctxTheme } = useTheme();
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingName, setEditingName] = useState(userProfile.name);
+  const [editingAvatar, setEditingAvatar] = useState(userProfile.avatar);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const { theme: ctxTheme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
   const t = theme || ctxTheme || lightTheme;
 
@@ -49,24 +68,139 @@ export function Profile({
     setShowVouchers(false);
   };
 
+  const handleEditProfile = () => {
+    setEditingName(userProfile.name);
+    setEditingAvatar(userProfile.avatar);
+    setShowEditModal(true);
+  };
+
+  const handleSaveProfile = () => {
+    if (!editingName.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập tên');
+      return;
+    }
+    
+    const updatedProfile: Partial<UserProfile> = {
+      name: editingName.trim(),
+      avatar: editingAvatar.trim(),
+    };
+    
+    if (onUpdateProfile) {
+      onUpdateProfile(updatedProfile);
+    }
+    
+    setShowEditModal(false);
+    Alert.alert('Thành công', 'Đã cập nhật thông tin cá nhân');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingName(userProfile.name);
+    setEditingAvatar(userProfile.avatar);
+    setShowEditModal(false);
+  };
+
+  const handlePickImage = () => {
+    if (!launchImageLibrary) {
+      // Nếu image picker chưa sẵn sàng, hiển thị option nhập URL
+      setShowUrlInput(true);
+      setAvatarUrl(editingAvatar);
+      return;
+    }
+
+    const options = {
+      mediaType: 'photo' as any,
+      quality: 0.8,
+      maxWidth: 800,
+      maxHeight: 800,
+    };
+
+    launchImageLibrary(options, (response: any) => {
+      if (response.didCancel) {
+        return;
+      }
+      
+      if (response.errorCode) {
+        Alert.alert('Lỗi', `Không thể chọn ảnh: ${response.errorMessage || 'Unknown error'}`);
+        return;
+      }
+
+      if (response.assets && response.assets[0]) {
+        const imageUri = response.assets[0].uri;
+        if (imageUri) {
+          setEditingAvatar(imageUri);
+        }
+      }
+    });
+  };
+
+  const handleSaveUrl = () => {
+    if (avatarUrl.trim()) {
+      setEditingAvatar(avatarUrl.trim());
+    }
+    setShowUrlInput(false);
+    setAvatarUrl('');
+  };
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: t.background }]} contentContainerStyle={styles.contentContainer}>
-      {/* Header Profile */}
-      <View style={[styles.profileHeader, { borderColor: t.border, backgroundColor: t.card }]}>
-        <View style={[styles.avatarContainer, { borderColor: t.primary }]}>
-          {userProfile.avatar ? (
-            <ImageWithFallback
-              source={{ uri: userProfile.avatar }}
-              style={styles.avatar}
-            />
-          ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: t.surface }]}>
-              <AppIcon name="user" size={32} color={t.muted} />
-            </View>
-          )}
-        </View>
+    <View style={[styles.container, { backgroundColor: t.background }]}>
+      <StatusBar
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+        backgroundColor={t.card}
+        translucent={true}
+      />
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { 
+            paddingTop: Math.max(insets.top + 24, 40),
+            paddingBottom: Math.max(insets.bottom, 16) + 100,
+          }
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header Profile */}
+        <View style={[
+          styles.profileHeader, 
+          { 
+            borderColor: t.border, 
+            backgroundColor: t.card,
+            shadowOpacity: t === lightTheme ? 0.05 : 0,
+            elevation: t === lightTheme ? 2 : 0,
+          }
+        ]}>
+        <TouchableOpacity
+          onPress={handleEditProfile}
+          style={styles.avatarWrapper}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.avatarContainer, { borderColor: t.primary }]}>
+            {userProfile.avatar ? (
+              <ImageWithFallback
+                source={{ uri: userProfile.avatar }}
+                style={styles.avatar}
+              />
+            ) : (
+              <View style={[styles.avatarPlaceholder, { backgroundColor: t.surface }]}>
+                <AppIcon name="user" size={32} color={t.muted} />
+              </View>
+            )}
+          </View>
+          <View style={[styles.editAvatarBadge, { backgroundColor: t.primary }]}>
+            <AppIcon name="camera" size={14} color="#FFFFFF" />
+          </View>
+        </TouchableOpacity>
         <View style={styles.profileInfo}>
-          <Text style={[styles.profileName, { color: t.text }]}>{userProfile.name}</Text>
+          <View style={styles.nameRow}>
+            <Text style={[styles.profileName, { color: t.text }]}>{userProfile.name}</Text>
+            <TouchableOpacity
+              onPress={handleEditProfile}
+              style={styles.editNameButton}
+              activeOpacity={0.7}
+            >
+              <AppIcon name="pencil" size={16} color={t.primary} />
+            </TouchableOpacity>
+          </View>
           <Text style={[styles.profileEmail, { color: t.muted }]}>{userProfile.email}</Text>
         </View>
       </View>
@@ -197,7 +331,135 @@ export function Profile({
           </View>
         </View>
       )}
-    </ScrollView>
+      </ScrollView>
+
+      {/* Edit Profile Modal */}
+      <Modal
+        visible={showEditModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={handleCancelEdit}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: t.card, borderColor: t.border }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: t.text }]}>Chỉnh sửa thông tin</Text>
+              <TouchableOpacity
+                onPress={handleCancelEdit}
+                style={styles.closeButton}
+                activeOpacity={0.7}
+              >
+                <AppIcon name="close" size={24} color={t.muted} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: t.text }]}>Tên</Text>
+                <TextInput
+                  value={editingName}
+                  onChangeText={setEditingName}
+                  style={[styles.input, { backgroundColor: t.surface, borderColor: t.border, color: t.text }]}
+                  placeholder="Nhập tên của bạn"
+                  placeholderTextColor={t.muted}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: t.text }]}>Ảnh đại diện</Text>
+                {!showUrlInput ? (
+                  <>
+                    <View style={styles.avatarPreviewContainer}>
+                      {editingAvatar ? (
+                        <Image source={{ uri: editingAvatar }} style={[styles.avatarPreview, { borderColor: t.border }]} />
+                      ) : (
+                        <View style={[styles.avatarPreviewPlaceholder, { backgroundColor: t.surface, borderColor: t.border }]}>
+                          <AppIcon name="user" size={32} color={t.muted} />
+                        </View>
+                      )}
+                      <TouchableOpacity
+                        onPress={handlePickImage}
+                        style={[styles.pickImageButton, { backgroundColor: t.primary }]}
+                        activeOpacity={0.8}
+                      >
+                        <AppIcon name="camera" size={18} color="#FFFFFF" />
+                        <Text style={styles.pickImageText}>Chọn ảnh</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {!launchImageLibrary && (
+                      <TouchableOpacity
+                        onPress={() => setShowUrlInput(true)}
+                        style={styles.urlInputToggle}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.urlInputToggleText, { color: t.primary }]}>Hoặc nhập URL ảnh</Text>
+                      </TouchableOpacity>
+                    )}
+                    {editingAvatar && (
+                      <TouchableOpacity
+                        onPress={() => setEditingAvatar('')}
+                        style={styles.removeImageButton}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.removeImageText, { color: t.muted }]}>Xóa ảnh</Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                ) : (
+                  <View>
+                    <TextInput
+                      value={avatarUrl}
+                      onChangeText={setAvatarUrl}
+                      style={[styles.input, { backgroundColor: t.surface, borderColor: t.border, color: t.text }]}
+                      placeholder="Nhập URL ảnh"
+                      placeholderTextColor={t.muted}
+                      autoCapitalize="none"
+                      keyboardType="url"
+                    />
+                    <View style={styles.urlInputActions}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setShowUrlInput(false);
+                          setAvatarUrl('');
+                        }}
+                        style={[styles.urlActionButton, { borderColor: t.border }]}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.urlActionText, { color: t.muted }]}>Hủy</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={handleSaveUrl}
+                        style={[styles.urlActionButton, { backgroundColor: t.primary }]}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[styles.urlActionText, { color: '#FFFFFF' }]}>Lưu</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  onPress={handleCancelEdit}
+                  style={[styles.modalButton, styles.cancelButton, { borderColor: t.border }]}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.modalButtonText, { color: t.muted }]}>Hủy</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleSaveProfile}
+                  style={[styles.modalButton, styles.saveButton, { backgroundColor: t.primary }]}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Lưu</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
@@ -224,10 +486,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F7FA',
   },
+  scrollView: {
+    flex: 1,
+  },
   contentContainer: {
-    paddingTop: 64,
     paddingHorizontal: 16,
-    paddingBottom: 96,
   },
   profileHeader: {
     flexDirection: 'row',
@@ -237,7 +500,21 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
     borderColor: '#E5E7EB',
+  },
+  avatarWrapper: {
+    position: 'relative',
   },
   avatarContainer: {
     width: 64,
@@ -260,14 +537,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  editAvatarBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
   profileInfo: {
     flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
   },
   profileName: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#111827',
-    marginBottom: 4,
+    flex: 1,
+  },
+  editNameButton: {
+    padding: 4,
   },
   profileEmail: {
     fontSize: 14,
@@ -450,5 +748,144 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     color: '#2563EB',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderTopWidth: 1,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalBody: {
+    padding: 20,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    backgroundColor: '#F9FAFB',
+    borderColor: '#E5E7EB',
+  },
+  inputHint: {
+    fontSize: 12,
+    marginTop: 4,
+    color: '#6B7280',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  saveButton: {
+    backgroundColor: '#2563EB',
+  },
+  modalButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  avatarPreviewContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 8,
+  },
+  avatarPreview: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+  },
+  avatarPreviewPlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pickImageButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  pickImageText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  removeImageButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+  },
+  removeImageText: {
+    fontSize: 12,
+  },
+  urlInputToggle: {
+    marginTop: 8,
+    paddingVertical: 4,
+  },
+  urlInputToggleText: {
+    fontSize: 12,
+  },
+  urlInputActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+  },
+  urlActionButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  urlActionText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
