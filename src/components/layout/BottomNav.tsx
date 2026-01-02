@@ -39,7 +39,7 @@ export function BottomNav({ currentTab, onTabChange, cartCount = 0, theme = ligh
           activeOpacity={0.7}
         >
           <View style={styles.specialIconContainer}>
-            <AppIcon name="sparkles" size={28} color="#FFFFFF" />
+            <AppIcon name="message-circle" size={28} color="#FFFFFF" />
           </View>
           <Text style={[styles.specialLabel, isActive && styles.specialLabelActive]}>
             AI Chat
@@ -80,7 +80,7 @@ export function BottomNav({ currentTab, onTabChange, cartCount = 0, theme = ligh
     ]}>
       <TabButton tab="home" icon="home" label="Home" />
       <TabButton tab="catalog" icon="grid" label="Danh mục" />
-      <TabButton tab="ai" icon="sparkles" label="AI Chat" isSpecial />
+      <TabButton tab="ai" icon="message-circle" label="AI Chat" isSpecial />
       <TabButton tab="cart" icon="shopping-cart" label="Giỏ hàng" />
       <TabButton tab="profile" icon="user" label="Cá nhân" />
     </View>
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   specialButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -24,
+    marginTop: -12,
   },
   specialIconContainer: {
     width: 56,

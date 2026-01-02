@@ -20,6 +20,8 @@ const iconMap: Record<string, string> = {
   'home': 'home',
   'grid': 'view-grid',
   'sparkles': 'auto-fix',
+  'robot': 'robot',
+  'bot': 'robot',
   'shopping-cart': 'cart',
   'user': 'account',
   'search': 'magnify',

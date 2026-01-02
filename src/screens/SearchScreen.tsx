@@ -206,6 +206,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    backgroundColor: '#F5F7FA',
   },
   resultsContainer: {
     padding: 16,

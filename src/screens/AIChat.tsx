@@ -5,8 +5,9 @@ import { MOCK_CHATS, ChatMessage } from '../lib/data';
 import { MessageBubble } from '../components/ai/MessageBubble';
 import { TopBar } from '../components/layout/TopBar';
 import { AppIcon } from '../components/common/Icon';
+import { Theme, lightTheme } from '../lib/theme';
 
-export function AIChat() {
+export function AIChat({ theme = lightTheme }: { theme?: Theme }) {
   const [messages, setMessages] = useState<ChatMessage[]>(MOCK_CHATS);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -49,8 +50,8 @@ export function AIChat() {
   const suggestions = ["Tư vấn linh kiện Arduino", "Scan sơ đồ mạch", "Tìm thay thế cho chip ESP8266"];
 
   return (
-    <View style={styles.container}>
-      <TopBar title="AI Engineer Support" showSearch={false} />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <TopBar title="AI Engineer Support" showSearch={false} theme={theme} />
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
@@ -60,8 +61,8 @@ export function AIChat() {
         {/* Messages Area */}
         <ScrollView
           ref={scrollViewRef}
-          style={styles.messagesContainer}
-          contentContainerStyle={styles.messagesContent}
+          style={[styles.messagesContainer, { backgroundColor: theme.background }]}
+          contentContainerStyle={[styles.messagesContent, { backgroundColor: theme.background }]}
           showsVerticalScrollIndicator={false}
         >
           {messages.map((msg) => (
@@ -70,14 +71,17 @@ export function AIChat() {
 
           {isTyping && (
             <View style={styles.typingIndicator}>
-              <AppIcon name="sparkles" size={12} color="#9CA3AF" />
-              <Text style={styles.typingText}>AI đang phân tích...</Text>
+              <AppIcon name="sparkles" size={12} color={theme.muted} />
+              <Text style={[styles.typingText, { color: theme.muted }]}>AI đang phân tích...</Text>
             </View>
           )}
         </ScrollView>
 
         {/* Input Area */}
-        <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 16) + 80 }]}>
+        <View style={[
+          styles.inputContainer,
+          { paddingBottom: Math.max(insets.bottom, 16) + 80, backgroundColor: theme.surface, borderTopColor: theme.border }
+        ]}>
           {/* Suggestion Chips */}
           {messages.length < 3 && (
             <ScrollView
@@ -90,10 +94,10 @@ export function AIChat() {
                 <TouchableOpacity
                   key={suggestion}
                   onPress={() => setInputValue(suggestion)}
-                  style={styles.suggestionChip}
+                  style={[styles.suggestionChip, { backgroundColor: theme.background, borderColor: theme.border }]}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.suggestionText}>{suggestion}</Text>
+                  <Text style={[styles.suggestionText, { color: theme.text }]}>{suggestion}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -101,15 +105,15 @@ export function AIChat() {
 
           <View style={styles.inputWrapper}>
             <TouchableOpacity style={styles.inputButton} activeOpacity={0.7}>
-              <AppIcon name="file-upload" size={20} color="#9CA3AF" />
+              <AppIcon name="file-upload" size={20} color={theme.muted} />
             </TouchableOpacity>
 
             <TextInput
               value={inputValue}
               onChangeText={setInputValue}
               placeholder="Hỏi AI hoặc tải lên hình ảnh..."
-              style={styles.input}
-              placeholderTextColor="#9CA3AF"
+              style={[styles.input, { color: theme.text }]}
+              placeholderTextColor={theme.muted}
               multiline
               maxLength={500}
             />
@@ -124,7 +128,7 @@ export function AIChat() {
               </TouchableOpacity>
             ) : (
               <TouchableOpacity style={styles.inputButton} activeOpacity={0.7}>
-                <AppIcon name="mic" size={20} color="#9CA3AF" />
+                <AppIcon name="mic" size={20} color={theme.muted} />
               </TouchableOpacity>
             )}
           </View>
@@ -180,6 +184,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     borderRadius: 16,
     marginRight: 8,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   suggestionText: {
     fontSize: 12,

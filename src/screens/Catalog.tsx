@@ -3,13 +3,15 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, FlatLi
 import { CATEGORIES, PRODUCTS, Product } from '../lib/data';
 import { ProductCard } from '../components/ui/ProductCard';
 import { AppIcon } from '../components/common/Icon';
+import { Theme, lightTheme } from '../lib/theme';
 
 interface CatalogProps {
   onProductClick?: (product: Product) => void;
   onFilterClick?: () => void;
+  theme?: Theme;
 }
 
-export function Catalog({ onProductClick, onFilterClick }: CatalogProps) {
+export function Catalog({ onProductClick, onFilterClick, theme = lightTheme }: CatalogProps) {
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -22,24 +24,27 @@ export function Catalog({ onProductClick, onFilterClick }: CatalogProps) {
   const categories = ['All', ...CATEGORIES.map(c => c.name)];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Search Header */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <AppIcon name="search" size={18} color="#9CA3AF" style={styles.searchIcon} />
+      <View style={[styles.searchContainer, { backgroundColor: theme.background }]}>
+        <View style={[
+          styles.searchInputContainer,
+          { backgroundColor: theme.surface, shadowOpacity: theme === lightTheme ? 0.05 : 0, borderColor: theme.border, borderWidth: theme === lightTheme ? 0 : 1 }
+        ]}>
+          <AppIcon name="search" size={18} color={theme.muted} style={styles.searchIcon} />
           <TextInput
             placeholder="Tìm kiếm linh kiện..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            style={styles.searchInput}
-            placeholderTextColor="#9CA3AF"
+            style={[styles.searchInput, { color: theme.text }]}
+            placeholderTextColor={theme.muted}
           />
           <TouchableOpacity
             onPress={onFilterClick}
-            style={styles.filterButton}
+            style={[styles.filterButton, { backgroundColor: theme.background, borderColor: theme.border, borderWidth: theme === lightTheme ? 0 : 1 }]}
             activeOpacity={0.7}
           >
-            <AppIcon name="sliders-horizontal" size={16} color="#9CA3AF" />
+            <AppIcon name="sliders-horizontal" size={16} color={theme.muted} />
           </TouchableOpacity>
         </View>
       </View>
@@ -59,13 +64,16 @@ export function Catalog({ onProductClick, onFilterClick }: CatalogProps) {
               onPress={() => setActiveCategory(cat)}
               style={[
                 styles.categoryTab,
-                isActive && styles.categoryTabActive
+                {
+                  backgroundColor: isActive ? theme.text : theme.surface,
+                  borderColor: isActive ? theme.text : theme.border,
+                }
               ]}
               activeOpacity={0.7}
             >
               <Text style={[
                 styles.categoryTabText,
-                isActive && styles.categoryTabTextActive
+                { color: isActive ? theme.surface : theme.muted }
               ]}>
                 {cat === 'All' ? 'Tất cả' : cat}
               </Text>
@@ -76,7 +84,7 @@ export function Catalog({ onProductClick, onFilterClick }: CatalogProps) {
 
       {/* Product Grid */}
       <View style={styles.productsContainer}>
-        <Text style={styles.productsCount}>{filteredProducts.length} sản phẩm</Text>
+        <Text style={[styles.productsCount, { color: theme.muted }]}>{filteredProducts.length} sản phẩm</Text>
         {filteredProducts.length > 0 ? (
           <FlatList
             data={filteredProducts}
@@ -85,6 +93,7 @@ export function Catalog({ onProductClick, onFilterClick }: CatalogProps) {
             renderItem={({ item }) => (
               <ProductCard
                 product={item}
+                theme={theme}
                 onPress={() => onProductClick?.(item)}
               />
             )}
@@ -160,17 +169,10 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
     marginRight: 8,
   },
-  categoryTabActive: {
-    backgroundColor: '#111827',
-    borderColor: '#111827',
-  },
   categoryTabText: {
     fontSize: 14,
     fontWeight: '500',
     color: '#4B5563',
-  },
-  categoryTabTextActive: {
-    color: '#FFFFFF',
   },
   productsContainer: {
     flex: 1,

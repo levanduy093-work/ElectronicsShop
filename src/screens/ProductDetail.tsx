@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Share } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Share, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Product } from '../lib/data';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
@@ -25,9 +25,12 @@ export function ProductDetail({
   isLoggedIn,
   onRequireLogin,
 }: ProductDetailProps) {
+  const { width } = Dimensions.get('window');
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'desc' | 'specs' | 'reviews' | 'datasheet'>('desc');
   const insets = useSafeAreaInsets();
+  const [expandedReviews, setExpandedReviews] = useState<Record<string, boolean>>({});
+  const reviewImageSize = (width - 16 * 2 - 8 * 3) / 4; // content padding 16, gap 8
 
   const handleShare = async () => {
     try {
@@ -61,7 +64,12 @@ export function ProductDetail({
       rating: 5,
       date: '20/01/2026',
       comment: 'Sản phẩm chính hãng, đóng gói rất cẩn thận. Shop tư vấn nhiệt tình, sẽ ủng hộ dài dài.',
-      image: 'https://images.unsplash.com/photo-1581093588401-99f9c5ae695a?auto=format&fit=crop&q=80&w=300',
+      images: [
+        'https://images.unsplash.com/photo-1581093588401-99f9c5ae695a?auto=format&fit=crop&q=80&w=300',
+        'https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b?auto=format&fit=crop&q=80&w=300',
+        'https://images.unsplash.com/photo-1581093588401-99f9c5ae695a?auto=format&fit=crop&q=80&w=300',
+        'https://images.unsplash.com/photo-1581091015181-8a0b24f4c82c?auto=format&fit=crop&q=80&w=300',
+      ],
     },
     {
       id: 'r2',
@@ -69,7 +77,14 @@ export function ProductDetail({
       rating: 4,
       date: '18/01/2026',
       comment: 'Giao hàng hơi chậm một chút nhưng chất lượng sản phẩm tốt, đúng mô tả.',
-      image: '',
+      images: [
+        'https://images.unsplash.com/photo-1470246973918-29a93221c455?auto=format&fit=crop&q=80&w=300',
+        'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=300',
+        'https://images.unsplash.com/photo-1581092334318-3a79a6f6cf1a?auto=format&fit=crop&q=80&w=300',
+        'https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&q=80&w=300',
+        'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&q=80&w=300',
+        'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&q=80&w=300',
+      ],
     },
     {
       id: 'r3',
@@ -77,7 +92,11 @@ export function ProductDetail({
       rating: 5,
       date: '15/01/2026',
       comment: 'Đã test chạy ổn định, hiệu năng tốt. Sẽ quay lại mua thêm linh kiện.',
-      image: '',
+      images: [
+        'https://images.unsplash.com/photo-1593642532871-8b12e02d091c?auto=format&fit=crop&q=80&w=300',
+        'https://images.unsplash.com/photo-1581091012184-5c1e4b29db5c?auto=format&fit=crop&q=80&w=300',
+        'https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&q=80&w=300',
+      ],
     },
   ];
 
@@ -248,13 +267,48 @@ export function ProductDetail({
                       <Text style={styles.reviewDate}>{r.date}</Text>
                     </View>
                     <Text style={styles.reviewComment}>{r.comment}</Text>
-                    {r.image ? (
-                      <ImageWithFallback
-                        source={{ uri: r.image }}
-                        style={styles.reviewImage}
-                        resizeMode="cover"
-                      />
-                    ) : null}
+                    {r.images && r.images.length > 0 && (
+                      <View style={styles.reviewImagesRow}>
+                        {r.images
+                          .slice(0, expandedReviews[r.id] ? r.images.length : 4)
+                          .map((img, idx) => {
+                            const extra = r.images.length - 4;
+                            const showOverlay = !expandedReviews[r.id] && idx === 3 && extra > 0;
+                            const Wrapper = showOverlay ? TouchableOpacity : View;
+                            return (
+                              <Wrapper
+                                key={img + idx}
+                                style={[
+                                  styles.reviewImageWrapper,
+                                  {
+                                    width: reviewImageSize,
+                                    height: reviewImageSize,
+                                    marginRight: (idx + 1) % 4 === 0 ? 0 : 8,
+                                    marginBottom: 8,
+                                  },
+                                ]}
+                                activeOpacity={0.8}
+                                onPress={
+                                  showOverlay
+                                    ? () => setExpandedReviews(prev => ({ ...prev, [r.id]: true }))
+                                    : undefined
+                                }
+                              >
+                                <ImageWithFallback
+                                  source={{ uri: img }}
+                                  style={styles.reviewImage}
+                                  resizeMode="cover"
+                                />
+                                {showOverlay && (
+                                  <View style={styles.reviewImageOverlay}>
+                                    <Text style={styles.reviewImageOverlayText}>+{extra}</Text>
+                                  </View>
+                                )}
+                              </Wrapper>
+                            );
+                          })}
+                      </View>
+                    )}
                   </View>
                 ))}
               </View>
@@ -616,12 +670,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-  reviewImage: {
+  reviewImagesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     marginTop: 8,
+  },
+  reviewImageWrapper: {
     borderRadius: 12,
-    width: '100%',
-    height: 140,
+    overflow: 'hidden',
     backgroundColor: '#F3F4F6',
+    position: 'relative',
+  },
+  reviewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  reviewImageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reviewImageOverlayText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
   },
   datasheetContainer: {
     gap: 12,
