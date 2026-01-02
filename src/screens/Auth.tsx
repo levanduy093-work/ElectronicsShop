@@ -139,7 +139,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
 
   if (isVerifyingEmail) {
     return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <ScrollView style={[styles.container, { backgroundColor: t.background }]} contentContainerStyle={styles.contentContainer}>
         <TouchableOpacity
           onPress={() => {
             setIsVerifyingEmail(false);
@@ -148,19 +148,19 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <AppIcon name="arrow-left" size={24} color="#6B7280" />
+          <AppIcon name="arrow-left" size={24} color={t.muted} />
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <Text style={styles.title}>Xác nhận email</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: t.text }]}>Xác nhận email</Text>
+          <Text style={[styles.subtitle, { color: t.muted }]}>
             Chúng tôi đã gửi mã xác nhận đến địa chỉ email{'\n'}
-            <Text style={styles.emailHighlight}>{email}</Text>
+            <Text style={[styles.emailHighlight, { color: t.primary }]}>{email}</Text>
           </Text>
         </View>
 
         <View style={styles.verificationContainer}>
-          <Text style={styles.verificationLabel}>Nhập mã xác nhận</Text>
+          <Text style={[styles.verificationLabel, { color: t.text }]}>Nhập mã xác nhận</Text>
           <View style={styles.codeInputContainer}>
             {verificationCode.map((digit, index) => (
               <TextInput
@@ -168,7 +168,14 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
                 ref={(ref) => {
                   codeInputRefs.current[index] = ref;
                 }}
-                style={styles.codeInput}
+                style={[
+                  styles.codeInput,
+                  {
+                    backgroundColor: t.surface,
+                    borderColor: t.border,
+                    color: t.text,
+                  },
+                ]}
                 value={digit}
                 onChangeText={(value) => handleVerificationCodeChange(index, value)}
                 onKeyPress={({ nativeEvent }) => {
@@ -189,12 +196,12 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
             style={styles.resendButton}
             activeOpacity={0.7}
           >
-            <Text style={styles.resendText}>Gửi lại mã</Text>
+            <Text style={[styles.resendText, { color: t.primary }]}>Gửi lại mã</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleVerifyCode}
-            style={styles.primaryButton}
+            style={[styles.primaryButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
             activeOpacity={0.8}
           >
             <Text style={styles.primaryButtonText}>Xác nhận</Text>
@@ -206,7 +213,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
 
   if (isForgotPassword) {
     return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <ScrollView style={[styles.container, { backgroundColor: t.background }]} contentContainerStyle={styles.contentContainer}>
         <TouchableOpacity
           onPress={() => {
             setIsForgotPassword(false);
@@ -215,12 +222,12 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <AppIcon name="arrow-left" size={24} color="#6B7280" />
+          <AppIcon name="arrow-left" size={24} color={t.muted} />
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <Text style={styles.title}>Quên mật khẩu?</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: t.text }]}>Quên mật khẩu?</Text>
+          <Text style={[styles.subtitle, { color: t.muted }]}>
             {resetEmailSent
               ? "Vui lòng kiểm tra email của bạn."
               : "Đừng lo, chúng tôi sẽ giúp bạn lấy lại mật khẩu."}
@@ -230,15 +237,15 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
         {resetEmailSent ? (
           <View style={styles.successContainer}>
             <View style={styles.successIcon}>
-              <AppIcon name="check-circle" size={40} color="#10B981" />
+              <AppIcon name="check-circle" size={40} color={t.primary} />
             </View>
-            <Text style={styles.successTitle}>Đã gửi email!</Text>
-            <Text style={styles.successText}>
+            <Text style={[styles.successTitle, { color: t.text }]}>Đã gửi email!</Text>
+            <Text style={[styles.successText, { color: t.muted }]}>
               Chúng tôi đã gửi hướng dẫn đặt lại mật khẩu đến địa chỉ email bạn cung cấp.
             </Text>
             <TouchableOpacity
               onPress={() => setIsForgotPassword(false)}
-              style={[styles.primaryButton, styles.primaryButtonLarge]}
+              style={[styles.primaryButton, styles.primaryButtonLarge, { backgroundColor: t.primary, shadowColor: t.primary }]}
               activeOpacity={0.8}
             >
               <Text style={styles.primaryButtonText}>Quay lại đăng nhập</Text>
@@ -247,23 +254,24 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
         ) : (
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email</Text>
-              <View style={styles.inputContainer}>
-                <AppIcon name="mail" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              <Text style={[styles.label, { color: t.text }]}>Email</Text>
+              <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
+                <AppIcon name="mail" size={20} color={t.muted} style={styles.inputIcon} />
                 <TextInput
                   placeholder="example@email.com"
                   value={email}
                   onChangeText={setEmail}
-                  style={styles.input}
+                  style={[styles.input, { color: t.text }]}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  placeholderTextColor={t.muted}
                 />
               </View>
             </View>
 
             <TouchableOpacity
               onPress={handleResetPassword}
-              style={styles.primaryButton}
+              style={[styles.primaryButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
               activeOpacity={0.8}
             >
               <Text style={styles.primaryButtonText}>Gửi hướng dẫn</Text>
@@ -275,10 +283,10 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView style={[styles.container, { backgroundColor: t.background }]} contentContainerStyle={styles.contentContainer}>
       <View style={styles.header}>
-        <Text style={styles.brandTitle}>ElectroAI</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.brandTitle, { color: t.primary }]}>ElectroAI</Text>
+        <Text style={[styles.subtitle, { color: t.muted }]}>
           {isRegister ? "Tạo tài khoản mới" : "Chào mừng trở lại!"}
         </Text>
       </View>
@@ -286,54 +294,57 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
       <View style={styles.form}>
         {isRegister && (
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Họ và tên</Text>
-            <View style={styles.inputContainer}>
-              <AppIcon name="user" size={20} color="#9CA3AF" style={styles.inputIcon} />
+            <Text style={[styles.label, { color: t.text }]}>Họ và tên</Text>
+            <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
+              <AppIcon name="user" size={20} color={t.muted} style={styles.inputIcon} />
               <TextInput
                 placeholder="Nhập họ tên"
                 value={name}
                 onChangeText={setName}
-                style={styles.input}
+                style={[styles.input, { color: t.text }]}
+                placeholderTextColor={t.muted}
               />
             </View>
           </View>
         )}
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Email</Text>
-          <View style={styles.inputContainer}>
-            <AppIcon name="mail" size={20} color="#9CA3AF" style={styles.inputIcon} />
+          <Text style={[styles.label, { color: t.text }]}>Email</Text>
+          <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
+            <AppIcon name="mail" size={20} color={t.muted} style={styles.inputIcon} />
             <TextInput
               placeholder="example@email.com"
               value={email}
               onChangeText={setEmail}
-              style={styles.input}
+              style={[styles.input, { color: t.text }]}
               keyboardType="email-address"
               autoCapitalize="none"
+              placeholderTextColor={t.muted}
             />
           </View>
         </View>
 
         <View style={styles.inputGroup}>
           <View style={styles.labelRow}>
-            <Text style={styles.label}>Mật khẩu</Text>
+            <Text style={[styles.label, { color: t.text }]}>Mật khẩu</Text>
             {!isRegister && (
               <TouchableOpacity
                 onPress={() => setIsForgotPassword(true)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.forgotPassword}>Quên mật khẩu?</Text>
+                <Text style={[styles.forgotPassword, { color: t.primary }]}>Quên mật khẩu?</Text>
               </TouchableOpacity>
             )}
           </View>
-          <View style={styles.inputContainer}>
-            <AppIcon name="lock" size={20} color="#9CA3AF" style={styles.inputIcon} />
+          <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
+            <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
             <TextInput
               placeholder="••••••••"
               value={password}
               onChangeText={setPassword}
-              style={styles.input}
+              style={[styles.input, { color: t.text }]}
               secureTextEntry={!showPassword}
+              placeholderTextColor={t.muted}
             />
             <TouchableOpacity
               onPress={() => setShowPassword(!showPassword)}
@@ -343,7 +354,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
               <AppIcon 
                 name={showPassword ? "eye-off" : "eye"} 
                 size={20} 
-                color="#9CA3AF" 
+                color={t.muted} 
               />
             </TouchableOpacity>
           </View>
@@ -351,7 +362,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
 
         <TouchableOpacity
           onPress={handleSubmit}
-          style={styles.primaryButton}
+          style={[styles.primaryButton, { backgroundColor: t.primary }]}
           activeOpacity={0.8}
         >
           <Text style={styles.primaryButtonText}>
@@ -359,27 +370,27 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
           </Text>
         </TouchableOpacity>
 
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>Hoặc tiếp tục với</Text>
-          <View style={styles.dividerLine} />
+        <View style={[styles.divider, { borderBottomColor: t.border }]}>
+          <View style={[styles.dividerLine, { backgroundColor: t.border }]} />
+          <Text style={[styles.dividerText, { color: t.muted, backgroundColor: t.background }]}>Hoặc tiếp tục với</Text>
+          <View style={[styles.dividerLine, { backgroundColor: t.border }]} />
         </View>
 
-        <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
+        <TouchableOpacity style={[styles.socialButton, { backgroundColor: t.surface, borderColor: t.border }]} activeOpacity={0.7}>
           <GoogleIcon size={20} />
-          <Text style={styles.socialButtonText}>Đăng nhập với Google</Text>
+          <Text style={[styles.socialButtonText, { color: t.text }]}>Đăng nhập với Google</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>
+        <Text style={[styles.footerText, { color: t.muted }]}>
           {isRegister ? "Đã có tài khoản? " : "Chưa có tài khoản? "}
         </Text>
         <TouchableOpacity
           onPress={() => setIsRegister(!isRegister)}
           activeOpacity={0.7}
         >
-          <Text style={styles.footerLink}>
+          <Text style={[styles.footerLink, { color: t.primary }]}>
             {isRegister ? "Đăng nhập" : "Đăng ký ngay"}
           </Text>
         </TouchableOpacity>

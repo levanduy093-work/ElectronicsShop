@@ -103,7 +103,13 @@ export function AIChat({ theme = lightTheme }: { theme?: Theme }) {
             </ScrollView>
           )}
 
-          <View style={styles.inputWrapper}>
+          <View style={[
+            styles.inputWrapper,
+            {
+              backgroundColor: theme.surface,
+              borderColor: theme.border,
+            }
+          ]}>
             <TouchableOpacity style={styles.inputButton} activeOpacity={0.7}>
               <AppIcon name="file-upload" size={20} color={theme.muted} />
             </TouchableOpacity>
@@ -121,7 +127,7 @@ export function AIChat({ theme = lightTheme }: { theme?: Theme }) {
             {inputValue.trim() ? (
               <TouchableOpacity
                 onPress={handleSend}
-                style={styles.sendButton}
+                style={[styles.sendButton, { backgroundColor: theme.primary }]}
                 activeOpacity={0.8}
               >
                 <AppIcon name="send" size={18} color="#FFFFFF" />

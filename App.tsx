@@ -155,7 +155,7 @@ function App(): React.JSX.Element {
           />
         );
       case 'profile':
-        if (!isLoggedIn) return <Auth onBack={() => handleTabChange('home')} onLoginSuccess={handleLoginSuccess} />;
+        if (!isLoggedIn) return <Auth onBack={() => handleTabChange('home')} onLoginSuccess={handleLoginSuccess} theme={theme} />;
         return (
           <Profile
             onNavigateToOrders={navigateToOrderHistory}

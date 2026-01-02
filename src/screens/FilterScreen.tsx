@@ -4,13 +4,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CATEGORIES } from '../lib/data';
 import { AppIcon } from '../components/common/Icon';
 import { formatPrice } from '../lib/utils';
+import { Theme, lightTheme, useTheme } from '../lib/theme';
 
 interface FilterScreenProps {
   onClose: () => void;
   onApply: (filters: any) => void;
+  theme?: Theme;
 }
 
-export function FilterScreen({ onClose, onApply }: FilterScreenProps) {
+export function FilterScreen({ onClose, onApply, theme }: FilterScreenProps) {
+  const { theme: ctxTheme } = useTheme();
+  const t = theme || ctxTheme || lightTheme;
   const insets = useSafeAreaInsets();
   const PRICE_MIN = 0;
   const PRICE_MAX = 10000000;
@@ -78,30 +82,30 @@ export function FilterScreen({ onClose, onApply }: FilterScreenProps) {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
+    <View style={[styles.container, { backgroundColor: t.background }]}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 12), backgroundColor: t.surface, borderBottomColor: t.border }]}>
         <TouchableOpacity onPress={onClose} style={styles.closeButton} activeOpacity={0.7}>
-          <AppIcon name="close" size={24} color="#374151" />
+          <AppIcon name="close" size={24} color={t.muted} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Bộ lọc tìm kiếm</Text>
+        <Text style={[styles.headerTitle, { color: t.text }]}>Bộ lọc tìm kiếm</Text>
         <TouchableOpacity onPress={handleReset} activeOpacity={0.7}>
-          <Text style={styles.resetText}>Thiết lập lại</Text>
+          <Text style={[styles.resetText, { color: t.primary }]}>Thiết lập lại</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={[styles.content, { backgroundColor: t.background }]} showsVerticalScrollIndicator={false}>
         {/* Price Range */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Khoảng giá</Text>
+          <Text style={[styles.sectionTitle, { color: t.muted }]}>Khoảng giá</Text>
           <View style={styles.priceContainer}>
-            <View style={styles.priceInput}>
-              <Text style={styles.priceLabel}>Tối thiểu</Text>
-              <Text style={styles.priceValue}>{formatPrice(priceRange[0])}</Text>
+            <View style={[styles.priceInput, { backgroundColor: t.surface, borderColor: t.border }]}>
+              <Text style={[styles.priceLabel, { color: t.muted }]}>Tối thiểu</Text>
+              <Text style={[styles.priceValue, { color: t.text }]}>{formatPrice(priceRange[0])}</Text>
             </View>
             <View style={styles.priceDivider} />
-            <View style={styles.priceInput}>
-              <Text style={styles.priceLabel}>Tối đa</Text>
-              <Text style={styles.priceValue}>{formatPrice(priceRange[1])}</Text>
+            <View style={[styles.priceInput, { backgroundColor: t.surface, borderColor: t.border }]}>
+              <Text style={[styles.priceLabel, { color: t.muted }]}>Tối đa</Text>
+              <Text style={[styles.priceValue, { color: t.text }]}>{formatPrice(priceRange[1])}</Text>
             </View>
           </View>
           <View
@@ -113,20 +117,21 @@ export function FilterScreen({ onClose, onApply }: FilterScreenProps) {
             onResponderMove={(e) => updatePriceByPosition(e.nativeEvent.locationX)}
             onResponderRelease={(e) => updatePriceByPosition(e.nativeEvent.locationX)}
           >
-            <View style={styles.sliderTrack}>
+            <View style={[styles.sliderTrack, { backgroundColor: t.border }]}>
               <View
                 style={[
                   styles.sliderFill,
                   {
                     left: `${valueToPercent(priceRange[0])}%`,
                     width: `${valueToPercent(priceRange[1] - priceRange[0])}%`,
+                    backgroundColor: t.primary,
                   },
                 ]}
               />
               <View
                 style={[
                   styles.sliderThumb,
-                  { left: `${valueToPercent(priceRange[0])}%` },
+                  { left: `${valueToPercent(priceRange[0])}%`, backgroundColor: t.primary },
                 ]}
                 onStartShouldSetResponder={() => true}
                 onMoveShouldSetResponder={() => true}
@@ -137,7 +142,7 @@ export function FilterScreen({ onClose, onApply }: FilterScreenProps) {
               <View
                 style={[
                   styles.sliderThumb,
-                  { left: `${valueToPercent(priceRange[1])}%` },
+                  { left: `${valueToPercent(priceRange[1])}%`, backgroundColor: t.primary },
                 ]}
                 onStartShouldSetResponder={() => true}
                 onMoveShouldSetResponder={() => true}
@@ -155,7 +160,7 @@ export function FilterScreen({ onClose, onApply }: FilterScreenProps) {
 
         {/* Categories */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Danh mục</Text>
+          <Text style={[styles.sectionTitle, { color: t.muted }]}>Danh mục</Text>
           <View style={styles.categoriesContainer}>
             {CATEGORIES.map((cat) => {
               const isSelected = selectedCategories.includes(cat.name);
@@ -183,7 +188,7 @@ export function FilterScreen({ onClose, onApply }: FilterScreenProps) {
 
         {/* Rating */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Đánh giá</Text>
+          <Text style={[styles.sectionTitle, { color: t.muted }]}>Đánh giá</Text>
           <View style={styles.ratingContainer}>
             {[5, 4, 3].map((star) => (
               <TouchableOpacity
@@ -195,6 +200,7 @@ export function FilterScreen({ onClose, onApply }: FilterScreenProps) {
                 <View style={[
                   styles.checkbox,
                   rating === star && styles.checkboxSelected,
+                  { borderColor: rating === star ? t.primary : t.border, backgroundColor: rating === star ? t.primary : 'transparent' },
                 ]}>
                   {rating === star && <AppIcon name="check" size={12} color="#FFFFFF" />}
                 </View>
@@ -204,10 +210,10 @@ export function FilterScreen({ onClose, onApply }: FilterScreenProps) {
                       key={i}
                       name="star"
                       size={16}
-                      color={i < star ? "#FBBF24" : "#D1D5DB"}
+                      color={i < star ? "#FBBF24" : t.border}
                     />
                   ))}
-                  <Text style={styles.ratingText}>trở lên</Text>
+                  <Text style={[styles.ratingText, { color: t.text }]}>trở lên</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -216,24 +222,24 @@ export function FilterScreen({ onClose, onApply }: FilterScreenProps) {
 
         {/* Other Options */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Khác</Text>
+          <Text style={[styles.sectionTitle, { color: t.muted }]}>Khác</Text>
           <View style={styles.switchContainer}>
-            <Text style={styles.switchLabel}>Chỉ hiện sản phẩm còn hàng</Text>
+            <Text style={[styles.switchLabel, { color: t.text }]}>Chỉ hiện sản phẩm còn hàng</Text>
             <Switch
               value={onlyInStock}
               onValueChange={setOnlyInStock}
-              trackColor={{ false: '#E5E7EB', true: '#2563EB' }}
-              thumbColor="#FFFFFF"
+              trackColor={{ false: t.border, true: t.primary }}
+              thumbColor={t.surface}
             />
           </View>
         </View>
       </ScrollView>
 
       {/* Footer */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { backgroundColor: t.surface, borderTopColor: t.border }]}>
         <TouchableOpacity
           onPress={handleApply}
-          style={styles.applyButton}
+          style={[styles.applyButton, { backgroundColor: t.primary }]}
           activeOpacity={0.8}
         >
           <Text style={styles.applyButtonText}>Áp dụng (12 kết quả)</Text>

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ChatMessage } from '../../lib/data';
 import { AppIcon } from '../common/Icon';
+import { useTheme, lightTheme } from '../../lib/theme';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -9,13 +10,15 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user';
+  const { theme } = useTheme();
+  const isDark = theme !== lightTheme;
 
   return (
     <View style={[styles.container, isUser && styles.containerUser]}>
       <View style={[styles.contentWrapper, isUser && styles.contentWrapperUser]}>
         {/* Avatar */}
         {!isUser && (
-          <View style={styles.avatar}>
+          <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
             <AppIcon name="sparkles" size={16} color="#FFFFFF" />
           </View>
         )}
@@ -24,11 +27,13 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         <View style={styles.content}>
           <View style={[
             styles.bubble,
-            isUser ? styles.bubbleUser : styles.bubbleAI,
+            isUser
+              ? [styles.bubbleUser, { backgroundColor: isDark ? '#3B4A5C' : theme.primary }]
+              : [styles.bubbleAI, { backgroundColor: isDark ? '#1F2933' : '#FFFFFF', borderColor: isDark ? '#2F3A44' : '#F3F4F6' }],
           ]}>
             <Text style={[
               styles.messageText,
-              isUser && styles.messageTextUser,
+              { color: isUser ? '#FFFFFF' : isDark ? '#E5E7EB' : '#111827' },
             ]}>
               {message.content}
             </Text>
@@ -37,11 +42,11 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           {/* Metadata for AI */}
           {!isUser && (
             <View style={styles.metadata}>
-              <Text style={styles.timestamp}>
+              <Text style={[styles.timestamp, { color: isDark ? '#9CA3AF' : '#9CA3AF' }]}>
                 {message.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
               </Text>
               <TouchableOpacity activeOpacity={0.7}>
-                <AppIcon name="copy" size={12} color="#9CA3AF" />
+                <AppIcon name="copy" size={12} color={isDark ? '#9CA3AF' : '#9CA3AF'} />
               </TouchableOpacity>
             </View>
           )}

@@ -2,31 +2,42 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
+import { Theme, lightTheme, useTheme } from '../lib/theme';
 
 interface OrderHistoryProps {
   onBack: () => void;
   onViewDetail?: (orderId: string) => void;
+  theme?: Theme;
 }
 
-export function OrderHistory({ onBack, onViewDetail }: OrderHistoryProps) {
+export function OrderHistory({ onBack, onViewDetail, theme }: OrderHistoryProps) {
   const insets = useSafeAreaInsets();
+  const { theme: ctxTheme, isDarkMode } = useTheme();
+  const t = theme || ctxTheme || lightTheme;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: t.background }]}>
       <StatusBar 
-        barStyle="dark-content" 
-        backgroundColor="transparent"
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
+        backgroundColor={t.surface}
         translucent={true}
       />
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 0) }]}>
+      <View style={[
+        styles.header,
+        {
+          paddingTop: Math.max(insets.top, 0),
+          backgroundColor: t.surface,
+          borderBottomColor: t.border,
+        }
+      ]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
-          <AppIcon name="arrow-left" size={24} color="#374151" />
+          <AppIcon name="arrow-left" size={24} color={t.muted} />
         </TouchableOpacity>
-        <Text style={styles.title}>Đơn hàng của tôi</Text>
+        <Text style={[styles.title, { color: t.text }]}>Đơn hàng của tôi</Text>
         <View style={styles.placeholder} />
       </View>
-      <View style={styles.content}>
-        <Text style={styles.text}>Order History Screen</Text>
+      <View style={[styles.content, { backgroundColor: t.background }]}>
+        <Text style={[styles.text, { color: t.muted }]}>Order History Screen</Text>
       </View>
     </View>
   );
@@ -35,7 +46,6 @@ export function OrderHistory({ onBack, onViewDetail }: OrderHistoryProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
   },
   header: {
     flexDirection: 'row',
@@ -43,9 +53,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -64,7 +72,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#111827',
     flex: 1,
     marginLeft: 8,
   },
@@ -78,6 +85,5 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 18,
-    color: '#111827',
   },
 });

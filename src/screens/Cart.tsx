@@ -4,6 +4,7 @@ import { CartItem, AVAILABLE_VOUCHERS, Voucher } from '../lib/data';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
 import { formatPrice } from '../lib/utils';
+import { Theme, lightTheme, useTheme } from '../lib/theme';
 
 interface CartProps {
   onCheckout?: () => void;
@@ -11,12 +12,18 @@ interface CartProps {
   onUpdateQuantity: (id: string, delta: number) => void;
   onRemoveItem: (id: string) => void;
   onExplore?: () => void;
+  theme?: Theme;
 }
 
-export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExplore }: CartProps) {
+export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExplore, theme }: CartProps) {
+  const { theme: ctxTheme } = useTheme();
+  const t = theme || ctxTheme || lightTheme;
   const [voucherCode, setVoucherCode] = useState('');
   const [showVoucherList, setShowVoucherList] = useState(false);
   const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
+  const accentBg = t === lightTheme ? 'rgba(37,99,235,0.1)' : 'rgba(255,255,255,0.08)';
+  const accentBorder = t === lightTheme ? '#2563EB' : t.primary;
+  const overlayBg = t === lightTheme ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.7)';
 
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shipping = 30000;
@@ -49,15 +56,15 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
 
   if (items.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <View style={styles.emptyIcon}>
-          <AppIcon name="shopping-cart" size={32} color="#9CA3AF" />
+      <View style={[styles.emptyContainer, { backgroundColor: t.background }]}>
+        <View style={[styles.emptyIcon, { backgroundColor: t.surface }]}>
+          <AppIcon name="shopping-cart" size={32} color={t.muted} />
         </View>
-        <Text style={styles.emptyTitle}>Giỏ hàng trống</Text>
-        <Text style={styles.emptyText}>Bạn chưa thêm sản phẩm nào vào giỏ hàng.</Text>
+        <Text style={[styles.emptyTitle, { color: t.text }]}>Giỏ hàng trống</Text>
+        <Text style={[styles.emptyText, { color: t.muted }]}>Bạn chưa thêm sản phẩm nào vào giỏ hàng.</Text>
         <TouchableOpacity
           onPress={onExplore}
-          style={styles.exploreButton}
+          style={[styles.exploreButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
           activeOpacity={0.8}
         >
           <Text style={styles.exploreButtonText}>Khám phá sản phẩm</Text>
@@ -67,17 +74,17 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: t.background }]}>
       <ScrollView 
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { backgroundColor: t.background }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Giỏ hàng ({items.length})</Text>
+        <Text style={[styles.title, { color: t.text }]}>Giỏ hàng ({items.length})</Text>
         
         <View style={styles.itemsContainer}>
           {items.map((item) => (
-            <View key={item.id} style={styles.itemCard}>
+            <View key={item.id} style={[styles.itemCard, { backgroundColor: t.card, borderColor: t.border, shadowOpacity: t === lightTheme ? 0.05 : 0, elevation: t === lightTheme ? 2 : 0 }]}>
               <ImageWithFallback
                 source={{ uri: item.image }}
                 style={styles.itemImage}
@@ -86,35 +93,35 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
               
               <View style={styles.itemContent}>
                 <View style={styles.itemHeader}>
-                  <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
+                  <Text style={[styles.itemName, { color: t.text }]} numberOfLines={2}>{item.name}</Text>
                   <TouchableOpacity
                     onPress={() => onRemoveItem(item.id)}
                     style={styles.removeButton}
                     activeOpacity={0.7}
                   >
-                    <AppIcon name="trash" size={16} color="#9CA3AF" />
+                    <AppIcon name="trash" size={16} color={t.muted} />
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.itemCategory}>{item.category}</Text>
+                <Text style={[styles.itemCategory, { color: t.muted }]}>{item.category}</Text>
                 
                 <View style={styles.itemFooter}>
-                  <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
+                  <Text style={[styles.itemPrice, { color: t.primary }]}>{formatPrice(item.price)}</Text>
                   
-                  <View style={styles.quantityContainer}>
+                  <View style={[styles.quantityContainer, { backgroundColor: t.surface }]}>
                     <TouchableOpacity
                       onPress={() => onUpdateQuantity(item.id, -1)}
-                      style={styles.quantityButton}
+                      style={[styles.quantityButton, { backgroundColor: t.card, borderColor: t.border }]}
                       activeOpacity={0.7}
                     >
-                      <AppIcon name="minus" size={12} color="#111827" />
+                      <AppIcon name="minus" size={12} color={t.text} />
                     </TouchableOpacity>
-                    <Text style={styles.quantityText}>{item.quantity}</Text>
+                    <Text style={[styles.quantityText, { color: t.text }]}>{item.quantity}</Text>
                     <TouchableOpacity
                       onPress={() => onUpdateQuantity(item.id, 1)}
-                      style={styles.quantityButton}
+                      style={[styles.quantityButton, { backgroundColor: t.card, borderColor: t.border }]}
                       activeOpacity={0.7}
                     >
-                      <AppIcon name="plus" size={12} color="#111827" />
+                      <AppIcon name="plus" size={12} color={t.text} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -124,46 +131,50 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
         </View>
 
         {/* Summary */}
-        <View style={styles.summaryCard}>
+        <View style={[styles.summaryCard, { backgroundColor: t.card, borderColor: t.border, shadowOpacity: t === lightTheme ? 0.05 : 0, elevation: t === lightTheme ? 2 : 0 }]}>
           <TouchableOpacity
             onPress={() => setShowVoucherList(true)}
-            style={styles.voucherInput}
+            style={[styles.voucherInput, { backgroundColor: t.surface, borderColor: t.border }]}
             activeOpacity={0.7}
           >
-            <AppIcon name="ticket" size={18} color="#9CA3AF" style={styles.voucherIcon} />
-            <Text style={[styles.voucherText, !voucherCode && styles.voucherPlaceholder]}>
+            <AppIcon name="ticket" size={18} color={t.muted} style={styles.voucherIcon} />
+            <Text style={[
+              styles.voucherText,
+              !voucherCode && styles.voucherPlaceholder,
+              { color: voucherCode ? t.text : t.muted }
+            ]}>
               {voucherCode || 'Chọn hoặc nhập mã giảm giá'}
             </Text>
-            <AppIcon name="chevron-right" size={16} color="#9CA3AF" />
+            <AppIcon name="chevron-right" size={16} color={t.muted} />
           </TouchableOpacity>
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Tạm tính</Text>
-            <Text style={styles.summaryValue}>{formatPrice(subtotal)}</Text>
+            <Text style={[styles.summaryLabel, { color: t.muted }]}>Tạm tính</Text>
+            <Text style={[styles.summaryValue, { color: t.text }]}>{formatPrice(subtotal)}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Phí vận chuyển</Text>
-            <Text style={styles.summaryValue}>{formatPrice(shipping)}</Text>
+            <Text style={[styles.summaryLabel, { color: t.muted }]}>Phí vận chuyển</Text>
+            <Text style={[styles.summaryValue, { color: t.text }]}>{formatPrice(shipping)}</Text>
           </View>
           
           {appliedVoucher && (
             <View style={styles.summaryRow}>
             <View style={styles.discountRow}>
               <AppIcon name="ticket" size={14} color="#10B981" />
-              <Text style={styles.discountLabel}>Voucher giảm giá</Text>
+              <Text style={[styles.discountLabel, { color: t.text }]}>Voucher giảm giá</Text>
             </View>
-            <Text style={styles.discountValue}>-{formatPrice(discountAmount)}</Text>
+            <Text style={[styles.discountValue, { color: t.text }]}>-{formatPrice(discountAmount)}</Text>
           </View>
           )}
 
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Tổng cộng</Text>
-            <Text style={styles.totalValue}>{formatPrice(total)}</Text>
+            <Text style={[styles.totalLabel, { color: t.text }]}>Tổng cộng</Text>
+            <Text style={[styles.totalValue, { color: t.primary }]}>{formatPrice(total)}</Text>
           </View>
           
           <TouchableOpacity
             onPress={onCheckout}
-            style={styles.checkoutButton}
+            style={[styles.checkoutButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
             activeOpacity={0.8}
           >
             <Text style={styles.checkoutButtonText}>Thanh toán ngay</Text>
@@ -176,18 +187,18 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
       {showVoucherList && (
         <View style={styles.modalOverlay}>
           <TouchableOpacity
-            style={styles.modalBackdrop}
+            style={[styles.modalBackdrop, { backgroundColor: overlayBg }]}
             activeOpacity={1}
             onPress={() => setShowVoucherList(false)}
           />
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: t.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Chọn mã giảm giá</Text>
+              <Text style={[styles.modalTitle, { color: t.text }]}>Chọn mã giảm giá</Text>
               <TouchableOpacity
                 onPress={() => setShowVoucherList(false)}
                 activeOpacity={0.7}
               >
-                <AppIcon name="close" size={24} color="#9CA3AF" />
+                <AppIcon name="close" size={24} color={t.muted} />
               </TouchableOpacity>
             </View>
             
@@ -201,21 +212,22 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
                     key={voucher.code}
                     style={[
                       styles.voucherCard,
-                      isSelected && styles.voucherCardSelected,
+                      { backgroundColor: t.surface, borderColor: t.border },
+                      isSelected && { borderColor: accentBorder, backgroundColor: accentBg },
                       !isEligible && styles.voucherCardDisabled
                     ]}
                   >
-                    <View style={styles.voucherIconContainer}>
-                      <AppIcon name="ticket" size={24} color="#2563EB" />
+                    <View style={[styles.voucherIconContainer, { backgroundColor: accentBg }]}>
+                      <AppIcon name="ticket" size={24} color={accentBorder} />
                     </View>
                     <View style={styles.voucherInfo}>
                       <View style={styles.voucherHeader}>
-                        <Text style={styles.voucherCode}>{voucher.code}</Text>
-                        {isSelected && <AppIcon name="check-circle" size={20} color="#2563EB" />}
+                        <Text style={[styles.voucherCode, { color: t.text }]}>{voucher.code}</Text>
+                        {isSelected && <AppIcon name="check-circle" size={20} color={accentBorder} />}
                       </View>
-                      <Text style={styles.voucherDescription}>{voucher.description}</Text>
+                      <Text style={[styles.voucherDescription, { color: t.muted }]}>{voucher.description}</Text>
                       {!isEligible && (
-                        <Text style={styles.voucherWarning}>
+                        <Text style={[styles.voucherWarning, { color: '#FCA5A5' }]}>
                           Mua thêm {(voucher.minOrder - subtotal).toLocaleString('vi-VN')}đ để sử dụng
                         </Text>
                       )}
@@ -225,12 +237,14 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
                         onPress={() => handleApplyVoucher(voucher.code)}
                         style={[
                           styles.voucherApplyButton,
-                          isSelected && styles.voucherApplyButtonActive
+                          { backgroundColor: accentBg },
+                          isSelected && { backgroundColor: accentBorder }
                         ]}
                         activeOpacity={0.7}
                       >
                         <Text style={[
                           styles.voucherApplyText,
+                          { color: accentBorder },
                           isSelected && styles.voucherApplyTextActive
                         ]}>
                           {isSelected ? 'Đang dùng' : 'Dùng ngay'}
@@ -259,6 +273,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 96,
     paddingHorizontal: 16,
+    paddingTop: 16,
   },
   title: {
     fontSize: 24,
@@ -338,6 +353,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 6,
+    borderWidth: 1,
   },
   quantityText: {
     fontSize: 14,

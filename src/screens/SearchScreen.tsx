@@ -77,7 +77,7 @@ export function SearchScreen({
         {query.length > 0 && (
           <TouchableOpacity
             onPress={onFilterClick}
-            style={styles.filterButton}
+            style={[styles.filterButton, { backgroundColor: t.surface, borderColor: t.border }]}
             activeOpacity={0.7}
           >
             <AppIcon name="sliders-horizontal" size={20} color={t.muted} />

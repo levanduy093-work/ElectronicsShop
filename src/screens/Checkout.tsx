@@ -2,19 +2,25 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { AppIcon } from '../components/common/Icon';
 import { formatPrice } from '../lib/utils';
+import { Theme, lightTheme, useTheme } from '../lib/theme';
 
 interface CheckoutProps {
   onBack: () => void;
   onSuccess: () => void;
   totalAmount: number;
+  theme?: Theme;
 }
 
 type Step = 'address' | 'shipping' | 'payment' | 'success';
 
-export function Checkout({ onBack, onSuccess, totalAmount }: CheckoutProps) {
+export function Checkout({ onBack, onSuccess, totalAmount, theme }: CheckoutProps) {
+  const { theme: ctxTheme } = useTheme();
+  const t = theme || ctxTheme || lightTheme;
   const [step, setStep] = useState<Step>('address');
   const [selectedShipping, setSelectedShipping] = useState(0);
   const [selectedPayment, setSelectedPayment] = useState(0);
+  const accentBg = t === lightTheme ? 'rgba(37,99,235,0.08)' : 'rgba(255,255,255,0.06)';
+  const lineBg = t === lightTheme ? '#E5E7EB' : t.border;
 
   const steps = [
     { id: 'address', title: 'Địa chỉ', icon: 'map-pin' },
@@ -30,17 +36,17 @@ export function Checkout({ onBack, onSuccess, totalAmount }: CheckoutProps) {
 
   if (step === 'success') {
     return (
-      <View style={styles.successContainer}>
-        <View style={styles.successIcon}>
+      <View style={[styles.successContainer, { backgroundColor: t.background }]}>
+        <View style={[styles.successIcon, { backgroundColor: t === lightTheme ? '#D1FAE5' : 'rgba(74,222,128,0.16)' }]}>
           <AppIcon name="check-circle" size={48} color="#10B981" />
         </View>
-        <Text style={styles.successTitle}>Đặt hàng thành công!</Text>
-        <Text style={styles.successText}>
+        <Text style={[styles.successTitle, { color: t.text }]}>Đặt hàng thành công!</Text>
+        <Text style={[styles.successText, { color: t.muted }]}>
           Đơn hàng #ORD-2024-001 của bạn đang được xử lý. Chúng tôi sẽ thông báo khi hàng được gửi đi.
         </Text>
         <TouchableOpacity
           onPress={onSuccess}
-          style={styles.successButton}
+          style={[styles.successButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
           activeOpacity={0.8}
         >
           <Text style={styles.successButtonText}>Về trang chủ</Text>
@@ -52,78 +58,89 @@ export function Checkout({ onBack, onSuccess, totalAmount }: CheckoutProps) {
   const currentStepIndex = steps.findIndex(s => s.id === step);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: t.background }]}>
+      <View style={[styles.header, { backgroundColor: t.card, borderBottomColor: t.border }]}>
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
-          <AppIcon name="arrow-left" size={24} color="#6B7280" />
+          <AppIcon name="arrow-left" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Thanh toán</Text>
+        <Text style={[styles.headerTitle, { color: t.text }]}>Thanh toán</Text>
         <View style={{ width: 24 }} />
       </View>
 
       {/* Progress */}
-      <View style={styles.progressContainer}>
-        <View style={styles.progressLine} />
+      <View style={[styles.progressContainer, { backgroundColor: t.background }]}>
+        <View style={[styles.progressLine, { backgroundColor: lineBg }]} />
         {steps.map((s, idx) => {
           const isActive = s.id === step;
           const isCompleted = currentStepIndex > idx;
 
           return (
-            <View key={s.id} style={styles.progressStep}>
+            <TouchableOpacity
+              key={s.id}
+              style={[styles.progressStep, { backgroundColor: t.background }]}
+              onPress={() => setStep(s.id as Step)}
+              activeOpacity={0.8}
+            >
               <View style={[
                 styles.progressCircle,
-                (isActive || isCompleted) && styles.progressCircleActive,
+                { backgroundColor: t.surface, borderColor: t.border },
+                (isActive || isCompleted) && { backgroundColor: t.primary, borderColor: t.primary },
               ]}>
                 <AppIcon
                   name={s.icon}
                   size={18}
-                  color={(isActive || isCompleted) ? '#FFFFFF' : '#9CA3AF'}
+                  color={(isActive || isCompleted) ? '#FFFFFF' : t.muted}
                 />
               </View>
               <Text style={[
                 styles.progressLabel,
-                (isActive || isCompleted) && styles.progressLabelActive,
+                { color: t.muted },
+                (isActive || isCompleted) && { color: t.primary },
               ]}>
                 {s.title}
               </Text>
-            </View>
+            </TouchableOpacity>
           );
         })}
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={{ paddingBottom: 120, backgroundColor: t.background }}
+        showsVerticalScrollIndicator={false}
+      >
         {step === 'address' && (
           <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Địa chỉ nhận hàng</Text>
+            <Text style={[styles.stepTitle, { color: t.muted }]}>Địa chỉ nhận hàng</Text>
 
-            <View style={styles.addressCard}>
-              <View style={styles.defaultBadge}>
+            <View style={[styles.addressCard, { backgroundColor: t.card, borderColor: t.primary }]}>
+              <View style={[styles.defaultBadge, { backgroundColor: t.primary }]}>
                 <Text style={styles.defaultBadgeText}>Mặc định</Text>
               </View>
               <View style={styles.addressContent}>
-                <View style={styles.addressIcon}>
-                  <AppIcon name="map-pin" size={20} color="#2563EB" />
+                <View style={[styles.addressIcon, { backgroundColor: accentBg }]}>
+                  <AppIcon name="map-pin" size={20} color={t.primary} />
                 </View>
                 <View style={styles.addressInfo}>
-                  <Text style={styles.addressType}>Nhà riêng</Text>
-                  <Text style={styles.addressText}>
+                  <Text style={[styles.addressType, { color: t.text }]}>Nhà riêng</Text>
+                  <Text style={[styles.addressText, { color: t.text }]}>
                     Số 1, Đại Cồ Việt, Hai Bà Trưng, Hà Nội
                   </Text>
-                  <Text style={styles.addressPhone}>0987 654 321</Text>
+                  <Text style={[styles.addressPhone, { color: t.muted }]}>0987 654 321</Text>
                 </View>
               </View>
             </View>
 
-            <TouchableOpacity style={styles.addAddressButton} activeOpacity={0.7}>
-              <Text style={styles.addAddressText}>+ Thêm địa chỉ mới</Text>
+            <TouchableOpacity style={[styles.addAddressButton, { borderColor: t.border }]} activeOpacity={0.7}>
+              <Text style={[styles.addAddressText, { color: t.text }]}>+ Thêm địa chỉ mới</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {step === 'shipping' && (
           <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Phương thức vận chuyển</Text>
+            <Text style={[styles.stepTitle, { color: t.muted }]}>Phương thức vận chuyển</Text>
 
             {[
               { name: "Nhanh (24h)", price: 30000, desc: "Nhận hàng vào ngày mai" },
@@ -134,19 +151,20 @@ export function Checkout({ onBack, onSuccess, totalAmount }: CheckoutProps) {
                 onPress={() => setSelectedShipping(i)}
                 style={[
                   styles.optionCard,
-                  selectedShipping === i && styles.optionCardSelected,
+                  { backgroundColor: t.card, borderColor: t.border },
+                  selectedShipping === i && { borderColor: t.primary, borderWidth: 2 },
                 ]}
                 activeOpacity={0.7}
               >
-                <View style={styles.radio}>
-                  {selectedShipping === i && <View style={styles.radioSelected} />}
+                <View style={[styles.radio, { borderColor: t.border }]}>
+                  {selectedShipping === i && <View style={[styles.radioSelected, { backgroundColor: t.primary }]} />}
                 </View>
                 <View style={styles.optionContent}>
                   <View style={styles.optionHeader}>
-                    <Text style={styles.optionName}>{opt.name}</Text>
-                    <Text style={styles.optionPrice}>{formatPrice(opt.price)}</Text>
+                    <Text style={[styles.optionName, { color: t.text }]}>{opt.name}</Text>
+                    <Text style={[styles.optionPrice, { color: t.primary }]}>{formatPrice(opt.price)}</Text>
                   </View>
-                  <Text style={styles.optionDesc}>{opt.desc}</Text>
+                  <Text style={[styles.optionDesc, { color: t.muted }]}>{opt.desc}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -155,7 +173,7 @@ export function Checkout({ onBack, onSuccess, totalAmount }: CheckoutProps) {
 
         {step === 'payment' && (
           <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Thanh toán</Text>
+            <Text style={[styles.stepTitle, { color: t.muted }]}>Thanh toán</Text>
 
             {[
               { name: "Ví điện tử MoMo", icon: null },
@@ -167,40 +185,41 @@ export function Checkout({ onBack, onSuccess, totalAmount }: CheckoutProps) {
                 onPress={() => setSelectedPayment(i)}
                 style={[
                   styles.optionCard,
-                  selectedPayment === i && styles.optionCardSelected,
+                  { backgroundColor: t.card, borderColor: t.border },
+                  selectedPayment === i && { borderColor: t.primary, borderWidth: 2 },
                 ]}
                 activeOpacity={0.7}
               >
-                <View style={styles.radio}>
-                  {selectedPayment === i && <View style={styles.radioSelected} />}
+                <View style={[styles.radio, { borderColor: t.border }]}>
+                  {selectedPayment === i && <View style={[styles.radioSelected, { backgroundColor: t.primary }]} />}
                 </View>
                 <View style={styles.paymentOption}>
                   {opt.icon ? (
                     <Image source={{ uri: opt.icon }} style={styles.paymentIcon} />
                   ) : (
-                    <View style={styles.paymentIconPlaceholder}>
-                      <AppIcon name="credit-card" size={16} color="#6B7280" />
+                    <View style={[styles.paymentIconPlaceholder, { backgroundColor: accentBg }]}>
+                      <AppIcon name="credit-card" size={16} color={t.muted} />
                     </View>
                   )}
-                  <Text style={styles.optionName}>{opt.name}</Text>
+                  <Text style={[styles.optionName, { color: t.text }]}>{opt.name}</Text>
                 </View>
               </TouchableOpacity>
             ))}
 
-            <View style={styles.summaryCard}>
+            <View style={[styles.summaryCard, { backgroundColor: t.surface }]}>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Tổng tiền hàng</Text>
-                <Text style={styles.summaryValue}>
+                <Text style={[styles.summaryLabel, { color: t.muted }]}>Tổng tiền hàng</Text>
+                <Text style={[styles.summaryValue, { color: t.text }]}>
                   {formatPrice(totalAmount - 30000)}
                 </Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Phí vận chuyển</Text>
-                <Text style={styles.summaryValue}>30.000₫</Text>
+                <Text style={[styles.summaryLabel, { color: t.muted }]}>Phí vận chuyển</Text>
+                <Text style={[styles.summaryValue, { color: t.text }]}>30.000₫</Text>
               </View>
               <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Thanh toán</Text>
-                <Text style={styles.totalValue}>{formatPrice(totalAmount)}</Text>
+                <Text style={[styles.totalLabel, { color: t.text }]}>Thanh toán</Text>
+                <Text style={[styles.totalValue, { color: t.primary }]}>{formatPrice(totalAmount)}</Text>
               </View>
             </View>
           </View>
@@ -208,10 +227,10 @@ export function Checkout({ onBack, onSuccess, totalAmount }: CheckoutProps) {
       </ScrollView>
 
       {/* Footer Action */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { backgroundColor: t.card, borderTopColor: t.border }]}>
         <TouchableOpacity
           onPress={handleNext}
-          style={styles.nextButton}
+          style={[styles.nextButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
           activeOpacity={0.8}
         >
           <Text style={styles.nextButtonText}>
@@ -267,7 +286,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     zIndex: 1,
-    backgroundColor: '#F5F7FA',
     paddingHorizontal: 8,
   },
   progressCircle: {
@@ -296,6 +314,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 16,
+    backgroundColor: 'transparent',
   },
   stepContent: {
     gap: 16,
