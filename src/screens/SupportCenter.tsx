@@ -2,13 +2,17 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
+import { Theme, lightTheme, useTheme } from '../lib/theme';
 
 interface SupportCenterProps {
   onBack: () => void;
+  theme?: Theme;
 }
 
-export function SupportCenter({ onBack }: SupportCenterProps) {
+export function SupportCenter({ onBack, theme }: SupportCenterProps) {
   const insets = useSafeAreaInsets();
+  const { theme: ctxTheme } = useTheme();
+  const t = theme || ctxTheme || lightTheme;
   const faqs = [
     { q: "Làm sao để theo dõi đơn hàng?", a: "Bạn có thể vào mục 'Đơn hàng của tôi' trong trang cá nhân, chọn đơn hàng cần xem để biết trạng thái chi tiết." },
     { q: "Chính sách đổi trả như thế nào?", a: "Chúng tôi hỗ trợ đổi trả trong vòng 7 ngày nếu sản phẩm có lỗi từ nhà sản xuất. Vui lòng giữ nguyên bao bì và tem mác." },
@@ -17,49 +21,53 @@ export function SupportCenter({ onBack }: SupportCenterProps) {
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: t.background }]}>
       <StatusBar 
-        barStyle="dark-content" 
+        barStyle={t === lightTheme ? 'dark-content' : 'light-content'} 
         backgroundColor="transparent"
         translucent={true}
       />
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 0) }]}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 0), backgroundColor: t.card, borderBottomColor: t.border }]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
-          <AppIcon name="arrow-left" size={24} color="#6B7280" />
+          <AppIcon name="arrow-left" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>Trung tâm hỗ trợ</Text>
+        <Text style={[styles.title, { color: t.text }]}>Trung tâm hỗ trợ</Text>
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={[styles.contentContainer, { backgroundColor: t.background }]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Contact Channels */}
         <View style={styles.contactGrid}>
-          <TouchableOpacity style={styles.contactCard} activeOpacity={0.7}>
-            <View style={[styles.contactIcon, { backgroundColor: '#EFF6FF' }]}>
-              <AppIcon name="message-circle" size={20} color="#2563EB" />
+          <TouchableOpacity style={[styles.contactCard, { backgroundColor: t.card, borderColor: t.border }]} activeOpacity={0.7}>
+            <View style={[styles.contactIcon, { backgroundColor: t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)' }]}>
+              <AppIcon name="message-circle" size={20} color={t.primary} />
             </View>
-            <Text style={styles.contactLabel}>Chat ngay</Text>
+            <Text style={[styles.contactLabel, { color: t.text }]}>Chat ngay</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.contactCard} activeOpacity={0.7}>
-            <View style={[styles.contactIcon, { backgroundColor: '#D1FAE5' }]}>
+          <TouchableOpacity style={[styles.contactCard, { backgroundColor: t.card, borderColor: t.border }]} activeOpacity={0.7}>
+            <View style={[styles.contactIcon, { backgroundColor: t === lightTheme ? '#D1FAE5' : 'rgba(16,185,129,0.14)' }]}>
               <AppIcon name="phone" size={20} color="#10B981" />
             </View>
-            <Text style={styles.contactLabel}>Hotline</Text>
+            <Text style={[styles.contactLabel, { color: t.text }]}>Hotline</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.contactCard} activeOpacity={0.7}>
-            <View style={[styles.contactIcon, { backgroundColor: '#FED7AA' }]}>
+          <TouchableOpacity style={[styles.contactCard, { backgroundColor: t.card, borderColor: t.border }]} activeOpacity={0.7}>
+            <View style={[styles.contactIcon, { backgroundColor: t === lightTheme ? '#FED7AA' : 'rgba(249,115,22,0.14)' }]}>
               <AppIcon name="mail" size={20} color="#F97316" />
             </View>
-            <Text style={styles.contactLabel}>Email</Text>
+            <Text style={[styles.contactLabel, { color: t.text }]}>Email</Text>
           </TouchableOpacity>
         </View>
 
         {/* FAQ */}
         <View style={styles.faqSection}>
-          <Text style={styles.faqTitle}>Câu hỏi thường gặp</Text>
+          <Text style={[styles.faqTitle, { color: t.text }]}>Câu hỏi thường gặp</Text>
           <View style={styles.faqList}>
             {faqs.map((faq, index) => (
-              <FAQItem key={index} question={faq.q} answer={faq.a} />
+              <FAQItem key={index} question={faq.q} answer={faq.a} theme={t} />
             ))}
           </View>
         </View>
@@ -68,26 +76,28 @@ export function SupportCenter({ onBack }: SupportCenterProps) {
   );
 }
 
-function FAQItem({ question, answer }: { question: string; answer: string }) {
+function FAQItem({ question, answer, theme }: { question: string; answer: string; theme?: Theme }) {
   const [isOpen, setIsOpen] = useState(false);
+  const { theme: ctxTheme } = useTheme();
+  const t = theme || ctxTheme || lightTheme;
 
   return (
-    <View style={styles.faqCard}>
+    <View style={[styles.faqCard, { backgroundColor: t.card, borderColor: t.border }]}>
       <TouchableOpacity
         onPress={() => setIsOpen(!isOpen)}
         style={styles.faqHeader}
         activeOpacity={0.7}
       >
-        <Text style={styles.faqQuestion}>{question}</Text>
+        <Text style={[styles.faqQuestion, { color: t.text }]}>{question}</Text>
         <AppIcon
           name={isOpen ? "chevron-up" : "chevron-down"}
           size={16}
-          color="#9CA3AF"
+          color={t.muted}
         />
       </TouchableOpacity>
       {isOpen && (
-        <View style={styles.faqAnswer}>
-          <Text style={styles.faqAnswerText}>{answer}</Text>
+        <View style={[styles.faqAnswer, { borderTopColor: t.border }]}>
+          <Text style={[styles.faqAnswerText, { color: t.muted }]}>{answer}</Text>
         </View>
       )}
     </View>
@@ -144,7 +154,7 @@ const styles = StyleSheet.create({
   },
   contactCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -177,7 +187,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   faqCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,

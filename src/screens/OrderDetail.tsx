@@ -4,27 +4,31 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { formatPrice } from '../lib/utils';
+import { Order } from '../lib/data';
+import { Theme, lightTheme, useTheme } from '../lib/theme';
 
 interface OrderDetailProps {
   orderId: string;
   onBack: () => void;
+  order?: Order;
+  theme?: Theme;
 }
 
-const MOCK_ORDER_DETAIL = {
+const DEFAULT_ORDER: Order = {
   id: 'ORD-2024-001',
   date: '20/01/2026 14:30',
   status: 'processing',
   statusText: 'Đang xử lý',
   items: [
     {
-      id: 1,
+      id: '1',
       name: 'Arduino Uno R3',
       price: 150000,
       quantity: 1,
       image: 'https://images.unsplash.com/photo-1553406830-ef2513450d76?auto=format&fit=crop&q=80&w=100',
     },
     {
-      id: 2,
+      id: '2',
       name: 'Cảm biến siêu âm HC-SR04',
       price: 25000,
       quantity: 1,
@@ -52,52 +56,106 @@ const MOCK_ORDER_DETAIL = {
   ],
 };
 
-export function OrderDetail({ orderId, onBack }: OrderDetailProps) {
+export function OrderDetail({ orderId, onBack, order, theme }: OrderDetailProps) {
   const insets = useSafeAreaInsets();
-  const order = MOCK_ORDER_DETAIL;
+  const { theme: ctxTheme, isDarkMode } = useTheme();
+  const t = theme || ctxTheme || lightTheme;
+  const orderData = order || DEFAULT_ORDER;
+
+  const getStatusColor = (status: string) => {
+    switch(status) {
+      case 'processing': return t === lightTheme ? '#F59E0B' : '#FBBF24';
+      case 'shipping': return t.primary;
+      case 'completed': return '#10B981';
+      case 'cancelled': return '#EF4444';
+      default: return t.muted;
+    }
+  };
+
+  const getStatusBgColor = (status: string) => {
+    switch(status) {
+      case 'processing': return t === lightTheme ? '#FEF3C7' : 'rgba(251,191,36,0.16)';
+      case 'shipping': return t === lightTheme ? '#DBEAFE' : 'rgba(37,99,235,0.16)';
+      case 'completed': return t === lightTheme ? '#D1FAE5' : 'rgba(16,185,129,0.16)';
+      case 'cancelled': return t === lightTheme ? '#FEE2E2' : 'rgba(239,68,68,0.16)';
+      default: return t.surface;
+    }
+  };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: t.background }]}>
       <StatusBar 
-        barStyle="dark-content" 
-        backgroundColor="transparent"
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
+        backgroundColor={t.surface}
         translucent={true}
       />
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 0) }]}>
+      <View style={[
+        styles.header,
+        {
+          paddingTop: Math.max(insets.top, 0),
+          backgroundColor: t.surface,
+          borderBottomColor: t.border,
+        }
+      ]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
-          <AppIcon name="arrow-left" size={24} color="#6B7280" />
+          <AppIcon name="arrow-left" size={24} color={t.muted} />
         </TouchableOpacity>
-        <Text style={styles.title}>Chi tiết đơn hàng</Text>
+        <Text style={[styles.title, { color: t.text }]}>Chi tiết đơn hàng</Text>
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={[styles.contentContainer, { backgroundColor: t.background }]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Status Card */}
-        <View style={styles.card}>
+        <View style={[
+          styles.card,
+          {
+            backgroundColor: t.card,
+            borderColor: t.border,
+            shadowOpacity: t === lightTheme ? 0.05 : 0,
+            elevation: t === lightTheme ? 2 : 0,
+          }
+        ]}>
           <View style={styles.statusHeader}>
-            <Text style={styles.orderId}>Mã đơn: #{orderId}</Text>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusBadgeText}>{order.statusText}</Text>
+            <Text style={[styles.orderId, { color: t.text }]}>Mã đơn: #{orderId}</Text>
+            <View style={[
+              styles.statusBadge,
+              {
+                backgroundColor: getStatusBgColor(orderData.status),
+              }
+            ]}>
+              <Text style={[
+                styles.statusBadgeText,
+                { color: getStatusColor(orderData.status) }
+              ]}>
+                {orderData.statusText}
+              </Text>
             </View>
           </View>
 
           {/* Timeline */}
-          <View style={styles.timeline}>
-            {order.timeline.map((item, index) => (
+          <View style={[styles.timeline, { borderLeftColor: t.border }]}>
+            {orderData.timeline.map((item, index) => (
               <View key={index} style={styles.timelineItem}>
                 <View style={[
                   styles.timelineDot,
-                  item.active && styles.timelineDotActive,
+                  {
+                    borderColor: item.active ? t.primary : t.border,
+                    backgroundColor: item.active ? t.primary : t.surface,
+                  }
                 ]} />
                 <View style={styles.timelineContent}>
                   <Text style={[
                     styles.timelineTitle,
-                    !item.active && styles.timelineTitleInactive,
+                    { color: item.active ? t.text : t.muted },
                   ]}>
                     {item.title}
                   </Text>
                   {item.time && (
-                    <Text style={styles.timelineTime}>{item.time}</Text>
+                    <Text style={[styles.timelineTime, { color: t.muted }]}>{item.time}</Text>
                   )}
                 </View>
               </View>
@@ -106,38 +164,54 @@ export function OrderDetail({ orderId, onBack }: OrderDetailProps) {
         </View>
 
         {/* Address */}
-        <View style={styles.card}>
+        <View style={[
+          styles.card,
+          {
+            backgroundColor: t.card,
+            borderColor: t.border,
+            shadowOpacity: t === lightTheme ? 0.05 : 0,
+            elevation: t === lightTheme ? 2 : 0,
+          }
+        ]}>
           <View style={styles.cardHeader}>
-            <AppIcon name="map-pin" size={18} color="#2563EB" />
-            <Text style={styles.cardTitle}>Địa chỉ nhận hàng</Text>
+            <AppIcon name="map-pin" size={18} color={t.primary} />
+            <Text style={[styles.cardTitle, { color: t.text }]}>Địa chỉ nhận hàng</Text>
           </View>
-          <Text style={styles.addressName}>
-            {order.shippingAddress.name} | {order.shippingAddress.phone}
+          <Text style={[styles.addressName, { color: t.text }]}>
+            {orderData.shippingAddress.name} | {orderData.shippingAddress.phone}
           </Text>
-          <Text style={styles.addressText}>{order.shippingAddress.address}</Text>
+          <Text style={[styles.addressText, { color: t.muted }]}>{orderData.shippingAddress.address}</Text>
         </View>
 
         {/* Products */}
-        <View style={styles.card}>
+        <View style={[
+          styles.card,
+          {
+            backgroundColor: t.card,
+            borderColor: t.border,
+            shadowOpacity: t === lightTheme ? 0.05 : 0,
+            elevation: t === lightTheme ? 2 : 0,
+          }
+        ]}>
           <View style={styles.cardHeader}>
-            <AppIcon name="package" size={18} color="#2563EB" />
-            <Text style={styles.cardTitle}>Sản phẩm</Text>
+            <AppIcon name="package" size={18} color={t.primary} />
+            <Text style={[styles.cardTitle, { color: t.text }]}>Sản phẩm</Text>
           </View>
           <View style={styles.productsList}>
-            {order.items.map((item) => (
+            {orderData.items.map((item) => (
               <View key={item.id} style={styles.productItem}>
                 <ImageWithFallback
                   source={{ uri: item.image }}
-                  style={styles.productImage}
+                  style={[styles.productImage, { backgroundColor: t.surface }]}
                   resizeMode="cover"
                 />
                 <View style={styles.productInfo}>
-                  <Text style={styles.productName} numberOfLines={2}>
+                  <Text style={[styles.productName, { color: t.text }]} numberOfLines={2}>
                     {item.name}
                   </Text>
                   <View style={styles.productFooter}>
-                    <Text style={styles.productQuantity}>x{item.quantity}</Text>
-                    <Text style={styles.productPrice}>{formatPrice(item.price)}</Text>
+                    <Text style={[styles.productQuantity, { color: t.muted }]}>x{item.quantity}</Text>
+                    <Text style={[styles.productPrice, { color: t.primary }]}>{formatPrice(item.price)}</Text>
                   </View>
                 </View>
               </View>
@@ -146,47 +220,78 @@ export function OrderDetail({ orderId, onBack }: OrderDetailProps) {
         </View>
 
         {/* Payment Info */}
-        <View style={styles.card}>
+        <View style={[
+          styles.card,
+          {
+            backgroundColor: t.card,
+            borderColor: t.border,
+            shadowOpacity: t === lightTheme ? 0.05 : 0,
+            elevation: t === lightTheme ? 2 : 0,
+          }
+        ]}>
           <View style={styles.cardHeader}>
-            <AppIcon name="credit-card" size={18} color="#2563EB" />
-            <Text style={styles.cardTitle}>Thanh toán</Text>
+            <AppIcon name="credit-card" size={18} color={t.primary} />
+            <Text style={[styles.cardTitle, { color: t.text }]}>Thanh toán</Text>
           </View>
 
           <View style={styles.paymentDetails}>
             <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Tổng tiền hàng</Text>
-              <Text style={styles.paymentValue}>{formatPrice(order.payment.subtotal)}</Text>
+              <Text style={[styles.paymentLabel, { color: t.muted }]}>Tổng tiền hàng</Text>
+              <Text style={[styles.paymentValue, { color: t.text }]}>{formatPrice(orderData.payment.subtotal)}</Text>
             </View>
             <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Phí vận chuyển</Text>
-              <Text style={styles.paymentValue}>{formatPrice(order.payment.shippingFee)}</Text>
+              <Text style={[styles.paymentLabel, { color: t.muted }]}>Phí vận chuyển</Text>
+              <Text style={[styles.paymentValue, { color: t.text }]}>{formatPrice(orderData.payment.shippingFee)}</Text>
             </View>
             <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Giảm giá</Text>
-              <Text style={[styles.paymentValue, styles.discountValue]}>
-                -{formatPrice(order.payment.discount)}
+              <Text style={[styles.paymentLabel, { color: t.muted }]}>Giảm giá</Text>
+              <Text style={[styles.paymentValue, { color: '#10B981' }]}>
+                -{formatPrice(orderData.payment.discount)}
               </Text>
             </View>
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Thành tiền</Text>
-              <Text style={styles.totalValue}>{formatPrice(order.payment.total)}</Text>
+            <View style={[styles.totalRow, { borderTopColor: t.border }]}>
+              <Text style={[styles.totalLabel, { color: t.text }]}>Thành tiền</Text>
+              <Text style={[styles.totalValue, { color: t.primary }]}>{formatPrice(orderData.payment.total)}</Text>
             </View>
           </View>
 
-          <View style={styles.paymentMethod}>
-            <Text style={styles.paymentMethodText}>
-              Phương thức: {order.payment.method}
+          <View style={[styles.paymentMethod, { backgroundColor: t.surface }]}>
+            <Text style={[styles.paymentMethodText, { color: t.muted }]}>
+              Phương thức: {orderData.payment.method}
             </Text>
           </View>
         </View>
       </ScrollView>
 
       {/* Bottom Actions */}
-      <View style={styles.actions}>
-        <TouchableOpacity style={styles.supportButton} activeOpacity={0.7}>
-          <Text style={styles.supportButtonText}>Liên hệ hỗ trợ</Text>
+      <View style={[
+        styles.actions,
+        {
+          backgroundColor: t.surface,
+          borderTopColor: t.border,
+        }
+      ]}>
+        <TouchableOpacity 
+          style={[
+            styles.supportButton,
+            {
+              borderColor: t.border,
+              backgroundColor: t.card,
+            }
+          ]} 
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.supportButtonText, { color: t.text }]}>Liên hệ hỗ trợ</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.reorderButton} activeOpacity={0.8}>
+        <TouchableOpacity 
+          style={[
+            styles.reorderButton,
+            {
+              backgroundColor: t.primary,
+            }
+          ]} 
+          activeOpacity={0.8}
+        >
           <Text style={styles.reorderButtonText}>Mua lại</Text>
         </TouchableOpacity>
       </View>
@@ -197,17 +302,14 @@ export function OrderDetail({ orderId, onBack }: OrderDetailProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -226,7 +328,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#111827',
     flex: 1,
     marginLeft: 8,
   },
@@ -239,16 +340,12 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
     shadowRadius: 2,
-    elevation: 2,
   },
   statusHeader: {
     flexDirection: 'row',
@@ -259,10 +356,8 @@ const styles = StyleSheet.create({
   orderId: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#111827',
   },
   statusBadge: {
-    backgroundColor: '#FEF3C7',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -270,12 +365,10 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#92400E',
   },
   timeline: {
     paddingLeft: 8,
     borderLeftWidth: 2,
-    borderLeftColor: '#F3F4F6',
     gap: 24,
   },
   timelineItem: {
@@ -290,12 +383,6 @@ const styles = StyleSheet.create({
     height: 16,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#D1D5DB',
-    backgroundColor: '#FFFFFF',
-  },
-  timelineDotActive: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB',
   },
   timelineContent: {
     flex: 1,
@@ -303,15 +390,10 @@ const styles = StyleSheet.create({
   timelineTitle: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#111827',
     marginBottom: 4,
-  },
-  timelineTitleInactive: {
-    color: '#9CA3AF',
   },
   timelineTime: {
     fontSize: 12,
-    color: '#9CA3AF',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -322,17 +404,14 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#111827',
   },
   addressName: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#111827',
     marginBottom: 4,
   },
   addressText: {
     fontSize: 14,
-    color: '#4B5563',
     lineHeight: 20,
   },
   productsList: {
@@ -346,7 +425,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 8,
-    backgroundColor: '#F9FAFB',
   },
   productInfo: {
     flex: 1,
@@ -355,7 +433,6 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#111827',
     marginBottom: 4,
   },
   productFooter: {
@@ -365,12 +442,10 @@ const styles = StyleSheet.create({
   },
   productQuantity: {
     fontSize: 12,
-    color: '#6B7280',
   },
   productPrice: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#2563EB',
   },
   paymentDetails: {
     gap: 8,
@@ -383,15 +458,10 @@ const styles = StyleSheet.create({
   },
   paymentLabel: {
     fontSize: 14,
-    color: '#6B7280',
   },
   paymentValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#111827',
-  },
-  discountValue: {
-    color: '#10B981',
   },
   totalRow: {
     flexDirection: 'row',
@@ -399,55 +469,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
     marginTop: 8,
   },
   totalLabel: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#111827',
   },
   totalValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2563EB',
   },
   paymentMethod: {
-    backgroundColor: '#F9FAFB',
     padding: 12,
     borderRadius: 8,
     marginTop: 8,
   },
   paymentMethodText: {
     fontSize: 12,
-    color: '#6B7280',
   },
   actions: {
     flexDirection: 'row',
     gap: 12,
     padding: 16,
-    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
   },
   supportButton: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
     alignItems: 'center',
   },
   supportButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
   },
   reorderButton: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#2563EB',
     alignItems: 'center',
   },
   reorderButtonText: {

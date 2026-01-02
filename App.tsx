@@ -3,7 +3,7 @@
  * React Native version converted from Figma design
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Home } from './src/screens/Home';
@@ -26,11 +26,192 @@ import { SupportCenter } from './src/screens/SupportCenter';
 import { Notifications } from './src/screens/Notifications';
 import { BottomNav } from './src/components/layout/BottomNav';
 import { TopBar } from './src/components/layout/TopBar';
-import { Product, CartItem } from './src/lib/data';
+import { Product, CartItem, Order, PRODUCTS } from './src/lib/data';
 import { darkTheme, lightTheme, ThemeProvider } from './src/lib/theme';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'payment-methods' | 'settings' | 'support' | 'wishlist';
+
+// Mock orders với các trạng thái khác nhau
+const getMockOrders = (): Order[] => {
+    const now = new Date();
+    const formatDate = (date: Date) => {
+      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    };
+
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const threeDaysAgo = new Date(now);
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    
+    const fiveDaysAgo = new Date(now);
+    fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+
+    return [
+      // Đơn hàng đang xử lý
+      {
+        id: 'ORD-2026-815295',
+        date: formatDate(now),
+        status: 'processing',
+        statusText: 'Đang xử lý',
+        items: [
+          {
+            id: 'p1',
+            name: 'Arduino Uno R3 ATmega328P',
+            price: 150000,
+            quantity: 1,
+            image: PRODUCTS[0].image,
+          },
+          {
+            id: 'p4',
+            name: 'Mỏ hàn điều chỉnh nhiệt độ 60W',
+            price: 180000,
+            quantity: 1,
+            image: PRODUCTS[3].image,
+          },
+        ],
+        shippingAddress: {
+          name: 'Nguyễn Văn A',
+          phone: '0987 654 321',
+          address: 'Số 1, Đại Cồ Việt, Hai Bà Trưng, Hà Nội',
+        },
+        payment: {
+          method: 'Ví điện tử MoMo',
+          subtotal: 330000,
+          shippingFee: 30000,
+          discount: 0,
+          total: 360000,
+        },
+        timeline: [
+          { time: formatDate(now), title: 'Đặt hàng thành công', active: true },
+          { time: '', title: 'Đã xác nhận đơn hàng', active: false },
+          { time: '', title: 'Đang đóng gói', active: false },
+          { time: '', title: 'Đang giao hàng', active: false },
+          { time: '', title: 'Giao hàng thành công', active: false },
+        ],
+      },
+      // Đơn hàng đang vận chuyển
+      {
+        id: 'ORD-2026-812456',
+        date: formatDate(yesterday),
+        status: 'shipping',
+        statusText: 'Đang giao',
+        items: [
+          {
+            id: 'p2',
+            name: 'Module ESP32-WROOM-32',
+            price: 110000,
+            quantity: 2,
+            image: PRODUCTS[1].image,
+          },
+          {
+            id: 'p3',
+            name: 'Cảm biến siêu âm HC-SR04',
+            price: 25000,
+            quantity: 3,
+            image: PRODUCTS[2].image,
+          },
+        ],
+        shippingAddress: {
+          name: 'Nguyễn Văn A',
+          phone: '0987 654 321',
+          address: 'Số 123, Nguyễn Trãi, Thanh Xuân, Hà Nội',
+        },
+        payment: {
+          method: 'Thanh toán khi nhận hàng (COD)',
+          subtotal: 295000,
+          shippingFee: 30000,
+          discount: 30000,
+          total: 295000,
+        },
+        timeline: [
+          { time: formatDate(yesterday), title: 'Đặt hàng thành công', active: true },
+          { time: formatDate(yesterday), title: 'Đã xác nhận đơn hàng', active: true },
+          { time: formatDate(yesterday), title: 'Đang đóng gói', active: true },
+          { time: formatDate(now), title: 'Đang giao hàng', active: true },
+          { time: '', title: 'Giao hàng thành công', active: false },
+        ],
+      },
+      // Đơn hàng đã giao hàng
+      {
+        id: 'ORD-2026-809123',
+        date: formatDate(threeDaysAgo),
+        status: 'completed',
+        statusText: 'Hoàn thành',
+        items: [
+          {
+            id: 'p1',
+            name: 'Arduino Uno R3 ATmega328P',
+            price: 150000,
+            quantity: 2,
+            image: PRODUCTS[0].image,
+          },
+        ],
+        shippingAddress: {
+          name: 'Nguyễn Văn A',
+          phone: '0987 654 321',
+          address: 'Số 45, Láng Hạ, Đống Đa, Hà Nội',
+        },
+        payment: {
+          method: 'Thẻ ATM / Internet Banking',
+          subtotal: 300000,
+          shippingFee: 30000,
+          discount: 50000,
+          total: 280000,
+        },
+        timeline: [
+          { time: formatDate(threeDaysAgo), title: 'Đặt hàng thành công', active: true },
+          { time: formatDate(threeDaysAgo), title: 'Đã xác nhận đơn hàng', active: true },
+          { time: formatDate(yesterday), title: 'Đang đóng gói', active: true },
+          { time: formatDate(yesterday), title: 'Đang giao hàng', active: true },
+          { time: formatDate(now), title: 'Giao hàng thành công', active: true },
+        ],
+      },
+      // Đơn hàng đã giao hàng (cũ hơn)
+      {
+        id: 'ORD-2026-805789',
+        date: formatDate(fiveDaysAgo),
+        status: 'completed',
+        statusText: 'Hoàn thành',
+        items: [
+          {
+            id: 'p4',
+            name: 'Mỏ hàn điều chỉnh nhiệt độ 60W',
+            price: 180000,
+            quantity: 1,
+            image: PRODUCTS[3].image,
+          },
+          {
+            id: 'p3',
+            name: 'Cảm biến siêu âm HC-SR04',
+            price: 25000,
+            quantity: 2,
+            image: PRODUCTS[2].image,
+          },
+        ],
+        shippingAddress: {
+          name: 'Nguyễn Văn A',
+          phone: '0987 654 321',
+          address: 'Số 1, Đại Cồ Việt, Hai Bà Trưng, Hà Nội',
+        },
+        payment: {
+          method: 'Ví điện tử MoMo',
+          subtotal: 230000,
+          shippingFee: 30000,
+          discount: 0,
+          total: 260000,
+        },
+        timeline: [
+          { time: formatDate(fiveDaysAgo), title: 'Đặt hàng thành công', active: true },
+          { time: formatDate(fiveDaysAgo), title: 'Đã xác nhận đơn hàng', active: true },
+          { time: formatDate(threeDaysAgo), title: 'Đang đóng gói', active: true },
+          { time: formatDate(threeDaysAgo), title: 'Đang giao hàng', active: true },
+          { time: formatDate(yesterday), title: 'Giao hàng thành công', active: true },
+        ],
+      },
+    ];
+};
 
 function App(): React.JSX.Element {
   const systemDarkMode = useColorScheme() === 'dark';
@@ -42,7 +223,15 @@ function App(): React.JSX.Element {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Khởi tạo mock orders khi component mount
+  useEffect(() => {
+    const mockOrders = getMockOrders();
+    console.log('App.tsx - Initializing orders:', mockOrders.length);
+    setOrders(mockOrders);
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
   const [userProfile, setUserProfile] = useState({
     name: "Nguyễn Văn A",
@@ -92,7 +281,6 @@ function App(): React.JSX.Element {
       }
       return [...prev, { ...product, quantity }];
     });
-    handleTabChange('cart');
   };
 
   const updateCartQuantity = (id: string, delta: number) => {
@@ -107,6 +295,52 @@ function App(): React.JSX.Element {
 
   const removeFromCart = (id: string) => {
     setCartItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const createOrder = (orderId: string, items: CartItem[], totalAmount: number) => {
+    const now = new Date();
+    const dateStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    
+    const paymentMethods = [
+      'Ví điện tử MoMo',
+      'Thanh toán khi nhận hàng (COD)',
+      'Thẻ ATM / Internet Banking'
+    ];
+
+    const newOrder: Order = {
+      id: orderId,
+      date: dateStr,
+      status: 'processing',
+      statusText: 'Đang xử lý',
+      items: items.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image,
+      })),
+      shippingAddress: {
+        name: userProfile.name,
+        phone: '0987 654 321',
+        address: 'Số 1, Đại Cồ Việt, Hai Bà Trưng, Hà Nội',
+      },
+      payment: {
+        method: paymentMethods[0], // Default to first payment method
+        subtotal: items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+        shippingFee: 30000,
+        discount: 0,
+        total: totalAmount,
+      },
+      timeline: [
+        { time: dateStr, title: 'Đặt hàng thành công', active: true },
+        { time: '', title: 'Đã xác nhận đơn hàng', active: false },
+        { time: '', title: 'Đang đóng gói', active: false },
+        { time: '', title: 'Đang giao hàng', active: false },
+        { time: '', title: 'Giao hàng thành công', active: false },
+      ],
+    };
+
+    setOrders(prev => [newOrder, ...prev]);
   };
 
   const handleToggleWishlist = (product: Product) => {
@@ -159,6 +393,7 @@ function App(): React.JSX.Element {
         return (
           <Profile
             onNavigateToOrders={navigateToOrderHistory}
+            orderCount={orders.length}
             onNavigateToAddress={() => setCurrentScreen('address-book')}
             onNavigateToPayment={() => setCurrentScreen('payment-methods')}
             onNavigateToSettings={() => setCurrentScreen('settings')}
@@ -192,21 +427,29 @@ function App(): React.JSX.Element {
         return (
           <Checkout
             onBack={() => handleTabChange('cart')}
-            onSuccess={() => {
+            onSuccess={(orderId) => {
+              createOrder(orderId, cartItems, cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) + 30000);
               setCartItems([]);
               handleTabChange('home');
             }}
             totalAmount={cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) + 30000}
+            cartItems={cartItems}
             theme={theme}
           />
         );
 
       case 'order-history':
-        return <OrderHistory onBack={() => handleTabChange('profile')} onViewDetail={navigateToOrderDetail} theme={theme} />;
+        console.log('App.tsx - Rendering OrderHistory with orders count:', orders.length);
+        return <OrderHistory onBack={() => handleTabChange('profile')} onViewDetail={navigateToOrderDetail} orders={orders} theme={theme} />;
 
       case 'order-detail':
         return selectedOrderId ? (
-          <OrderDetail orderId={selectedOrderId} onBack={navigateToOrderHistory} theme={theme} />
+          <OrderDetail 
+            orderId={selectedOrderId} 
+            onBack={navigateToOrderHistory} 
+            order={orders.find(o => o.id === selectedOrderId)}
+            theme={theme}
+          />
         ) : null;
 
       case 'auth':

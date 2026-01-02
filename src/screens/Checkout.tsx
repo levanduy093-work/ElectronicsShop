@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, StatusBar, Platform, TextInput, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 import { formatPrice } from '../lib/utils';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
@@ -13,12 +14,25 @@ interface CheckoutProps {
 
 type Step = 'address' | 'shipping' | 'payment' | 'success';
 
-export function Checkout({ onBack, onSuccess, totalAmount, theme }: CheckoutProps) {
-  const { theme: ctxTheme } = useTheme();
+export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme }: CheckoutProps) {
+  const { theme: ctxTheme, isDarkMode } = useTheme();
   const t = theme || ctxTheme || lightTheme;
+  const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>('address');
   const [selectedShipping, setSelectedShipping] = useState(0);
   const [selectedPayment, setSelectedPayment] = useState(0);
+  const [addresses, setAddresses] = useState([
+    {
+      id: 'addr-1',
+      label: 'Nhà riêng',
+      detail: 'Số 1, Đại Cồ Việt, Hai Bà Trưng, Hà Nội',
+      phone: '0987 654 321',
+      isDefault: true,
+    },
+  ]);
+  const [selectedAddressId, setSelectedAddressId] = useState('addr-1');
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [newAddress, setNewAddress] = useState({ label: 'Nhà riêng', detail: '', phone: '' });
   const accentBg = t === lightTheme ? 'rgba(37,99,235,0.08)' : 'rgba(255,255,255,0.06)';
   const lineBg = t === lightTheme ? '#E5E7EB' : t.border;
 
@@ -28,10 +42,37 @@ export function Checkout({ onBack, onSuccess, totalAmount, theme }: CheckoutProp
     { id: 'payment', title: 'Thanh toán', icon: 'credit-card' },
   ];
 
+  const [orderId, setOrderId] = useState<string>('');
+
   const handleNext = () => {
     if (step === 'address') setStep('shipping');
     else if (step === 'shipping') setStep('payment');
-    else if (step === 'payment') setStep('success');
+    else if (step === 'payment') {
+      // Generate order ID
+      const newOrderId = `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+      setOrderId(newOrderId);
+      setStep('success');
+    }
+  };
+
+  const handleSaveAddress = () => {
+    if (!newAddress.detail || !newAddress.phone) {
+      Alert.alert('Thông báo', 'Vui lòng nhập đầy đủ địa chỉ và số điện thoại');
+      return;
+    }
+    const newId = `addr-${Date.now()}`;
+    const updated = addresses.map(a => ({ ...a, isDefault: false }));
+    updated.push({
+      id: newId,
+      label: newAddress.label || 'Nhà riêng',
+      detail: newAddress.detail,
+      phone: newAddress.phone,
+      isDefault: true,
+    });
+    setAddresses(updated);
+    setSelectedAddressId(newId);
+    setShowAddressForm(false);
+    setNewAddress({ label: 'Nhà riêng', detail: '', phone: '' });
   };
 
   if (step === 'success') {
@@ -42,10 +83,14 @@ export function Checkout({ onBack, onSuccess, totalAmount, theme }: CheckoutProp
         </View>
         <Text style={[styles.successTitle, { color: t.text }]}>Đặt hàng thành công!</Text>
         <Text style={[styles.successText, { color: t.muted }]}>
-          Đơn hàng #ORD-2024-001 của bạn đang được xử lý. Chúng tôi sẽ thông báo khi hàng được gửi đi.
+          Đơn hàng {orderId ? `#${orderId}` : ''} của bạn đang được xử lý. Chúng tôi sẽ thông báo khi hàng được gửi đi.
         </Text>
         <TouchableOpacity
-          onPress={onSuccess}
+          onPress={() => {
+            if (orderId) {
+              onSuccess(orderId);
+            }
+          }}
           style={[styles.successButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
           activeOpacity={0.8}
         >
@@ -59,7 +104,19 @@ export function Checkout({ onBack, onSuccess, totalAmount, theme }: CheckoutProp
 
   return (
     <View style={[styles.container, { backgroundColor: t.background }]}>
-      <View style={[styles.header, { backgroundColor: t.card, borderBottomColor: t.border }]}>
+      <StatusBar 
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
+        backgroundColor={t.card}
+        translucent={false}
+      />
+      <View style={[
+        styles.header,
+        {
+          backgroundColor: t.card,
+          borderBottomColor: t.border,
+          paddingTop: Math.max(insets.top, 0),
+        }
+      ]}>
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.text} />
         </TouchableOpacity>
@@ -246,18 +303,25 @@ export function Checkout({ onBack, onSuccess, totalAmount, theme }: CheckoutProp
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
-    paddingTop: 64,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   headerTitle: {
     fontSize: 18,

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AVAILABLE_VOUCHERS } from '../lib/data';
@@ -13,6 +14,7 @@ interface UserProfile {
 
 interface ProfileProps {
   onNavigateToOrders?: () => void;
+  orderCount?: number;
   onNavigateToAddress?: () => void;
   onNavigateToPayment?: () => void;
   onNavigateToSettings?: () => void;
@@ -26,6 +28,7 @@ interface ProfileProps {
 
 export function Profile({
   onNavigateToOrders,
+  orderCount = 0,
   onNavigateToAddress,
   onNavigateToPayment,
   onNavigateToSettings,
@@ -38,6 +41,7 @@ export function Profile({
 }: ProfileProps) {
   const [showVouchers, setShowVouchers] = useState(false);
   const { theme: ctxTheme } = useTheme();
+  const insets = useSafeAreaInsets();
   const t = theme || ctxTheme || lightTheme;
 
   const handleCopyVoucher = (code: string) => {
@@ -74,7 +78,7 @@ export function Profile({
           style={[styles.statCard, { backgroundColor: t.card, borderColor: t.border, shadowOpacity: t === lightTheme ? 0.05 : 0 }]}
           activeOpacity={0.7}
         >
-          <Text style={[styles.statValue, { color: t.text }]}>12</Text>
+          <Text style={[styles.statValue, { color: t.text }]}>{orderCount}</Text>
           <Text style={[styles.statLabel, { color: t.muted }]}>Đơn hàng</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -165,7 +169,11 @@ export function Profile({
                 <AppIcon name="close" size={24} color={t.muted} />
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.voucherList}>
+            <ScrollView 
+              style={styles.voucherList}
+              contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 100 }}
+              showsVerticalScrollIndicator={false}
+            >
               {AVAILABLE_VOUCHERS.map((voucher) => (
                 <View key={voucher.code} style={[styles.voucherCard, { borderColor: t.border, backgroundColor: t.surface }]}>
                   <View style={[styles.voucherIconContainer, { backgroundColor: t.primary + '22' }]}>

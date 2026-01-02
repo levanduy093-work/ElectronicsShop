@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, Alert, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
+import { Theme, lightTheme, useTheme } from '../lib/theme';
 
 interface AddressBookProps {
   onBack: () => void;
+  theme?: Theme;
 }
 
 interface Address {
@@ -47,8 +49,10 @@ const INITIAL_ADDRESSES: Address[] = [
   },
 ];
 
-export function AddressBook({ onBack }: AddressBookProps) {
+export function AddressBook({ onBack, theme }: AddressBookProps) {
   const insets = useSafeAreaInsets();
+  const { theme: ctxTheme } = useTheme();
+  const t = theme || ctxTheme || lightTheme;
   const [addresses, setAddresses] = useState<Address[]>(INITIAL_ADDRESSES);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -143,101 +147,110 @@ export function AddressBook({ onBack }: AddressBookProps) {
 
   if (isFormOpen) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: t.background }]}>
         <StatusBar 
-          barStyle="dark-content" 
+          barStyle={t === lightTheme ? 'dark-content' : 'light-content'} 
           backgroundColor="transparent"
           translucent={true}
         />
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 0) }]}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 0), backgroundColor: t.card, borderBottomColor: t.border }]}>
           <TouchableOpacity onPress={() => setIsFormOpen(false)} style={styles.backButton} activeOpacity={0.7}>
-            <AppIcon name="arrow-left" size={24} color="#6B7280" />
+            <AppIcon name="arrow-left" size={24} color={t.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>
+          <Text style={[styles.headerTitle, { color: t.text }]}>
             {editingId ? 'Sửa địa chỉ' : 'Thêm địa chỉ mới'}
           </Text>
           <View style={{ width: 24 }} />
         </View>
 
-        <ScrollView style={styles.formContent} showsVerticalScrollIndicator={false}>
-          <View style={styles.formCard}>
+        <ScrollView style={styles.formContent} contentContainerStyle={{ paddingBottom: 96 }} showsVerticalScrollIndicator={false}>
+          <View style={[styles.formCard, { backgroundColor: t.card }]}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Họ và tên</Text>
+              <Text style={[styles.label, { color: t.text }]}>Họ và tên</Text>
               <TextInput
                 value={formData.name}
                 onChangeText={text => setFormData({ ...formData, name: text })}
-                style={styles.input}
+                style={[styles.input, { backgroundColor: t.surface, borderColor: t.border, color: t.text, placeholderTextColor: t.muted }]}
                 placeholder="Nhập họ tên"
+                placeholderTextColor={t.muted}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Số điện thoại</Text>
+              <Text style={[styles.label, { color: t.text }]}>Số điện thoại</Text>
               <TextInput
                 value={formData.phone}
                 onChangeText={text => setFormData({ ...formData, phone: text })}
-                style={styles.input}
+                style={[styles.input, { backgroundColor: t.surface, borderColor: t.border, color: t.text, placeholderTextColor: t.muted }]}
                 placeholder="Nhập số điện thoại"
                 keyboardType="phone-pad"
+                placeholderTextColor={t.muted}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Tỉnh / Thành phố</Text>
+              <Text style={[styles.label, { color: t.text }]}>Tỉnh / Thành phố</Text>
               <TextInput
                 value={formData.city}
                 onChangeText={text => setFormData({ ...formData, city: text })}
-                style={styles.input}
+                style={[styles.input, { backgroundColor: t.surface, borderColor: t.border, color: t.text, placeholderTextColor: t.muted }]}
                 placeholder="Nhập Tỉnh/Thành phố"
+                placeholderTextColor={t.muted}
               />
             </View>
 
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-                <Text style={styles.label}>Quận / Huyện</Text>
+                <Text style={[styles.label, { color: t.text }]}>Quận / Huyện</Text>
                 <TextInput
                   value={formData.district}
                   onChangeText={text => setFormData({ ...formData, district: text })}
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: t.surface, borderColor: t.border, color: t.text, placeholderTextColor: t.muted }]}
                   placeholder="Quận/Huyện"
+                  placeholderTextColor={t.muted}
                 />
               </View>
               <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-                <Text style={styles.label}>Phường / Xã</Text>
+                <Text style={[styles.label, { color: t.text }]}>Phường / Xã</Text>
                 <TextInput
                   value={formData.ward}
                   onChangeText={text => setFormData({ ...formData, ward: text })}
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: t.surface, borderColor: t.border, color: t.text, placeholderTextColor: t.muted }]}
                   placeholder="Phường/Xã"
+                  placeholderTextColor={t.muted}
                 />
               </View>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Địa chỉ cụ thể</Text>
+              <Text style={[styles.label, { color: t.text }]}>Địa chỉ cụ thể</Text>
               <TextInput
                 value={formData.detailedAddress}
                 onChangeText={text => setFormData({ ...formData, detailedAddress: text })}
-                style={styles.input}
+                style={[styles.input, { backgroundColor: t.surface, borderColor: t.border, color: t.text, placeholderTextColor: t.muted }]}
                 placeholder="Số nhà, tên đường..."
+                placeholderTextColor={t.muted}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Loại địa chỉ</Text>
+              <Text style={[styles.label, { color: t.text }]}>Loại địa chỉ</Text>
               <View style={styles.typeContainer}>
                 <TouchableOpacity
                   onPress={() => setFormData({ ...formData, type: 'Nhà riêng' })}
                   style={[
                     styles.typeButton,
                     formData.type === 'Nhà riêng' && styles.typeButtonSelected,
+                    { borderColor: t.border, backgroundColor: t.surface },
+                    formData.type === 'Nhà riêng' && { borderColor: t.primary, backgroundColor: t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)' },
                   ]}
                   activeOpacity={0.7}
                 >
-                  <AppIcon name="home" size={16} color={formData.type === 'Nhà riêng' ? '#2563EB' : '#6B7280'} />
+                  <AppIcon name="home" size={16} color={formData.type === 'Nhà riêng' ? t.primary : t.muted} />
                   <Text style={[
                     styles.typeText,
-                    formData.type === 'Nhà riêng' && styles.typeTextSelected,
+                    { color: t.text },
+                    formData.type === 'Nhà riêng' && { color: t.primary },
                   ]}>
                     Nhà riêng
                   </Text>
@@ -247,13 +260,16 @@ export function AddressBook({ onBack }: AddressBookProps) {
                   style={[
                     styles.typeButton,
                     formData.type === 'Văn phòng' && styles.typeButtonSelected,
+                    { borderColor: t.border, backgroundColor: t.surface },
+                    formData.type === 'Văn phòng' && { borderColor: t.primary, backgroundColor: t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)' },
                   ]}
                   activeOpacity={0.7}
                 >
-                  <AppIcon name="briefcase" size={16} color={formData.type === 'Văn phòng' ? '#2563EB' : '#6B7280'} />
+                  <AppIcon name="briefcase" size={16} color={formData.type === 'Văn phòng' ? t.primary : t.muted} />
                   <Text style={[
                     styles.typeText,
-                    formData.type === 'Văn phòng' && styles.typeTextSelected,
+                    { color: t.text },
+                    formData.type === 'Văn phòng' && { color: t.primary },
                   ]}>
                     Văn phòng
                   </Text>
@@ -269,16 +285,18 @@ export function AddressBook({ onBack }: AddressBookProps) {
               <View style={[
                 styles.checkbox,
                 formData.isDefault && styles.checkboxSelected,
+                { borderColor: t.border, backgroundColor: t.surface },
+                formData.isDefault && { backgroundColor: t.primary, borderColor: t.primary },
               ]}>
                 {formData.isDefault && <AppIcon name="check" size={14} color="#FFFFFF" />}
               </View>
-              <Text style={styles.checkboxLabel}>Đặt làm địa chỉ mặc định</Text>
+              <Text style={[styles.checkboxLabel, { color: t.text }]}>Đặt làm địa chỉ mặc định</Text>
             </TouchableOpacity>
           </View>
 
           <TouchableOpacity
             onPress={handleSave}
-            style={styles.saveButton}
+            style={[styles.saveButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
             activeOpacity={0.8}
           >
             <Text style={styles.saveButtonText}>Lưu địa chỉ</Text>
@@ -289,62 +307,67 @@ export function AddressBook({ onBack }: AddressBookProps) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: t.background }]}>
       <StatusBar 
-        barStyle="dark-content" 
+        barStyle={t === lightTheme ? 'dark-content' : 'light-content'} 
         backgroundColor="transparent"
         translucent={true}
       />
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 0) }]}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 0), backgroundColor: t.card, borderBottomColor: t.border }]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
-          <AppIcon name="arrow-left" size={24} color="#6B7280" />
+          <AppIcon name="arrow-left" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Sổ địa chỉ</Text>
+        <Text style={[styles.headerTitle, { color: t.text }]}>Sổ địa chỉ</Text>
         <TouchableOpacity onPress={openAddForm} activeOpacity={0.7}>
-          <AppIcon name="plus" size={24} color="#2563EB" />
+          <AppIcon name="plus" size={24} color={t.primary} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={[styles.contentContainer, { backgroundColor: t.background }]}
+        showsVerticalScrollIndicator={false}
+      >
         {addresses.map((addr) => (
           <View
             key={addr.id}
             style={[
               styles.addressCard,
-              addr.isDefault && styles.addressCardDefault,
+              { backgroundColor: t.card, borderColor: t.border, shadowOpacity: t === lightTheme ? 0.05 : 0, elevation: t === lightTheme ? 2 : 0 },
+              addr.isDefault && { borderColor: t.primary, borderWidth: 2 },
             ]}
           >
             <View style={styles.addressHeader}>
               <View style={styles.addressInfo}>
-                <Text style={styles.addressName}>{addr.name}</Text>
-                <Text style={styles.addressSeparator}>|</Text>
-                <Text style={styles.addressPhone}>{addr.phone}</Text>
+                <Text style={[styles.addressName, { color: t.text }]}>{addr.name}</Text>
+                <Text style={[styles.addressSeparator, { color: t.muted }]}>{'|'}</Text>
+                <Text style={[styles.addressPhone, { color: t.muted }]}>{addr.phone}</Text>
               </View>
               {addr.isDefault ? (
-                <View style={styles.defaultBadge}>
-                  <Text style={styles.defaultBadgeText}>Mặc định</Text>
+                <View style={[styles.defaultBadge, { backgroundColor: t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)', borderColor: t === lightTheme ? '#93C5FD' : t.primary }]}>
+                  <Text style={[styles.defaultBadgeText, { color: t.primary }]}>Mặc định</Text>
                 </View>
               ) : (
                 <TouchableOpacity
                   onPress={() => handleSetDefault(addr.id)}
-                  style={styles.setDefaultButton}
+                  style={[styles.setDefaultButton, { borderColor: t.border }]}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.setDefaultText}>Đặt mặc định</Text>
+                  <Text style={[styles.setDefaultText, { color: t.muted }]}>Đặt mặc định</Text>
                 </TouchableOpacity>
               )}
             </View>
 
-            <Text style={styles.addressText}>{addr.address}</Text>
+            <Text style={[styles.addressText, { color: t.text }]}>{addr.address}</Text>
 
             <View style={styles.addressFooter}>
-              <View style={styles.typeBadge}>
+              <View style={[styles.typeBadge, { backgroundColor: t.surface }]}>
                 <AppIcon
                   name={addr.type === 'Nhà riêng' ? 'home' : 'briefcase'}
                   size={10}
-                  color="#6B7280"
+                  color={t.muted}
                 />
-                <Text style={styles.typeBadgeText}>{addr.type}</Text>
+                <Text style={[styles.typeBadgeText, { color: t.muted }]}>{addr.type}</Text>
               </View>
               <View style={styles.actions}>
                 <TouchableOpacity
@@ -352,8 +375,8 @@ export function AddressBook({ onBack }: AddressBookProps) {
                   style={styles.actionButton}
                   activeOpacity={0.7}
                 >
-                  <AppIcon name="edit" size={14} color="#2563EB" />
-                  <Text style={styles.actionText}>Sửa</Text>
+                  <AppIcon name="edit" size={14} color={t.primary} />
+                  <Text style={[styles.actionText, { color: t.primary }]}>Sửa</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => handleDelete(addr.id)}
@@ -370,11 +393,11 @@ export function AddressBook({ onBack }: AddressBookProps) {
 
         <TouchableOpacity
           onPress={openAddForm}
-          style={styles.addButton}
+          style={[styles.addButton, { borderColor: t.border }]}
           activeOpacity={0.7}
         >
-          <AppIcon name="plus" size={20} color="#6B7280" />
-          <Text style={styles.addButtonText}>Thêm địa chỉ mới</Text>
+          <AppIcon name="plus" size={20} color={t.muted} />
+          <Text style={[styles.addButtonText, { color: t.text }]}>Thêm địa chỉ mới</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

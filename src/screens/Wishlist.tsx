@@ -5,46 +5,54 @@ import { Product } from '../lib/data';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
 import { formatPrice } from '../lib/utils';
+import { Theme, lightTheme, useTheme } from '../lib/theme';
 
 interface WishlistProps {
   items: Product[];
   onBack: () => void;
   onRemove: (productId: string) => void;
   onProductClick: (product: Product) => void;
+  theme?: Theme;
 }
 
-export function Wishlist({ items, onBack, onRemove, onProductClick }: WishlistProps) {
+export function Wishlist({ items, onBack, onRemove, onProductClick, theme }: WishlistProps) {
   const insets = useSafeAreaInsets();
+  const { theme: ctxTheme } = useTheme();
+  const t = theme || ctxTheme || lightTheme;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: t.background }]}>
       <StatusBar 
-        barStyle="dark-content" 
+        barStyle={t === lightTheme ? 'dark-content' : 'light-content'} 
         backgroundColor="transparent"
         translucent={true}
       />
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 0) }]}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 0), backgroundColor: t.card, borderBottomColor: t.border }]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
-          <AppIcon name="arrow-left" size={24} color="#6B7280" />
+          <AppIcon name="arrow-left" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>Sản phẩm yêu thích ({items.length})</Text>
+        <Text style={[styles.title, { color: t.text }]}>Sản phẩm yêu thích ({items.length})</Text>
       </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={[styles.contentContainer, { backgroundColor: t.background }]}
+        showsVerticalScrollIndicator={false}
+      >
         {items.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <View style={styles.emptyIcon}>
-              <AppIcon name="heart" size={32} color="#9CA3AF" />
+            <View style={[styles.emptyIcon, { backgroundColor: t.surface }]}>
+              <AppIcon name="heart" size={32} color={t.muted} />
             </View>
-            <Text style={styles.emptyTitle}>Danh sách trống</Text>
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyTitle, { color: t.text }]}>Danh sách trống</Text>
+            <Text style={[styles.emptyText, { color: t.muted }]}>
               Hãy thả tim các sản phẩm bạn yêu thích để lưu vào đây nhé.
             </Text>
           </View>
         ) : (
           <View style={styles.productsGrid}>
             {items.map((product) => (
-              <View key={product.id} style={styles.productCard}>
+              <View key={product.id} style={[styles.productCard, { backgroundColor: t.card, borderColor: t.border, shadowOpacity: t === lightTheme ? 0.05 : 0, elevation: t === lightTheme ? 2 : 0 }]}>
                 <TouchableOpacity
                   onPress={() => onProductClick(product)}
                   style={styles.imageContainer}
@@ -60,7 +68,7 @@ export function Wishlist({ items, onBack, onRemove, onProductClick }: WishlistPr
                       e.stopPropagation();
                       onRemove(product.id);
                     }}
-                    style={styles.removeButton}
+                    style={[styles.removeButton, { backgroundColor: t.surface }]}
                     activeOpacity={0.7}
                   >
                     <AppIcon name="heart" size={16} color="#EF4444" />
@@ -72,17 +80,17 @@ export function Wishlist({ items, onBack, onRemove, onProductClick }: WishlistPr
                     onPress={() => onProductClick(product)}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.productName} numberOfLines={2}>
+                    <Text style={[styles.productName, { color: t.text }]} numberOfLines={2}>
                       {product.name}
                     </Text>
                   </TouchableOpacity>
                   <View style={styles.productFooter}>
-                    <Text style={styles.productPrice}>{formatPrice(product.price)}</Text>
+                    <Text style={[styles.productPrice, { color: t.primary }]}>{formatPrice(product.price)}</Text>
                     <TouchableOpacity
-                      style={styles.addToCartButton}
+                      style={[styles.addToCartButton, { backgroundColor: t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)' }]}
                       activeOpacity={0.7}
                     >
-                      <AppIcon name="shopping-cart" size={14} color="#2563EB" />
+                      <AppIcon name="shopping-cart" size={14} color={t.primary} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -205,6 +213,7 @@ const styles = StyleSheet.create({
   productInfo: {
     padding: 12,
     gap: 8,
+    backgroundColor: 'transparent',
   },
   productName: {
     fontSize: 14,

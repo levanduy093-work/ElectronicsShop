@@ -139,6 +139,39 @@ export interface Voucher {
   type: 'fixed' | 'shipping';
 }
 
+export interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+}
+
+export interface Order {
+  id: string;
+  date: string;
+  status: 'processing' | 'shipping' | 'completed' | 'cancelled';
+  statusText: string;
+  items: OrderItem[];
+  shippingAddress: {
+    name: string;
+    phone: string;
+    address: string;
+  };
+  payment: {
+    method: string;
+    subtotal: number;
+    shippingFee: number;
+    discount: number;
+    total: number;
+  };
+  timeline: Array<{
+    time: string;
+    title: string;
+    active: boolean;
+  }>;
+}
+
 export const AVAILABLE_VOUCHERS: Voucher[] = [
   { code: 'FREESHIP', description: 'Miễn phí vận chuyển cho đơn từ 0đ', discount: 30000, minOrder: 0, type: 'shipping' },
   { code: 'ELECTRO50', description: 'Giảm 50k cho đơn từ 500k', discount: 50000, minOrder: 500000, type: 'fixed' },
