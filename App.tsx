@@ -1,43 +1,270 @@
 /**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
+ * ElectronicsShop App
+ * React Native version converted from Figma design
  */
 
-import { NewAppScreen } from '@react-native/new-app-screen';
+import React, { useState } from 'react';
 import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Home } from './src/screens/Home';
+import { Catalog } from './src/screens/Catalog';
+import { AIChat } from './src/screens/AIChat';
+import { Cart } from './src/screens/Cart';
+import { Profile } from './src/screens/Profile';
+import { ProductDetail } from './src/screens/ProductDetail';
+import { Checkout } from './src/screens/Checkout';
+import { OrderHistory } from './src/screens/OrderHistory';
+import { Auth } from './src/screens/Auth';
+import { PlaceholderScreen } from './src/screens/PlaceholderScreen';
+import { BottomNav } from './src/components/layout/BottomNav';
+import { TopBar } from './src/components/layout/TopBar';
+import { Product, CartItem } from './src/lib/data';
 
-function App() {
+type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
+type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'payment-methods' | 'settings' | 'support' | 'wishlist';
+
+function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
+  const [currentTab, setCurrentTab] = useState<NavTab>('home');
+  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  const [previousScreen, setPreviousScreen] = useState<Screen>('home');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [wishlist, setWishlist] = useState<Product[]>([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [userProfile, setUserProfile] = useState({
+    name: "Nguyễn Văn A",
+    email: "nguyenva@example.com",
+    avatar: ""
+  });
+
+  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+
+  const handleTabChange = (tab: NavTab) => {
+    setCurrentTab(tab);
+    setCurrentScreen(tab);
+  };
+
+  const navigateToProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setCurrentScreen('product-detail');
+  };
+
+  const navigateToCheckout = () => {
+    if (!isLoggedIn) {
+      setCurrentScreen('auth');
+    } else {
+      setCurrentScreen('checkout');
+    }
+  };
+
+  const navigateToOrderHistory = () => {
+    setCurrentScreen('order-history');
+  };
+
+  const navigateToOrderDetail = (orderId: string) => {
+    setSelectedOrderId(orderId);
+    setCurrentScreen('order-detail');
+  };
+
+  const handleAddToCart = (product: Product, quantity: number) => {
+    setCartItems(prev => {
+      const existing = prev.find(item => item.id === product.id);
+      if (existing) {
+        return prev.map(item =>
+          item.id === product.id
+            ? { ...item, quantity: item.quantity + quantity }
+            : item
+        );
+      }
+      return [...prev, { ...product, quantity }];
+    });
+    handleTabChange('cart');
+  };
+
+  const updateCartQuantity = (id: string, delta: number) => {
+    setCartItems(prev => prev.map(item => {
+      if (item.id === id) {
+        const newQty = Math.max(1, item.quantity + delta);
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    }));
+  };
+
+  const removeFromCart = (id: string) => {
+    setCartItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const handleToggleWishlist = (product: Product) => {
+    setWishlist(prev => {
+      const exists = prev.some(item => item.id === product.id);
+      if (exists) {
+        return prev.filter(item => item.id !== product.id);
+      }
+      return [...prev, product];
+    });
+  };
+
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+    if (currentScreen === 'auth') {
+      if (previousScreen === 'product-detail') {
+        setCurrentScreen('product-detail');
+      } else {
+        handleTabChange('profile');
+      }
+    }
+  };
+
+  const openFilter = () => {
+    setPreviousScreen(currentScreen);
+    setCurrentScreen('filter');
+  };
+
+  const renderContent = () => {
+    switch (currentScreen) {
+      case 'home':
+        return <Home onNavigate={(tab) => handleTabChange(tab as NavTab)} onProductClick={navigateToProduct} />;
+      case 'catalog':
+        return <Catalog onFilterClick={openFilter} onProductClick={navigateToProduct} />;
+      case 'ai':
+        return <AIChat />;
+      case 'cart':
+        return (
+          <Cart
+            items={cartItems}
+            onUpdateQuantity={updateCartQuantity}
+            onRemoveItem={removeFromCart}
+            onExplore={() => handleTabChange('catalog')}
+            onCheckout={navigateToCheckout}
+          />
+        );
+      case 'profile':
+        if (!isLoggedIn) return <Auth onBack={() => handleTabChange('home')} onLoginSuccess={handleLoginSuccess} />;
+        return (
+          <Profile
+            onNavigateToOrders={navigateToOrderHistory}
+            onNavigateToAddress={() => setCurrentScreen('address-book')}
+            onNavigateToPayment={() => setCurrentScreen('payment-methods')}
+            onNavigateToSettings={() => setCurrentScreen('settings')}
+            onNavigateToSupport={() => setCurrentScreen('support')}
+            onNavigateToWishlist={() => setCurrentScreen('wishlist')}
+            onLogout={() => setIsLoggedIn(false)}
+            userProfile={userProfile}
+            onUpdateProfile={(data) => setUserProfile(prev => ({ ...prev, ...data }))}
+          />
+        );
+
+      case 'product-detail':
+        return selectedProduct ? (
+          <ProductDetail
+            product={selectedProduct}
+            onBack={() => handleTabChange(currentTab)}
+            onAddToCart={handleAddToCart}
+            isFavorite={wishlist.some(item => item.id === selectedProduct.id)}
+            onToggleFavorite={() => handleToggleWishlist(selectedProduct)}
+            isLoggedIn={isLoggedIn}
+            onRequireLogin={() => {
+              setPreviousScreen('product-detail');
+              setCurrentScreen('auth');
+            }}
+          />
+        ) : null;
+
+      case 'checkout':
+        return (
+          <Checkout
+            onBack={() => handleTabChange('cart')}
+            onSuccess={() => {
+              setCartItems([]);
+              handleTabChange('home');
+            }}
+            totalAmount={cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) + 30000}
+          />
+        );
+
+      case 'order-history':
+        return <OrderHistory onBack={() => handleTabChange('profile')} onViewDetail={navigateToOrderDetail} />;
+
+      case 'order-detail':
+        return selectedOrderId ? (
+          <PlaceholderScreen title="Chi tiết đơn hàng" onBack={navigateToOrderHistory} />
+        ) : null;
+
+      case 'auth':
+        return <Auth onBack={() => handleTabChange(currentTab)} onLoginSuccess={handleLoginSuccess} />;
+
+      case 'notifications':
+        return <PlaceholderScreen title="Thông báo" onBack={() => handleTabChange(currentTab)} />;
+
+      case 'search':
+        return <PlaceholderScreen title="Tìm kiếm" onBack={() => handleTabChange(currentTab)} />;
+
+      case 'filter':
+        return <PlaceholderScreen title="Bộ lọc" onBack={() => setCurrentScreen(previousScreen)} />;
+
+      case 'address-book':
+        return <PlaceholderScreen title="Sổ địa chỉ" onBack={() => handleTabChange('profile')} />;
+
+      case 'payment-methods':
+        return <PlaceholderScreen title="Phương thức thanh toán" onBack={() => handleTabChange('profile')} />;
+
+      case 'settings':
+        return <PlaceholderScreen title="Cài đặt" onBack={() => handleTabChange('profile')} />;
+
+      case 'support':
+        return <PlaceholderScreen title="Trung tâm hỗ trợ" onBack={() => handleTabChange('profile')} />;
+
+      case 'wishlist':
+        return <PlaceholderScreen title="Sản phẩm yêu thích" onBack={() => handleTabChange('profile')} />;
+
+      default:
+        return <Home onNavigate={(tab) => handleTabChange(tab as NavTab)} onProductClick={navigateToProduct} />;
+    }
+  };
+
+  const isFullScreen = ['product-detail', 'checkout', 'order-history', 'order-detail', 'auth', 'notifications', 'search', 'filter', 'address-book', 'payment-methods', 'settings', 'support', 'wishlist'].includes(currentScreen);
+  const showTopBar = !isFullScreen && currentScreen !== 'ai' && currentScreen !== 'profile';
 
   return (
     <SafeAreaProvider>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
+      <View style={styles.container}>
+        {showTopBar && (
+          <TopBar
+            title={currentScreen === 'cart' ? 'Giỏ hàng' : 'ElectroAI'}
+            showSearch={currentScreen === 'home'}
+            onSearchClick={() => setCurrentScreen('search')}
+            onFilterClick={openFilter}
+            onNotificationClick={() => setCurrentScreen('notifications')}
+          />
+        )}
+
+        <View style={styles.content}>
+          {renderContent()}
+        </View>
+
+        {!isFullScreen && (
+          <BottomNav
+            currentTab={currentTab}
+            onTabChange={handleTabChange}
+            cartCount={cartCount}
+          />
+        )}
+      </View>
     </SafeAreaProvider>
-  );
-}
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
-  return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
+  },
+  content: {
     flex: 1,
   },
 });
