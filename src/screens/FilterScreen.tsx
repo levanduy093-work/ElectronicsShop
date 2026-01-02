@@ -1,5 +1,6 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, PanResponder } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CATEGORIES } from '../lib/data';
 import { AppIcon } from '../components/common/Icon';
 import { formatPrice } from '../lib/utils';
@@ -10,6 +11,10 @@ interface FilterScreenProps {
 }
 
 export function FilterScreen({ onClose, onApply }: FilterScreenProps) {
+  const insets = useSafeAreaInsets();
+  const PRICE_MIN = 0;
+  const PRICE_MAX = 10000000;
+  const PRICE_STEP = 100000;
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000000]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [rating, setRating] = useState<number | null>(null);
@@ -41,29 +46,40 @@ export function FilterScreen({ onClose, onApply }: FilterScreenProps) {
     setOnlyInStock(false);
   };
 
-  const handlePriceDrag = (evt: any) => {
-    if (!sliderWidth) return;
-    const x = Math.max(0, Math.min(evt.nativeEvent.locationX, sliderWidth));
-    const ratio = x / sliderWidth;
-    const rawValue = ratio * 10000000;
-    const stepped = Math.round(rawValue / 100000) * 100000;
-    setPriceRange([priceRange[0], stepped]);
-  };
+  const snapValue = (value: number) =>
+    Math.round(value / PRICE_STEP) * PRICE_STEP;
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onStartShouldSetPanResponderCapture: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: handlePriceDrag,
-      onPanResponderMove: handlePriceDrag,
-      onPanResponderRelease: handlePriceDrag,
-    })
-  ).current;
+  const valueToPercent = (value: number) =>
+    Math.max(0, Math.min(100, (value / PRICE_MAX) * 100));
+
+  const updatePriceByPosition = (x: number, target?: 'min' | 'max') => {
+    if (!sliderWidth) return;
+    const clampedX = Math.max(0, Math.min(x, sliderWidth));
+    const ratio = clampedX / sliderWidth;
+    const rawValue = ratio * PRICE_MAX;
+    const stepped = snapValue(rawValue);
+
+    setPriceRange(prev => {
+      const [currentMin, currentMax] = prev;
+      const chosenTarget =
+        target ??
+        (Math.abs(stepped - currentMin) <= Math.abs(stepped - currentMax)
+          ? 'min'
+          : 'max');
+
+      if (chosenTarget === 'min') {
+        const newMin = Math.min(stepped, currentMax);
+        return [newMin, currentMax];
+      }
+
+      const newMax = Math.max(stepped, currentMin);
+      return [currentMin, newMax];
+    });
+  };
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
         <TouchableOpacity onPress={onClose} style={styles.closeButton} activeOpacity={0.7}>
           <AppIcon name="close" size={24} color="#374151" />
         </TouchableOpacity>
@@ -91,11 +107,44 @@ export function FilterScreen({ onClose, onApply }: FilterScreenProps) {
           <View
             style={styles.sliderWrapper}
             onLayout={(e) => setSliderWidth(e.nativeEvent.layout.width)}
-            {...panResponder.panHandlers}
+            onStartShouldSetResponder={() => true}
+            onMoveShouldSetResponder={() => true}
+            onResponderGrant={(e) => updatePriceByPosition(e.nativeEvent.locationX)}
+            onResponderMove={(e) => updatePriceByPosition(e.nativeEvent.locationX)}
+            onResponderRelease={(e) => updatePriceByPosition(e.nativeEvent.locationX)}
           >
             <View style={styles.sliderTrack}>
-              <View style={[styles.sliderFill, { width: `${(priceRange[1] / 10000000) * 100}%` }]} />
-              <View style={[styles.sliderThumb, { left: `${(priceRange[1] / 10000000) * 100}%` }]} />
+              <View
+                style={[
+                  styles.sliderFill,
+                  {
+                    left: `${valueToPercent(priceRange[0])}%`,
+                    width: `${valueToPercent(priceRange[1] - priceRange[0])}%`,
+                  },
+                ]}
+              />
+              <View
+                style={[
+                  styles.sliderThumb,
+                  { left: `${valueToPercent(priceRange[0])}%` },
+                ]}
+                onStartShouldSetResponder={() => true}
+                onMoveShouldSetResponder={() => true}
+                onResponderGrant={(e) => updatePriceByPosition(e.nativeEvent.locationX, 'min')}
+                onResponderMove={(e) => updatePriceByPosition(e.nativeEvent.locationX, 'min')}
+                onResponderRelease={(e) => updatePriceByPosition(e.nativeEvent.locationX, 'min')}
+              />
+              <View
+                style={[
+                  styles.sliderThumb,
+                  { left: `${valueToPercent(priceRange[1])}%` },
+                ]}
+                onStartShouldSetResponder={() => true}
+                onMoveShouldSetResponder={() => true}
+                onResponderGrant={(e) => updatePriceByPosition(e.nativeEvent.locationX, 'max')}
+                onResponderMove={(e) => updatePriceByPosition(e.nativeEvent.locationX, 'max')}
+                onResponderRelease={(e) => updatePriceByPosition(e.nativeEvent.locationX, 'max')}
+              />
             </View>
           </View>
           <View style={styles.sliderLabels}>
@@ -270,7 +319,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   sliderTrack: {
-    height: 8,
+    height: 12,
     backgroundColor: '#E5E7EB',
     borderRadius: 999,
     overflow: 'hidden',
@@ -278,25 +327,24 @@ const styles = StyleSheet.create({
   },
   sliderFill: {
     position: 'absolute',
-    left: 0,
     top: 0,
     bottom: 0,
     backgroundColor: '#2563EB',
+    borderRadius: 999,
   },
   sliderThumb: {
     position: 'absolute',
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: '#2563EB',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderWidth: 0,
+    marginLeft: -12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 2,
-    marginLeft: -11,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+    elevation: 3,
   },
   sliderLabels: {
     flexDirection: 'row',

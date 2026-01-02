@@ -1,6 +1,8 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, StatusBar, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
+import { darkTheme, lightTheme } from '../lib/theme';
 
 interface SettingsProps {
   onBack: () => void;
@@ -9,34 +11,45 @@ interface SettingsProps {
 }
 
 export function Settings({ onBack, isDarkMode, onToggleDarkMode }: SettingsProps) {
+  const insets = useSafeAreaInsets();
+  const theme = isDarkMode ? darkTheme : lightTheme;
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar 
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
+        backgroundColor={theme.surface}
+        translucent={true}
+      />
+      <View style={[
+        styles.header,
+        { paddingTop: Math.max(insets.top, 0), backgroundColor: theme.surface, borderBottomColor: theme.border }
+      ]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
-          <AppIcon name="arrow-left" size={24} color="#111827" />
+          <AppIcon name="arrow-left" size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>Cài đặt</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Cài đặt</Text>
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={[styles.content, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
         {/* Section: CHUNG */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Chung</Text>
-          <View style={styles.sectionCard}>
+          <Text style={[styles.sectionTitle, { color: theme.muted }]}>Chung</Text>
+          <View style={[styles.sectionCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
             {/* Dark Mode */}
             <View style={styles.settingItem}>
               <View style={styles.settingLeft}>
-                <View style={styles.settingIcon}>
-                  <AppIcon name="moon" size={18} color="#4B5563" />
+                <View style={[styles.settingIcon, { backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }]}>
+                  <AppIcon name="moon" size={18} color={theme.muted} />
                 </View>
-                <Text style={styles.settingLabel}>Chế độ tối</Text>
+                <Text style={[styles.settingLabel, { color: theme.text }]}>Chế độ tối</Text>
               </View>
               <Switch
                 value={isDarkMode}
                 onValueChange={onToggleDarkMode}
-                trackColor={{ false: '#E5E7EB', true: '#2563EB' }}
-                thumbColor="#FFFFFF"
+                trackColor={{ false: '#E5E7EB', true: theme.primary }}
+                thumbColor={isDarkMode ? '#F9FAFB' : '#FFFFFF'}
               />
             </View>
 
@@ -44,14 +57,14 @@ export function Settings({ onBack, isDarkMode, onToggleDarkMode }: SettingsProps
             <View style={styles.divider} />
             <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
               <View style={styles.settingLeft}>
-                <View style={styles.settingIcon}>
-                  <AppIcon name="globe" size={18} color="#4B5563" />
+                <View style={[styles.settingIcon, { backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }]}>
+                  <AppIcon name="globe" size={18} color={theme.muted} />
                 </View>
-                <Text style={styles.settingLabel}>Ngôn ngữ</Text>
+                <Text style={[styles.settingLabel, { color: theme.text }]}>Ngôn ngữ</Text>
               </View>
               <View style={styles.settingRight}>
-                <Text style={styles.settingValue}>Tiếng Việt</Text>
-                <AppIcon name="chevron-right" size={18} color="#9CA3AF" />
+                <Text style={[styles.settingValue, { color: theme.muted }]}>Tiếng Việt</Text>
+                <AppIcon name="chevron-right" size={18} color={theme.muted} />
               </View>
             </TouchableOpacity>
           </View>
@@ -59,20 +72,20 @@ export function Settings({ onBack, isDarkMode, onToggleDarkMode }: SettingsProps
 
         {/* Section: THÔNG BÁO */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Thông báo</Text>
-          <View style={styles.sectionCard}>
+          <Text style={[styles.sectionTitle, { color: theme.muted }]}>Thông báo</Text>
+          <View style={[styles.sectionCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <View style={styles.settingItem}>
               <View style={styles.settingLeft}>
-                <View style={styles.settingIcon}>
-                  <AppIcon name="bell" size={18} color="#4B5563" />
+                <View style={[styles.settingIcon, { backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }]}>
+                  <AppIcon name="bell" size={18} color={theme.muted} />
                 </View>
-                <Text style={styles.settingLabel}>Nhận thông báo đầy</Text>
+                <Text style={[styles.settingLabel, { color: theme.text }]}>Nhận thông báo đầy</Text>
               </View>
               <Switch
                 value={true}
                 onValueChange={() => {}}
-                trackColor={{ false: '#E5E7EB', true: '#2563EB' }}
-                thumbColor="#FFFFFF"
+                trackColor={{ false: '#E5E7EB', true: theme.primary }}
+                thumbColor={isDarkMode ? '#F9FAFB' : '#FFFFFF'}
               />
             </View>
           </View>
@@ -80,16 +93,16 @@ export function Settings({ onBack, isDarkMode, onToggleDarkMode }: SettingsProps
 
         {/* Section: TÀI KHOẢN */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tài khoản</Text>
-          <View style={styles.sectionCard}>
+          <Text style={[styles.sectionTitle, { color: theme.muted }]}>Tài khoản</Text>
+          <View style={[styles.sectionCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
               <View style={styles.settingLeft}>
-                <View style={styles.settingIcon}>
-                  <AppIcon name="lock" size={18} color="#4B5563" />
+                <View style={[styles.settingIcon, { backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }]}>
+                  <AppIcon name="lock" size={18} color={theme.muted} />
                 </View>
-                <Text style={styles.settingLabel}>Đổi mật khẩu</Text>
+                <Text style={[styles.settingLabel, { color: theme.text }]}>Đổi mật khẩu</Text>
               </View>
-              <AppIcon name="chevron-right" size={18} color="#9CA3AF" />
+              <AppIcon name="chevron-right" size={18} color={theme.muted} />
             </TouchableOpacity>
           </View>
         </View>
@@ -102,7 +115,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F7FA',
-    paddingTop: 64,
   },
   header: {
     flexDirection: 'row',
@@ -110,9 +122,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   backButton: {
     padding: 8,

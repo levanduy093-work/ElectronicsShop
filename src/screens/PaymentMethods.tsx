@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, Image, StatusBar, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 
 interface PaymentMethodsProps {
@@ -7,6 +8,7 @@ interface PaymentMethodsProps {
 }
 
 export function PaymentMethods({ onBack }: PaymentMethodsProps) {
+  const insets = useSafeAreaInsets();
   const [isAdding, setIsAdding] = useState(false);
   const [addType, setAddType] = useState<'card' | 'wallet'>('card');
   const [cardNumber, setCardNumber] = useState('');
@@ -32,8 +34,13 @@ export function PaymentMethods({ onBack }: PaymentMethodsProps) {
   if (isAdding) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setIsAdding(false)} activeOpacity={0.7}>
+        <StatusBar 
+          barStyle="dark-content" 
+          backgroundColor="transparent"
+          translucent={true}
+        />
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 0) }]}>
+          <TouchableOpacity onPress={() => setIsAdding(false)} style={styles.backButton} activeOpacity={0.7}>
             <AppIcon name="arrow-left" size={24} color="#6B7280" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Thêm phương thức mới</Text>
@@ -204,8 +211,13 @@ export function PaymentMethods({ onBack }: PaymentMethodsProps) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
+      <StatusBar 
+        barStyle="dark-content" 
+        backgroundColor="transparent"
+        translucent={true}
+      />
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 0) }]}>
+        <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color="#6B7280" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Phương thức thanh toán</Text>
@@ -274,7 +286,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F7FA',
-    paddingTop: 64,
   },
   header: {
     flexDirection: 'row',
@@ -282,16 +293,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  backButton: {
+    padding: 8,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#111827',
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 8,
   },
   content: {
     flex: 1,

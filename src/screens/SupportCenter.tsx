@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 
 interface SupportCenterProps {
@@ -7,6 +8,7 @@ interface SupportCenterProps {
 }
 
 export function SupportCenter({ onBack }: SupportCenterProps) {
+  const insets = useSafeAreaInsets();
   const faqs = [
     { q: "Làm sao để theo dõi đơn hàng?", a: "Bạn có thể vào mục 'Đơn hàng của tôi' trong trang cá nhân, chọn đơn hàng cần xem để biết trạng thái chi tiết." },
     { q: "Chính sách đổi trả như thế nào?", a: "Chúng tôi hỗ trợ đổi trả trong vòng 7 ngày nếu sản phẩm có lỗi từ nhà sản xuất. Vui lòng giữ nguyên bao bì và tem mác." },
@@ -16,8 +18,13 @@ export function SupportCenter({ onBack }: SupportCenterProps) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
+      <StatusBar 
+        barStyle="dark-content" 
+        backgroundColor="transparent"
+        translucent={true}
+      />
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 0) }]}>
+        <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color="#6B7280" />
         </TouchableOpacity>
         <Text style={styles.title}>Trung tâm hỗ trợ</Text>
@@ -91,7 +98,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F7FA',
-    paddingTop: 64,
   },
   header: {
     flexDirection: 'row',
@@ -99,16 +105,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  backButton: {
+    padding: 8,
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#111827',
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 8,
   },
   content: {
     flex: 1,

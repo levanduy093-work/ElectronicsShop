@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PRODUCTS, Product } from '../lib/data';
 import { ProductCard } from '../components/ui/ProductCard';
 import { AppIcon } from '../components/common/Icon';
@@ -19,6 +20,7 @@ export function SearchScreen({
   initialQuery = '',
   onQueryChange,
 }: SearchScreenProps) {
+  const insets = useSafeAreaInsets();
   const [query, setQuery] = useState(initialQuery);
   const [recentSearches, setRecentSearches] = useState(['Arduino Uno', 'ESP32', 'Mạch nạp']);
 
@@ -40,7 +42,7 @@ export function SearchScreen({
   return (
     <View style={styles.container}>
       {/* Search Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color="#6B7280" />
         </TouchableOpacity>
@@ -162,8 +164,7 @@ export function SearchScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
-    paddingTop: 64,
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
@@ -172,7 +173,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: '#FFFFFF',
     gap: 12,
   },
   backButton: {

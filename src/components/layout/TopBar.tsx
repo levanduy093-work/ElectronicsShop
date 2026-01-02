@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../common/Icon';
+import { Theme, lightTheme } from '../../lib/theme';
 
 interface TopBarProps {
   title?: string;
@@ -9,6 +10,7 @@ interface TopBarProps {
   onSearchClick?: () => void;
   onFilterClick?: () => void;
   onNotificationClick?: () => void;
+  theme?: Theme;
 }
 
 export function TopBar({ 
@@ -16,19 +18,23 @@ export function TopBar({
   showSearch = true, 
   onSearchClick, 
   onFilterClick,
-  onNotificationClick 
+  onNotificationClick,
+  theme = lightTheme
 }: TopBarProps) {
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, 0);
 
   return (
-    <View style={[styles.container, { paddingTop: topPadding }]}>
+    <View style={[
+      styles.container, 
+      { paddingTop: topPadding, backgroundColor: theme.surface, borderBottomColor: theme.border }
+    ]}>
       <View style={styles.content}>
         <View style={styles.leftSection}>
-          <View style={styles.logo}>
+          <View style={[styles.logo, { backgroundColor: theme.primary }]}>
             <Text style={styles.logoText}>E</Text>
           </View>
-          <Text style={styles.title}>{title}</Text>
+          <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
         </View>
         
         <View style={styles.rightSection}>
@@ -38,7 +44,7 @@ export function TopBar({
               style={styles.iconButton}
               activeOpacity={0.7}
             >
-              <AppIcon name="search" size={22} color="#6B7280" />
+              <AppIcon name="search" size={22} color={theme.muted} />
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -47,8 +53,8 @@ export function TopBar({
             activeOpacity={0.7}
           >
             <View style={styles.notificationContainer}>
-              <AppIcon name="bell" size={22} color="#6B7280" />
-              <View style={styles.notificationBadge} />
+              <AppIcon name="bell" size={22} color={theme.muted} />
+              <View style={[styles.notificationBadge, { backgroundColor: theme.primary, borderColor: theme.surface }]} />
             </View>
           </TouchableOpacity>
         </View>
@@ -59,7 +65,7 @@ export function TopBar({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
     ...Platform.select({

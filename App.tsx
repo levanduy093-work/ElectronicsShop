@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { StatusBar, StyleSheet, useColorScheme, View, Platform } from 'react-native';
+import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Home } from './src/screens/Home';
 import { Catalog } from './src/screens/Catalog';
@@ -27,6 +27,7 @@ import { Notifications } from './src/screens/Notifications';
 import { BottomNav } from './src/components/layout/BottomNav';
 import { TopBar } from './src/components/layout/TopBar';
 import { Product, CartItem } from './src/lib/data';
+import { darkTheme, lightTheme } from './src/lib/theme';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'payment-methods' | 'settings' | 'support' | 'wishlist';
@@ -50,6 +51,7 @@ function App(): React.JSX.Element {
   });
 
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const theme = isDarkMode ? darkTheme : lightTheme;
 
   const handleTabChange = (tab: NavTab) => {
     setCurrentTab(tab);
@@ -269,8 +271,12 @@ function App(): React.JSX.Element {
 
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <View style={styles.container}>
+      <StatusBar 
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
+        backgroundColor={theme.surface}
+        translucent={true}
+      />
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         {showTopBar && (
           <TopBar
             title={currentScreen === 'cart' ? 'Giỏ hàng' : 'ElectroAI'}
@@ -278,6 +284,7 @@ function App(): React.JSX.Element {
             onSearchClick={() => setCurrentScreen('search')}
             onFilterClick={openFilter}
             onNotificationClick={() => setCurrentScreen('notifications')}
+            theme={theme}
           />
         )}
 
@@ -290,6 +297,7 @@ function App(): React.JSX.Element {
             currentTab={currentTab}
             onTabChange={handleTabChange}
             cartCount={cartCount}
+            theme={theme}
           />
         )}
       </View>

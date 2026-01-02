@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../common/Icon';
+import { Theme, lightTheme } from '../../lib/theme';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 
@@ -9,9 +10,10 @@ interface BottomNavProps {
   currentTab: NavTab;
   onTabChange: (tab: NavTab) => void;
   cartCount?: number;
+  theme?: Theme;
 }
 
-export function BottomNav({ currentTab, onTabChange, cartCount = 0 }: BottomNavProps) {
+export function BottomNav({ currentTab, onTabChange, cartCount = 0, theme = lightTheme }: BottomNavProps) {
   const insets = useSafeAreaInsets();
 
   const TabButton = ({ 
@@ -26,8 +28,8 @@ export function BottomNav({ currentTab, onTabChange, cartCount = 0 }: BottomNavP
     isSpecial?: boolean;
   }) => {
     const isActive = currentTab === tab;
-    const activeColor = '#2563EB'; // blue-600
-    const inactiveColor = '#9CA3AF'; // gray-400
+    const activeColor = theme.tabActive;
+    const inactiveColor = theme.tabInactive;
 
     if (isSpecial) {
       return (
@@ -72,7 +74,10 @@ export function BottomNav({ currentTab, onTabChange, cartCount = 0 }: BottomNavP
   };
 
   return (
-    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+    <View style={[
+      styles.container,
+      { paddingBottom: Math.max(insets.bottom, 16), backgroundColor: theme.surface, borderTopColor: theme.border }
+    ]}>
       <TabButton tab="home" icon="home" label="Home" />
       <TabButton tab="catalog" icon="grid" label="Danh mục" />
       <TabButton tab="ai" icon="sparkles" label="AI Chat" isSpecial />

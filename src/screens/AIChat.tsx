@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MOCK_CHATS, ChatMessage } from '../lib/data';
 import { MessageBubble } from '../components/ai/MessageBubble';
 import { TopBar } from '../components/layout/TopBar';
@@ -10,6 +11,7 @@ export function AIChat() {
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -75,7 +77,7 @@ export function AIChat() {
         </ScrollView>
 
         {/* Input Area */}
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 16) + 80 }]}>
           {/* Suggestion Chips */}
           {messages.length < 3 && (
             <ScrollView
@@ -136,7 +138,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F7FA',
-    paddingTop: 64,
   },
   keyboardView: {
     flex: 1,
@@ -161,10 +162,10 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     padding: 16,
+    paddingTop: 16,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
-    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
   },
   suggestionsContainer: {
     marginBottom: 8,
