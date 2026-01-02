@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { AppIcon } from '../components/common/Icon';
@@ -8,38 +8,30 @@ interface AuthProps {
   onLoginSuccess: () => void;
 }
 
-// Google Icon component from google-brand-color.svg
+// Google Icon component from google-icon-logo.svg
 const GoogleIcon = ({ size = 24 }: { size?: number }) => {
-  // SVG viewBox is 77x24, maintain aspect ratio
-  const aspectRatio = 77 / 24;
+  // SVG viewBox is 256x262, maintain aspect ratio (approximately square)
+  const aspectRatio = 256 / 262;
   const width = size * aspectRatio;
   const height = size;
   
   return (
-    <Svg width={width} height={height} viewBox="0 0 77 24">
+    <Svg width={width} height={height} viewBox="0 0 256 262" preserveAspectRatio="xMidYMid">
       <Path
-        d="M19.947 8.482H11.43v2.536h6.041c-.298 3.557-3.247 5.074-6.03 5.074-3.562 0-6.67-2.812-6.67-6.753 0-3.839 2.963-6.795 6.677-6.795 2.866 0 4.555 1.833 4.555 1.833l1.77-1.84S15.5 0 11.357 0C6.081 0 2 4.468 2 9.294c0 4.729 3.84 9.34 9.491 9.34 4.972 0 8.61-3.417 8.61-8.47 0-1.067-.154-1.683-.154-1.683"
+        d="M255.878,133.451 C255.878,122.717 255.007,114.884 253.122,106.761 L130.55,106.761 L130.55,155.209 L202.497,155.209 C201.047,167.249 193.214,185.381 175.807,197.565 L175.563,199.187 L214.318,229.21 L217.003,229.478 C241.662,206.704 255.878,173.196 255.878,133.451"
         fill="#4285F4"
       />
       <Path
-        d="M26.96 8.997c1.719 0 3.347 1.395 3.347 3.642 0 2.199-1.621 3.633-3.355 3.633-1.905 0-3.408-1.53-3.408-3.65 0-2.075 1.485-3.625 3.416-3.625zm-.035-2.352c-3.495 0-6 2.742-6 5.94 0 3.245 2.43 6.038 6.041 6.038 3.27 0 5.948-2.508 5.948-5.968 0-3.967-3.116-6.01-5.989-6.01z"
-        fill="#EB4335"
+        d="M130.55,261.1 C165.798,261.1 195.389,249.495 217.003,229.478 L175.807,197.565 C164.783,205.253 149.987,210.62 130.55,210.62 C96.027,210.62 66.726,187.847 56.281,156.37 L54.75,156.5 L14.452,187.687 L13.925,189.152 C35.393,231.798 79.49,261.1 130.55,261.1"
+        fill="#34A853"
       />
       <Path
-        d="M40.01 8.997c1.718 0 3.347 1.395 3.347 3.642 0 2.199-1.622 3.633-3.356 3.633-1.904 0-3.407-1.53-3.407-3.65 0-2.075 1.484-3.625 3.415-3.625zm-.035-2.352c-3.496 0-6 2.742-6 5.94 0 3.245 2.43 6.038 6.04 6.038 3.27 0 5.949-2.508 5.949-5.968 0-3.967-3.116-6.01-5.99-6.01z"
+        d="M56.281,156.37 C53.525,148.247 51.93,139.543 51.93,130.55 C51.93,121.556 53.525,112.853 56.136,104.73 L56.063,103 L15.26,71.312 L13.925,71.947 C5.077,89.644 0,109.517 0,130.55 C0,151.583 5.077,171.455 13.925,189.152 L56.281,156.37"
         fill="#FBBC05"
       />
       <Path
-        d="M53.006 9c1.573 0 3.188 1.347 3.188 3.648 0 2.34-1.611 3.629-3.222 3.629-1.71 0-3.302-1.394-3.302-3.607 0-2.299 1.652-3.67 3.336-3.67zm-.232-2.349c-3.208 0-5.73 2.82-5.73 5.984 0 3.605 2.924 5.996 5.675 5.996 1.7 0 2.605-.678 3.273-1.455v1.18c0 2.067-1.25 3.304-3.137 3.304-1.824 0-2.738-1.36-3.056-2.132l-2.293.962c.813 1.726 2.451 3.527 5.368 3.527 3.19 0 5.62-2.016 5.62-6.244V7.012h-2.502v1.014c-.77-.832-1.821-1.375-3.218-1.375z"
-        fill="#4285F4"
-      />
-      <Path
-        d="M69.725 8.94c1.09 0 1.875.582 2.209 1.28l-5.345 2.241c-.23-1.735 1.408-3.52 3.136-3.52zm-.104-2.303c-3.026 0-5.567 2.416-5.567 5.981 0 3.772 2.832 6.01 5.858 6.01 2.525 0 4.075-1.387 5-2.629l-2.063-1.377c-.536.833-1.43 1.648-2.925 1.648-1.678 0-2.45-.922-2.927-1.815L75 11.123l-.415-.976c-.774-1.913-2.577-3.51-4.964-3.51z"
+        d="M130.55,50.479 C155.064,50.479 171.6,61.068 181.029,69.917 L217.873,33.943 C195.245,12.91 165.798,0 130.55,0 C79.49,0 35.393,29.301 13.925,71.947 L56.136,104.73 C66.726,73.253 96.027,50.479 130.55,50.479"
         fill="#EB4335"
-      />
-      <Path
-        d="M60.239 18.272h2.628V.62H60.24z"
-        fill="#34A853"
       />
     </Svg>
   );
@@ -50,16 +42,87 @@ export function Auth({ onBack, onLoginSuccess }: AuthProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
+  const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const codeInputRefs = useRef<(TextInput | null)[]>([]);
 
   const handleSubmit = () => {
     if (!email || !password) {
       Alert.alert('Thông báo', 'Vui lòng điền đầy đủ thông tin');
       return;
     }
-    onLoginSuccess();
+    if (isRegister) {
+      if (!name) {
+        Alert.alert('Thông báo', 'Vui lòng nhập họ và tên');
+        return;
+      }
+      // Chuyển sang màn hình xác nhận email
+      setIsVerifyingEmail(true);
+    } else {
+      onLoginSuccess();
+    }
+  };
+
+  const handleVerificationCodeChange = (index: number, value: string) => {
+    // Xử lý paste nhiều ký tự
+    if (value.length > 1) {
+      const digits = value.replace(/[^0-9]/g, '').slice(0, 6);
+      const newCode = ['', '', '', '', '', ''];
+      digits.split('').forEach((digit, i) => {
+        if (i < 6) newCode[i] = digit;
+      });
+      setVerificationCode(newCode);
+      
+      // Focus vào ô cuối cùng đã nhập
+      const lastIndex = Math.min(digits.length - 1, 5);
+      if (codeInputRefs.current[lastIndex]) {
+        codeInputRefs.current[lastIndex]?.focus();
+      }
+      return;
+    }
+    
+    const newCode = [...verificationCode];
+    newCode[index] = value.replace(/[^0-9]/g, ''); // Chỉ cho phép số
+    
+    setVerificationCode(newCode);
+    
+    // Tự động chuyển sang ô tiếp theo
+    if (value && index < 5 && codeInputRefs.current[index + 1]) {
+      codeInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleVerifyCode = () => {
+    const code = verificationCode.join('');
+    if (code.length !== 6) {
+      Alert.alert('Thông báo', 'Vui lòng nhập đầy đủ 6 số');
+      return;
+    }
+    
+    // Giả lập kiểm tra mã (trong thực tế sẽ gọi API)
+    // Mã test: 123456
+    if (code === '123456') {
+      Alert.alert('Thành công', 'Email đã được xác nhận!', [
+        {
+          text: 'OK',
+          onPress: () => {
+            setIsVerifyingEmail(false);
+            onLoginSuccess();
+          }
+        }
+      ]);
+    } else {
+      Alert.alert('Lỗi', 'Mã xác nhận không đúng. Vui lòng thử lại.');
+      setVerificationCode(['', '', '', '', '', '']);
+    }
+  };
+
+  const handleResendCode = () => {
+    Alert.alert('Thông báo', 'Đã gửi lại mã xác nhận đến email của bạn');
+    // Trong thực tế sẽ gọi API gửi lại mã
   };
 
   const handleResetPassword = () => {
@@ -69,6 +132,73 @@ export function Auth({ onBack, onLoginSuccess }: AuthProps) {
     }
     setResetEmailSent(true);
   };
+
+  if (isVerifyingEmail) {
+    return (
+      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+        <TouchableOpacity
+          onPress={() => {
+            setIsVerifyingEmail(false);
+            setVerificationCode(['', '', '', '', '', '']);
+          }}
+          style={styles.backButton}
+          activeOpacity={0.7}
+        >
+          <AppIcon name="arrow-left" size={24} color="#6B7280" />
+        </TouchableOpacity>
+
+        <View style={styles.header}>
+          <Text style={styles.title}>Xác nhận email</Text>
+          <Text style={styles.subtitle}>
+            Chúng tôi đã gửi mã xác nhận đến địa chỉ email{'\n'}
+            <Text style={styles.emailHighlight}>{email}</Text>
+          </Text>
+        </View>
+
+        <View style={styles.verificationContainer}>
+          <Text style={styles.verificationLabel}>Nhập mã xác nhận</Text>
+          <View style={styles.codeInputContainer}>
+            {verificationCode.map((digit, index) => (
+              <TextInput
+                key={index}
+                ref={(ref) => {
+                  codeInputRefs.current[index] = ref;
+                }}
+                style={styles.codeInput}
+                value={digit}
+                onChangeText={(value) => handleVerificationCodeChange(index, value)}
+                onKeyPress={({ nativeEvent }) => {
+                  if (nativeEvent.key === 'Backspace' && !digit && index > 0) {
+                    codeInputRefs.current[index - 1]?.focus();
+                  }
+                }}
+                keyboardType="number-pad"
+                maxLength={1}
+                selectTextOnFocus
+                textAlign="center"
+              />
+            ))}
+          </View>
+
+          <TouchableOpacity
+            onPress={handleResendCode}
+            style={styles.resendButton}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.resendText}>Gửi lại mã</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleVerifyCode}
+            style={styles.primaryButton}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.primaryButtonText}>Xác nhận</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    );
+  }
 
   if (isForgotPassword) {
     return (
@@ -233,7 +363,7 @@ export function Auth({ onBack, onLoginSuccess }: AuthProps) {
 
         <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
           <GoogleIcon size={20} />
-          <Text style={styles.socialButtonText}>Google</Text>
+          <Text style={styles.socialButtonText}>Đăng nhập với Google</Text>
         </TouchableOpacity>
       </View>
 
@@ -426,5 +556,44 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 32,
     maxWidth: 300,
+  },
+  emailHighlight: {
+    fontWeight: '600',
+    color: '#2563EB',
+  },
+  verificationContainer: {
+    gap: 24,
+    marginTop: 16,
+  },
+  verificationLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    textAlign: 'center',
+  },
+  codeInputContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  codeInput: {
+    width: 48,
+    height: 56,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    backgroundColor: '#FFFFFF',
+  },
+  resendButton: {
+    alignSelf: 'center',
+    paddingVertical: 8,
+  },
+  resendText: {
+    fontSize: 14,
+    color: '#2563EB',
+    fontWeight: '500',
   },
 });

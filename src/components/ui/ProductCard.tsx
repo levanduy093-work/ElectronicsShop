@@ -4,23 +4,29 @@ import { Product } from '../../lib/data';
 import { ImageWithFallback } from '../common/ImageWithFallback';
 import { AppIcon } from '../common/Icon';
 import { formatPrice } from '../../lib/utils';
+import { Theme, lightTheme } from '../../lib/theme';
 
 interface ProductCardProps {
   product: Product;
   style?: any;
   onPress?: () => void;
   onAdd?: (product: Product) => void;
+  theme?: Theme;
 }
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 48) / 2; // 2 columns with padding
 
-export function ProductCard({ product, style, onPress, onAdd }: ProductCardProps) {
+export function ProductCard({ product, style, onPress, onAdd, theme = lightTheme }: ProductCardProps) {
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.8}
-      style={[styles.container, style]}
+      style={[
+        styles.container,
+        { backgroundColor: theme.card, borderColor: theme.border, shadowOpacity: theme === lightTheme ? 0.04 : 0 },
+        style
+      ]}
     >
       <View style={styles.imageContainer}>
         <ImageWithFallback
@@ -38,24 +44,24 @@ export function ProductCard({ product, style, onPress, onAdd }: ProductCardProps
       </View>
       
       <View style={styles.content}>
-        <Text style={styles.name} numberOfLines={2}>
+        <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>
           {product.name}
         </Text>
         
         <View style={styles.ratingContainer}>
           <AppIcon name="star" size={12} color="#FBBF24" />
-          <Text style={styles.rating}>
+          <Text style={[styles.rating, { color: theme.muted }]}>
             {product.rating} ({product.reviews})
           </Text>
         </View>
 
         <View style={styles.priceContainer}>
           {product.originalPrice && (
-            <Text style={styles.originalPrice}>
+            <Text style={[styles.originalPrice, { color: theme.muted }]}>
               {formatPrice(product.originalPrice)}
             </Text>
           )}
-          <Text style={styles.price}>
+          <Text style={[styles.price, { color: theme.primary }]}>
             {formatPrice(product.price)}
           </Text>
         </View>

@@ -138,11 +138,11 @@ function App(): React.JSX.Element {
   const renderContent = () => {
     switch (currentScreen) {
       case 'home':
-        return <Home onNavigate={(tab) => handleTabChange(tab as NavTab)} onProductClick={navigateToProduct} />;
+        return <Home onNavigate={(tab) => handleTabChange(tab as NavTab)} onProductClick={navigateToProduct} theme={theme} />;
       case 'catalog':
-        return <Catalog onFilterClick={openFilter} onProductClick={navigateToProduct} />;
+        return <Catalog onFilterClick={openFilter} onProductClick={navigateToProduct} theme={theme} />;
       case 'ai':
-        return <AIChat />;
+        return <AIChat theme={theme} />;
       case 'cart':
         return (
           <Cart
@@ -219,6 +219,7 @@ function App(): React.JSX.Element {
             onFilterClick={openFilter}
             initialQuery={searchQuery}
             onQueryChange={setSearchQuery}
+            theme={theme}
           />
         );
 
@@ -288,7 +289,7 @@ function App(): React.JSX.Element {
           />
         )}
 
-        <View style={styles.content}>
+        <View style={[styles.content, { backgroundColor: theme.background }]}>
           {renderContent()}
         </View>
 

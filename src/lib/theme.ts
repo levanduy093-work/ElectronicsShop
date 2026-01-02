@@ -25,13 +25,13 @@ export const lightTheme: Theme = {
 };
 
 export const darkTheme: Theme = {
-  background: '#0F172A',
-  surface: '#111827',
-  text: '#F9FAFB',
-  muted: '#9CA3AF',
+  background: '#121212',
+  surface: '#18181B',
+  text: '#F5F5F5',
+  muted: '#A1A1AA',
   primary: '#3B82F6',
-  border: '#1F2937',
-  card: '#111827',
+  border: '#262626',
+  card: '#18181B',
   tabInactive: '#9CA3AF',
   tabActive: '#3B82F6',
   badge: '#F97316',

@@ -4,22 +4,24 @@ import { CATEGORIES, PRODUCTS, Product } from '../lib/data';
 import { ProductCard } from '../components/ui/ProductCard';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
+import { Theme, lightTheme } from '../lib/theme';
 
 interface HomeProps {
   onNavigate: (tab: string) => void;
   onProductClick?: (product: Product) => void;
+  theme?: Theme;
 }
 
 const { width } = Dimensions.get('window');
 
-export function Home({ onNavigate, onProductClick }: HomeProps) {
+export function Home({ onNavigate, onProductClick, theme = lightTheme }: HomeProps) {
   const featuredProducts = PRODUCTS.slice(0, 4);
   const raspberryProduct = PRODUCTS.find(p => p.name.includes("Raspberry")) || PRODUCTS[0];
 
   return (
     <ScrollView 
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
+      style={[styles.container, { backgroundColor: theme.background }]}
+      contentContainerStyle={[styles.contentContainer, { backgroundColor: theme.background }]}
       showsVerticalScrollIndicator={false}
     >
       {/* Banner */}
@@ -109,6 +111,7 @@ export function Home({ onNavigate, onProductClick }: HomeProps) {
             <ProductCard
               key={p.id}
               product={p}
+              theme={theme}
               onPress={() => onProductClick?.(p)}
             />
           ))}
@@ -121,7 +124,7 @@ export function Home({ onNavigate, onProductClick }: HomeProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: 'transparent',
   },
   contentContainer: {
     paddingBottom: 96,

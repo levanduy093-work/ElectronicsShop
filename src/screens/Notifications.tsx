@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
@@ -9,7 +9,7 @@ interface NotificationsProps {
 
 export function Notifications({ onBack }: NotificationsProps) {
   const insets = useSafeAreaInsets();
-  const notifications = [
+  const [notifications, setNotifications] = useState([
     {
       id: 1,
       type: 'order',
@@ -34,7 +34,18 @@ export function Notifications({ onBack }: NotificationsProps) {
       time: '1 ngày trước',
       read: true,
     },
-  ];
+  ]);
+
+  const handleMarkAllAsRead = () => {
+    setNotifications(prevNotifications =>
+      prevNotifications.map(notification => ({
+        ...notification,
+        read: true,
+      }))
+    );
+  };
+
+  const hasUnreadNotifications = notifications.some(notification => !notification.read);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -66,9 +77,11 @@ export function Notifications({ onBack }: NotificationsProps) {
           <AppIcon name="arrow-left" size={24} color="#6B7280" />
         </TouchableOpacity>
         <Text style={styles.title}>Thông báo</Text>
-        <TouchableOpacity activeOpacity={0.7}>
-          <Text style={styles.markAllRead}>Đã đọc tất cả</Text>
-        </TouchableOpacity>
+        {hasUnreadNotifications && (
+          <TouchableOpacity onPress={handleMarkAllAsRead} activeOpacity={0.7}>
+            <Text style={styles.markAllRead}>Đã đọc tất cả</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
