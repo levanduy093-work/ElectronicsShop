@@ -252,7 +252,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F7FA',
-    paddingTop: 64,
   },
   scrollView: {
     flex: 1,
@@ -444,7 +443,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
-    paddingTop: 64,
+    paddingTop: 16,
   },
   emptyIcon: {
     width: 80,

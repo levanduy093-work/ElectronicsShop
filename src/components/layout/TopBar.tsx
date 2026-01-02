@@ -19,36 +19,39 @@ export function TopBar({
   onNotificationClick 
 }: TopBarProps) {
   const insets = useSafeAreaInsets();
+  const topPadding = Math.max(insets.top, 0);
 
   return (
-    <View style={[styles.container, { paddingTop: Math.max(insets.top, 0) }]}>
-      <View style={styles.leftSection}>
-        <View style={styles.logo}>
-          <Text style={styles.logoText}>E</Text>
+    <View style={[styles.container, { paddingTop: topPadding }]}>
+      <View style={styles.content}>
+        <View style={styles.leftSection}>
+          <View style={styles.logo}>
+            <Text style={styles.logoText}>E</Text>
+          </View>
+          <Text style={styles.title}>{title}</Text>
         </View>
-        <Text style={styles.title}>{title}</Text>
-      </View>
-      
-      <View style={styles.rightSection}>
-        {showSearch && (
+        
+        <View style={styles.rightSection}>
+          {showSearch && (
+            <TouchableOpacity
+              onPress={onSearchClick}
+              style={styles.iconButton}
+              activeOpacity={0.7}
+            >
+              <AppIcon name="search" size={22} color="#6B7280" />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
-            onPress={onSearchClick}
+            onPress={onNotificationClick}
             style={styles.iconButton}
             activeOpacity={0.7}
           >
-            <AppIcon name="search" size={22} color="#6B7280" />
+            <View style={styles.notificationContainer}>
+              <AppIcon name="bell" size={22} color="#6B7280" />
+              <View style={styles.notificationBadge} />
+            </View>
           </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          onPress={onNotificationClick}
-          style={styles.iconButton}
-          activeOpacity={0.7}
-        >
-          <View style={styles.notificationContainer}>
-            <AppIcon name="bell" size={22} color="#6B7280" />
-            <View style={styles.notificationBadge} />
-          </View>
-        </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -56,14 +59,9 @@ export function TopBar({
 
 const styles = StyleSheet.create({
   container: {
-    height: 56,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -75,6 +73,13 @@ const styles = StyleSheet.create({
         elevation: 4,
       },
     }),
+  },
+  content: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
   },
   leftSection: {
     flexDirection: 'row',

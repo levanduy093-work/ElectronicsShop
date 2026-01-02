@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingBottom: 96,
-    paddingTop: 64,
+    paddingTop: 16,
     paddingHorizontal: 16,
   },
   bannerContainer: {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Share } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Product } from '../lib/data';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
@@ -26,6 +27,7 @@ export function ProductDetail({
 }: ProductDetailProps) {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'desc' | 'specs'>('desc');
+  const insets = useSafeAreaInsets();
 
   const handleShare = async () => {
     try {
@@ -54,25 +56,6 @@ export function ProductDetail({
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.headerButton} activeOpacity={0.7}>
-          <AppIcon name="arrow-left" size={24} color="#374151" />
-        </TouchableOpacity>
-        <View style={styles.headerRight}>
-          <TouchableOpacity onPress={handleShare} style={styles.headerButton} activeOpacity={0.7}>
-            <AppIcon name="share2" size={24} color="#374151" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleHeartClick} style={styles.headerButton} activeOpacity={0.7}>
-            <AppIcon 
-              name="heart" 
-              size={24} 
-              color={isFavorite ? "#EF4444" : "#374151"} 
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Product Image */}
         <View style={styles.imageContainer}>
@@ -81,6 +64,23 @@ export function ProductDetail({
             style={styles.image}
             resizeMode="contain"
           />
+          <View style={[styles.headerOverlay, { top: insets.top + 8 }]}>
+            <TouchableOpacity onPress={onBack} style={styles.headerButton} activeOpacity={0.7}>
+              <AppIcon name="arrow-left" size={24} color="#111827" />
+            </TouchableOpacity>
+            <View style={styles.headerRight}>
+              <TouchableOpacity onPress={handleShare} style={styles.headerButton} activeOpacity={0.7}>
+                <AppIcon name="share2" size={24} color="#111827" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleHeartClick} style={styles.headerButton} activeOpacity={0.7}>
+                <AppIcon 
+                  name="heart" 
+                  size={24} 
+                  color={isFavorite ? "#EF4444" : "#111827"} 
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
           {product.stock !== 'In Stock' && (
             <View style={styles.stockBadge}>
               <Text style={styles.stockText}>
@@ -200,22 +200,34 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
   headerButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
   },
   headerRight: {
     flexDirection: 'row',
     gap: 8,
+  },
+  headerOverlay: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 5,
+    paddingHorizontal: 4,
   },
   scrollView: {
     flex: 1,
@@ -227,6 +239,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
+    overflow: 'hidden',
   },
   image: {
     width: '75%',

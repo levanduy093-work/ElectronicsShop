@@ -14,8 +14,16 @@ import { Profile } from './src/screens/Profile';
 import { ProductDetail } from './src/screens/ProductDetail';
 import { Checkout } from './src/screens/Checkout';
 import { OrderHistory } from './src/screens/OrderHistory';
+import { OrderDetail } from './src/screens/OrderDetail';
 import { Auth } from './src/screens/Auth';
-import { PlaceholderScreen } from './src/screens/PlaceholderScreen';
+import { SearchScreen } from './src/screens/SearchScreen';
+import { FilterScreen } from './src/screens/FilterScreen';
+import { Wishlist } from './src/screens/Wishlist';
+import { AddressBook } from './src/screens/AddressBook';
+import { PaymentMethods } from './src/screens/PaymentMethods';
+import { Settings } from './src/screens/Settings';
+import { SupportCenter } from './src/screens/SupportCenter';
+import { Notifications } from './src/screens/Notifications';
 import { BottomNav } from './src/components/layout/BottomNav';
 import { TopBar } from './src/components/layout/TopBar';
 import { Product, CartItem } from './src/lib/data';
@@ -24,7 +32,8 @@ type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'payment-methods' | 'settings' | 'support' | 'wishlist';
 
 function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  const systemDarkMode = useColorScheme() === 'dark';
+  const [isDarkMode, setIsDarkMode] = useState(systemDarkMode);
   const [currentTab, setCurrentTab] = useState<NavTab>('home');
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [previousScreen, setPreviousScreen] = useState<Screen>('home');
@@ -191,35 +200,64 @@ function App(): React.JSX.Element {
 
       case 'order-detail':
         return selectedOrderId ? (
-          <PlaceholderScreen title="Chi tiết đơn hàng" onBack={navigateToOrderHistory} />
+          <OrderDetail orderId={selectedOrderId} onBack={navigateToOrderHistory} />
         ) : null;
 
       case 'auth':
         return <Auth onBack={() => handleTabChange(currentTab)} onLoginSuccess={handleLoginSuccess} />;
 
       case 'notifications':
-        return <PlaceholderScreen title="Thông báo" onBack={() => handleTabChange(currentTab)} />;
+        return <Notifications onBack={() => handleTabChange(currentTab)} />;
 
       case 'search':
-        return <PlaceholderScreen title="Tìm kiếm" onBack={() => handleTabChange(currentTab)} />;
+        return (
+          <SearchScreen
+            onBack={() => handleTabChange(currentTab)}
+            onProductClick={navigateToProduct}
+            onFilterClick={openFilter}
+            initialQuery={searchQuery}
+            onQueryChange={setSearchQuery}
+          />
+        );
 
       case 'filter':
-        return <PlaceholderScreen title="Bộ lọc" onBack={() => setCurrentScreen(previousScreen)} />;
+        return (
+          <FilterScreen
+            onClose={() => setCurrentScreen(previousScreen)}
+            onApply={(filters) => {
+              console.log("Filters applied:", filters);
+              setCurrentScreen(previousScreen);
+            }}
+          />
+        );
 
       case 'address-book':
-        return <PlaceholderScreen title="Sổ địa chỉ" onBack={() => handleTabChange('profile')} />;
+        return <AddressBook onBack={() => handleTabChange('profile')} />;
 
       case 'payment-methods':
-        return <PlaceholderScreen title="Phương thức thanh toán" onBack={() => handleTabChange('profile')} />;
+        return <PaymentMethods onBack={() => handleTabChange('profile')} />;
 
       case 'settings':
-        return <PlaceholderScreen title="Cài đặt" onBack={() => handleTabChange('profile')} />;
+        return (
+          <Settings
+            onBack={() => handleTabChange('profile')}
+            isDarkMode={isDarkMode}
+            onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+          />
+        );
 
       case 'support':
-        return <PlaceholderScreen title="Trung tâm hỗ trợ" onBack={() => handleTabChange('profile')} />;
+        return <SupportCenter onBack={() => handleTabChange('profile')} />;
 
       case 'wishlist':
-        return <PlaceholderScreen title="Sản phẩm yêu thích" onBack={() => handleTabChange('profile')} />;
+        return (
+          <Wishlist
+            items={wishlist}
+            onBack={() => handleTabChange('profile')}
+            onRemove={(id) => setWishlist(prev => prev.filter(p => p.id !== id))}
+            onProductClick={navigateToProduct}
+          />
+        );
 
       default:
         return <Home onNavigate={(tab) => handleTabChange(tab as NavTab)} onProductClick={navigateToProduct} />;
