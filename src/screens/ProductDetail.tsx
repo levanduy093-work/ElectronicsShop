@@ -7,6 +7,7 @@ import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
 import { formatPrice } from '../lib/utils';
 import { useTheme } from '../lib/theme';
+import { useToast } from '../components/common/ToastProvider';
 
 interface ProductDetailProps {
   product: Product;
@@ -77,6 +78,7 @@ export function ProductDetail({
   const [expandedReviews, setExpandedReviews] = useState<Record<string, boolean>>({});
   const reviewImageSize = (width - 16 * 2 - 8 * 3) / 4; // content padding 16, gap 8
   const { theme, isDarkMode } = useTheme();
+  const { showToast } = useToast();
   const [reviews, setReviews] = useState(defaultReviews);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
@@ -105,7 +107,7 @@ export function ProductDetail({
 
   const handleAddToCart = () => {
     onAddToCart(product, quantity);
-    Alert.alert('Thành công', 'Đã thêm vào giỏ hàng');
+    showToast('Đã thêm vào giỏ hàng', 'success');
   };
 
   const resetReviewForm = () => {

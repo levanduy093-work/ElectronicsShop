@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, KeyboardEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MOCK_CHATS, ChatMessage } from '../lib/data';
 import { MessageBubble } from '../components/ai/MessageBubble';
@@ -26,23 +26,24 @@ export function AIChat({ theme = lightTheme, onNotificationClick }: AIChatProps)
 
   // Keyboard handling to adjust spacing without overshooting
   useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const onKeyboardShow = (e: KeyboardEvent) => {
+      setKeyboardHeight(e.endCoordinates?.height ?? 0);
+    };
+    const onKeyboardHide = () => setKeyboardHeight(0);
 
-    const showSub = Keyboard.addListener(showEvent, (e) => {
-      setKeyboardHeight(e.endCoordinates.height);
-    });
-    const hideSub = Keyboard.addListener(hideEvent, () => {
-      setKeyboardHeight(0);
-    });
+    const showSub = Keyboard.addListener('keyboardDidShow', onKeyboardShow);
+    const hideSub = Keyboard.addListener('keyboardDidHide', onKeyboardHide);
+    const frameSub = Platform.OS === 'ios' 
+      ? Keyboard.addListener('keyboardWillChangeFrame', onKeyboardShow)
+      : undefined;
+
     return () => {
       showSub.remove();
       hideSub.remove();
+      frameSub?.remove();
     };
   }, []);
 
-  // Calculate keyboard offset: TopBar height (insets.top + 56)
-  const topBarHeight = insets.top + 56;
   // BottomNav height: 80px base + safe area bottom
   const bottomNavHeight = 80 + Math.max(insets.bottom, 12);
   const isKeyboardVisible = keyboardHeight > 0;
@@ -90,7 +91,7 @@ export function AIChat({ theme = lightTheme, onNotificationClick }: AIChatProps)
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? topBarHeight : 0}
+        keyboardVerticalOffset={0}
       >
         {/* Messages Area */}
         <ScrollView

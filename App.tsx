@@ -30,6 +30,7 @@ import { TopBar } from './src/components/layout/TopBar';
 import { Product, CartItem, Order, PRODUCTS } from './src/lib/data';
 import { Address, DEFAULT_ADDRESSES } from './src/lib/address';
 import { darkTheme, lightTheme, ThemeProvider } from './src/lib/theme';
+import { ToastProvider } from './src/components/common/ToastProvider';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'payment-methods' | 'settings' | 'support' | 'wishlist' | 'change-password';
@@ -550,12 +551,13 @@ function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
       <ThemeProvider value={{ theme, isDarkMode }}>
-        <StatusBar 
-          barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
-          backgroundColor={theme.surface}
-          translucent={true}
-        />
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <ToastProvider>
+          <StatusBar 
+            barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
+            backgroundColor={theme.surface}
+            translucent={true}
+          />
+          <View style={[styles.container, { backgroundColor: theme.background }]}>
           {showTopBar && (
             <TopBar
               title={currentScreen === 'cart' ? 'Giỏ hàng' : 'ElectroAI'}
@@ -580,6 +582,7 @@ function App(): React.JSX.Element {
             />
           )}
         </View>
+        </ToastProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
