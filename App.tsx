@@ -24,6 +24,7 @@ import { PaymentMethods } from './src/screens/PaymentMethods';
 import { Settings } from './src/screens/Settings';
 import { SupportCenter } from './src/screens/SupportCenter';
 import { Notifications } from './src/screens/Notifications';
+import { ChangePassword } from './src/screens/ChangePassword';
 import { BottomNav } from './src/components/layout/BottomNav';
 import { TopBar } from './src/components/layout/TopBar';
 import { Product, CartItem, Order, PRODUCTS } from './src/lib/data';
@@ -31,7 +32,7 @@ import { Address, DEFAULT_ADDRESSES } from './src/lib/address';
 import { darkTheme, lightTheme, ThemeProvider } from './src/lib/theme';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
-type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'payment-methods' | 'settings' | 'support' | 'wishlist';
+type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'payment-methods' | 'settings' | 'support' | 'wishlist' | 'change-password';
 
 // Mock orders với các trạng thái khác nhau
 const getMockOrders = (): Order[] => {
@@ -509,6 +510,7 @@ function App(): React.JSX.Element {
             onBack={() => handleTabChange('profile')}
             isDarkMode={isDarkMode}
             onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+            onChangePassword={() => setCurrentScreen('change-password')}
             theme={theme}
           />
         );
@@ -527,12 +529,22 @@ function App(): React.JSX.Element {
           />
         );
 
+      case 'change-password':
+        return (
+          <ChangePassword
+            onBack={() => setCurrentScreen('settings')}
+            theme={theme}
+            email={userProfile.email}
+            onSuccess={() => setCurrentScreen('settings')}
+          />
+        );
+
       default:
         return <Home onNavigate={(tab) => handleTabChange(tab as NavTab)} onProductClick={navigateToProduct} />;
     }
   };
 
-  const isFullScreen = ['product-detail', 'checkout', 'order-history', 'order-detail', 'auth', 'notifications', 'search', 'filter', 'address-book', 'payment-methods', 'settings', 'support', 'wishlist'].includes(currentScreen);
+  const isFullScreen = ['product-detail', 'checkout', 'order-history', 'order-detail', 'auth', 'notifications', 'search', 'filter', 'address-book', 'payment-methods', 'settings', 'support', 'wishlist', 'change-password'].includes(currentScreen);
   const showTopBar = !isFullScreen && currentScreen !== 'ai' && currentScreen !== 'profile';
 
   return (

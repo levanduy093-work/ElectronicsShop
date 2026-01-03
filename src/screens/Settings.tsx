@@ -8,9 +8,10 @@ interface SettingsProps {
   onBack: () => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
+  onChangePassword: () => void;
 }
 
-export function Settings({ onBack, isDarkMode, onToggleDarkMode }: SettingsProps) {
+export function Settings({ onBack, isDarkMode, onToggleDarkMode, onChangePassword }: SettingsProps) {
   const insets = useSafeAreaInsets();
   const theme = isDarkMode ? darkTheme : lightTheme;
 
@@ -95,7 +96,7 @@ export function Settings({ onBack, isDarkMode, onToggleDarkMode }: SettingsProps
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.muted }]}>Tài khoản</Text>
           <View style={[styles.sectionCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.settingItem} activeOpacity={0.7} onPress={onChangePassword}>
               <View style={styles.settingLeft}>
                 <View style={[styles.settingIcon, { backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }]}>
                   <AppIcon name="lock" size={18} color={theme.muted} />
