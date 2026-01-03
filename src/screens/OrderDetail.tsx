@@ -269,6 +269,7 @@ export function OrderDetail({ orderId, onBack, order, theme }: OrderDetailProps)
         {
           backgroundColor: t.surface,
           borderTopColor: t.border,
+          paddingBottom: Math.max(insets.bottom, 16),
         }
       ]}>
         <TouchableOpacity 

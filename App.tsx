@@ -383,7 +383,7 @@ function App(): React.JSX.Element {
       case 'catalog':
         return <Catalog onFilterClick={openFilter} onProductClick={navigateToProduct} theme={theme} />;
       case 'ai':
-        return <AIChat theme={theme} />;
+        return <AIChat theme={theme} onNotificationClick={() => setCurrentScreen('notifications')} />;
       case 'cart':
         return (
           <Cart

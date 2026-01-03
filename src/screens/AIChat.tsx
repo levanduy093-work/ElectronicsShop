@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MOCK_CHATS, ChatMessage } from '../lib/data';
 import { MessageBubble } from '../components/ai/MessageBubble';
@@ -7,16 +7,45 @@ import { TopBar } from '../components/layout/TopBar';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme } from '../lib/theme';
 
-export function AIChat({ theme = lightTheme }: { theme?: Theme }) {
+interface AIChatProps {
+  theme?: Theme;
+  onNotificationClick?: () => void;
+}
+
+export function AIChat({ theme = lightTheme, onNotificationClick }: AIChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(MOCK_CHATS);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
   }, [messages, isTyping]);
+
+  // Keyboard handling to adjust spacing without overshooting
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  // Calculate keyboard offset: TopBar height (insets.top + 56)
+  const topBarHeight = insets.top + 56;
+  // BottomNav height: 80px base + safe area bottom
+  const bottomNavHeight = 80 + Math.max(insets.bottom, 12);
+  const isKeyboardVisible = keyboardHeight > 0;
 
   const handleSend = () => {
     if (!inputValue.trim()) return;
@@ -51,19 +80,31 @@ export function AIChat({ theme = lightTheme }: { theme?: Theme }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <TopBar title="AI Engineer Support" showSearch={false} theme={theme} />
+      <TopBar 
+        title="AI Engineer Support" 
+        showSearch={false} 
+        theme={theme}
+        onNotificationClick={onNotificationClick}
+      />
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? topBarHeight : 0}
       >
         {/* Messages Area */}
         <ScrollView
           ref={scrollViewRef}
           style={[styles.messagesContainer, { backgroundColor: theme.background }]}
-          contentContainerStyle={[styles.messagesContent, { backgroundColor: theme.background }]}
+          contentContainerStyle={[
+            styles.messagesContent, 
+            { 
+              backgroundColor: theme.background,
+              paddingBottom: 16
+            }
+          ]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           {messages.map((msg) => (
             <MessageBubble key={msg.id} message={msg} />
@@ -80,65 +121,71 @@ export function AIChat({ theme = lightTheme }: { theme?: Theme }) {
         {/* Input Area */}
         <View style={[
           styles.inputContainer,
-          { paddingBottom: Math.max(insets.bottom, 16) + 80, backgroundColor: theme.surface, borderTopColor: theme.border }
+          { 
+            paddingBottom: isKeyboardVisible
+              ? Math.max(insets.bottom, 8)
+              : bottomNavHeight,
+            backgroundColor: theme.surface, 
+            borderTopColor: theme.border 
+          }
         ]}>
-          {/* Suggestion Chips */}
-          {messages.length < 3 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.suggestionsContainer}
-              contentContainerStyle={styles.suggestionsContent}
-            >
-              {suggestions.map((suggestion) => (
-                <TouchableOpacity
-                  key={suggestion}
-                  onPress={() => setInputValue(suggestion)}
-                  style={[styles.suggestionChip, { backgroundColor: theme.background, borderColor: theme.border }]}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.suggestionText, { color: theme.text }]}>{suggestion}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
-
-          <View style={[
-            styles.inputWrapper,
-            {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-            }
-          ]}>
-            <TouchableOpacity style={styles.inputButton} activeOpacity={0.7}>
-              <AppIcon name="file-upload" size={20} color={theme.muted} />
-            </TouchableOpacity>
-
-            <TextInput
-              value={inputValue}
-              onChangeText={setInputValue}
-              placeholder="Hỏi AI hoặc tải lên hình ảnh..."
-              style={[styles.input, { color: theme.text }]}
-              placeholderTextColor={theme.muted}
-              multiline
-              maxLength={500}
-            />
-
-            {inputValue.trim() ? (
-              <TouchableOpacity
-                onPress={handleSend}
-                style={[styles.sendButton, { backgroundColor: theme.primary }]}
-                activeOpacity={0.8}
+            {/* Suggestion Chips */}
+            {messages.length < 3 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.suggestionsContainer}
+                contentContainerStyle={styles.suggestionsContent}
               >
-                <AppIcon name="send" size={18} color="#FFFFFF" />
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={styles.inputButton} activeOpacity={0.7}>
-                <AppIcon name="mic" size={20} color={theme.muted} />
-              </TouchableOpacity>
+                {suggestions.map((suggestion) => (
+                  <TouchableOpacity
+                    key={suggestion}
+                    onPress={() => setInputValue(suggestion)}
+                    style={[styles.suggestionChip, { backgroundColor: theme.background, borderColor: theme.border }]}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.suggestionText, { color: theme.text }]}>{suggestion}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             )}
+
+            <View style={[
+              styles.inputWrapper,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+              }
+            ]}>
+              <TouchableOpacity style={styles.inputButton} activeOpacity={0.7}>
+                <AppIcon name="file-upload" size={20} color={theme.muted} />
+              </TouchableOpacity>
+
+              <TextInput
+                value={inputValue}
+                onChangeText={setInputValue}
+                placeholder="Hỏi AI hoặc tải lên hình ảnh..."
+                style={[styles.input, { color: theme.text }]}
+                placeholderTextColor={theme.muted}
+                multiline
+                maxLength={500}
+              />
+
+              {inputValue.trim() ? (
+                <TouchableOpacity
+                  onPress={handleSend}
+                  style={[styles.sendButton, { backgroundColor: theme.primary }]}
+                  activeOpacity={0.8}
+                >
+                  <AppIcon name="send" size={18} color="#FFFFFF" />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.inputButton} activeOpacity={0.7}>
+                  <AppIcon name="mic" size={20} color={theme.muted} />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
-        </View>
       </KeyboardAvoidingView>
     </View>
   );

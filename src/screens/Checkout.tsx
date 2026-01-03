@@ -338,7 +338,14 @@ export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme, onA
       </ScrollView>
 
       {/* Footer Action */}
-      <View style={[styles.footer, { backgroundColor: t.card, borderTopColor: t.border }]}>
+      <View style={[
+        styles.footer, 
+        { 
+          backgroundColor: t.card, 
+          borderTopColor: t.border,
+          paddingBottom: Math.max(insets.bottom, 16),
+        }
+      ]}>
         <TouchableOpacity
           onPress={handleNext}
           style={[styles.nextButton, { backgroundColor: t.primary, shadowColor: t.primary }]}

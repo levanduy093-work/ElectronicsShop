@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CATEGORIES } from '../lib/data';
 import { AppIcon } from '../components/common/Icon';
-import { formatPrice } from '../lib/utils';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
 
 interface FilterScreenProps {
@@ -18,12 +17,11 @@ export function FilterScreen({ onClose, onApply, theme }: FilterScreenProps) {
   const insets = useSafeAreaInsets();
   const PRICE_MIN = 0;
   const PRICE_MAX = 10000000;
-  const PRICE_STEP = 100000;
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000000]);
+  const [priceMinInput, setPriceMinInput] = useState('0');
+  const [priceMaxInput, setPriceMaxInput] = useState(PRICE_MAX.toString());
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [rating, setRating] = useState<number | null>(null);
   const [onlyInStock, setOnlyInStock] = useState(false);
-  const [sliderWidth, setSliderWidth] = useState(0);
 
   const toggleCategory = (cat: string) => {
     if (selectedCategories.includes(cat)) {
@@ -34,8 +32,14 @@ export function FilterScreen({ onClose, onApply, theme }: FilterScreenProps) {
   };
 
   const handleApply = () => {
+    const parsedMin = parseInt(priceMinInput || `${PRICE_MIN}`, 10);
+    const parsedMax = parseInt(priceMaxInput || `${PRICE_MAX}`, 10);
+    const safeMin = Number.isNaN(parsedMin) ? PRICE_MIN : parsedMin;
+    const safeMax = Number.isNaN(parsedMax) ? PRICE_MAX : parsedMax;
+    const [finalMin, finalMax] = safeMin <= safeMax ? [safeMin, safeMax] : [safeMax, safeMin];
+
     onApply({
-      priceRange,
+      priceRange: [finalMin, finalMax],
       categories: selectedCategories,
       rating,
       onlyInStock,
@@ -44,41 +48,19 @@ export function FilterScreen({ onClose, onApply, theme }: FilterScreenProps) {
   };
 
   const handleReset = () => {
-    setPriceRange([0, 5000000]);
+    setPriceMinInput('0');
+    setPriceMaxInput(PRICE_MAX.toString());
     setSelectedCategories([]);
     setRating(null);
     setOnlyInStock(false);
   };
 
-  const snapValue = (value: number) =>
-    Math.round(value / PRICE_STEP) * PRICE_STEP;
-
-  const valueToPercent = (value: number) =>
-    Math.max(0, Math.min(100, (value / PRICE_MAX) * 100));
-
-  const updatePriceByPosition = (x: number, target?: 'min' | 'max') => {
-    if (!sliderWidth) return;
-    const clampedX = Math.max(0, Math.min(x, sliderWidth));
-    const ratio = clampedX / sliderWidth;
-    const rawValue = ratio * PRICE_MAX;
-    const stepped = snapValue(rawValue);
-
-    setPriceRange(prev => {
-      const [currentMin, currentMax] = prev;
-      const chosenTarget =
-        target ??
-        (Math.abs(stepped - currentMin) <= Math.abs(stepped - currentMax)
-          ? 'min'
-          : 'max');
-
-      if (chosenTarget === 'min') {
-        const newMin = Math.min(stepped, currentMax);
-        return [newMin, currentMax];
-      }
-
-      const newMax = Math.max(stepped, currentMin);
-      return [currentMin, newMax];
-    });
+  const sanitizePrice = (value: string) => value.replace(/\D/g, '');
+  const formatNumber = (value: string) => {
+    if (!value) return '';
+    const num = Number(value);
+    if (Number.isNaN(num)) return '';
+    return num.toLocaleString('vi-VN');
   };
 
   return (
@@ -100,61 +82,33 @@ export function FilterScreen({ onClose, onApply, theme }: FilterScreenProps) {
           <View style={styles.priceContainer}>
             <View style={[styles.priceInput, { backgroundColor: t.surface, borderColor: t.border }]}>
               <Text style={[styles.priceLabel, { color: t.muted }]}>Tối thiểu</Text>
-              <Text style={[styles.priceValue, { color: t.text }]}>{formatPrice(priceRange[0])}</Text>
+              <View style={styles.priceFieldRow}>
+                <TextInput
+                  value={formatNumber(priceMinInput)}
+                  onChangeText={(val) => setPriceMinInput(sanitizePrice(val))}
+                  placeholder="0"
+                  placeholderTextColor={t.muted}
+                  keyboardType="numeric"
+                  style={[styles.priceValue, { color: t.text }]}
+                />
+                <Text style={[styles.currency, { color: t.muted }]}>₫</Text>
+              </View>
             </View>
             <View style={styles.priceDivider} />
             <View style={[styles.priceInput, { backgroundColor: t.surface, borderColor: t.border }]}>
               <Text style={[styles.priceLabel, { color: t.muted }]}>Tối đa</Text>
-              <Text style={[styles.priceValue, { color: t.text }]}>{formatPrice(priceRange[1])}</Text>
+              <View style={styles.priceFieldRow}>
+                <TextInput
+                  value={formatNumber(priceMaxInput)}
+                  onChangeText={(val) => setPriceMaxInput(sanitizePrice(val))}
+                  placeholder={formatNumber(PRICE_MAX.toString())}
+                  placeholderTextColor={t.muted}
+                  keyboardType="numeric"
+                  style={[styles.priceValue, { color: t.text }]}
+                />
+                <Text style={[styles.currency, { color: t.muted }]}>₫</Text>
+              </View>
             </View>
-          </View>
-          <View
-            style={styles.sliderWrapper}
-            onLayout={(e) => setSliderWidth(e.nativeEvent.layout.width)}
-            onStartShouldSetResponder={() => true}
-            onMoveShouldSetResponder={() => true}
-            onResponderGrant={(e) => updatePriceByPosition(e.nativeEvent.locationX)}
-            onResponderMove={(e) => updatePriceByPosition(e.nativeEvent.locationX)}
-            onResponderRelease={(e) => updatePriceByPosition(e.nativeEvent.locationX)}
-          >
-            <View style={[styles.sliderTrack, { backgroundColor: t.border }]}>
-              <View
-                style={[
-                  styles.sliderFill,
-                  {
-                    left: `${valueToPercent(priceRange[0])}%`,
-                    width: `${valueToPercent(priceRange[1] - priceRange[0])}%`,
-                    backgroundColor: t.primary,
-                  },
-                ]}
-              />
-              <View
-                style={[
-                  styles.sliderThumb,
-                  { left: `${valueToPercent(priceRange[0])}%`, backgroundColor: t.primary },
-                ]}
-                onStartShouldSetResponder={() => true}
-                onMoveShouldSetResponder={() => true}
-                onResponderGrant={(e) => updatePriceByPosition(e.nativeEvent.locationX, 'min')}
-                onResponderMove={(e) => updatePriceByPosition(e.nativeEvent.locationX, 'min')}
-                onResponderRelease={(e) => updatePriceByPosition(e.nativeEvent.locationX, 'min')}
-              />
-              <View
-                style={[
-                  styles.sliderThumb,
-                  { left: `${valueToPercent(priceRange[1])}%`, backgroundColor: t.primary },
-                ]}
-                onStartShouldSetResponder={() => true}
-                onMoveShouldSetResponder={() => true}
-                onResponderGrant={(e) => updatePriceByPosition(e.nativeEvent.locationX, 'max')}
-                onResponderMove={(e) => updatePriceByPosition(e.nativeEvent.locationX, 'max')}
-                onResponderRelease={(e) => updatePriceByPosition(e.nativeEvent.locationX, 'max')}
-              />
-            </View>
-          </View>
-          <View style={styles.sliderLabels}>
-            <Text style={styles.sliderLabel}>0₫</Text>
-            <Text style={styles.sliderLabel}>10.000.000₫</Text>
           </View>
         </View>
 
@@ -315,51 +269,19 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#111827',
   },
+  priceFieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  currency: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
   priceDivider: {
     width: 16,
     height: 2,
     backgroundColor: '#D1D5DB',
-  },
-  sliderWrapper: {
-    width: '100%',
-    paddingVertical: 12,
-  },
-  sliderTrack: {
-    height: 12,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 999,
-    overflow: 'hidden',
-    justifyContent: 'center',
-  },
-  sliderFill: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    backgroundColor: '#2563EB',
-    borderRadius: 999,
-  },
-  sliderThumb: {
-    position: 'absolute',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#2563EB',
-    borderWidth: 0,
-    marginLeft: -12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  sliderLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  sliderLabel: {
-    fontSize: 12,
-    color: '#6B7280',
   },
   categoriesContainer: {
     flexDirection: 'row',

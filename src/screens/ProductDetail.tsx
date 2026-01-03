@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Share, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Share, Dimensions, Modal, TextInput, Image } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Product } from '../lib/data';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
@@ -17,6 +18,49 @@ interface ProductDetailProps {
   onRequireLogin: () => void;
 }
 
+const defaultReviews = [
+  {
+    id: 'r1',
+    name: 'Nguyễn Văn Nam',
+    rating: 5,
+    date: '20/01/2026',
+    comment: 'Sản phẩm chính hãng, đóng gói rất cẩn thận. Shop tư vấn nhiệt tình, sẽ ủng hộ dài dài.',
+    images: [
+      'https://images.unsplash.com/photo-1581093588401-99f9c5ae695a?auto=format&fit=crop&q=80&w=300',
+      'https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b?auto=format&fit=crop&q=80&w=300',
+      'https://images.unsplash.com/photo-1581093588401-99f9c5ae695a?auto=format&fit=crop&q=80&w=300',
+      'https://images.unsplash.com/photo-1581091015181-8a0b24f4c82c?auto=format&fit=crop&q=80&w=300',
+    ],
+  },
+  {
+    id: 'r2',
+    name: 'Trần Thị Hạnh',
+    rating: 4,
+    date: '18/01/2026',
+    comment: 'Giao hàng hơi chậm một chút nhưng chất lượng sản phẩm tốt, đúng mô tả.',
+    images: [
+      'https://images.unsplash.com/photo-1470246973918-29a93221c455?auto=format&fit=crop&q=80&w=300',
+      'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=300',
+      'https://images.unsplash.com/photo-1581092334318-3a79a6f6cf1a?auto=format&fit=crop&q=80&w=300',
+      'https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&q=80&w=300',
+      'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&q=80&w=300',
+      'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&q=80&w=300',
+    ],
+  },
+  {
+    id: 'r3',
+    name: 'Lê Minh Tuấn',
+    rating: 5,
+    date: '15/01/2026',
+    comment: 'Đã test chạy ổn định, hiệu năng tốt. Sẽ quay lại mua thêm linh kiện.',
+    images: [
+      'https://images.unsplash.com/photo-1593642532871-8b12e02d091c?auto=format&fit=crop&q=80&w=300',
+      'https://images.unsplash.com/photo-1581091012184-5c1e4b29db5c?auto=format&fit=crop&q=80&w=300',
+      'https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&q=80&w=300',
+    ],
+  },
+];
+
 export function ProductDetail({
   product,
   onBack,
@@ -33,6 +77,11 @@ export function ProductDetail({
   const [expandedReviews, setExpandedReviews] = useState<Record<string, boolean>>({});
   const reviewImageSize = (width - 16 * 2 - 8 * 3) / 4; // content padding 16, gap 8
   const { theme, isDarkMode } = useTheme();
+  const [reviews, setReviews] = useState(defaultReviews);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewContent, setReviewContent] = useState('');
+  const [reviewImages, setReviewImages] = useState<string[]>([]);
 
   const handleShare = async () => {
     try {
@@ -59,48 +108,85 @@ export function ProductDetail({
     Alert.alert('Thành công', 'Đã thêm vào giỏ hàng');
   };
 
-  const reviews = [
-    {
-      id: 'r1',
-      name: 'Nguyễn Văn Nam',
-      rating: 5,
-      date: '20/01/2026',
-      comment: 'Sản phẩm chính hãng, đóng gói rất cẩn thận. Shop tư vấn nhiệt tình, sẽ ủng hộ dài dài.',
-      images: [
-        'https://images.unsplash.com/photo-1581093588401-99f9c5ae695a?auto=format&fit=crop&q=80&w=300',
-        'https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b?auto=format&fit=crop&q=80&w=300',
-        'https://images.unsplash.com/photo-1581093588401-99f9c5ae695a?auto=format&fit=crop&q=80&w=300',
-        'https://images.unsplash.com/photo-1581091015181-8a0b24f4c82c?auto=format&fit=crop&q=80&w=300',
-      ],
-    },
-    {
-      id: 'r2',
-      name: 'Trần Thị Hạnh',
-      rating: 4,
-      date: '18/01/2026',
-      comment: 'Giao hàng hơi chậm một chút nhưng chất lượng sản phẩm tốt, đúng mô tả.',
-      images: [
-        'https://images.unsplash.com/photo-1470246973918-29a93221c455?auto=format&fit=crop&q=80&w=300',
-        'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=300',
-        'https://images.unsplash.com/photo-1581092334318-3a79a6f6cf1a?auto=format&fit=crop&q=80&w=300',
-        'https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&q=80&w=300',
-        'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&q=80&w=300',
-        'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&q=80&w=300',
-      ],
-    },
-    {
-      id: 'r3',
-      name: 'Lê Minh Tuấn',
-      rating: 5,
-      date: '15/01/2026',
-      comment: 'Đã test chạy ổn định, hiệu năng tốt. Sẽ quay lại mua thêm linh kiện.',
-      images: [
-        'https://images.unsplash.com/photo-1593642532871-8b12e02d091c?auto=format&fit=crop&q=80&w=300',
-        'https://images.unsplash.com/photo-1581091012184-5c1e4b29db5c?auto=format&fit=crop&q=80&w=300',
-        'https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&q=80&w=300',
-      ],
-    },
-  ];
+  const resetReviewForm = () => {
+    setReviewContent('');
+    setReviewRating(5);
+    setReviewImages([]);
+  };
+
+  const handleWriteReview = () => {
+    if (!isLoggedIn) {
+      Alert.alert(
+        'Thông báo',
+        'Vui lòng đăng nhập để viết đánh giá',
+        [
+          { text: 'Để sau', style: 'cancel' },
+          { text: 'Đăng nhập', onPress: onRequireLogin },
+        ],
+        { cancelable: true }
+      );
+      return;
+    }
+
+    setShowReviewModal(true);
+  };
+
+  const handleSubmitReview = () => {
+    const content = reviewContent.trim();
+    if (!content) {
+      Alert.alert('Thông báo', 'Vui lòng nhập nội dung đánh giá');
+      return;
+    }
+
+    const newReview = {
+      id: `r-${Date.now()}`,
+      name: 'Bạn',
+      rating: reviewRating,
+      date: new Date().toLocaleDateString('vi-VN'),
+      comment: content,
+      images: reviewImages,
+    };
+
+    setReviews(prev => [newReview, ...prev]);
+    resetReviewForm();
+    setShowReviewModal(false);
+    setActiveTab('reviews');
+    setExpandedReviews({});
+  };
+
+  const handleCloseModal = () => {
+    resetReviewForm();
+    setShowReviewModal(false);
+  };
+
+  const handlePickImages = () => {
+    launchImageLibrary(
+      {
+        mediaType: 'photo',
+        selectionLimit: 4,
+      },
+      (response) => {
+        if (response.didCancel) return;
+        if (response.errorMessage) {
+          Alert.alert('Thông báo', response.errorMessage);
+          return;
+        }
+        const picked = (response.assets || [])
+          .map(asset => asset.uri)
+          .filter((uri): uri is string => Boolean(uri));
+        if (!picked.length) return;
+
+        setReviewImages(prev => {
+          const merged = Array.from(new Set([...prev, ...picked]));
+          return merged.slice(0, 4);
+        });
+      }
+    );
+  };
+
+  const handleRemoveImage = (uri: string) => {
+    setReviewImages(prev => prev.filter(item => item !== uri));
+  };
 
   const datasheetFiles = [
     { id: 'd1', name: 'Datasheet.pdf', size: '2.4 MB', desc: 'Tài liệu kỹ thuật', icon: 'file-text' as const },
@@ -291,6 +377,7 @@ export function ProductDetail({
 
                 <TouchableOpacity 
                   activeOpacity={0.8} 
+                  onPress={handleWriteReview}
                   style={[
                     styles.writeReviewButton,
                     {
@@ -418,6 +505,76 @@ export function ProductDetail({
         </View>
       </ScrollView>
 
+      <Modal
+        visible={showReviewModal}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCloseModal}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Viết đánh giá</Text>
+
+            <View style={styles.ratingSelector}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity key={star} onPress={() => setReviewRating(star)} activeOpacity={0.7}>
+                  <AppIcon
+                    name="star"
+                    size={24}
+                    color={star <= reviewRating ? '#FBBF24' : theme.border}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              value={reviewContent}
+              onChangeText={setReviewContent}
+              placeholder="Chia sẻ cảm nhận của bạn..."
+              placeholderTextColor={theme.muted}
+              style={[styles.reviewInput, { color: theme.text, borderColor: theme.border }]}
+              multiline
+              maxLength={400}
+            />
+
+            <View style={styles.uploadRow}>
+              {reviewImages.map((uri) => (
+                <View key={uri} style={[styles.uploadPreview, { borderColor: theme.border }]}>
+                  <Image source={{ uri }} style={styles.uploadImage} />
+                  <TouchableOpacity style={styles.removeBadge} onPress={() => handleRemoveImage(uri)} activeOpacity={0.7}>
+                    <Text style={styles.removeBadgeText}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              {reviewImages.length < 4 && (
+                <TouchableOpacity
+                  style={[styles.uploadAdd, { borderColor: theme.border }]}
+                  onPress={handlePickImages}
+                  activeOpacity={0.8}
+                >
+                  <AppIcon name="camera" size={18} color={theme.primary} />
+                  <Text style={[styles.uploadAddText, { color: theme.primary }]}>Thêm ảnh</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={[styles.modalButton, styles.modalCancel]} onPress={handleCloseModal} activeOpacity={0.8}>
+                <Text style={[styles.modalButtonText, { color: theme.muted }]}>Đóng</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalSubmit, { backgroundColor: theme.primary }]}
+                onPress={handleSubmitReview}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Gửi</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Bottom Action Bar */}
       <View style={[
         styles.actionBar,
@@ -510,7 +667,7 @@ const styles = StyleSheet.create({
   },
   stockBadge: {
     position: 'absolute',
-    top: 16,
+    bottom: 16,
     left: 16,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     paddingHorizontal: 12,
@@ -715,6 +872,104 @@ const styles = StyleSheet.create({
   },
   writeReviewText: {
     fontWeight: '600',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalCard: {
+    width: '100%',
+    borderRadius: 16,
+    padding: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  ratingSelector: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  reviewInput: {
+    minHeight: 100,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    textAlignVertical: 'top',
+    marginBottom: 12,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  modalButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  modalCancel: {
+    backgroundColor: 'transparent',
+  },
+  modalSubmit: {
+    backgroundColor: '#2563EB',
+  },
+  modalButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  uploadRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 12,
+  },
+  uploadAdd: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  uploadAddText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  uploadPreview: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    position: 'relative',
+  },
+  uploadImage: {
+    width: '100%',
+    height: '100%',
+  },
+  removeBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   reviewCard: {
     paddingVertical: 12,

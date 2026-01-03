@@ -284,54 +284,61 @@ export function Profile({
       </View>
 
       <Text style={[styles.version, { color: t.muted }]}>Version 1.0.0 (Build 2024)</Text>
+      </ScrollView>
 
       {/* Vouchers Modal */}
       {showVouchers && (
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity
-            style={styles.modalBackdrop}
-            activeOpacity={1}
-            onPress={() => setShowVouchers(false)}
-          />
-          <View style={[styles.modalContent, { backgroundColor: t.card }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: t.text }]}>Kho Voucher của tôi</Text>
-              <TouchableOpacity
-                onPress={() => setShowVouchers(false)}
-                activeOpacity={0.7}
+        <Modal
+          visible
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowVouchers(false)}
+        >
+          <View style={styles.bottomSheetOverlay}>
+            <TouchableOpacity
+              style={styles.modalBackdrop}
+              activeOpacity={1}
+              onPress={() => setShowVouchers(false)}
+            />
+            <View style={[styles.bottomSheetContent, { backgroundColor: t.card, paddingBottom: Math.max(insets.bottom, 16) }]}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: t.text }]}>Kho Voucher của tôi</Text>
+                <TouchableOpacity
+                  onPress={() => setShowVouchers(false)}
+                  activeOpacity={0.7}
+                >
+                  <AppIcon name="close" size={24} color={t.muted} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView 
+                style={styles.voucherList}
+                contentContainerStyle={{ paddingBottom: 16 }}
+                showsVerticalScrollIndicator={false}
               >
-                <AppIcon name="close" size={24} color={t.muted} />
-              </TouchableOpacity>
+                {AVAILABLE_VOUCHERS.map((voucher) => (
+                  <View key={voucher.code} style={[styles.voucherCard, { borderColor: t.border, backgroundColor: t.surface }]}>
+                    <View style={[styles.voucherIconContainer, { backgroundColor: t.primary + '22' }]}>
+                      <AppIcon name="ticket" size={24} color={t.primary} />
+                    </View>
+                    <View style={styles.voucherInfo}>
+                      <Text style={[styles.voucherCode, { color: t.text }]}>{voucher.code}</Text>
+                      <Text style={[styles.voucherDescription, { color: t.muted }]}>{voucher.description}</Text>
+                      <Text style={[styles.voucherExpiry, { color: t.primary }]}>HSD: 31/12/2026</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => handleCopyVoucher(voucher.code)}
+                      style={[styles.voucherCopyButton, { backgroundColor: t.primary + '22' }]}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.voucherCopyText, { color: t.primary }]}>Sao chép</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
             </View>
-            <ScrollView 
-              style={styles.voucherList}
-              contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 100 }}
-              showsVerticalScrollIndicator={false}
-            >
-              {AVAILABLE_VOUCHERS.map((voucher) => (
-                <View key={voucher.code} style={[styles.voucherCard, { borderColor: t.border, backgroundColor: t.surface }]}>
-                  <View style={[styles.voucherIconContainer, { backgroundColor: t.primary + '22' }]}>
-                    <AppIcon name="ticket" size={24} color={t.primary} />
-                  </View>
-                  <View style={styles.voucherInfo}>
-                    <Text style={[styles.voucherCode, { color: t.text }]}>{voucher.code}</Text>
-                    <Text style={[styles.voucherDescription, { color: t.muted }]}>{voucher.description}</Text>
-                    <Text style={[styles.voucherExpiry, { color: t.primary }]}>HSD: 31/12/2026</Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => handleCopyVoucher(voucher.code)}
-                    style={[styles.voucherCopyButton, { backgroundColor: t.primary + '22' }]}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.voucherCopyText, { color: t.primary }]}>Sao chép</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </ScrollView>
           </View>
-        </View>
+        </Modal>
       )}
-      </ScrollView>
 
       {/* Edit Profile Modal */}
       <Modal
@@ -679,7 +686,20 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+  },
+  bottomSheetOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  bottomSheetContent: {
+    width: '100%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 16,
+    maxHeight: '85%',
   },
   modalContent: {
     backgroundColor: '#FFFFFF',
@@ -760,6 +780,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     borderTopWidth: 1,
     maxHeight: '80%',
+    paddingBottom: 16,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -778,7 +799,9 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   modalBody: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 32,
   },
   inputGroup: {
     marginBottom: 20,
@@ -806,6 +829,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginTop: 8,
+    paddingBottom: 8,
   },
   modalButton: {
     flex: 1,

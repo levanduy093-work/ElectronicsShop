@@ -1,97 +1,290 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# ElectroAI - Ứng dụng Mua Sắm Linh Kiện Điện Tử
 
-# Getting Started
+## 📱 Tổng quan
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+ElectroAI là một ứng dụng di động React Native được thiết kế để mua sắm và quản lý linh kiện điện tử. Ứng dụng được chuyển đổi từ thiết kế Figma và cung cấp trải nghiệm mua sắm hoàn chỉnh với tính năng AI hỗ trợ tư vấn linh kiện và scan sơ đồ mạch.
 
-## Step 1: Start Metro
+## ✨ Tính năng chính
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+### 🛍️ Mua sắm
+- **Trang chủ**: Hiển thị banner sản phẩm mới, danh mục nhanh, sản phẩm nổi bật
+- **Danh mục sản phẩm**: Duyệt theo các danh mục như Vi điều khiển, Cảm biến, Nguồn & Pin, Dây & Cáp, Dụng cụ, IC số
+- **Chi tiết sản phẩm**: Xem thông tin chi tiết, thông số kỹ thuật, đánh giá và thêm vào giỏ hàng
+- **Tìm kiếm & Lọc**: Tìm kiếm sản phẩm và lọc theo nhiều tiêu chí
+- **Giỏ hàng**: Quản lý sản phẩm, cập nhật số lượng, xóa sản phẩm
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+### 🤖 AI Assistant
+- **Chat với AI**: Tư vấn linh kiện điện tử phù hợp với nhu cầu
+- **Scan sơ đồ mạch**: Tải lên hình ảnh hoặc PDF để AI phân tích và tạo BOM list
+- **Gợi ý thông minh**: AI đưa ra các gợi ý sản phẩm dựa trên yêu cầu
 
-```sh
-# Using npm
+### 👤 Quản lý tài khoản
+- **Đăng nhập/Đăng ký**: Xác thực người dùng
+- **Hồ sơ cá nhân**: Quản lý thông tin cá nhân, avatar
+- **Danh sách yêu thích**: Lưu sản phẩm yêu thích để mua sau
+- **Lịch sử đơn hàng**: Xem tất cả đơn hàng đã đặt với các trạng thái khác nhau
+- **Chi tiết đơn hàng**: Theo dõi tiến trình đơn hàng với timeline chi tiết
+
+### 📦 Đặt hàng & Thanh toán
+- **Thanh toán**: Hỗ trợ nhiều phương thức thanh toán:
+  - Ví điện tử MoMo
+  - Thanh toán khi nhận hàng (COD)
+  - Thẻ ATM / Internet Banking
+- **Sổ địa chỉ**: Quản lý nhiều địa chỉ giao hàng (Nhà riêng, Văn phòng)
+- **Mã giảm giá**: Áp dụng voucher giảm giá và miễn phí vận chuyển
+- **Theo dõi đơn hàng**: Xem trạng thái đơn hàng (Đang xử lý, Đang giao, Hoàn thành)
+
+### ⚙️ Cài đặt & Hỗ trợ
+- **Chế độ tối/Sáng**: Chuyển đổi giữa dark mode và light mode
+- **Thông báo**: Xem các thông báo từ hệ thống
+- **Trung tâm hỗ trợ**: Liên hệ và nhận hỗ trợ từ đội ngũ
+- **Đổi mật khẩu**: Thay đổi mật khẩu tài khoản
+
+## 🏗️ Kiến trúc dự án
+
+### Cấu trúc thư mục
+
+```
+ElectronicsShop/
+├── src/
+│   ├── components/          # Các component tái sử dụng
+│   │   ├── address/         # Form quản lý địa chỉ
+│   │   ├── ai/              # Component AI chat
+│   │   ├── common/          # Component chung (Icon, ImageWithFallback)
+│   │   ├── layout/          # Layout components (TopBar, BottomNav)
+│   │   └── ui/              # UI components (ProductCard)
+│   ├── lib/                 # Utilities và data
+│   │   ├── address.ts       # Quản lý địa chỉ
+│   │   ├── data.ts          # Dữ liệu mock (sản phẩm, danh mục, đơn hàng)
+│   │   ├── theme.ts         # Theme system (dark/light mode)
+│   │   └── utils.ts         # Utility functions
+│   └── screens/             # Các màn hình chính
+│       ├── Home.tsx         # Trang chủ
+│       ├── Catalog.tsx      # Danh mục sản phẩm
+│       ├── ProductDetail.tsx # Chi tiết sản phẩm
+│       ├── Cart.tsx         # Giỏ hàng
+│       ├── Checkout.tsx     # Thanh toán
+│       ├── AIChat.tsx       # Chat với AI
+│       ├── Profile.tsx       # Hồ sơ người dùng
+│       ├── OrderHistory.tsx # Lịch sử đơn hàng
+│       ├── OrderDetail.tsx  # Chi tiết đơn hàng
+│       ├── Wishlist.tsx     # Danh sách yêu thích
+│       ├── AddressBook.tsx  # Sổ địa chỉ
+│       ├── PaymentMethods.tsx # Phương thức thanh toán
+│       ├── Settings.tsx     # Cài đặt
+│       ├── SearchScreen.tsx # Tìm kiếm
+│       ├── FilterScreen.tsx # Lọc sản phẩm
+│       ├── Auth.tsx         # Đăng nhập/Đăng ký
+│       ├── Notifications.tsx # Thông báo
+│       ├── SupportCenter.tsx # Trung tâm hỗ trợ
+│       └── ChangePassword.tsx # Đổi mật khẩu
+├── android/                 # Native Android code
+├── ios/                     # Native iOS code
+├── App.tsx                  # Entry point của ứng dụng
+├── package.json             # Dependencies và scripts
+└── ElectroAI_App_Development/ # Web version (React + Vite)
+```
+
+### Luồng điều hướng
+
+Ứng dụng sử dụng state management đơn giản với React hooks:
+- **Bottom Navigation**: 5 tab chính (Home, Catalog, AI, Cart, Profile)
+- **Full Screen Screens**: Các màn hình như ProductDetail, Checkout, OrderDetail
+- **Modal Screens**: Filter, Search, Settings, etc.
+
+## 🛠️ Công nghệ sử dụng
+
+### Core
+- **React Native**: 0.83.1
+- **React**: 19.2.0
+- **TypeScript**: 5.8.3
+
+### Dependencies chính
+- **react-native-safe-area-context**: Quản lý safe area cho các thiết bị
+- **react-native-vector-icons**: Icons (MaterialCommunityIcons)
+- **react-native-svg**: Render SVG graphics
+- **react-native-image-picker**: Chọn và upload hình ảnh
+- **@react-native-community/slider**: Slider component
+
+### Development Tools
+- **ESLint**: Code linting
+- **Prettier**: Code formatting
+- **Jest**: Testing framework
+- **Metro**: JavaScript bundler
+
+## 📋 Yêu cầu hệ thống
+
+- **Node.js**: >= 20
+- **npm** hoặc **yarn**
+- **React Native CLI**: 20.0.0
+- **Android Studio** (cho Android development)
+- **Xcode** (cho iOS development, chỉ trên macOS)
+
+## 🚀 Cài đặt và chạy ứng dụng
+
+### 1. Clone repository
+
+```bash
+git clone <repository-url>
+cd ElectronicsShop
+```
+
+### 2. Cài đặt dependencies
+
+```bash
+npm install
+```
+
+### 3. Cài đặt dependencies cho iOS (chỉ trên macOS)
+
+```bash
+cd ios
+bundle install
+bundle exec pod install
+cd ..
+```
+
+### 4. Chạy ứng dụng
+
+#### Android
+
+```bash
+# Khởi động Metro bundler
 npm start
 
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
+# Trong terminal khác, chạy Android app
 npm run android
-
-# OR using Yarn
-yarn android
 ```
 
-### iOS
+#### iOS (chỉ trên macOS)
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+```bash
+# Khởi động Metro bundler
+npm start
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
+# Trong terminal khác, chạy iOS app
 npm run ios
-
-# OR using Yarn
-yarn ios
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+## 📱 Các màn hình chính
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+### 1. Trang chủ (Home)
+- Banner sản phẩm mới
+- Danh mục nhanh với icons
+- Sản phẩm nổi bật
+- Card AI Engineer để truy cập tính năng AI
 
-## Step 3: Modify your app
+### 2. Danh mục (Catalog)
+- Hiển thị tất cả sản phẩm
+- Lọc theo danh mục
+- Grid layout với ProductCard
 
-Now that you have successfully run the app, let's make changes!
+### 3. AI Chat
+- Giao diện chat với AI
+- Gợi ý câu hỏi nhanh
+- Hỗ trợ upload hình ảnh/PDF để scan sơ đồ mạch
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+### 4. Giỏ hàng (Cart)
+- Danh sách sản phẩm đã thêm
+- Cập nhật số lượng
+- Xóa sản phẩm
+- Tính tổng tiền và phí vận chuyển
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+### 5. Hồ sơ (Profile)
+- Thông tin người dùng
+- Menu điều hướng đến các tính năng:
+  - Đơn hàng của tôi
+  - Sổ địa chỉ
+  - Phương thức thanh toán
+  - Danh sách yêu thích
+  - Cài đặt
+  - Trung tâm hỗ trợ
+  - Đăng xuất
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+## 🎨 Theme System
 
-## Congratulations! :tada:
+Ứng dụng hỗ trợ Dark Mode và Light Mode:
 
-You've successfully run and modified your React Native App. :partying_face:
+### Light Theme
+- Background: #F5F7FA
+- Surface: #FFFFFF
+- Primary: #2563EB
+- Text: #111827
 
-### Now what?
+### Dark Theme
+- Background: #121212
+- Surface: #18181B
+- Primary: #3B82F6
+- Text: #F5F5F5
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+Theme được quản lý thông qua `ThemeProvider` và `useTheme` hook.
 
-# Troubleshooting
+## 📦 Dữ liệu Mock
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+Ứng dụng sử dụng dữ liệu mock trong `src/lib/data.ts`:
 
-# Learn More
+- **PRODUCTS**: Danh sách sản phẩm mẫu (Arduino, ESP32, Raspberry Pi, etc.)
+- **CATEGORIES**: 6 danh mục chính
+- **AVAILABLE_VOUCHERS**: Các mã giảm giá
+- **MOCK_CHATS**: Tin nhắn chat mẫu
+- **DEFAULT_ADDRESSES**: Địa chỉ mẫu
 
-To learn more about React Native, take a look at the following resources:
+## 🔄 State Management
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+Ứng dụng sử dụng React hooks để quản lý state:
+- `useState` cho local state
+- State được nâng lên App.tsx cho các state global:
+  - `cartItems`: Giỏ hàng
+  - `wishlist`: Danh sách yêu thích
+  - `orders`: Đơn hàng
+  - `addresses`: Địa chỉ giao hàng
+  - `isLoggedIn`: Trạng thái đăng nhập
+  - `isDarkMode`: Chế độ tối/sáng
+
+## 🧪 Testing
+
+```bash
+npm test
+```
+
+Tests được viết bằng Jest và React Test Renderer.
+
+## 📝 Scripts có sẵn
+
+- `npm start`: Khởi động Metro bundler
+- `npm run android`: Chạy ứng dụng trên Android
+- `npm run ios`: Chạy ứng dụng trên iOS
+- `npm run lint`: Kiểm tra code với ESLint
+- `npm test`: Chạy tests
+
+## 🌐 Web Version
+
+Dự án cũng bao gồm một phiên bản web trong thư mục `ElectroAI_App_Development`:
+- **Framework**: React + Vite
+- **UI Library**: Radix UI components
+- **Styling**: Tailwind CSS
+- **Icons**: Lucide React
+
+Để chạy web version:
+
+```bash
+cd ElectroAI_App_Development
+npm install
+npm run dev
+```
+
+## 📄 License
+
+Private project - All rights reserved
+
+## 👥 Đóng góp
+
+Dự án này được phát triển như một phần của khóa học Mobile Development.
+
+## 📞 Liên hệ
+
+Để biết thêm thông tin về dự án, vui lòng liên hệ qua Support Center trong ứng dụng.
+
+---
+
+**Lưu ý**: Đây là một ứng dụng demo với dữ liệu mock. Để triển khai production, cần tích hợp với backend API thực tế.

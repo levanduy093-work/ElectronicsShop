@@ -87,6 +87,7 @@ export function Wishlist({ items, onBack, onRemove, onProductClick, theme }: Wis
                   <View style={styles.productFooter}>
                     <Text style={[styles.productPrice, { color: t.primary }]}>{formatPrice(product.price)}</Text>
                     <TouchableOpacity
+                      onPress={() => onProductClick(product)}
                       style={[styles.addToCartButton, { backgroundColor: t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)' }]}
                       activeOpacity={0.7}
                     >

@@ -20,6 +20,10 @@ export function PaymentMethods({ onBack, theme }: PaymentMethodsProps) {
   const [expiry, setExpiry] = useState('');
   const [cvv, setCvv] = useState('');
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null);
+  const [wallets, setWallets] = useState([
+    { id: 'momo', name: 'Ví MoMo', phone: '090****567', color: '#E91E63' },
+    { id: 'zalo', name: 'ZaloPay', phone: '090****567', color: '#0068FF' },
+  ]);
 
   const formatCardNumber = (text: string) => {
     const cleaned = text.replace(/\D/g, '');
@@ -33,6 +37,10 @@ export function PaymentMethods({ onBack, theme }: PaymentMethodsProps) {
       return cleaned.slice(0, 2) + '/' + cleaned.slice(2, 4);
     }
     return cleaned;
+  };
+
+  const handleDeleteWallet = (walletId: string) => {
+    setWallets(prev => prev.filter(wallet => wallet.id !== walletId));
   };
 
   if (isAdding) {
@@ -255,7 +263,33 @@ export function PaymentMethods({ onBack, theme }: PaymentMethodsProps) {
               })}
 
               <TouchableOpacity
-                onPress={() => setIsAdding(false)}
+                onPress={() => {
+                  if (selectedWallet) {
+                    const walletNames: Record<string, { name: string; color: string }> = {
+                      momo: { name: 'Ví MoMo', color: '#E91E63' },
+                      zalo: { name: 'ZaloPay', color: '#0068FF' },
+                      shopee: { name: 'ShopeePay', color: '#EE4D2D' },
+                    };
+                    const walletInfo = walletNames[selectedWallet];
+                    if (walletInfo) {
+                      setWallets(prev => {
+                        // Kiểm tra xem ví đã tồn tại chưa
+                        const exists = prev.some(w => w.id === selectedWallet);
+                        if (exists) {
+                          return prev;
+                        }
+                        return [...prev, {
+                          id: selectedWallet,
+                          name: walletInfo.name,
+                          phone: '090****567',
+                          color: walletInfo.color,
+                        }];
+                      });
+                    }
+                    setIsAdding(false);
+                    setSelectedWallet(null);
+                  }
+                }}
                 style={[styles.addButton, !selectedWallet && styles.addButtonDisabled, { backgroundColor: t.primary }]}
                 disabled={!selectedWallet}
                 activeOpacity={0.8}
@@ -312,29 +346,38 @@ export function PaymentMethods({ onBack, theme }: PaymentMethodsProps) {
         </View>
 
         {/* E-wallets */}
-        <View style={[styles.walletsList, { backgroundColor: t.card, borderColor: t.border }]}>
-          {[
-            { name: 'Ví MoMo', phone: '090****567', color: '#E91E63' },
-            { name: 'ZaloPay', phone: '090****567', color: '#0068FF' },
-          ].map((wallet, i) => (
-            <View key={i} style={[styles.walletItem, { borderBottomColor: t.border }]}>
-              <View style={styles.walletItemLeft}>
-                <View style={[styles.walletIconSmall, { backgroundColor: wallet.color + '20' }]}>
-                  <Text style={[styles.walletIconTextSmall, { color: wallet.color }]}>
-                    {wallet.name.charAt(0)}
-                  </Text>
+        {wallets.length > 0 && (
+          <View style={[styles.walletsList, { backgroundColor: t.card, borderColor: t.border }]}>
+            {wallets.map((wallet, i) => (
+              <View 
+                key={wallet.id} 
+                style={[
+                  styles.walletItem, 
+                  { borderBottomColor: t.border },
+                  i === wallets.length - 1 && { borderBottomWidth: 0 }
+                ]}
+              >
+                <View style={styles.walletItemLeft}>
+                  <View style={[styles.walletIconSmall, { backgroundColor: wallet.color + '20' }]}>
+                    <Text style={[styles.walletIconTextSmall, { color: wallet.color }]}>
+                      {wallet.name.charAt(0)}
+                    </Text>
+                  </View>
+                  <View>
+                    <Text style={[styles.walletItemName, { color: t.text }]}>{wallet.name}</Text>
+                    <Text style={[styles.walletItemPhone, { color: t.muted }]}>Đã liên kết - {wallet.phone}</Text>
+                  </View>
                 </View>
-                <View>
-                  <Text style={[styles.walletItemName, { color: t.text }]}>{wallet.name}</Text>
-                  <Text style={[styles.walletItemPhone, { color: t.muted }]}>Đã liên kết - {wallet.phone}</Text>
-                </View>
+                <TouchableOpacity 
+                  onPress={() => handleDeleteWallet(wallet.id)}
+                  activeOpacity={0.7}
+                >
+                  <AppIcon name="trash" size={18} color={t.muted} />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity activeOpacity={0.7}>
-                <AppIcon name="trash" size={18} color={t.muted} />
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        )}
 
         <TouchableOpacity
           onPress={() => setIsAdding(true)}
