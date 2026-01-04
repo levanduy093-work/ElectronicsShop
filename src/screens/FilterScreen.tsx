@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CATEGORIES } from '../lib/data';
@@ -8,20 +8,53 @@ import { Theme, lightTheme, useTheme } from '../lib/theme';
 interface FilterScreenProps {
   onClose: () => void;
   onApply: (filters: any) => void;
+  currentFilters?: {
+    priceRange: [number, number];
+    categories: string[];
+    rating: number | null;
+    onlyInStock: boolean;
+  };
+  getFilteredCount?: (filters: any) => number;
   theme?: Theme;
 }
 
-export function FilterScreen({ onClose, onApply, theme }: FilterScreenProps) {
+export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCount, theme }: FilterScreenProps) {
   const { theme: ctxTheme } = useTheme();
   const t = theme || ctxTheme || lightTheme;
   const insets = useSafeAreaInsets();
   const PRICE_MIN = 0;
   const PRICE_MAX = 10000000;
-  const [priceMinInput, setPriceMinInput] = useState('0');
-  const [priceMaxInput, setPriceMaxInput] = useState(PRICE_MAX.toString());
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [rating, setRating] = useState<number | null>(null);
-  const [onlyInStock, setOnlyInStock] = useState(false);
+  const [priceMinInput, setPriceMinInput] = useState(
+    currentFilters?.priceRange?.[0]?.toString() || '0'
+  );
+  const [priceMaxInput, setPriceMaxInput] = useState(
+    currentFilters?.priceRange?.[1]?.toString() || PRICE_MAX.toString()
+  );
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(
+    currentFilters?.categories || []
+  );
+  const [rating, setRating] = useState<number | null>(currentFilters?.rating || null);
+  const [onlyInStock, setOnlyInStock] = useState(currentFilters?.onlyInStock || false);
+  const [filteredCount, setFilteredCount] = useState(12);
+  
+  // Calculate filtered count whenever filters change
+  useEffect(() => {
+    if (getFilteredCount) {
+      const parsedMin = parseInt(priceMinInput || `${PRICE_MIN}`, 10);
+      const parsedMax = parseInt(priceMaxInput || `${PRICE_MAX}`, 10);
+      const safeMin = Number.isNaN(parsedMin) ? PRICE_MIN : parsedMin;
+      const safeMax = Number.isNaN(parsedMax) ? PRICE_MAX : parsedMax;
+      const [finalMin, finalMax] = safeMin <= safeMax ? [safeMin, safeMax] : [safeMax, safeMin];
+      
+      const count = getFilteredCount({
+        priceRange: [finalMin, finalMax],
+        categories: selectedCategories,
+        rating,
+        onlyInStock,
+      });
+      setFilteredCount(count);
+    }
+  }, [priceMinInput, priceMaxInput, selectedCategories, rating, onlyInStock, getFilteredCount]);
 
   const toggleCategory = (cat: string) => {
     if (selectedCategories.includes(cat)) {
@@ -53,6 +86,13 @@ export function FilterScreen({ onClose, onApply, theme }: FilterScreenProps) {
     setSelectedCategories([]);
     setRating(null);
     setOnlyInStock(false);
+    // Apply reset filters immediately
+    onApply({
+      priceRange: [PRICE_MIN, PRICE_MAX],
+      categories: [],
+      rating: null,
+      onlyInStock: false,
+    });
   };
 
   const sanitizePrice = (value: string) => value.replace(/\D/g, '');
@@ -196,7 +236,7 @@ export function FilterScreen({ onClose, onApply, theme }: FilterScreenProps) {
           style={[styles.applyButton, { backgroundColor: t.primary }]}
           activeOpacity={0.8}
         >
-          <Text style={styles.applyButtonText}>Áp dụng (12 kết quả)</Text>
+          <Text style={styles.applyButtonText}>Áp dụng ({filteredCount} kết quả)</Text>
         </TouchableOpacity>
       </View>
     </View>

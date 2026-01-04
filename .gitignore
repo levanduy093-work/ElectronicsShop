@@ -35,6 +35,8 @@ keystore.properties
 *.keystore
 !debug.keystore
 .kotlin/
+*.jks
+*.p12
 
 # node.js
 #
@@ -74,3 +76,31 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Secrets and service configs
+.env
+.env.*
+.npmrc
+android/app/google-services.json
+ios/GoogleService-Info.plist
+
+# Build artifacts (explicit patterns for safety)
+*.apk
+*.aab
+*.apks
+*.aab.bundle
+
+# React Native / Metro
+.expo/
+.expo-shared/
+*.log
+*.log.*
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS (Windows)
+Thumbs.db

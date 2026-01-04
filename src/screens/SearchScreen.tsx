@@ -12,6 +12,13 @@ interface SearchScreenProps {
   onFilterClick?: () => void;
   initialQuery?: string;
   onQueryChange?: (query: string) => void;
+  filters?: {
+    priceRange: [number, number];
+    categories: string[];
+    rating: number | null;
+    onlyInStock: boolean;
+  };
+  applyFilters?: (products: Product[], searchText?: string) => Product[];
   theme?: Theme;
 }
 
@@ -21,6 +28,8 @@ export function SearchScreen({
   onFilterClick,
   initialQuery = '',
   onQueryChange,
+  filters,
+  applyFilters,
   theme,
 }: SearchScreenProps) {
   const insets = useSafeAreaInsets();
@@ -38,8 +47,9 @@ export function SearchScreen({
     onQueryChange?.(newQuery);
   };
 
+  // Apply filters and search
   const filteredProducts = query
-    ? PRODUCTS.filter(p => p.name.toLowerCase().includes(query.toLowerCase()))
+    ? (applyFilters ? applyFilters(PRODUCTS, query) : PRODUCTS.filter(p => p.name.toLowerCase().includes(query.toLowerCase())))
     : [];
 
   const trendingSearches = ['Raspberry Pi 5', 'ESP32 Cam', 'Mỏ hàn', 'Cảm biến nhiệt độ', 'Led RGB'];

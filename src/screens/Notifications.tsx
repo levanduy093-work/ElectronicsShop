@@ -9,11 +9,20 @@ interface NotificationsProps {
   theme?: Theme;
 }
 
+interface NotificationItem {
+  id: number;
+  type: 'order' | 'promo' | 'system' | string;
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+}
+
 export function Notifications({ onBack, theme }: NotificationsProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
   const t = theme || ctxTheme || lightTheme;
-  const [notifications, setNotifications] = useState([
+  const [notifications, setNotifications] = useState<NotificationItem[]>([
     {
       id: 1,
       type: 'order',
@@ -39,6 +48,7 @@ export function Notifications({ onBack, theme }: NotificationsProps) {
       read: true,
     },
   ]);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const handleMarkAllAsRead = () => {
     setNotifications(prevNotifications =>
@@ -47,6 +57,16 @@ export function Notifications({ onBack, theme }: NotificationsProps) {
         read: true,
       }))
     );
+    setExpandedId(null);
+  };
+
+  const handleToggleNotification = (notification: NotificationItem) => {
+    setNotifications(prevNotifications =>
+      prevNotifications.map(item =>
+        item.id === notification.id ? { ...item, read: true } : item
+      )
+    );
+    setExpandedId(prev => (prev === notification.id ? null : notification.id));
   };
 
   const hasUnreadNotifications = notifications.some(notification => !notification.read);
@@ -89,32 +109,61 @@ export function Notifications({ onBack, theme }: NotificationsProps) {
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        {notifications.map((item) => (
-          <View
-            key={item.id}
-            style={[
-              styles.notificationCard,
-              item.read && styles.notificationCardRead,
-              { backgroundColor: item.read ? t.surface : t.card, borderColor: item.read ? 'transparent' : t.border, shadowOpacity: t === lightTheme && !item.read ? 0.05 : 0, elevation: t === lightTheme && !item.read ? 2 : 0 }
-            ]}
-          >
-            <View style={[styles.iconContainer, { backgroundColor: getBgColor(item.type) }]}>
-              {getIcon(item.type)}
-            </View>
-            <View style={styles.notificationContent}>
-              <View style={styles.notificationHeader}>
-                <Text style={[styles.notificationTitle, { color: item.read ? t.muted : t.text }]}>
-                  {item.title}
-                </Text>
-                <Text style={[styles.notificationTime, { color: t.muted }]}>{item.time}</Text>
+        {notifications.map((item) => {
+          const isExpanded = expandedId === item.id;
+          return (
+            <TouchableOpacity
+              key={item.id}
+              activeOpacity={0.9}
+              onPress={() => handleToggleNotification(item)}
+              style={[
+                styles.notificationCard,
+                isExpanded && styles.notificationCardExpanded,
+                item.read && !isExpanded && styles.notificationCardRead,
+                { backgroundColor: item.read && !isExpanded ? t.surface : t.card, borderColor: item.read && !isExpanded ? 'transparent' : t.border, shadowOpacity: t === lightTheme && (!item.read || isExpanded) ? 0.08 : 0, elevation: t === lightTheme && (!item.read || isExpanded) ? 3 : 0 }
+              ]}
+            >
+              <View style={[styles.iconContainer, { backgroundColor: getBgColor(item.type) }]}>
+                {getIcon(item.type)}
               </View>
-              <Text style={[styles.notificationMessage, { color: t.muted }]} numberOfLines={2}>
-                {item.message}
-              </Text>
-            </View>
-            {!item.read && <View style={[styles.unreadDot, { backgroundColor: t.primary }]} />}
-          </View>
-        ))}
+              <View style={styles.notificationContent}>
+                <View style={styles.notificationHeader}>
+                  <Text style={[styles.notificationTitle, { color: isExpanded ? t.text : item.read ? t.muted : t.text }]}>
+                    {item.title}
+                  </Text>
+                  <View style={styles.headerMeta}>
+                    <Text style={[styles.notificationTime, { color: t.muted }]}>{item.time}</Text>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e?.stopPropagation?.();
+                        handleToggleNotification(item);
+                      }}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      activeOpacity={0.8}
+                    >
+                      <AppIcon
+                        name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                        size={18}
+                        color={t.muted}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <Text
+                  style={[
+                    styles.notificationMessage,
+                    { color: isExpanded ? t.text : t.muted },
+                    isExpanded && styles.notificationMessageExpanded,
+                  ]}
+                  numberOfLines={isExpanded ? undefined : 2}
+                >
+                  {item.message}
+                </Text>
+              </View>
+              {!item.read && <View style={[styles.unreadDot, { backgroundColor: t.primary }]} />}
+            </TouchableOpacity>
+          );
+        })}
 
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: t.muted }]}>Bạn đã xem hết thông báo</Text>
@@ -180,6 +229,10 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
+  notificationCardExpanded: {
+    borderColor: '#E5E7EB',
+    shadowOpacity: 0.12,
+  },
   notificationCardRead: {
     backgroundColor: 'transparent',
     borderColor: 'transparent',
@@ -203,6 +256,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 4,
   },
+  headerMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginLeft: 8,
+  },
   notificationTitle: {
     fontSize: 14,
     fontWeight: '600',
@@ -221,6 +280,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     lineHeight: 20,
+  },
+  notificationMessageExpanded: {
+    marginTop: 8,
   },
   unreadDot: {
     width: 8,

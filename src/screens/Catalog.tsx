@@ -8,18 +8,39 @@ import { Theme, lightTheme } from '../lib/theme';
 interface CatalogProps {
   onProductClick?: (product: Product) => void;
   onFilterClick?: () => void;
+  filters?: {
+    priceRange: [number, number];
+    categories: string[];
+    rating: number | null;
+    onlyInStock: boolean;
+  };
+  applyFilters?: (products: Product[], searchText?: string) => Product[];
   theme?: Theme;
 }
 
-export function Catalog({ onProductClick, onFilterClick, theme = lightTheme }: CatalogProps) {
+export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, theme = lightTheme }: CatalogProps) {
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredProducts = PRODUCTS.filter(p => {
-    const matchesCategory = activeCategory === 'All' || p.category === activeCategory;
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  // Start with all products
+  let filteredProducts = PRODUCTS;
+  
+  // Apply search filter first (if any)
+  if (searchQuery) {
+    filteredProducts = filteredProducts.filter(p => 
+      p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }
+  
+  // Apply category filter (if not 'All')
+  if (activeCategory !== 'All') {
+    filteredProducts = filteredProducts.filter(p => p.category === activeCategory);
+  }
+  
+  // Apply advanced filters (price, rating, stock, categories from filter screen)
+  if (applyFilters) {
+    filteredProducts = applyFilters(filteredProducts);
+  }
 
   const categories = ['All', ...CATEGORIES.map(c => c.name)];
 

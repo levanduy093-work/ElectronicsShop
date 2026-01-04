@@ -35,6 +35,13 @@ import { ToastProvider } from './src/components/common/ToastProvider';
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'payment-methods' | 'settings' | 'support' | 'wishlist' | 'change-password';
 
+interface FilterState {
+  priceRange: [number, number];
+  categories: string[];
+  rating: number | null;
+  onlyInStock: boolean;
+}
+
 // Mock orders với các trạng thái khác nhau
 const getMockOrders = (): Order[] => {
     const now = new Date();
@@ -237,6 +244,12 @@ function App(): React.JSX.Element {
     setOrders(mockOrders);
   }, []);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState<FilterState>({
+    priceRange: [0, 10000000],
+    categories: [],
+    rating: null,
+    onlyInStock: false,
+  });
   const [userProfile, setUserProfile] = useState({
     name: "Nguyễn Văn A",
     email: "nguyenva@example.com",
@@ -245,6 +258,38 @@ function App(): React.JSX.Element {
 
   const handleUpdateProfile = (data: Partial<typeof userProfile>) => {
     setUserProfile(prev => ({ ...prev, ...data }));
+  };
+
+  // Filter function to apply filters to products
+  const applyFilters = (products: Product[], searchText?: string): Product[] => {
+    return products.filter(product => {
+      // Price range filter
+      if (product.price < filters.priceRange[0] || product.price > filters.priceRange[1]) {
+        return false;
+      }
+
+      // Category filter
+      if (filters.categories.length > 0 && !filters.categories.includes(product.category)) {
+        return false;
+      }
+
+      // Rating filter
+      if (filters.rating !== null && product.rating < filters.rating) {
+        return false;
+      }
+
+      // Stock filter
+      if (filters.onlyInStock && product.stock !== 'In Stock') {
+        return false;
+      }
+
+      // Search text filter
+      if (searchText && !product.name.toLowerCase().includes(searchText.toLowerCase())) {
+        return false;
+      }
+
+      return true;
+    });
   };
 
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
@@ -262,6 +307,7 @@ function App(): React.JSX.Element {
 
   const navigateToCheckout = () => {
     if (!isLoggedIn) {
+      setCurrentTab('profile');
       setCurrentScreen('auth');
     } else {
       setCurrentScreen('checkout');
@@ -382,7 +428,15 @@ function App(): React.JSX.Element {
       case 'home':
         return <Home onNavigate={(tab) => handleTabChange(tab as NavTab)} onProductClick={navigateToProduct} theme={theme} />;
       case 'catalog':
-        return <Catalog onFilterClick={openFilter} onProductClick={navigateToProduct} theme={theme} />;
+        return (
+          <Catalog 
+            onFilterClick={openFilter} 
+            onProductClick={navigateToProduct} 
+            filters={filters}
+            applyFilters={applyFilters}
+            theme={theme} 
+          />
+        );
       case 'ai':
         return <AIChat theme={theme} onNotificationClick={() => setCurrentScreen('notifications')} />;
       case 'cart':
@@ -425,6 +479,7 @@ function App(): React.JSX.Element {
             isLoggedIn={isLoggedIn}
             onRequireLogin={() => {
               setPreviousScreen('product-detail');
+              setCurrentTab('profile');
               setCurrentScreen('auth');
             }}
             theme={theme}
@@ -476,6 +531,8 @@ function App(): React.JSX.Element {
             onFilterClick={openFilter}
             initialQuery={searchQuery}
             onQueryChange={setSearchQuery}
+            filters={filters}
+            applyFilters={applyFilters}
             theme={theme}
           />
         );
@@ -484,9 +541,41 @@ function App(): React.JSX.Element {
         return (
           <FilterScreen
             onClose={() => setCurrentScreen(previousScreen)}
-            onApply={(filters) => {
-              console.log("Filters applied:", filters);
+            onApply={(newFilters) => {
+              setFilters({
+                priceRange: newFilters.priceRange || [0, 10000000],
+                categories: newFilters.categories || [],
+                rating: newFilters.rating || null,
+                onlyInStock: newFilters.onlyInStock || false,
+              });
               setCurrentScreen(previousScreen);
+            }}
+            currentFilters={filters}
+            getFilteredCount={(tempFilters) => {
+              // Create a temporary filter function with the temp filters
+              const tempFilterState: FilterState = {
+                priceRange: tempFilters.priceRange || filters.priceRange,
+                categories: tempFilters.categories || filters.categories,
+                rating: tempFilters.rating !== undefined ? tempFilters.rating : filters.rating,
+                onlyInStock: tempFilters.onlyInStock !== undefined ? tempFilters.onlyInStock : filters.onlyInStock,
+              };
+              
+              // Apply filters without changing state
+              return PRODUCTS.filter(product => {
+                if (product.price < tempFilterState.priceRange[0] || product.price > tempFilterState.priceRange[1]) {
+                  return false;
+                }
+                if (tempFilterState.categories.length > 0 && !tempFilterState.categories.includes(product.category)) {
+                  return false;
+                }
+                if (tempFilterState.rating !== null && product.rating < tempFilterState.rating) {
+                  return false;
+                }
+                if (tempFilterState.onlyInStock && product.stock !== 'In Stock') {
+                  return false;
+                }
+                return true;
+              }).length;
             }}
             theme={theme}
           />
