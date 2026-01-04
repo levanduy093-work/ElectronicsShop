@@ -92,13 +92,13 @@ export function ProductDetail({
         title: product.name,
       });
     } catch (error) {
-      Alert.alert('Thông báo', 'Không thể chia sẻ');
+      showToast('Không thể chia sẻ', 'error');
     }
   };
 
   const handleHeartClick = () => {
     if (!isLoggedIn) {
-      Alert.alert('Thông báo', 'Vui lòng đăng nhập để thêm vào danh sách yêu thích');
+      showToast('Vui lòng đăng nhập để thêm vào danh sách yêu thích', 'info');
       onRequireLogin();
       return;
     }
@@ -118,15 +118,8 @@ export function ProductDetail({
 
   const handleWriteReview = () => {
     if (!isLoggedIn) {
-      Alert.alert(
-        'Thông báo',
-        'Vui lòng đăng nhập để viết đánh giá',
-        [
-          { text: 'Để sau', style: 'cancel' },
-          { text: 'Đăng nhập', onPress: onRequireLogin },
-        ],
-        { cancelable: true }
-      );
+      showToast('Vui lòng đăng nhập để viết đánh giá', 'info');
+      onRequireLogin();
       return;
     }
 
@@ -136,7 +129,7 @@ export function ProductDetail({
   const handleSubmitReview = () => {
     const content = reviewContent.trim();
     if (!content) {
-      Alert.alert('Thông báo', 'Vui lòng nhập nội dung đánh giá');
+      showToast('Vui lòng nhập nội dung đánh giá', 'error');
       return;
     }
 
@@ -170,7 +163,7 @@ export function ProductDetail({
       (response) => {
         if (response.didCancel) return;
         if (response.errorMessage) {
-          Alert.alert('Thông báo', response.errorMessage);
+          showToast(response.errorMessage, 'error');
           return;
         }
         const picked = (response.assets || [])

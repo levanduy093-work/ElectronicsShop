@@ -5,6 +5,7 @@ import { AppIcon } from '../components/common/Icon';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AVAILABLE_VOUCHERS } from '../lib/data';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
+import { useToast } from '../components/common/ToastProvider';
 
 // Dynamic import để tránh lỗi khi module chưa được link
 let launchImageLibrary: any = null;
@@ -60,11 +61,12 @@ export function Profile({
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
   const { theme: ctxTheme, isDarkMode } = useTheme();
+  const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   const t = theme || ctxTheme || lightTheme;
 
   const handleCopyVoucher = (code: string) => {
-    Alert.alert('Thông báo', `Đã sao chép mã ${code}`);
+    showToast(`Đã sao chép mã ${code}`, 'success');
     setShowVouchers(false);
   };
 
@@ -76,7 +78,7 @@ export function Profile({
 
   const handleSaveProfile = () => {
     if (!editingName.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập tên');
+      showToast('Vui lòng nhập tên', 'error');
       return;
     }
     
@@ -90,7 +92,7 @@ export function Profile({
     }
     
     setShowEditModal(false);
-    Alert.alert('Thành công', 'Đã cập nhật thông tin cá nhân');
+    showToast('Đã cập nhật thông tin cá nhân', 'success');
   };
 
   const handleCancelEdit = () => {
@@ -120,7 +122,7 @@ export function Profile({
       }
       
       if (response.errorCode) {
-        Alert.alert('Lỗi', `Không thể chọn ảnh: ${response.errorMessage || 'Unknown error'}`);
+        showToast(`Không thể chọn ảnh: ${response.errorMessage || 'Unknown error'}`, 'error');
         return;
       }
 

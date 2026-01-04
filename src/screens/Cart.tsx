@@ -5,6 +5,7 @@ import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
 import { formatPrice } from '../lib/utils';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
+import { useToast } from '../components/common/ToastProvider';
 
 interface CartProps {
   onCheckout?: () => void;
@@ -17,6 +18,7 @@ interface CartProps {
 
 export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExplore, theme }: CartProps) {
   const { theme: ctxTheme } = useTheme();
+  const { showToast } = useToast();
   const t = theme || ctxTheme || lightTheme;
   const [voucherCode, setVoucherCode] = useState('');
   const [showVoucherList, setShowVoucherList] = useState(false);
@@ -46,11 +48,12 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
         setAppliedVoucher(voucher);
         setVoucherCode(voucher.code);
         setShowVoucherList(false);
+        showToast('Áp dụng mã giảm giá thành công', 'success');
       } else {
-        Alert.alert('Thông báo', `Đơn hàng cần tối thiểu ${voucher.minOrder.toLocaleString('vi-VN')}đ để sử dụng mã này.`);
+        showToast(`Đơn hàng cần tối thiểu ${voucher.minOrder.toLocaleString('vi-VN')}đ để sử dụng mã này.`, 'error');
       }
     } else {
-      Alert.alert('Thông báo', 'Mã giảm giá không hợp lệ');
+      showToast('Mã giảm giá không hợp lệ', 'error');
     }
   };
 

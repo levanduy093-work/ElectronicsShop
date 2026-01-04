@@ -545,8 +545,8 @@ function App(): React.JSX.Element {
     }
   };
 
-  const isFullScreen = ['product-detail', 'checkout', 'order-history', 'order-detail', 'auth', 'notifications', 'search', 'filter', 'address-book', 'payment-methods', 'settings', 'support', 'wishlist', 'change-password'].includes(currentScreen);
-  const showTopBar = !isFullScreen && currentScreen !== 'ai' && currentScreen !== 'profile';
+  const isFullScreen = ['product-detail', 'checkout', 'order-history', 'order-detail', 'notifications', 'search', 'filter', 'address-book', 'payment-methods', 'settings', 'support', 'wishlist', 'change-password'].includes(currentScreen);
+  const showTopBar = !isFullScreen && currentScreen !== 'ai' && currentScreen !== 'profile' && currentScreen !== 'auth';
 
   return (
     <SafeAreaProvider>

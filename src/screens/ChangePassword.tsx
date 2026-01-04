@@ -3,6 +3,7 @@ import { Alert, Platform, StatusBar, StyleSheet, Text, TextInput, TouchableOpaci
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
+import { useToast } from '../components/common/ToastProvider';
 
 interface ChangePasswordProps {
   onBack: () => void;
@@ -14,6 +15,7 @@ interface ChangePasswordProps {
 export function ChangePassword({ onBack, onSuccess, theme, email }: ChangePasswordProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
+  const { showToast } = useToast();
   const t = theme || ctxTheme || lightTheme;
 
   const [oldPassword, setOldPassword] = useState('');
@@ -52,12 +54,10 @@ export function ChangePassword({ onBack, onSuccess, theme, email }: ChangePasswo
 
   const handleSubmit = () => {
     if (!validate()) return;
-    Alert.alert('Thành công', 'Mật khẩu đã được cập nhật.', [
-      {
-        text: 'OK',
-        onPress: () => onSuccess?.(),
-      },
-    ]);
+    showToast('Mật khẩu đã được cập nhật', 'success');
+    setTimeout(() => {
+      onSuccess?.();
+    }, 1000);
   };
 
   const maskEmail = (text?: string) => {
@@ -76,7 +76,7 @@ export function ChangePassword({ onBack, onSuccess, theme, email }: ChangePasswo
       setOtp('');
       setOtpExpiry(Date.now() + 5 * 60 * 1000); // 5 minutes
       setSendingOtp(false);
-      Alert.alert('Đã gửi OTP', `Mã OTP đã gửi tới ${maskEmail(email)}.\n(Vì đây là bản demo, mã là ${generated})`);
+      showToast(`Mã OTP đã gửi tới ${maskEmail(email)} (Mã demo: ${generated})`, 'success');
     }, 400);
   };
 

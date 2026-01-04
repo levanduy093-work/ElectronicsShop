@@ -1,8 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
+import { useToast } from '../components/common/ToastProvider';
 
 interface AuthProps {
   onBack: () => void;
@@ -41,6 +43,8 @@ const GoogleIcon = ({ size = 24 }: { size?: number }) => {
 
 export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
   const { theme: ctxTheme } = useTheme();
+  const { showToast } = useToast();
+  const insets = useSafeAreaInsets();
   const t = theme || ctxTheme || lightTheme;
   const [isRegister, setIsRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -52,15 +56,18 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const codeInputRefs = useRef<(TextInput | null)[]>([]);
+  
+  // BottomNav height: 80px + safe area bottom
+  const bottomNavHeight = 80 + Math.max(insets.bottom, 16);
 
   const handleSubmit = () => {
     if (!email || !password) {
-      Alert.alert('Thông báo', 'Vui lòng điền đầy đủ thông tin');
+      showToast('Vui lòng điền đầy đủ thông tin', 'error');
       return;
     }
     if (isRegister) {
       if (!name) {
-        Alert.alert('Thông báo', 'Vui lòng nhập họ và tên');
+        showToast('Vui lòng nhập họ và tên', 'error');
         return;
       }
       // Chuyển sang màn hình xác nhận email
@@ -102,36 +109,32 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
   const handleVerifyCode = () => {
     const code = verificationCode.join('');
     if (code.length !== 6) {
-      Alert.alert('Thông báo', 'Vui lòng nhập đầy đủ 6 số');
+      showToast('Vui lòng nhập đầy đủ 6 số', 'error');
       return;
     }
     
     // Giả lập kiểm tra mã (trong thực tế sẽ gọi API)
     // Mã test: 123456
     if (code === '123456') {
-      Alert.alert('Thành công', 'Email đã được xác nhận!', [
-        {
-          text: 'OK',
-          onPress: () => {
-            setIsVerifyingEmail(false);
-            onLoginSuccess();
-          }
-        }
-      ]);
+      showToast('Email đã được xác nhận!', 'success');
+      setTimeout(() => {
+        setIsVerifyingEmail(false);
+        onLoginSuccess();
+      }, 1000);
     } else {
-      Alert.alert('Lỗi', 'Mã xác nhận không đúng. Vui lòng thử lại.');
+      showToast('Mã xác nhận không đúng. Vui lòng thử lại.', 'error');
       setVerificationCode(['', '', '', '', '', '']);
     }
   };
 
   const handleResendCode = () => {
-    Alert.alert('Thông báo', 'Đã gửi lại mã xác nhận đến email của bạn');
+    showToast('Đã gửi lại mã xác nhận đến email của bạn', 'success');
     // Trong thực tế sẽ gọi API gửi lại mã
   };
 
   const handleResetPassword = () => {
     if (!email) {
-      Alert.alert('Thông báo', 'Vui lòng nhập email');
+      showToast('Vui lòng nhập email', 'error');
       return;
     }
     setResetEmailSent(true);
@@ -139,7 +142,10 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
 
   if (isVerifyingEmail) {
     return (
-      <ScrollView style={[styles.container, { backgroundColor: t.background }]} contentContainerStyle={styles.contentContainer}>
+      <ScrollView 
+        style={[styles.container, { backgroundColor: t.background }]} 
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomNavHeight + 24 }]}
+      >
         <TouchableOpacity
           onPress={() => {
             setIsVerifyingEmail(false);
@@ -213,7 +219,10 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
 
   if (isForgotPassword) {
     return (
-      <ScrollView style={[styles.container, { backgroundColor: t.background }]} contentContainerStyle={styles.contentContainer}>
+      <ScrollView 
+        style={[styles.container, { backgroundColor: t.background }]} 
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomNavHeight + 24 }]}
+      >
         <TouchableOpacity
           onPress={() => {
             setIsForgotPassword(false);
@@ -283,7 +292,10 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: t.background }]} contentContainerStyle={styles.contentContainer}>
+    <ScrollView 
+      style={[styles.container, { backgroundColor: t.background }]} 
+      contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomNavHeight + 24 }]}
+    >
       <View style={styles.header}>
         <Text style={[styles.brandTitle, { color: t.primary }]}>ElectroAI</Text>
         <Text style={[styles.subtitle, { color: t.muted }]}>

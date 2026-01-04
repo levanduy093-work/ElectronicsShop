@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../common/Icon';
 import { AddressFormValues, AddressType } from '../../lib/address';
 import { Theme, lightTheme, useTheme } from '../../lib/theme';
+import { useToast } from '../common/ToastProvider';
 
 interface AddressFormProps {
   title?: string;
@@ -35,6 +36,7 @@ export function AddressForm({
 }: AddressFormProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
+  const { showToast } = useToast();
   const t = theme || ctxTheme || lightTheme;
 
   const mergedInitial = useMemo(() => ({ ...EMPTY_FORM, ...initialValues }), [initialValues]);
@@ -46,7 +48,7 @@ export function AddressForm({
 
   const handleSave = () => {
     if (!formData.name || !formData.phone || !formData.detailedAddress) {
-      Alert.alert('Thông báo', 'Vui lòng điền đầy đủ họ tên, số điện thoại và địa chỉ cụ thể');
+      showToast('Vui lòng điền đầy đủ họ tên, số điện thoại và địa chỉ cụ thể', 'error');
       return;
     }
     onSubmit(formData);
