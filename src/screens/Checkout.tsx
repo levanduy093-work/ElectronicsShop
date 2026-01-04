@@ -36,6 +36,13 @@ export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme, onA
   );
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const accentBg = t === lightTheme ? 'rgba(37,99,235,0.08)' : 'rgba(255,255,255,0.06)';
+  const paymentOptions = [
+    {
+      name: 'VNPAY',
+      desc: 'Thanh toán qua QR, thẻ nội địa và thẻ quốc tế qua cổng VNPAY.',
+      icon: null,
+    },
+  ];
   const lineBg = t === lightTheme ? '#E5E7EB' : t.border;
 
   useEffect(() => {
@@ -286,11 +293,7 @@ export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme, onA
           <View style={styles.stepContent}>
             <Text style={[styles.stepTitle, { color: t.muted }]}>Thanh toán</Text>
 
-            {[
-              { name: "Ví điện tử MoMo", icon: null },
-              { name: "Thanh toán khi nhận hàng (COD)", icon: null },
-              { name: "Thẻ ATM / Internet Banking", icon: null },
-            ].map((opt, i) => (
+            {paymentOptions.map((opt, i) => (
               <TouchableOpacity
                 key={i}
                 onPress={() => setSelectedPayment(i)}
@@ -304,18 +307,29 @@ export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme, onA
                 <View style={[styles.radio, { borderColor: t.border }]}>
                   {selectedPayment === i && <View style={[styles.radioSelected, { backgroundColor: t.primary }]} />}
                 </View>
-                <View style={styles.paymentOption}>
-                  {opt.icon ? (
-                    <Image source={{ uri: opt.icon }} style={styles.paymentIcon} />
-                  ) : (
-                    <View style={[styles.paymentIconPlaceholder, { backgroundColor: accentBg }]}>
-                      <AppIcon name="credit-card" size={16} color={t.muted} />
-                    </View>
-                  )}
-                  <Text style={[styles.optionName, { color: t.text }]}>{opt.name}</Text>
+                <View style={styles.optionContent}>
+                  <View style={styles.paymentOption}>
+                    {opt.icon ? (
+                      <Image source={{ uri: opt.icon }} style={styles.paymentIcon} />
+                    ) : (
+                      <View style={[styles.paymentIconPlaceholder, { backgroundColor: accentBg }]}>
+                        <AppIcon name="credit-card" size={16} color={t.muted} />
+                      </View>
+                    )}
+                    <Text style={[styles.optionName, { color: t.text }]}>{opt.name}</Text>
+                  </View>
+                  {opt.desc ? (
+                    <Text style={[styles.optionDesc, { color: t.muted, marginTop: 4 }]}>
+                      {opt.desc}
+                    </Text>
+                  ) : null}
                 </View>
               </TouchableOpacity>
             ))}
+
+            <Text style={[styles.optionDesc, { color: t.muted, marginTop: 8 }]}>
+              Ứng dụng hiện chỉ hỗ trợ thanh toán qua VNPAY.
+            </Text>
 
             <View style={[styles.summaryCard, { backgroundColor: t.surface }]}>
               <View style={styles.summaryRow}>

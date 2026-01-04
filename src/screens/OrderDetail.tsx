@@ -41,7 +41,7 @@ const DEFAULT_ORDER: Order = {
     address: '123 Đường Lê Lợi, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh',
   },
   payment: {
-    method: 'Thanh toán khi nhận hàng (COD)',
+    method: 'Thanh toán qua VNPAY',
     subtotal: 175000,
     shippingFee: 15000,
     discount: 0,
