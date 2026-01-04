@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../common/Icon';
 import { Theme, lightTheme, useTheme } from '../../lib/theme';
@@ -33,9 +33,11 @@ export function TopBar({
     ]}>
       <View style={styles.content}>
         <View style={styles.leftSection}>
-          <View style={[styles.logo, { backgroundColor: resolvedTheme.primary }]}>
-            <Text style={styles.logoText}>E</Text>
-          </View>
+          <Image
+            source={require('../../../logo_app.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={[styles.title, { color: resolvedTheme.text }]}>{title}</Text>
         </View>
         
@@ -94,18 +96,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  logo: {
+  logoImage: {
     width: 32,
     height: 32,
-    backgroundColor: '#2563EB',
     borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   title: {
     fontSize: 18,
