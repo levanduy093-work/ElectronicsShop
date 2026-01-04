@@ -49,15 +49,24 @@ ElectronicsShop/
 ├── src/
 │   ├── components/          # Các component tái sử dụng
 │   │   ├── address/         # Form quản lý địa chỉ
+│   │   │   └── AddressForm.tsx
 │   │   ├── ai/              # Component AI chat
-│   │   ├── common/          # Component chung (Icon, ImageWithFallback)
-│   │   ├── layout/          # Layout components (TopBar, BottomNav)
-│   │   └── ui/              # UI components (ProductCard)
+│   │   │   └── MessageBubble.tsx
+│   │   ├── common/          # Component chung
+│   │   │   ├── Icon.tsx              # Icon wrapper cho react-native-vector-icons
+│   │   │   ├── ImageWithFallback.tsx # Image component với fallback
+│   │   │   ├── Toast.tsx              # Toast notification component
+│   │   │   └── ToastProvider.tsx     # Toast context provider
+│   │   ├── layout/          # Layout components
+│   │   │   ├── TopBar.tsx    # Top navigation bar với search và filter
+│   │   │   └── BottomNav.tsx # Bottom navigation với 5 tabs
+│   │   └── ui/              # UI components
+│   │       └── ProductCard.tsx # Card hiển thị sản phẩm
 │   ├── lib/                 # Utilities và data
-│   │   ├── address.ts       # Quản lý địa chỉ
-│   │   ├── data.ts          # Dữ liệu mock (sản phẩm, danh mục, đơn hàng)
-│   │   ├── theme.ts         # Theme system (dark/light mode)
-│   │   └── utils.ts         # Utility functions
+│   │   ├── address.ts       # Types và utilities cho địa chỉ
+│   │   ├── data.ts          # Dữ liệu mock (sản phẩm, danh mục, vouchers, orders)
+│   │   ├── theme.ts         # Theme system (dark/light mode) với Context API
+│   │   └── utils.ts         # Utility functions (formatPrice, cn)
 │   └── screens/             # Các màn hình chính
 │       ├── Home.tsx         # Trang chủ
 │       ├── Catalog.tsx      # Danh mục sản phẩm
@@ -89,8 +98,11 @@ ElectronicsShop/
 
 Ứng dụng sử dụng state management đơn giản với React hooks:
 - **Bottom Navigation**: 5 tab chính (Home, Catalog, AI, Cart, Profile)
-- **Full Screen Screens**: Các màn hình như ProductDetail, Checkout, OrderDetail
-- **Modal Screens**: Filter, Search, Settings, etc.
+- **Full Screen Screens**: Các màn hình như ProductDetail, Checkout, OrderDetail, OrderHistory, Auth, Notifications, Search, Filter, AddressBook, PaymentMethods, Settings, SupportCenter, Wishlist, ChangePassword
+- **Navigation Flow**: 
+  - Từ Home/Catalog → ProductDetail → Add to Cart → Cart → Checkout → OrderHistory → OrderDetail
+  - Profile → OrderHistory/AddressBook/PaymentMethods/Wishlist/Settings/SupportCenter
+  - Search và Filter có thể được mở từ nhiều màn hình khác nhau
 
 ## 🛠️ Công nghệ sử dụng
 
@@ -98,19 +110,23 @@ ElectronicsShop/
 - **React Native**: 0.83.1
 - **React**: 19.2.0
 - **TypeScript**: 5.8.3
+- **Node.js**: >= 20
 
 ### Dependencies chính
-- **react-native-safe-area-context**: Quản lý safe area cho các thiết bị
-- **react-native-vector-icons**: Icons (MaterialCommunityIcons)
-- **react-native-svg**: Render SVG graphics
-- **react-native-image-picker**: Chọn và upload hình ảnh
-- **@react-native-community/slider**: Slider component
+- **react-native-safe-area-context** (^5.5.2): Quản lý safe area cho các thiết bị
+- **react-native-vector-icons** (^10.3.0): Icons (MaterialCommunityIcons)
+- **react-native-svg** (^15.15.1): Render SVG graphics
+- **react-native-image-picker** (^8.2.1): Chọn và upload hình ảnh
+- **@react-native-community/slider** (^5.1.1): Slider component cho filter giá
 
 ### Development Tools
-- **ESLint**: Code linting
-- **Prettier**: Code formatting
-- **Jest**: Testing framework
-- **Metro**: JavaScript bundler
+- **@react-native-community/cli** (20.0.0): React Native CLI
+- **@babel/core** (^7.25.2): Babel transpiler
+- **ESLint** (^8.19.0): Code linting với @react-native/eslint-config
+- **Prettier** (2.8.8): Code formatting
+- **Jest** (^29.6.3): Testing framework
+- **Metro**: JavaScript bundler (built-in với React Native)
+- **TypeScript** (^5.8.3): Type checking
 
 ## 📋 Yêu cầu hệ thống
 
@@ -144,6 +160,8 @@ bundle exec pod install
 cd ..
 ```
 
+**Lưu ý**: React Native khuyến nghị sử dụng `npm run ios` hoặc `yarn ios` thay vì chạy `pod install` trực tiếp. Lệnh này sẽ tự động cài đặt pods khi cần thiết.
+
 ### 4. Chạy ứng dụng
 
 #### Android
@@ -175,20 +193,28 @@ npm run ios
 - Card AI Engineer để truy cập tính năng AI
 
 ### 2. Danh mục (Catalog)
-- Hiển thị tất cả sản phẩm
-- Lọc theo danh mục
-- Grid layout với ProductCard
+- Hiển thị tất cả sản phẩm với grid layout
+- Lọc sản phẩm theo nhiều tiêu chí:
+  - Khoảng giá (slider)
+  - Danh mục (multi-select)
+  - Đánh giá (rating)
+  - Tình trạng tồn kho
+- ProductCard hiển thị hình ảnh, tên, giá, rating
 
 ### 3. AI Chat
-- Giao diện chat với AI
-- Gợi ý câu hỏi nhanh
+- Giao diện chat với AI Engineer
+- Gợi ý câu hỏi nhanh để bắt đầu cuộc trò chuyện
 - Hỗ trợ upload hình ảnh/PDF để scan sơ đồ mạch
+- Phân tích và tạo BOM (Bill of Materials) list từ sơ đồ
+- Tư vấn linh kiện điện tử phù hợp với nhu cầu
 
 ### 4. Giỏ hàng (Cart)
-- Danh sách sản phẩm đã thêm
-- Cập nhật số lượng
-- Xóa sản phẩm
-- Tính tổng tiền và phí vận chuyển
+- Danh sách sản phẩm đã thêm vào giỏ
+- Cập nhật số lượng (tăng/giảm)
+- Xóa sản phẩm khỏi giỏ hàng
+- Tính tổng tiền và phí vận chuyển (30,000₫)
+- Hiển thị badge số lượng sản phẩm trên icon giỏ hàng
+- Nút "Khám phá thêm" để quay về Catalog khi giỏ hàng trống
 
 ### 5. Hồ sơ (Profile)
 - Thông tin người dùng
@@ -203,43 +229,86 @@ npm run ios
 
 ## 🎨 Theme System
 
-Ứng dụng hỗ trợ Dark Mode và Light Mode:
+Ứng dụng hỗ trợ Dark Mode và Light Mode với tự động phát hiện theo hệ thống:
 
 ### Light Theme
 - Background: #F5F7FA
 - Surface: #FFFFFF
 - Primary: #2563EB
 - Text: #111827
+- Muted: #6B7280
+- Border: #E5E7EB
+- Card: #FFFFFF
+- Tab Active: #2563EB
+- Tab Inactive: #9CA3AF
+- Badge: #EF4444
 
 ### Dark Theme
 - Background: #121212
 - Surface: #18181B
 - Primary: #3B82F6
 - Text: #F5F5F5
+- Muted: #A1A1AA
+- Border: #262626
+- Card: #18181B
+- Tab Active: #3B82F6
+- Tab Inactive: #9CA3AF
+- Badge: #F97316
 
-Theme được quản lý thông qua `ThemeProvider` và `useTheme` hook.
+### Implementation
+- Theme được quản lý thông qua `ThemeProvider` context trong `src/lib/theme.ts`
+- Sử dụng `useTheme()` hook để truy cập theme trong components
+- Tự động phát hiện chế độ tối/sáng của hệ thống khi khởi động
+- Có thể chuyển đổi thủ công trong Settings
 
 ## 📦 Dữ liệu Mock
 
-Ứng dụng sử dụng dữ liệu mock trong `src/lib/data.ts`:
+Ứng dụng sử dụng dữ liệu mock trong `src/lib/data.ts` và `src/lib/address.ts`:
 
-- **PRODUCTS**: Danh sách sản phẩm mẫu (Arduino, ESP32, Raspberry Pi, etc.)
-- **CATEGORIES**: 6 danh mục chính
-- **AVAILABLE_VOUCHERS**: Các mã giảm giá
-- **MOCK_CHATS**: Tin nhắn chat mẫu
-- **DEFAULT_ADDRESSES**: Địa chỉ mẫu
+### Sản phẩm (PRODUCTS)
+- **Arduino Uno R3 ATmega328P**: 150,000₫ (giảm từ 180,000₫)
+- **Module ESP32-WROOM-32**: 110,000₫
+- **Cảm biến siêu âm HC-SR04**: 25,000₫
+- **Mỏ hàn điều chỉnh nhiệt độ 60W**: 180,000₫ (giảm từ 220,000₫)
+- **Raspberry Pi 4 Model B 4GB**: 1,450,000₫
+
+### Danh mục (CATEGORIES)
+6 danh mục chính: Vi điều khiển, Cảm biến, Nguồn & Pin, Dây & Cáp, Dụng cụ, IC số
+
+### Mã giảm giá (AVAILABLE_VOUCHERS)
+- **FREESHIP**: Miễn phí vận chuyển cho đơn từ 0đ
+- **ELECTRO50**: Giảm 50k cho đơn từ 500k
+- **HELLO2024**: Giảm 20k cho thành viên mới
+- **SUPERDEAL**: Giảm 100k cho đơn từ 2 triệu
+
+### Địa chỉ mẫu (DEFAULT_ADDRESSES)
+- 2 địa chỉ mẫu (Nhà riêng và Văn phòng) tại TP. Hồ Chí Minh
+
+### Đơn hàng mẫu
+- 4 đơn hàng với các trạng thái khác nhau: Đang xử lý, Đang giao, Hoàn thành
 
 ## 🔄 State Management
 
 Ứng dụng sử dụng React hooks để quản lý state:
-- `useState` cho local state
-- State được nâng lên App.tsx cho các state global:
-  - `cartItems`: Giỏ hàng
-  - `wishlist`: Danh sách yêu thích
-  - `orders`: Đơn hàng
-  - `addresses`: Địa chỉ giao hàng
-  - `isLoggedIn`: Trạng thái đăng nhập
-  - `isDarkMode`: Chế độ tối/sáng
+
+### Global State (App.tsx)
+- `cartItems`: Giỏ hàng (CartItem[])
+- `wishlist`: Danh sách yêu thích (Product[])
+- `orders`: Đơn hàng (Order[])
+- `addresses`: Địa chỉ giao hàng (Address[])
+- `isLoggedIn`: Trạng thái đăng nhập (boolean)
+- `isDarkMode`: Chế độ tối/sáng (boolean)
+- `userProfile`: Thông tin người dùng (name, email, avatar)
+- `currentTab`: Tab hiện tại trong bottom navigation
+- `currentScreen`: Màn hình hiện tại
+- `selectedProduct`: Sản phẩm đang được xem chi tiết
+- `selectedOrderId`: ID đơn hàng đang được xem chi tiết
+- `searchQuery`: Từ khóa tìm kiếm
+- `filters`: Bộ lọc sản phẩm (priceRange, categories, rating, onlyInStock)
+
+### Local State
+- Mỗi screen component sử dụng `useState` cho state cục bộ
+- Theme được quản lý thông qua `ThemeProvider` context
 
 ## 🧪 Testing
 
@@ -247,25 +316,113 @@ Theme được quản lý thông qua `ThemeProvider` và `useTheme` hook.
 npm test
 ```
 
-Tests được viết bằng Jest và React Test Renderer.
+Tests được viết bằng Jest và React Test Renderer. File test mẫu có sẵn tại `__tests__/App.test.tsx`.
+
+## ⚠️ Lưu ý quan trọng
+
+### iOS Development
+- **Pod Install Deprecation**: React Native khuyến nghị sử dụng `npm run ios` hoặc `yarn ios` thay vì chạy `pod install` trực tiếp. Lệnh này sẽ tự động cài đặt pods khi cần thiết.
+- **Hermes Engine**: Có thể có script phase được thêm bởi hermes-engine. Kiểm tra trước khi build.
+
+### Development
+- Ứng dụng sử dụng dữ liệu mock, chưa tích hợp backend API thực tế
+- Để triển khai production, cần:
+  - Tích hợp với backend API
+  - Cấu hình authentication thực tế
+  - Kết nối với payment gateway
+  - Tích hợp với AI service cho tính năng chat và scan sơ đồ
 
 ## 📝 Scripts có sẵn
 
-- `npm start`: Khởi động Metro bundler
-- `npm run android`: Chạy ứng dụng trên Android
-- `npm run ios`: Chạy ứng dụng trên iOS
+- `npm start`: Khởi động Metro bundler (hoặc `react-native start`)
+- `npm run android`: Chạy ứng dụng trên Android (hoặc `react-native run-android`)
+- `npm run ios`: Chạy ứng dụng trên iOS (hoặc `react-native run-ios`)
 - `npm run lint`: Kiểm tra code với ESLint
-- `npm test`: Chạy tests
+- `npm test`: Chạy tests với Jest
 
-## 🌐 Web Version
+## 🔍 Tính năng Tìm kiếm & Lọc
 
-Dự án cũng bao gồm một phiên bản web trong thư mục `ElectroAI_App_Development`:
+### Tìm kiếm (SearchScreen)
+- Tìm kiếm sản phẩm theo tên
+- Kết hợp với bộ lọc để thu hẹp kết quả
+- Hiển thị số lượng kết quả tìm được
+
+### Lọc sản phẩm (FilterScreen)
+- **Khoảng giá**: Slider để chọn giá từ - đến (0 - 10,000,000₫)
+- **Danh mục**: Multi-select các danh mục sản phẩm
+- **Đánh giá**: Lọc theo rating (từ 1-5 sao)
+- **Tình trạng tồn kho**: Chỉ hiển thị sản phẩm còn hàng
+- Hiển thị số lượng sản phẩm phù hợp với bộ lọc
+- Có thể reset về mặc định
+
+## 🛒 Tính năng Giỏ hàng & Thanh toán
+
+### Giỏ hàng
+- Thêm sản phẩm từ ProductDetail hoặc Catalog
+- Cập nhật số lượng (tối thiểu 1)
+- Xóa sản phẩm
+- Tính tổng tự động: Subtotal + Shipping Fee (30,000₫)
+
+### Thanh toán (Checkout)
+- Chọn địa chỉ giao hàng từ AddressBook
+- Chọn phương thức thanh toán (MoMo, COD, ATM/Internet Banking)
+- Áp dụng mã giảm giá (voucher)
+- Tính toán tổng tiền cuối cùng
+- Tạo đơn hàng mới và chuyển đến OrderHistory
+
+## 📋 Quản lý Đơn hàng
+
+### Lịch sử đơn hàng (OrderHistory)
+- Hiển thị tất cả đơn hàng với các trạng thái:
+  - **Đang xử lý** (processing)
+  - **Đang giao** (shipping)
+  - **Hoàn thành** (completed)
+- Sắp xếp theo thời gian (mới nhất trước)
+- Hiển thị tổng tiền và số lượng sản phẩm
+
+### Chi tiết đơn hàng (OrderDetail)
+- Thông tin đầy đủ về đơn hàng
+- Timeline theo dõi tiến trình:
+  - Đặt hàng thành công
+  - Đã xác nhận đơn hàng
+  - Đang đóng gói
+  - Đang giao hàng
+  - Giao hàng thành công
+- Thông tin địa chỉ giao hàng
+- Chi tiết thanh toán (phương thức, subtotal, shipping, discount, total)
+
+## 🎯 Utilities & Helpers
+
+### Format Functions (`src/lib/utils.ts`)
+- `formatPrice(price: number)`: Format giá tiền theo định dạng Việt Nam (ví dụ: 150000 → "150.000₫")
+- `cn(...classes)`: Utility để combine class names (tương tự clsx)
+
+### Address Utilities (`src/lib/address.ts`)
+- `buildFullAddress()`: Xây dựng địa chỉ đầy đủ từ các thành phần
+- Types: `Address`, `AddressFormValues`, `AddressType`
+
+## 📱 Native Platform Support
+
+### Android
+- Minimum SDK: Được cấu hình trong `android/app/build.gradle`
+- Build tool: Gradle
+- Keystore: Có sẵn debug keystore tại `android/app/debug.keystore`
+
+### iOS
+- Minimum iOS version: Được cấu hình trong `ios/ElectronicsShop/Info.plist`
+- Build tool: Xcode với CocoaPods
+- Pods: 84 dependencies từ Podfile, 83 pods được cài đặt
+- Hermes Engine: Được sử dụng cho JavaScript engine
+
+## 🌐 Web Version (Optional)
+
+Dự án có thể bao gồm một phiên bản web trong thư mục `ElectroAI_App_Development` (nếu có):
 - **Framework**: React + Vite
 - **UI Library**: Radix UI components
 - **Styling**: Tailwind CSS
 - **Icons**: Lucide React
 
-Để chạy web version:
+Để chạy web version (nếu có):
 
 ```bash
 cd ElectroAI_App_Development
