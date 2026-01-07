@@ -237,6 +237,7 @@ function App(): React.JSX.Element {
   const [wishlist, setWishlist] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authTokens, setAuthTokens] = useState<{ accessToken: string; refreshToken: string } | null>(null);
   const authTokensRef = useRef<{ accessToken: string; refreshToken: string } | null>(null);
 
   // Khởi tạo mock orders khi component mount
@@ -414,6 +415,10 @@ function App(): React.JSX.Element {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
     };
+    setAuthTokens({
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+    });
 
     setUserProfile(prev => ({
       name: data.user?.name ?? prev.name,
@@ -475,7 +480,11 @@ function App(): React.JSX.Element {
             onNavigateToSettings={() => setCurrentScreen('settings')}
             onNavigateToSupport={() => setCurrentScreen('support')}
             onNavigateToWishlist={() => setCurrentScreen('wishlist')}
-            onLogout={() => setIsLoggedIn(false)}
+            onLogout={() => {
+              setIsLoggedIn(false);
+              setAuthTokens(null);
+              authTokensRef.current = null;
+            }}
             userProfile={userProfile}
             onUpdateProfile={(data) => setUserProfile(prev => ({ ...prev, ...data }))}
             theme={theme}
@@ -639,6 +648,7 @@ function App(): React.JSX.Element {
             onBack={() => setCurrentScreen('settings')}
             theme={theme}
             email={userProfile.email}
+            accessToken={authTokens?.accessToken}
             onSuccess={() => setCurrentScreen('settings')}
           />
         );

@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
-import { Alert, Platform, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Platform, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
 import { useToast } from '../components/common/ToastProvider';
+import { changePassword, sendChangePasswordOtp } from '../lib/api';
 
 interface ChangePasswordProps {
   onBack: () => void;
   onSuccess?: () => void;
   theme?: Theme;
   email?: string;
+  accessToken?: string;
 }
 
-export function ChangePassword({ onBack, onSuccess, theme, email }: ChangePasswordProps) {
+export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }: ChangePasswordProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
   const { showToast } = useToast();
@@ -23,41 +25,52 @@ export function ChangePassword({ onBack, onSuccess, theme, email }: ChangePasswo
   const [confirmPassword, setConfirmPassword] = useState('');
   const [secure, setSecure] = useState({ old: true, next: true, confirm: true });
   const [otp, setOtp] = useState('');
-  const [sentOtp, setSentOtp] = useState<string | null>(null);
-  const [otpExpiry, setOtpExpiry] = useState<number | null>(null);
   const [sendingOtp, setSendingOtp] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<{ old?: string; next?: string; confirm?: string; otp?: string }>({});
 
   const validate = () => {
     const nextErrors: typeof errors = {};
     if (!oldPassword) {
       nextErrors.old = 'Vui lòng nhập mật khẩu hiện tại';
+    } else if (oldPassword.length < 8) {
+      nextErrors.old = 'Mật khẩu hiện tại tối thiểu 8 ký tự';
     }
     if (!newPassword) {
       nextErrors.next = 'Vui lòng nhập mật khẩu mới';
-    } else if (newPassword.length < 6) {
-      nextErrors.next = 'Mật khẩu mới tối thiểu 6 ký tự';
+    } else if (newPassword.length < 8) {
+      nextErrors.next = 'Mật khẩu mới tối thiểu 8 ký tự';
     }
     if (confirmPassword !== newPassword) {
       nextErrors.confirm = 'Mật khẩu xác nhận không khớp';
     }
-    if (!otp) {
-      nextErrors.otp = 'Vui lòng nhập mã OTP';
-    } else if (!sentOtp || otp !== sentOtp) {
-      nextErrors.otp = 'Mã OTP không chính xác';
-    } else if (otpExpiry && Date.now() > otpExpiry) {
-      nextErrors.otp = 'Mã OTP đã hết hạn, vui lòng gửi lại';
+    if (!otp || otp.length !== 6) {
+      nextErrors.otp = 'Vui lòng nhập đủ 6 số OTP';
     }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) return;
-    showToast('Mật khẩu đã được cập nhật', 'success');
-    setTimeout(() => {
+    if (!accessToken) {
+      showToast('Vui lòng đăng nhập lại để đổi mật khẩu', 'error');
+      return;
+    }
+    setSaving(true);
+    try {
+      await changePassword(oldPassword, newPassword, otp, accessToken);
+      showToast('Mật khẩu đã được cập nhật', 'success');
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setOtp('');
       onSuccess?.();
-    }, 1000);
+    } catch (error: any) {
+      showToast(error?.message || 'Đổi mật khẩu thất bại', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const maskEmail = (text?: string) => {
@@ -68,16 +81,29 @@ export function ChangePassword({ onBack, onSuccess, theme, email }: ChangePasswo
     return `${maskedName}@${domain}`;
   };
 
-  const handleSendOtp = () => {
+  const handleSendOtp = async () => {
+    if (!accessToken) {
+      showToast('Vui lòng đăng nhập lại để gửi OTP', 'error');
+      return;
+    }
+    if (!oldPassword) {
+      setErrors(prev => ({ ...prev, old: 'Vui lòng nhập mật khẩu hiện tại' }));
+      return;
+    }
+    if (oldPassword.length < 8) {
+      setErrors(prev => ({ ...prev, old: 'Mật khẩu hiện tại tối thiểu 8 ký tự' }));
+      return;
+    }
     setSendingOtp(true);
-    setTimeout(() => {
-      const generated = (Math.floor(100000 + Math.random() * 900000)).toString();
-      setSentOtp(generated);
+    try {
+      await sendChangePasswordOtp(oldPassword, accessToken);
       setOtp('');
-      setOtpExpiry(Date.now() + 5 * 60 * 1000); // 5 minutes
+      showToast(`Mã OTP đã gửi tới ${maskEmail(email)}`, 'success');
+    } catch (error: any) {
+      showToast(error?.message || 'Không thể gửi mã OTP', 'error');
+    } finally {
       setSendingOtp(false);
-      showToast(`Mã OTP đã gửi tới ${maskEmail(email)} (Mã demo: ${generated})`, 'success');
-    }, 400);
+    }
   };
 
   const renderInput = (label: string, value: string, onChange: (text: string) => void, secureKey: keyof typeof secure, error?: string) => (
@@ -127,11 +153,6 @@ export function ChangePassword({ onBack, onSuccess, theme, email }: ChangePasswo
         />
       </View>
       {errors.otp ? <Text style={styles.errorText}>{errors.otp}</Text> : null}
-      {sentOtp && otpExpiry ? (
-        <Text style={[styles.helper, { color: t.muted }]}>
-          Mã hết hạn sau {Math.max(0, Math.floor((otpExpiry - Date.now()) / 1000))} giây.
-        </Text>
-      ) : null}
     </View>
   );
 
@@ -165,13 +186,18 @@ export function ChangePassword({ onBack, onSuccess, theme, email }: ChangePasswo
           {renderOtpInput()}
 
           <TouchableOpacity
-            onPress={handleSubmit}
-            style={[styles.saveButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.saveButtonText}>Cập nhật</Text>
-          </TouchableOpacity>
-        </View>
+          onPress={handleSubmit}
+          style={[
+            styles.saveButton,
+            { backgroundColor: t.primary, shadowColor: t.primary },
+            saving && { opacity: 0.9 },
+          ]}
+          activeOpacity={0.8}
+          disabled={saving}
+        >
+          <Text style={styles.saveButtonText}>{saving ? 'Đang cập nhật...' : 'Cập nhật'}</Text>
+        </TouchableOpacity>
+      </View>
       </View>
     </View>
   );

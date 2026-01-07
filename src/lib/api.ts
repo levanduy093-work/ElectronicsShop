@@ -12,6 +12,7 @@ const API_BASE_URL =
 async function postJson<TResponse>(
   path: string,
   body: Record<string, unknown>,
+  options?: { token?: string },
 ): Promise<TResponse> {
   const url = `${API_BASE_URL}${path}`;
 
@@ -21,6 +22,7 @@ async function postJson<TResponse>(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(options?.token ? { Authorization: `Bearer ${options.token}` } : {}),
       },
       body: JSON.stringify(body),
     });
@@ -79,4 +81,12 @@ export function verifyResetOtp(email: string, code: string) {
 
 export function resetPassword(email: string, resetToken: string, newPassword: string) {
   return postJson<{ message: string }>('/auth/password/reset', { email, resetToken, newPassword });
+}
+
+export function sendChangePasswordOtp(currentPassword: string, token: string) {
+  return postJson<{ message: string }>('/auth/password/change/send-otp', { currentPassword }, { token });
+}
+
+export function changePassword(currentPassword: string, newPassword: string, code: string, token: string) {
+  return postJson<{ message: string }>('/auth/password/change', { currentPassword, newPassword, code }, { token });
 }
