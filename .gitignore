@@ -104,3 +104,6 @@ ios/GoogleService-Info.plist
 
 # OS (Windows)
 Thumbs.db
+
+# Data
+mongodb_seed.js
