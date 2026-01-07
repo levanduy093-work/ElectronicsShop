@@ -3,7 +3,7 @@
  * React Native version converted from Figma design
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Home } from './src/screens/Home';
@@ -31,6 +31,7 @@ import { Product, CartItem, Order, PRODUCTS } from './src/lib/data';
 import { Address, DEFAULT_ADDRESSES } from './src/lib/address';
 import { darkTheme, lightTheme, ThemeProvider } from './src/lib/theme';
 import { ToastProvider } from './src/components/common/ToastProvider';
+import { AuthResponse } from './src/lib/api';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'payment-methods' | 'settings' | 'support' | 'wishlist' | 'change-password';
@@ -236,6 +237,7 @@ function App(): React.JSX.Element {
   const [wishlist, setWishlist] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const authTokensRef = useRef<{ accessToken: string; refreshToken: string } | null>(null);
 
   // Khởi tạo mock orders khi component mount
   useEffect(() => {
@@ -407,8 +409,20 @@ function App(): React.JSX.Element {
     });
   };
 
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = (data: AuthResponse) => {
+    authTokensRef.current = {
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+    };
+
+    setUserProfile(prev => ({
+      name: data.user?.name ?? prev.name,
+      email: data.user?.email ?? prev.email,
+      avatar: data.user?.avatar ?? prev.avatar,
+    }));
+
     setIsLoggedIn(true);
+
     if (currentScreen === 'auth') {
       if (previousScreen === 'product-detail') {
         setCurrentScreen('product-detail');

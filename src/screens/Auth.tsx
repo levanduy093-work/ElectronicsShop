@@ -1,14 +1,15 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
 import { useToast } from '../components/common/ToastProvider';
+import { AuthResponse, login, resetPassword, sendRegisterOtp, sendResetOtp, verifyRegisterOtp, verifyResetOtp } from '../lib/api';
 
 interface AuthProps {
   onBack: () => void;
-  onLoginSuccess: () => void;
+  onLoginSuccess: (data: AuthResponse) => void;
   theme?: Theme;
 }
 
@@ -49,20 +50,34 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
   const [isRegister, setIsRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetStep, setResetStep] = useState<'email' | 'otp' | 'password'>('email');
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
   const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingRegister, setPendingRegister] = useState<{
+    email: string;
+    password: string;
+    name: string;
+  } | null>(null);
   const codeInputRefs = useRef<(TextInput | null)[]>([]);
   
   // BottomNav height: 80px + safe area bottom
   const bottomNavHeight = 80 + Math.max(insets.bottom, 16);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!email || !password) {
       showToast('Vui lòng điền đầy đủ thông tin', 'error');
+      return;
+    }
+    if (password.length < 8) {
+      showToast('Mật khẩu phải có ít nhất 8 ký tự', 'error');
       return;
     }
     if (isRegister) {
@@ -70,10 +85,33 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
         showToast('Vui lòng nhập họ và tên', 'error');
         return;
       }
-      // Chuyển sang màn hình xác nhận email
-      setIsVerifyingEmail(true);
+      setIsSubmitting(true);
+      try {
+        await sendRegisterOtp(name.trim(), email.trim().toLowerCase(), password);
+        setPendingRegister({
+          email: email.trim().toLowerCase(),
+          password,
+          name: name.trim(),
+        });
+        setVerificationCode(['', '', '', '', '', '']);
+        setIsVerifyingEmail(true);
+        showToast('Đã gửi mã xác nhận đến email của bạn', 'success');
+      } catch (error: any) {
+        showToast(error?.message || 'Không thể gửi mã xác nhận', 'error');
+      } finally {
+        setIsSubmitting(false);
+      }
     } else {
-      onLoginSuccess();
+      setIsSubmitting(true);
+      try {
+        const result = await login(email.trim().toLowerCase(), password);
+        showToast('Đăng nhập thành công', 'success');
+        onLoginSuccess(result);
+      } catch (error: any) {
+        showToast(error?.message || 'Đăng nhập thất bại', 'error');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -106,38 +144,128 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
     }
   };
 
-  const handleVerifyCode = () => {
+  const handleVerifyCode = async () => {
     const code = verificationCode.join('');
     if (code.length !== 6) {
       showToast('Vui lòng nhập đầy đủ 6 số', 'error');
       return;
     }
-    
-    // Giả lập kiểm tra mã (trong thực tế sẽ gọi API)
-    // Mã test: 123456
-    if (code === '123456') {
-      showToast('Email đã được xác nhận!', 'success');
-      setTimeout(() => {
-        setIsVerifyingEmail(false);
-        onLoginSuccess();
-      }, 1000);
-    } else {
-      showToast('Mã xác nhận không đúng. Vui lòng thử lại.', 'error');
+
+    if (!pendingRegister) {
+      showToast('Vui lòng nhập lại thông tin đăng ký', 'error');
+      setIsVerifyingEmail(false);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = await verifyRegisterOtp(
+        pendingRegister.email,
+        code,
+      );
+      showToast('Đăng ký thành công', 'success');
+      setIsVerifyingEmail(false);
+      setIsRegister(false);
+      setPendingRegister(null);
       setVerificationCode(['', '', '', '', '', '']);
+      onLoginSuccess(result);
+    } catch (error: any) {
+      showToast(error?.message || 'Mã xác nhận không đúng. Vui lòng thử lại.', 'error');
+      setVerificationCode(['', '', '', '', '', '']);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleResendCode = () => {
-    showToast('Đã gửi lại mã xác nhận đến email của bạn', 'success');
-    // Trong thực tế sẽ gọi API gửi lại mã
+  const handleResendCode = async () => {
+    if (!pendingRegister) {
+      showToast('Vui lòng nhập lại thông tin đăng ký', 'error');
+      setIsVerifyingEmail(false);
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await sendRegisterOtp(
+        pendingRegister.name,
+        pendingRegister.email,
+        pendingRegister.password,
+      );
+      showToast('Đã gửi lại mã xác nhận đến email của bạn', 'success');
+    } catch (error: any) {
+      showToast(error?.message || 'Không thể gửi lại mã xác nhận', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleResetPassword = () => {
+  const handleResetPassword = async () => {
     if (!email) {
       showToast('Vui lòng nhập email', 'error');
       return;
     }
-    setResetEmailSent(true);
+    setIsSubmitting(true);
+    try {
+      await sendResetOtp(email.trim().toLowerCase());
+      setResetEmailSent(true);
+      setResetStep('otp');
+      showToast('Đã gửi mã xác nhận', 'success');
+    } catch (error: any) {
+      showToast(error?.message || 'Không thể gửi mã xác nhận', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyResetOtp = async () => {
+    const code = verificationCode.join('');
+    if (code.length !== 6) {
+      showToast('Vui lòng nhập đầy đủ 6 số', 'error');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const result = await verifyResetOtp(email.trim().toLowerCase(), code);
+      setResetToken(result.resetToken);
+      setResetStep('password');
+      setVerificationCode(['', '', '', '', '', '']);
+      showToast('Mã xác nhận hợp lệ', 'success');
+    } catch (error: any) {
+      showToast(error?.message || 'Mã xác nhận không đúng', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmitNewPassword = async () => {
+    if (newPassword.length < 8) {
+      showToast('Mật khẩu phải có ít nhất 8 ký tự', 'error');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showToast('Mật khẩu xác nhận không khớp', 'error');
+      return;
+    }
+    if (!resetToken) {
+      showToast('Vui lòng xác thực mã OTP trước', 'error');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await resetPassword(email.trim().toLowerCase(), resetToken, newPassword);
+      showToast('Đổi mật khẩu thành công. Vui lòng đăng nhập.', 'success');
+      setIsForgotPassword(false);
+      setResetStep('email');
+      setResetEmailSent(false);
+      setVerificationCode(['', '', '', '', '', '']);
+      setResetToken('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPassword('');
+    } catch (error: any) {
+      showToast(error?.message || 'Không thể đổi mật khẩu', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isVerifyingEmail) {
@@ -161,7 +289,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
           <Text style={[styles.title, { color: t.text }]}>Xác nhận email</Text>
           <Text style={[styles.subtitle, { color: t.muted }]}>
             Chúng tôi đã gửi mã xác nhận đến địa chỉ email{'\n'}
-            <Text style={[styles.emailHighlight, { color: t.primary }]}>{email}</Text>
+            <Text style={[styles.emailHighlight, { color: t.primary }]}>{pendingRegister?.email || email}</Text>
           </Text>
         </View>
 
@@ -199,18 +327,24 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
 
           <TouchableOpacity
             onPress={handleResendCode}
-            style={styles.resendButton}
+            style={[styles.resendButton, isSubmitting && { opacity: 0.6 }]}
             activeOpacity={0.7}
+            disabled={isSubmitting}
           >
             <Text style={[styles.resendText, { color: t.primary }]}>Gửi lại mã</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleVerifyCode}
-            style={[styles.primaryButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
+            style={[
+              styles.primaryButton,
+              { backgroundColor: t.primary, shadowColor: t.primary },
+              isSubmitting && { opacity: 0.9 },
+            ]}
             activeOpacity={0.8}
+            disabled={isSubmitting}
           >
-            <Text style={styles.primaryButtonText}>Xác nhận</Text>
+            <Text style={styles.primaryButtonText}>{isSubmitting ? 'Đang xử lý...' : 'Xác nhận'}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -227,6 +361,11 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
           onPress={() => {
             setIsForgotPassword(false);
             setResetEmailSent(false);
+            setResetStep('email');
+            setVerificationCode(['', '', '', '', '', '']);
+            setResetToken('');
+            setNewPassword('');
+            setConfirmPassword('');
           }}
           style={styles.backButton}
           activeOpacity={0.7}
@@ -237,30 +376,13 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
         <View style={styles.header}>
           <Text style={[styles.title, { color: t.text }]}>Quên mật khẩu?</Text>
           <Text style={[styles.subtitle, { color: t.muted }]}>
-            {resetEmailSent
-              ? "Vui lòng kiểm tra email của bạn."
-              : "Đừng lo, chúng tôi sẽ giúp bạn lấy lại mật khẩu."}
+            {resetStep === 'email' && "Đừng lo, chúng tôi sẽ giúp bạn lấy lại mật khẩu."}
+            {resetStep === 'otp' && "Nhập mã xác nhận đã được gửi đến email của bạn."}
+            {resetStep === 'password' && "Nhập mật khẩu mới cho tài khoản của bạn."}
           </Text>
         </View>
 
-        {resetEmailSent ? (
-          <View style={styles.successContainer}>
-            <View style={styles.successIcon}>
-              <AppIcon name="check-circle" size={40} color={t.primary} />
-            </View>
-            <Text style={[styles.successTitle, { color: t.text }]}>Đã gửi email!</Text>
-            <Text style={[styles.successText, { color: t.muted }]}>
-              Chúng tôi đã gửi hướng dẫn đặt lại mật khẩu đến địa chỉ email bạn cung cấp.
-            </Text>
-            <TouchableOpacity
-              onPress={() => setIsForgotPassword(false)}
-              style={[styles.primaryButton, styles.primaryButtonLarge, { backgroundColor: t.primary, shadowColor: t.primary }]}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.primaryButtonText}>Quay lại đăng nhập</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
+        {resetStep === 'email' && (
           <View style={styles.form}>
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: t.text }]}>Email</Text>
@@ -280,10 +402,110 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
 
             <TouchableOpacity
               onPress={handleResetPassword}
-              style={[styles.primaryButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
+              style={[
+                styles.primaryButton,
+                { backgroundColor: t.primary, shadowColor: t.primary },
+                isSubmitting && { opacity: 0.9 },
+              ]}
               activeOpacity={0.8}
+              disabled={isSubmitting}
             >
-              <Text style={styles.primaryButtonText}>Gửi hướng dẫn</Text>
+              <Text style={styles.primaryButtonText}>{isSubmitting ? 'Đang gửi...' : 'Gửi mã xác nhận'}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {resetStep === 'otp' && (
+          <View style={styles.verificationContainer}>
+            <Text style={[styles.verificationLabel, { color: t.text }]}>Nhập mã xác nhận</Text>
+            <View style={styles.codeInputContainer}>
+              {verificationCode.map((digit, index) => (
+                <TextInput
+                  key={index}
+                  ref={(ref) => {
+                    codeInputRefs.current[index] = ref;
+                  }}
+                  style={[
+                    styles.codeInput,
+                    {
+                      backgroundColor: t.surface,
+                      borderColor: t.border,
+                      color: t.text,
+                    },
+                  ]}
+                  value={digit}
+                  onChangeText={(value) => handleVerificationCodeChange(index, value)}
+                  onKeyPress={({ nativeEvent }) => {
+                    if (nativeEvent.key === 'Backspace' && !digit && index > 0) {
+                      codeInputRefs.current[index - 1]?.focus();
+                    }
+                  }}
+                  keyboardType="number-pad"
+                  maxLength={1}
+                  selectTextOnFocus
+                  textAlign="center"
+                />
+              ))}
+            </View>
+
+            <TouchableOpacity
+              onPress={handleVerifyResetOtp}
+              style={[
+                styles.primaryButton,
+                { backgroundColor: t.primary, shadowColor: t.primary },
+                isSubmitting && { opacity: 0.9 },
+              ]}
+              activeOpacity={0.8}
+              disabled={isSubmitting}
+            >
+              <Text style={styles.primaryButtonText}>{isSubmitting ? 'Đang kiểm tra...' : 'Xác nhận mã'}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {resetStep === 'password' && (
+          <View style={styles.form}>
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: t.text }]}>Mật khẩu mới</Text>
+              <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
+                <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
+                <TextInput
+                  placeholder="••••••••"
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  style={[styles.input, { color: t.text }]}
+                  secureTextEntry
+                  placeholderTextColor={t.muted}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: t.text }]}>Xác nhận mật khẩu</Text>
+              <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
+                <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
+                <TextInput
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  style={[styles.input, { color: t.text }]}
+                  secureTextEntry
+                  placeholderTextColor={t.muted}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              onPress={handleSubmitNewPassword}
+              style={[
+                styles.primaryButton,
+                { backgroundColor: t.primary, shadowColor: t.primary },
+                isSubmitting && { opacity: 0.9 },
+              ]}
+              activeOpacity={0.8}
+              disabled={isSubmitting}
+            >
+              <Text style={styles.primaryButtonText}>{isSubmitting ? 'Đang đổi...' : 'Đổi mật khẩu'}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -374,11 +596,16 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
 
         <TouchableOpacity
           onPress={handleSubmit}
-          style={[styles.primaryButton, { backgroundColor: t.primary }]}
+          style={[
+            styles.primaryButton,
+            { backgroundColor: t.primary },
+            isSubmitting && { opacity: 0.9 },
+          ]}
           activeOpacity={0.8}
+          disabled={isSubmitting}
         >
           <Text style={styles.primaryButtonText}>
-            {isRegister ? "Đăng ký" : "Đăng nhập"}
+            {isSubmitting ? "Đang xử lý..." : isRegister ? "Đăng ký" : "Đăng nhập"}
           </Text>
         </TouchableOpacity>
 
@@ -399,7 +626,18 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
           {isRegister ? "Đã có tài khoản? " : "Chưa có tài khoản? "}
         </Text>
         <TouchableOpacity
-          onPress={() => setIsRegister(!isRegister)}
+          onPress={() => {
+            setIsRegister(!isRegister);
+            setIsForgotPassword(false);
+            setIsVerifyingEmail(false);
+            setPendingRegister(null);
+            setVerificationCode(['', '', '', '', '', '']);
+            setResetStep('email');
+            setResetEmailSent(false);
+            setResetToken('');
+            setNewPassword('');
+            setConfirmPassword('');
+          }}
           activeOpacity={0.7}
         >
           <Text style={[styles.footerLink, { color: t.primary }]}>
