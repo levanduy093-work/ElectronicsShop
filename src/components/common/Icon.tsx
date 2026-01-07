@@ -77,6 +77,7 @@ const iconMap: Record<string, string> = {
   'copy': 'content-copy',
   'truck': 'truck',
   'check-circle': 'check-circle',
+  'cash': 'cash',
 };
 
 export function AppIcon({ name, size = 24, color = '#000', style }: IconProps) {

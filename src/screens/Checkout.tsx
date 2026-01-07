@@ -42,6 +42,12 @@ export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme, onA
       desc: 'Thanh toán qua QR, thẻ nội địa và thẻ quốc tế qua cổng VNPAY.',
       icon: null,
     },
+    {
+      name: 'Thanh toán khi nhận hàng (COD)',
+      desc: 'Trả tiền mặt khi nhận hàng, không cần ví hay thẻ.',
+      icon: null,
+      iconName: 'cash',
+    },
   ];
   const lineBg = t === lightTheme ? '#E5E7EB' : t.border;
 
@@ -311,6 +317,10 @@ export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme, onA
                   <View style={styles.paymentOption}>
                     {opt.icon ? (
                       <Image source={{ uri: opt.icon }} style={styles.paymentIcon} />
+                    ) : opt.iconName ? (
+                      <View style={[styles.paymentIconPlaceholder, { backgroundColor: accentBg }]}>
+                        <AppIcon name={opt.iconName} size={16} color={t.muted} />
+                      </View>
                     ) : (
                       <View style={[styles.paymentIconPlaceholder, { backgroundColor: accentBg }]}>
                         <AppIcon name="credit-card" size={16} color={t.muted} />
@@ -328,7 +338,7 @@ export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme, onA
             ))}
 
             <Text style={[styles.optionDesc, { color: t.muted, marginTop: 8 }]}>
-              Ứng dụng hiện chỉ hỗ trợ thanh toán qua VNPAY.
+              Bạn có thể thanh toán qua VNPAY hoặc trả tiền mặt khi nhận hàng (COD).
             </Text>
 
             <View style={[styles.summaryCard, { backgroundColor: t.surface }]}>

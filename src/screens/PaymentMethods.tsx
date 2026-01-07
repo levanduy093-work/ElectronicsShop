@@ -82,7 +82,7 @@ export function PaymentMethods({ onBack, theme }: PaymentMethodsProps) {
             </View>
 
             <Text style={[styles.noteText, { color: t.muted }]}>
-              Lưu ý: Ứng dụng hiện chỉ hỗ trợ thanh toán qua VNPAY. Bạn cần liên kết VNPAY để tiếp tục thanh toán.
+              Lưu ý: Bạn có thể thanh toán qua VNPAY hoặc tiền mặt khi nhận hàng (COD). Liên kết VNPAY nếu muốn trả trước.
             </Text>
           </>
         ) : (
@@ -167,7 +167,7 @@ export function PaymentMethods({ onBack, theme }: PaymentMethodsProps) {
             </TouchableOpacity>
 
             <Text style={[styles.noteText, { color: t.muted }]}>
-              Lưu ý: Ứng dụng hiện chỉ hỗ trợ thanh toán qua VNPAY. Nếu bạn cần đổi tài khoản thanh toán, vui lòng thực hiện trên cổng VNPAY của ngân hàng.
+              Lưu ý: Ứng dụng hỗ trợ thanh toán qua VNPAY hoặc COD. Nếu muốn đổi tài khoản VNPAY, vui lòng thực hiện trên cổng VNPAY của ngân hàng.
             </Text>
           </>
         )}
