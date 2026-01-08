@@ -94,7 +94,7 @@ export function OrderHistory({ onBack, onViewDetail, orders = [], theme }: Order
             >
               <View style={styles.orderHeader}>
                 <View>
-                  <Text style={[styles.orderId, { color: t.muted }]}>#{order.id}</Text>
+                  <Text style={[styles.orderId, { color: t.muted }]}>#{order.code}</Text>
                   <Text style={[styles.orderDate, { color: t.muted }]}>{order.date}</Text>
                 </View>
                 <View style={[styles.statusBadge, { backgroundColor: getStatusBgColor(order.status) }]}>

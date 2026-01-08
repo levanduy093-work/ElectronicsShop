@@ -7,11 +7,21 @@ import { AddressForm } from '../components/address/AddressForm';
 import { CartItem } from '../lib/data';
 import { formatPrice } from '../lib/utils';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
+import { useToast } from '../components/common/ToastProvider';
 
 interface CheckoutProps {
   onBack: () => void;
   onSuccess?: (orderId: string) => void;
-  totalAmount: number;
+  onPlaceOrder?: (params: {
+    address?: Address;
+    paymentMethod: string;
+    shippingFee: number;
+    items: CartItem[];
+    totalAmount: number;
+    subTotal: number;
+    discount?: number;
+  }) => Promise<{ id?: string; code?: string } | void>;
+  placingOrder?: boolean;
   cartItems: CartItem[];
   theme?: Theme;
   onAddAddress?: () => void;
@@ -21,10 +31,11 @@ interface CheckoutProps {
 
 type Step = 'address' | 'shipping' | 'payment' | 'success';
 
-export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme, onAddAddress, addresses, onUpdateAddresses }: CheckoutProps) {
+export function Checkout({ onBack, onSuccess, onPlaceOrder, placingOrder, cartItems, theme, onAddAddress, addresses, onUpdateAddresses }: CheckoutProps) {
   const { theme: ctxTheme, isDarkMode } = useTheme();
   const t = theme || ctxTheme || lightTheme;
   const insets = useSafeAreaInsets();
+  const { showToast } = useToast();
   const [step, setStep] = useState<Step>('address');
   const [selectedShipping, setSelectedShipping] = useState(0);
   const [selectedPayment, setSelectedPayment] = useState(0);
@@ -35,6 +46,15 @@ export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme, onA
     addressList.find(a => a.isDefault)?.id || addressList[0]?.id
   );
   const [isAddingAddress, setIsAddingAddress] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const shippingOptions = [
+    { name: "Nhanh (24h)", price: 30000, desc: "Nhận hàng vào ngày mai" },
+    { name: "Tiêu chuẩn (2-3 ngày)", price: 15000, desc: "Nhận hàng T5, 20/01" },
+  ];
+  const subTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const shippingFee = shippingOptions[selectedShipping]?.price ?? 30000;
+  const discount = 0;
+  const total = subTotal + shippingFee - discount;
   const accentBg = t === lightTheme ? 'rgba(37,99,235,0.08)' : 'rgba(255,255,255,0.06)';
   const paymentOptions = [
     {
@@ -80,14 +100,51 @@ export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme, onA
 
   const [orderId, setOrderId] = useState<string>('');
 
-  const handleNext = () => {
-    if (step === 'address') setStep('shipping');
-    else if (step === 'shipping') setStep('payment');
-    else if (step === 'payment') {
-      // Generate order ID
-      const newOrderId = `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
-      setOrderId(newOrderId);
-      setStep('success');
+  const handleNext = async () => {
+    if (isSubmitting || placingOrder) return;
+    if (step === 'address') {
+      setStep('shipping');
+      return;
+    }
+    if (step === 'shipping') {
+      setStep('payment');
+      return;
+    }
+    if (step === 'payment') {
+      const selectedAddress = addressList.find(a => a.id === selectedAddressId);
+      if (!selectedAddress) {
+        showToast('Vui lòng chọn địa chỉ giao hàng', 'error');
+        return;
+      }
+      const fallbackCode = `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+
+      if (!onPlaceOrder) {
+        setOrderId(fallbackCode);
+        setStep('success');
+        onSuccess?.(fallbackCode);
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        const created = await onPlaceOrder({
+          address: selectedAddress,
+          paymentMethod: paymentOptions[selectedPayment]?.name || 'Thanh toán khi nhận hàng (COD)',
+          shippingFee,
+          items: cartItems,
+          totalAmount: total,
+          subTotal,
+          discount,
+        });
+        const newId = created?.code || created?.id || fallbackCode;
+        setOrderId(newId);
+        setStep('success');
+        onSuccess?.(newId);
+      } catch (error: any) {
+        showToast(error?.message || 'Không thể đặt hàng', 'error');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -266,10 +323,7 @@ export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme, onA
           <View style={styles.stepContent}>
             <Text style={[styles.stepTitle, { color: t.muted }]}>Phương thức vận chuyển</Text>
 
-            {[
-              { name: "Nhanh (24h)", price: 30000, desc: "Nhận hàng vào ngày mai" },
-              { name: "Tiêu chuẩn (2-3 ngày)", price: 15000, desc: "Nhận hàng T5, 20/01" },
-            ].map((opt, i) => (
+            {shippingOptions.map((opt, i) => (
               <TouchableOpacity
                 key={i}
                 onPress={() => setSelectedShipping(i)}
@@ -345,16 +399,16 @@ export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme, onA
               <View style={styles.summaryRow}>
                 <Text style={[styles.summaryLabel, { color: t.muted }]}>Tổng tiền hàng</Text>
                 <Text style={[styles.summaryValue, { color: t.text }]}>
-                  {formatPrice(totalAmount - 30000)}
+                  {formatPrice(subTotal)}
                 </Text>
               </View>
               <View style={styles.summaryRow}>
                 <Text style={[styles.summaryLabel, { color: t.muted }]}>Phí vận chuyển</Text>
-                <Text style={[styles.summaryValue, { color: t.text }]}>30.000₫</Text>
+                <Text style={[styles.summaryValue, { color: t.text }]}>{formatPrice(shippingFee)}</Text>
               </View>
               <View style={styles.totalRow}>
                 <Text style={[styles.totalLabel, { color: t.text }]}>Thanh toán</Text>
-                <Text style={[styles.totalValue, { color: t.primary }]}>{formatPrice(totalAmount)}</Text>
+                <Text style={[styles.totalValue, { color: t.primary }]}>{formatPrice(total)}</Text>
               </View>
             </View>
           </View>
@@ -374,9 +428,10 @@ export function Checkout({ onBack, onSuccess, totalAmount, cartItems, theme, onA
           onPress={handleNext}
           style={[styles.nextButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
           activeOpacity={0.8}
+          disabled={isSubmitting || placingOrder}
         >
           <Text style={styles.nextButtonText}>
-            {step === 'payment' ? `Thanh toán ${formatPrice(totalAmount)}` : 'Tiếp tục'}
+            {step === 'payment' ? `Thanh toán ${formatPrice(total)}` : 'Tiếp tục'}
           </Text>
           {step !== 'payment' && <AppIcon name="chevron-right" size={20} color="#FFFFFF" />}
         </TouchableOpacity>

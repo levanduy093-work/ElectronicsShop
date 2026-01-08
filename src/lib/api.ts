@@ -6,25 +6,70 @@ export type AuthResponse = {
   refreshToken: string;
 };
 
+export type ApiOrderItem = {
+  productId: string;
+  name: string;
+  quantity: number;
+  price: number;
+  subTotal: number;
+  shippingFee?: number;
+  discount?: number;
+  totalPrice: number;
+};
+
+export type ApiOrder = {
+  _id: string;
+  code: string;
+  userId: string;
+  status?: {
+    ordered?: string;
+    confirmed?: string;
+    packaged?: string;
+    shipped?: string;
+  };
+  isCancelled?: boolean;
+  shippingAddress?: {
+    name?: string;
+    phone?: string;
+    city?: string;
+    district?: string;
+    ward?: string;
+    street?: string;
+  };
+  items: ApiOrderItem[];
+  voucher?: string;
+  subTotal: number;
+  shippingFee: number;
+  discount: number;
+  totalPrice: number;
+  payment?: string;
+  paymentStatus?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 const API_BASE_URL =
   Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 
-async function postJson<TResponse>(
+async function requestJson<TResponse>(
   path: string,
-  body: Record<string, unknown>,
-  options?: { token?: string },
+  options: {
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+    body?: Record<string, unknown>;
+    token?: string;
+  },
 ): Promise<TResponse> {
   const url = `${API_BASE_URL}${path}`;
 
   let response;
   try {
     response = await fetch(url, {
-      method: 'POST',
+      method: options.method,
       headers: {
         'Content-Type': 'application/json',
-        ...(options?.token ? { Authorization: `Bearer ${options.token}` } : {}),
+        ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
       },
-      body: JSON.stringify(body),
+      ...(options.body ? { body: JSON.stringify(options.body) } : {}),
     });
   } catch (error: any) {
     throw new Error(error?.message || 'Không thể kết nối tới máy chủ');
@@ -46,6 +91,36 @@ async function postJson<TResponse>(
   }
 
   return data as TResponse;
+}
+
+async function postJson<TResponse>(
+  path: string,
+  body: Record<string, unknown>,
+  options?: { token?: string },
+): Promise<TResponse> {
+  return requestJson<TResponse>(path, { method: 'POST', body, token: options?.token });
+}
+
+async function getJson<TResponse>(
+  path: string,
+  options?: { token?: string },
+): Promise<TResponse> {
+  return requestJson<TResponse>(path, { method: 'GET', token: options?.token });
+}
+
+async function patchJson<TResponse>(
+  path: string,
+  body: Record<string, unknown>,
+  options?: { token?: string },
+): Promise<TResponse> {
+  return requestJson<TResponse>(path, { method: 'PATCH', body, token: options?.token });
+}
+
+async function deleteJson<TResponse>(
+  path: string,
+  options?: { token?: string },
+): Promise<TResponse> {
+  return requestJson<TResponse>(path, { method: 'DELETE', token: options?.token });
 }
 
 export function login(email: string, password: string) {
@@ -89,4 +164,130 @@ export function sendChangePasswordOtp(currentPassword: string, token: string) {
 
 export function changePassword(currentPassword: string, newPassword: string, code: string, token: string) {
   return postJson<{ message: string }>('/auth/password/change', { currentPassword, newPassword, code }, { token });
+}
+
+export function createOrder(data: Record<string, unknown>, token: string) {
+  return postJson<ApiOrder>('/orders', data, { token });
+}
+
+export function getOrders(token: string) {
+  return getJson<ApiOrder[]>('/orders', { token });
+}
+
+export function getOrderById(id: string, token: string) {
+  return getJson<ApiOrder>(`/orders/${id}`, { token });
+}
+
+// Address API types
+export type BackendAddress = {
+  name: string;
+  phone: string;
+  city: string;
+  district: string;
+  ward: string;
+  street: string;
+  type: string;
+  isDefault: boolean;
+};
+
+export type FrontendAddress = {
+  id: string;
+  name: string;
+  phone: string;
+  detailedAddress: string;
+  ward?: string;
+  district?: string;
+  city?: string;
+  address: string;
+  type: string;
+  isDefault: boolean;
+};
+
+// Convert backend address to frontend format
+function backendToFrontendAddress(addr: BackendAddress, index: number): FrontendAddress {
+  const address = [addr.street, addr.ward, addr.district, addr.city]
+    .filter(Boolean)
+    .join(', ');
+  
+  return {
+    id: `addr-${index}`,
+    name: addr.name,
+    phone: addr.phone,
+    detailedAddress: addr.street,
+    ward: addr.ward,
+    district: addr.district,
+    city: addr.city,
+    address,
+    type: addr.type,
+    isDefault: addr.isDefault,
+  };
+}
+
+// Convert frontend address to backend format
+function frontendToBackendAddress(addr: Partial<FrontendAddress>): Partial<BackendAddress> {
+  return {
+    name: addr.name,
+    phone: addr.phone,
+    city: addr.city,
+    district: addr.district,
+    ward: addr.ward,
+    street: addr.detailedAddress,
+    type: addr.type,
+    isDefault: addr.isDefault,
+  };
+}
+
+// Address API functions
+export function getAddresses(token: string): Promise<FrontendAddress[]> {
+  return getJson<BackendAddress[]>('/users/me/addresses', { token }).then(addresses =>
+    (addresses || []).map((addr, index) => backendToFrontendAddress(addr, index))
+  );
+}
+
+function extractAddressesFromResponse(response: any): BackendAddress[] {
+  // Backend returns either an array of addresses or a user object with address array
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (response && Array.isArray(response.address)) {
+    return response.address;
+  }
+  return [];
+}
+
+export function addAddress(
+  address: Partial<FrontendAddress>,
+  token: string,
+): Promise<FrontendAddress[]> {
+  const backendAddr = frontendToBackendAddress(address) as BackendAddress;
+  return postJson<any>('/users/me/addresses', backendAddr, { token }).then(response => {
+    const addresses = extractAddressesFromResponse(response);
+    return addresses.map((addr, index) => backendToFrontendAddress(addr, index));
+  });
+}
+
+export function updateAddress(
+  index: number,
+  address: Partial<FrontendAddress>,
+  token: string,
+): Promise<FrontendAddress[]> {
+  const backendAddr = frontendToBackendAddress(address) as BackendAddress;
+  return patchJson<any>(`/users/me/addresses/${index}`, backendAddr, { token }).then(response => {
+    const addresses = extractAddressesFromResponse(response);
+    return addresses.map((addr, idx) => backendToFrontendAddress(addr, idx));
+  });
+}
+
+export function deleteAddress(index: number, token: string): Promise<FrontendAddress[]> {
+  return deleteJson<any>(`/users/me/addresses/${index}`, { token }).then(response => {
+    const addresses = extractAddressesFromResponse(response);
+    return addresses.map((addr, idx) => backendToFrontendAddress(addr, idx));
+  });
+}
+
+export function setDefaultAddress(index: number, token: string): Promise<FrontendAddress[]> {
+  return patchJson<any>(`/users/me/addresses/${index}/default`, {}, { token }).then(response => {
+    const addresses = extractAddressesFromResponse(response);
+    return addresses.map((addr, idx) => backendToFrontendAddress(addr, idx));
+  });
 }

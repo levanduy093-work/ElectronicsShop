@@ -1,55 +1,118 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, StatusBar, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, StatusBar, Platform, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
 import { Address, AddressFormValues, DEFAULT_ADDRESSES, buildFullAddress } from '../lib/address';
 import { AddressForm } from '../components/address/AddressForm';
+import { getAddresses, addAddress, updateAddress, deleteAddress, setDefaultAddress, FrontendAddress } from '../lib/api';
 
 interface AddressBookProps {
   onBack: () => void;
   theme?: Theme;
   addresses?: Address[];
   onUpdateAddresses?: React.Dispatch<React.SetStateAction<Address[]>>;
+  accessToken?: string | null;
 }
 
-export function AddressBook({ onBack, theme, addresses, onUpdateAddresses }: AddressBookProps) {
+export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, accessToken }: AddressBookProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
   const t = theme || ctxTheme || lightTheme;
   const [localAddresses, setLocalAddresses] = useState<Address[]>(addresses ?? DEFAULT_ADDRESSES);
+  const [isLoading, setIsLoading] = useState(false);
   const addressList = addresses ?? localAddresses;
   const updateAddresses = onUpdateAddresses ?? setLocalAddresses;
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [formInitialValues, setFormInitialValues] = useState<Partial<AddressFormValues>>();
 
+  // Fetch addresses from API on mount if accessToken is available
   useEffect(() => {
-    if (addresses) {
+    if (accessToken) {
+      loadAddresses();
+    } else if (addresses) {
       setLocalAddresses(addresses);
     }
-  }, [addresses]);
+  }, [accessToken]);
 
-  const handleSetDefault = (id: string) => {
-    updateAddresses(prev => prev.map(addr => ({
-      ...addr,
-      isDefault: addr.id === id,
-    })));
+  const loadAddresses = async () => {
+    if (!accessToken) return;
+    
+    setIsLoading(true);
+    try {
+      const fetchedAddresses = await getAddresses(accessToken);
+      setLocalAddresses(fetchedAddresses);
+      if (onUpdateAddresses) {
+        onUpdateAddresses(fetchedAddresses);
+      }
+    } catch (error: any) {
+      Alert.alert('Lỗi', error.message || 'Không thể tải danh sách địa chỉ');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSetDefault = async (id: string) => {
+    const index = addressList.findIndex(addr => addr.id === id);
+    if (index === -1) return;
+
+    if (accessToken) {
+      try {
+        setIsLoading(true);
+        const updatedAddresses = await setDefaultAddress(index, accessToken);
+        setLocalAddresses(updatedAddresses);
+        if (onUpdateAddresses) {
+          onUpdateAddresses(updatedAddresses);
+        }
+      } catch (error: any) {
+        Alert.alert('Lỗi', error.message || 'Không thể đặt địa chỉ mặc định');
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      updateAddresses(prev => prev.map(addr => ({
+        ...addr,
+        isDefault: addr.id === id,
+      })));
+    }
   };
 
   const handleDelete = (id: string) => {
+    const index = addressList.findIndex(addr => addr.id === id);
+    if (index === -1) return;
+
     Alert.alert('Xác nhận', 'Bạn có chắc chắn muốn xóa địa chỉ này?', [
       { text: 'Hủy', style: 'cancel' },
       {
         text: 'Xóa',
         style: 'destructive',
-        onPress: () => updateAddresses(prev => prev.filter(addr => addr.id !== id)),
+        onPress: async () => {
+          if (accessToken) {
+            try {
+              setIsLoading(true);
+              const updatedAddresses = await deleteAddress(index, accessToken);
+              setLocalAddresses(updatedAddresses);
+              if (onUpdateAddresses) {
+                onUpdateAddresses(updatedAddresses);
+              }
+            } catch (error: any) {
+              Alert.alert('Lỗi', error.message || 'Không thể xóa địa chỉ');
+            } finally {
+              setIsLoading(false);
+            }
+          } else {
+            updateAddresses(prev => prev.filter(addr => addr.id !== id));
+          }
+        },
       },
     ]);
   };
 
   const openAddForm = () => {
     setEditingId(null);
+    setEditingIndex(null);
     setFormInitialValues({
       name: '',
       phone: '',
@@ -64,7 +127,9 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses }: Add
   };
 
   const openEditForm = (addr: Address) => {
+    const index = addressList.findIndex(a => a.id === addr.id);
     setEditingId(addr.id);
+    setEditingIndex(index !== -1 ? index : null);
     setFormInitialValues({
       name: addr.name,
       phone: addr.phone,
@@ -78,38 +143,77 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses }: Add
     setIsFormOpen(true);
   };
 
-  const handleSave = (data: AddressFormValues) => {
+  const handleSave = async (data: AddressFormValues) => {
     const fullAddress = buildFullAddress(data);
 
-    if (editingId) {
-      updateAddresses(prev => prev.map(addr => {
-        if (addr.id === editingId) {
-          return {
-            ...addr,
-            ...data,
-            address: fullAddress,
-          };
+    if (accessToken && editingIndex !== null) {
+      // Update existing address via API
+      try {
+        setIsLoading(true);
+        const updatedAddresses = await updateAddress(editingIndex, {
+          ...data,
+          address: fullAddress,
+        }, accessToken);
+        setLocalAddresses(updatedAddresses);
+        if (onUpdateAddresses) {
+          onUpdateAddresses(updatedAddresses);
         }
-        if (data.isDefault) {
-          return { ...addr, isDefault: false };
-        }
-        return addr;
-      }));
-    } else {
-      const newId = `addr-${Date.now()}`;
-      const newAddress: Address = {
-        ...data,
-        id: newId,
-        address: fullAddress,
-      };
-
-      if (newAddress.isDefault) {
-        updateAddresses(prev => prev.map(a => ({ ...a, isDefault: false })).concat(newAddress));
-      } else {
-        updateAddresses(prev => [...prev, newAddress]);
+        setIsFormOpen(false);
+      } catch (error: any) {
+        Alert.alert('Lỗi', error.message || 'Không thể cập nhật địa chỉ');
+      } finally {
+        setIsLoading(false);
       }
+    } else if (accessToken && editingId === null) {
+      // Add new address via API
+      try {
+        setIsLoading(true);
+        const updatedAddresses = await addAddress({
+          ...data,
+          address: fullAddress,
+        }, accessToken);
+        setLocalAddresses(updatedAddresses);
+        if (onUpdateAddresses) {
+          onUpdateAddresses(updatedAddresses);
+        }
+        setIsFormOpen(false);
+      } catch (error: any) {
+        Alert.alert('Lỗi', error.message || 'Không thể thêm địa chỉ');
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // Fallback to local state if no token
+      if (editingId) {
+        updateAddresses(prev => prev.map(addr => {
+          if (addr.id === editingId) {
+            return {
+              ...addr,
+              ...data,
+              address: fullAddress,
+            };
+          }
+          if (data.isDefault) {
+            return { ...addr, isDefault: false };
+          }
+          return addr;
+        }));
+      } else {
+        const newId = `addr-${Date.now()}`;
+        const newAddress: Address = {
+          ...data,
+          id: newId,
+          address: fullAddress,
+        };
+
+        if (newAddress.isDefault) {
+          updateAddresses(prev => prev.map(a => ({ ...a, isDefault: false })).concat(newAddress));
+        } else {
+          updateAddresses(prev => [...prev, newAddress]);
+        }
+      }
+      setIsFormOpen(false);
     }
-    setIsFormOpen(false);
   };
 
   if (isFormOpen) {
@@ -146,7 +250,13 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses }: Add
         contentContainerStyle={[styles.contentContainer, { backgroundColor: t.background }]}
         showsVerticalScrollIndicator={false}
       >
-        {addressList.map((addr) => (
+        {isLoading && addressList.length === 0 ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={t.primary} />
+            <Text style={[styles.loadingText, { color: t.muted }]}>Đang tải địa chỉ...</Text>
+          </View>
+        ) : (
+          addressList.map((addr) => (
           <View
             key={addr.id}
             style={[
@@ -207,7 +317,8 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses }: Add
               </View>
             </View>
           </View>
-        ))}
+        ))
+        )}
 
         <TouchableOpacity
           onPress={openAddForm}
@@ -387,6 +498,17 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 14,
     fontWeight: '500',
+    color: '#6B7280',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
     color: '#6B7280',
   },
 });

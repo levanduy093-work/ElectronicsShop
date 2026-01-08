@@ -106,7 +106,8 @@ export function Toast({ message, type = 'success', duration = 2000, onHide, visi
       style={[
         styles.container,
         {
-          top: Math.max(insets.top, 0) + 16,
+          // Push toast lower to avoid overlapping nav/back buttons
+          top: Math.max(insets.top, 0) + 48,
           transform: [{ translateY }],
           opacity,
         },

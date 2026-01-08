@@ -148,8 +148,10 @@ export interface OrderItem {
 }
 
 export interface Order {
-  id: string;
+  id: string; // backend id
+  code: string;
   date: string;
+  createdAt?: string;
   status: 'processing' | 'shipping' | 'completed' | 'cancelled';
   statusText: string;
   items: OrderItem[];

@@ -15,7 +15,8 @@ interface OrderDetailProps {
 }
 
 const DEFAULT_ORDER: Order = {
-  id: 'ORD-2024-001',
+  id: 'placeholder-id',
+  code: 'ORD-2024-001',
   date: '20/01/2026 14:30',
   status: 'processing',
   statusText: 'Đang xử lý',
@@ -120,7 +121,7 @@ export function OrderDetail({ orderId, onBack, order, theme }: OrderDetailProps)
           }
         ]}>
           <View style={styles.statusHeader}>
-            <Text style={[styles.orderId, { color: t.text }]}>Mã đơn: #{orderId}</Text>
+            <Text style={[styles.orderId, { color: t.text }]}>Mã đơn: #{orderData.code || orderId}</Text>
             <View style={[
               styles.statusBadge,
               {

@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Home } from './src/screens/Home';
 import { Catalog } from './src/screens/Catalog';
@@ -31,7 +32,7 @@ import { Product, CartItem, Order, PRODUCTS } from './src/lib/data';
 import { Address, DEFAULT_ADDRESSES } from './src/lib/address';
 import { darkTheme, lightTheme, ThemeProvider } from './src/lib/theme';
 import { ToastProvider } from './src/components/common/ToastProvider';
-import { AuthResponse } from './src/lib/api';
+import { ApiOrder, AuthResponse, createOrder as apiCreateOrder, getOrderById, getOrders as apiGetOrders } from './src/lib/api';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'payment-methods' | 'settings' | 'support' | 'wishlist' | 'change-password';
@@ -43,185 +44,122 @@ interface FilterState {
   onlyInStock: boolean;
 }
 
-// Mock orders với các trạng thái khác nhau
-const getMockOrders = (): Order[] => {
-    const now = new Date();
-    const formatDate = (date: Date) => {
-      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-    };
+const AUTH_STORAGE_KEY = 'electronicsshop/auth';
+const DEFAULT_PROFILE = {
+  name: "Nguyễn Văn A",
+  email: "nguyenva@example.com",
+  avatar: "",
+};
 
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    const threeDaysAgo = new Date(now);
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-    
-    const fiveDaysAgo = new Date(now);
-    fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+async function persistAuthState(
+  tokens: { accessToken: string; refreshToken: string },
+  profile: typeof DEFAULT_PROFILE,
+) {
+  try {
+    await AsyncStorage.setItem(
+      AUTH_STORAGE_KEY,
+      JSON.stringify({ tokens, profile }),
+    );
+  } catch (error) {
+    console.warn('App.tsx - Failed to persist auth state', error);
+  }
+}
 
-    return [
-      // Đơn hàng đang xử lý
-      {
-        id: 'ORD-2026-815295',
-        date: formatDate(now),
-        status: 'processing',
-        statusText: 'Đang xử lý',
-        items: [
-          {
-            id: 'p1',
-            name: 'Arduino Uno R3 ATmega328P',
-            price: 150000,
-            quantity: 1,
-            image: PRODUCTS[0].image,
-          },
-          {
-            id: 'p4',
-            name: 'Mỏ hàn điều chỉnh nhiệt độ 60W',
-            price: 180000,
-            quantity: 1,
-            image: PRODUCTS[3].image,
-          },
-        ],
-        shippingAddress: {
-          name: 'Nguyễn Văn A',
-          phone: '0987 654 321',
-          address: 'Số 1, Đại Cồ Việt, Hai Bà Trưng, Hà Nội',
-        },
-        payment: {
-          method: 'Ví điện tử MoMo',
-          subtotal: 330000,
-          shippingFee: 30000,
-          discount: 0,
-          total: 360000,
-        },
-        timeline: [
-          { time: formatDate(now), title: 'Đặt hàng thành công', active: true },
-          { time: '', title: 'Đã xác nhận đơn hàng', active: false },
-          { time: '', title: 'Đang đóng gói', active: false },
-          { time: '', title: 'Đang giao hàng', active: false },
-          { time: '', title: 'Giao hàng thành công', active: false },
-        ],
-      },
-      // Đơn hàng đang vận chuyển
-      {
-        id: 'ORD-2026-812456',
-        date: formatDate(yesterday),
-        status: 'shipping',
-        statusText: 'Đang giao',
-        items: [
-          {
-            id: 'p2',
-            name: 'Module ESP32-WROOM-32',
-            price: 110000,
-            quantity: 2,
-            image: PRODUCTS[1].image,
-          },
-          {
-            id: 'p3',
-            name: 'Cảm biến siêu âm HC-SR04',
-            price: 25000,
-            quantity: 3,
-            image: PRODUCTS[2].image,
-          },
-        ],
-        shippingAddress: {
-          name: 'Nguyễn Văn A',
-          phone: '0987 654 321',
-          address: 'Số 123, Nguyễn Trãi, Thanh Xuân, Hà Nội',
-        },
-        payment: {
-          method: 'Thanh toán khi nhận hàng (COD)',
-          subtotal: 295000,
-          shippingFee: 30000,
-          discount: 30000,
-          total: 295000,
-        },
-        timeline: [
-          { time: formatDate(yesterday), title: 'Đặt hàng thành công', active: true },
-          { time: formatDate(yesterday), title: 'Đã xác nhận đơn hàng', active: true },
-          { time: formatDate(yesterday), title: 'Đang đóng gói', active: true },
-          { time: formatDate(now), title: 'Đang giao hàng', active: true },
-          { time: '', title: 'Giao hàng thành công', active: false },
-        ],
-      },
-      // Đơn hàng đã giao hàng
-      {
-        id: 'ORD-2026-809123',
-        date: formatDate(threeDaysAgo),
-        status: 'completed',
-        statusText: 'Hoàn thành',
-        items: [
-          {
-            id: 'p1',
-            name: 'Arduino Uno R3 ATmega328P',
-            price: 150000,
-            quantity: 2,
-            image: PRODUCTS[0].image,
-          },
-        ],
-        shippingAddress: {
-          name: 'Nguyễn Văn A',
-          phone: '0987 654 321',
-          address: 'Số 45, Láng Hạ, Đống Đa, Hà Nội',
-        },
-        payment: {
-          method: 'Thẻ ATM / Internet Banking',
-          subtotal: 300000,
-          shippingFee: 30000,
-          discount: 50000,
-          total: 280000,
-        },
-        timeline: [
-          { time: formatDate(threeDaysAgo), title: 'Đặt hàng thành công', active: true },
-          { time: formatDate(threeDaysAgo), title: 'Đã xác nhận đơn hàng', active: true },
-          { time: formatDate(yesterday), title: 'Đang đóng gói', active: true },
-          { time: formatDate(yesterday), title: 'Đang giao hàng', active: true },
-          { time: formatDate(now), title: 'Giao hàng thành công', active: true },
-        ],
-      },
-      // Đơn hàng đã giao hàng (cũ hơn)
-      {
-        id: 'ORD-2026-805789',
-        date: formatDate(fiveDaysAgo),
-        status: 'completed',
-        statusText: 'Hoàn thành',
-        items: [
-          {
-            id: 'p4',
-            name: 'Mỏ hàn điều chỉnh nhiệt độ 60W',
-            price: 180000,
-            quantity: 1,
-            image: PRODUCTS[3].image,
-          },
-          {
-            id: 'p3',
-            name: 'Cảm biến siêu âm HC-SR04',
-            price: 25000,
-            quantity: 2,
-            image: PRODUCTS[2].image,
-          },
-        ],
-        shippingAddress: {
-          name: 'Nguyễn Văn A',
-          phone: '0987 654 321',
-          address: 'Số 1, Đại Cồ Việt, Hai Bà Trưng, Hà Nội',
-        },
-        payment: {
-          method: 'Ví điện tử MoMo',
-          subtotal: 230000,
-          shippingFee: 30000,
-          discount: 0,
-          total: 260000,
-        },
-        timeline: [
-          { time: formatDate(fiveDaysAgo), title: 'Đặt hàng thành công', active: true },
-          { time: formatDate(fiveDaysAgo), title: 'Đã xác nhận đơn hàng', active: true },
-          { time: formatDate(threeDaysAgo), title: 'Đang đóng gói', active: true },
-          { time: formatDate(threeDaysAgo), title: 'Đang giao hàng', active: true },
-          { time: formatDate(yesterday), title: 'Giao hàng thành công', active: true },
-        ],
-      },
-    ];
+async function clearPersistedAuthState() {
+  try {
+    await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+  } catch (error) {
+    console.warn('App.tsx - Failed to clear auth state', error);
+  }
+}
+
+const ORDER_STATUS_TEXT: Record<Order['status'], string> = {
+  processing: 'Đang xử lý',
+  shipping: 'Đang giao',
+  completed: 'Hoàn thành',
+  cancelled: 'Đã hủy',
+};
+
+const formatDateTime = (value?: string | Date | null) => {
+  if (!value) return '';
+  const date = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return '';
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  const hh = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+};
+
+const mapApiOrderToUi = (order: ApiOrder): Order => {
+  const created = order.status?.ordered || order.createdAt || new Date().toISOString();
+  const hasShipped = Boolean(order.status?.shipped);
+  const hasPackaged = Boolean(order.status?.packaged);
+  const hasConfirmed = Boolean(order.status?.confirmed);
+  const isCompleted = hasShipped && order.paymentStatus === 'paid';
+  const isCancelled = Boolean(order.isCancelled);
+
+  let status: Order['status'] = 'processing';
+  if (isCancelled) status = 'cancelled';
+  else if (isCompleted) status = 'completed';
+  else if (hasShipped) status = 'shipping';
+
+  const addressString = [
+    order.shippingAddress?.street,
+    order.shippingAddress?.ward,
+    order.shippingAddress?.district,
+    order.shippingAddress?.city,
+  ]
+    .filter(Boolean)
+    .join(', ') || 'Chưa có địa chỉ';
+
+  const pickImage = (productId: string) =>
+    PRODUCTS.find(p => p.id === productId)?.image || PRODUCTS[0]?.image || '';
+
+  const timeline = [
+    { time: formatDateTime(created), title: 'Đặt hàng thành công', active: Boolean(created) },
+    { time: formatDateTime(order.status?.confirmed), title: 'Đã xác nhận đơn hàng', active: hasConfirmed },
+    { time: formatDateTime(order.status?.packaged), title: 'Đang đóng gói', active: hasPackaged },
+    { time: formatDateTime(order.status?.shipped), title: 'Đang giao hàng', active: hasShipped },
+  ];
+
+  if (!isCancelled) {
+    timeline.push({
+      time: isCompleted ? formatDateTime(order.status?.shipped) : '',
+      title: 'Giao hàng thành công',
+      active: isCompleted,
+    });
+  }
+
+  return {
+    id: order._id,
+    code: order.code || order._id,
+    date: formatDateTime(created),
+    createdAt: typeof created === 'string' ? created : new Date(created).toISOString(),
+    status,
+    statusText: ORDER_STATUS_TEXT[status],
+    items: order.items.map(item => ({
+      id: item.productId,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      image: pickImage(item.productId),
+    })),
+    shippingAddress: {
+      name: order.shippingAddress?.name || 'Người nhận',
+      phone: order.shippingAddress?.phone || '',
+      address: addressString,
+    },
+    payment: {
+      method: order.payment || 'Thanh toán khi nhận hàng (COD)',
+      subtotal: order.subTotal,
+      shippingFee: order.shippingFee,
+      discount: order.discount,
+      total: order.totalPrice,
+    },
+    timeline,
+  };
 };
 
 function App(): React.JSX.Element {
@@ -236,16 +174,12 @@ function App(): React.JSX.Element {
   const [addresses, setAddresses] = useState<Address[]>(DEFAULT_ADDRESSES);
   const [wishlist, setWishlist] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authTokens, setAuthTokens] = useState<{ accessToken: string; refreshToken: string } | null>(null);
+  const [isRestoringAuth, setIsRestoringAuth] = useState(true);
   const authTokensRef = useRef<{ accessToken: string; refreshToken: string } | null>(null);
 
-  // Khởi tạo mock orders khi component mount
-  useEffect(() => {
-    const mockOrders = getMockOrders();
-    console.log('App.tsx - Initializing orders:', mockOrders.length);
-    setOrders(mockOrders);
-  }, []);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({
     priceRange: [0, 10000000],
@@ -253,11 +187,93 @@ function App(): React.JSX.Element {
     rating: null,
     onlyInStock: false,
   });
-  const [userProfile, setUserProfile] = useState({
-    name: "Nguyễn Văn A",
-    email: "nguyenva@example.com",
-    avatar: ""
-  });
+  const [userProfile, setUserProfile] = useState(DEFAULT_PROFILE);
+
+  const loadOrders = async (tokenOverride?: string) => {
+    const token = tokenOverride || authTokensRef.current?.accessToken;
+    if (!token) return;
+
+    try {
+      const result = await apiGetOrders(token);
+      const mapped = result
+        .map(mapApiOrderToUi)
+        .sort((a, b) => {
+          const dateA = new Date(a.createdAt || a.date).getTime();
+          const dateB = new Date(b.createdAt || b.date).getTime();
+          return dateB - dateA;
+        });
+      setOrders(mapped);
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to load orders', error?.message || error);
+    }
+  };
+
+  const fetchOrderDetail = async (orderId: string) => {
+    const token = authTokensRef.current?.accessToken;
+    if (!token) return;
+    try {
+      const result = await getOrderById(orderId, token);
+      const mapped = mapApiOrderToUi(result);
+      setOrders(prev => {
+        const exists = prev.some(o => o.id === mapped.id);
+        const updated = exists ? prev.map(o => (o.id === mapped.id ? mapped : o)) : [mapped, ...prev];
+        return updated.sort((a, b) => {
+          const dateA = new Date(a.createdAt || a.date).getTime();
+          const dateB = new Date(b.createdAt || b.date).getTime();
+          return dateB - dateA;
+        });
+      });
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to fetch order detail', error?.message || error);
+    }
+  };
+
+  useEffect(() => {
+    const restoreAuth = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.tokens?.accessToken && parsed?.tokens?.refreshToken) {
+            authTokensRef.current = parsed.tokens;
+            setAuthTokens(parsed.tokens);
+            if (parsed.profile) {
+              setUserProfile(prev => ({ ...prev, ...parsed.profile }));
+            }
+            setIsLoggedIn(true);
+            await loadOrders(parsed.tokens.accessToken);
+          }
+        }
+      } catch (error) {
+        console.warn('App.tsx - Failed to restore auth state', error);
+      } finally {
+        setIsRestoringAuth(false);
+      }
+    };
+
+    restoreAuth();
+  }, []);
+
+  useEffect(() => {
+    if (isRestoringAuth) return;
+    if (isLoggedIn && authTokens) {
+      void persistAuthState(authTokens, userProfile);
+    }
+  }, [authTokens, isLoggedIn, userProfile, isRestoringAuth]);
+
+  useEffect(() => {
+    if (isLoggedIn && authTokens?.accessToken) {
+      void loadOrders();
+    } else if (!isLoggedIn) {
+      setOrders([]);
+    }
+  }, [isLoggedIn, authTokens?.accessToken]);
+
+  useEffect(() => {
+    if (selectedOrderId && !orders.find(o => o.id === selectedOrderId)) {
+      void fetchOrderDetail(selectedOrderId);
+    }
+  }, [selectedOrderId, orders]);
 
   const handleUpdateProfile = (data: Partial<typeof userProfile>) => {
     setUserProfile(prev => ({ ...prev, ...data }));
@@ -354,50 +370,66 @@ function App(): React.JSX.Element {
     setCartItems(prev => prev.filter(item => item.id !== id));
   };
 
-  const createOrder = (orderId: string, items: CartItem[], totalAmount: number) => {
-    const now = new Date();
-    const dateStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    
-    const paymentMethods = [
-      'Ví điện tử MoMo',
-      'Thanh toán khi nhận hàng (COD)',
-      'Thẻ ATM / Internet Banking'
-    ];
+  const placeOrder = async (params: {
+    items: CartItem[];
+    totals: { subTotal: number; shippingFee: number; discount: number; total: number };
+    paymentMethod: string;
+    shippingAddress?: Address;
+  }) => {
+    if (!authTokensRef.current?.accessToken) {
+      throw new Error('Bạn cần đăng nhập để đặt hàng');
+    }
 
-    const newOrder: Order = {
-      id: orderId,
-      date: dateStr,
-      status: 'processing',
-      statusText: 'Đang xử lý',
-      items: items.map(item => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        image: item.image,
-      })),
-      shippingAddress: {
-        name: userProfile.name,
-        phone: '0987 654 321',
-        address: 'Số 1, Đại Cồ Việt, Hai Bà Trưng, Hà Nội',
-      },
-      payment: {
-        method: paymentMethods[0], // Default to first payment method
-        subtotal: items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-        shippingFee: 30000,
-        discount: 0,
-        total: totalAmount,
-      },
-      timeline: [
-        { time: dateStr, title: 'Đặt hàng thành công', active: true },
-        { time: '', title: 'Đã xác nhận đơn hàng', active: false },
-        { time: '', title: 'Đang đóng gói', active: false },
-        { time: '', title: 'Đang giao hàng', active: false },
-        { time: '', title: 'Giao hàng thành công', active: false },
-      ],
+    const code = `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+    const normalizeProductId = (id: string) => {
+      if (/^[a-f0-9]{24}$/i.test(id)) return id;
+      const sanitized = id.replace(/[^a-f0-9]/gi, 'a');
+      return (sanitized + 'aaaaaaaaaaaaaaaaaaaaaaaaaaaa').slice(0, 24);
     };
 
-    setOrders(prev => [newOrder, ...prev]);
+    const payload = {
+      code,
+      status: { ordered: new Date().toISOString() },
+      items: params.items.map(item => ({
+        productId: normalizeProductId(item.id),
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        subTotal: item.price * item.quantity,
+        shippingFee: 0,
+        discount: 0,
+        totalPrice: item.price * item.quantity,
+      })),
+      subTotal: params.totals.subTotal,
+      shippingFee: params.totals.shippingFee,
+      discount: params.totals.discount,
+      totalPrice: params.totals.total,
+      payment: params.paymentMethod,
+      paymentStatus: params.paymentMethod.toLowerCase().includes('cod') ? 'pending' : 'pending',
+      shippingAddress: params.shippingAddress
+        ? {
+            name: params.shippingAddress.name,
+            phone: params.shippingAddress.phone,
+            city: params.shippingAddress.city,
+            district: params.shippingAddress.district,
+            ward: params.shippingAddress.ward,
+            street: params.shippingAddress.detailedAddress || params.shippingAddress.address,
+          }
+        : undefined,
+    };
+
+    setIsPlacingOrder(true);
+    try {
+      const created = await apiCreateOrder(payload, authTokensRef.current.accessToken);
+      const uiOrder = mapApiOrderToUi(created);
+      setOrders(prev => [uiOrder, ...prev]);
+      return uiOrder;
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to create order', error?.message || error);
+      throw error;
+    } finally {
+      setIsPlacingOrder(false);
+    }
   };
 
   const handleToggleWishlist = (product: Product) => {
@@ -411,22 +443,23 @@ function App(): React.JSX.Element {
   };
 
   const handleLoginSuccess = (data: AuthResponse) => {
-    authTokensRef.current = {
+    const tokens = {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
     };
-    setAuthTokens({
-      accessToken: data.accessToken,
-      refreshToken: data.refreshToken,
-    });
+    const profile = {
+      name: data.user?.name ?? userProfile.name,
+      email: data.user?.email ?? userProfile.email,
+      avatar: data.user?.avatar ?? userProfile.avatar,
+    };
 
-    setUserProfile(prev => ({
-      name: data.user?.name ?? prev.name,
-      email: data.user?.email ?? prev.email,
-      avatar: data.user?.avatar ?? prev.avatar,
-    }));
+    authTokensRef.current = tokens;
+    setAuthTokens(tokens);
+    setUserProfile(profile);
 
     setIsLoggedIn(true);
+    void loadOrders(tokens.accessToken);
+    void persistAuthState(tokens, profile);
 
     if (currentScreen === 'auth') {
       if (previousScreen === 'product-detail') {
@@ -484,6 +517,8 @@ function App(): React.JSX.Element {
               setIsLoggedIn(false);
               setAuthTokens(null);
               authTokensRef.current = null;
+              setUserProfile(DEFAULT_PROFILE);
+              void clearPersistedAuthState();
             }}
             userProfile={userProfile}
             onUpdateProfile={(data) => setUserProfile(prev => ({ ...prev, ...data }))}
@@ -513,12 +548,26 @@ function App(): React.JSX.Element {
         return (
           <Checkout
             onBack={() => handleTabChange('cart')}
-            onSuccess={(orderId) => {
-              createOrder(orderId, cartItems, cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) + 30000);
+            onPlaceOrder={async ({ address, paymentMethod, shippingFee, items, totalAmount, subTotal, discount }) => {
+              const created = await placeOrder({
+                items,
+                paymentMethod,
+                totals: {
+                  subTotal,
+                  shippingFee,
+                  discount: discount ?? 0,
+                  total: totalAmount,
+                },
+                shippingAddress: address,
+              });
+              return { id: created.id, code: created.code };
+            }}
+            placingOrder={isPlacingOrder}
+            onSuccess={() => {
               setCartItems([]);
               handleTabChange('home');
+              void loadOrders();
             }}
-            totalAmount={cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) + 30000}
             cartItems={cartItems}
             theme={theme}
             addresses={addresses}
@@ -611,6 +660,7 @@ function App(): React.JSX.Element {
             theme={theme}
             addresses={addresses}
             onUpdateAddresses={setAddresses}
+            accessToken={authTokens?.accessToken}
           />
         );
 
