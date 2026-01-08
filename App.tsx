@@ -32,7 +32,7 @@ import { Product, CartItem, Order, PRODUCTS } from './src/lib/data';
 import { Address, DEFAULT_ADDRESSES } from './src/lib/address';
 import { darkTheme, lightTheme, ThemeProvider } from './src/lib/theme';
 import { ToastProvider } from './src/components/common/ToastProvider';
-import { ApiOrder, AuthResponse, createOrder as apiCreateOrder, getOrderById, getOrders as apiGetOrders } from './src/lib/api';
+import { ApiOrder, ApiProduct, AuthResponse, createOrder as apiCreateOrder, getOrderById, getOrders as apiGetOrders, getProducts } from './src/lib/api';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'payment-methods' | 'settings' | 'support' | 'wishlist' | 'change-password';
@@ -92,7 +92,7 @@ const formatDateTime = (value?: string | Date | null) => {
   return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
 };
 
-const mapApiOrderToUi = (order: ApiOrder): Order => {
+const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS): Order => {
   const created = order.status?.ordered || order.createdAt || new Date().toISOString();
   const hasShipped = Boolean(order.status?.shipped);
   const hasPackaged = Boolean(order.status?.packaged);
@@ -115,7 +115,7 @@ const mapApiOrderToUi = (order: ApiOrder): Order => {
     .join(', ') || 'Chưa có địa chỉ';
 
   const pickImage = (productId: string) =>
-    PRODUCTS.find(p => p.id === productId)?.image || PRODUCTS[0]?.image || '';
+    productLookup.find(p => p.id === productId)?.image || productLookup[0]?.image || '';
 
   const timeline = [
     { time: formatDateTime(created), title: 'Đặt hàng thành công', active: Boolean(created) },
@@ -162,12 +162,50 @@ const mapApiOrderToUi = (order: ApiOrder): Order => {
   };
 };
 
+const mapApiProductToUi = (product: ApiProduct): Product => {
+  const stockNumber = product.stock ?? 0;
+  const stockLabel =
+    stockNumber <= 0 ? 'Out of Stock' : stockNumber < 5 ? 'Low Stock' : 'In Stock';
+
+  const price = product.price?.salePrice ?? product.price?.originalPrice ?? 0;
+  const originalPrice = product.price?.originalPrice || undefined;
+
+  const specs: Record<string, string> = {};
+  if (product.specs) {
+    Object.entries(product.specs).forEach(([k, v]) => {
+      if (v) specs[k] = v as string;
+    });
+  }
+
+  return {
+    id: product._id,
+    name: product.name,
+    price,
+    salePrice: product.price?.salePrice,
+    originalPrice,
+    rating: product.averageRating ?? 4.5,
+    reviews: product.reviewCount ?? 0,
+    image: product.images?.[0] || 'https://images.unsplash.com/photo-1581093588401-99b6fa-2?auto=format&fit=crop&w=600&q=80',
+    images: product.images ?? [],
+    category: product.category || 'Khác',
+    stock: stockLabel,
+    stockQuantity: stockNumber,
+    description: product.description || '',
+    specs,
+    code: product.code,
+    saleCount: product.saleCount,
+    datasheet: product.datasheet,
+  };
+};
+
 function App(): React.JSX.Element {
   const systemDarkMode = useColorScheme() === 'dark';
   const [isDarkMode, setIsDarkMode] = useState(systemDarkMode);
   const [currentTab, setCurrentTab] = useState<NavTab>('home');
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [previousScreen, setPreviousScreen] = useState<Screen>('home');
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const productsRef = useRef<Product[]>(PRODUCTS);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -189,6 +227,17 @@ function App(): React.JSX.Element {
   });
   const [userProfile, setUserProfile] = useState(DEFAULT_PROFILE);
 
+  const loadProducts = async () => {
+    try {
+      const result = await getProducts();
+      const mapped = result.map(mapApiProductToUi);
+      setProducts(mapped);
+      productsRef.current = mapped;
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to load products', error?.message || error);
+    }
+  };
+
   const loadOrders = async (tokenOverride?: string) => {
     const token = tokenOverride || authTokensRef.current?.accessToken;
     if (!token) return;
@@ -196,7 +245,7 @@ function App(): React.JSX.Element {
     try {
       const result = await apiGetOrders(token);
       const mapped = result
-        .map(mapApiOrderToUi)
+        .map(o => mapApiOrderToUi(o, productsRef.current))
         .sort((a, b) => {
           const dateA = new Date(a.createdAt || a.date).getTime();
           const dateB = new Date(b.createdAt || b.date).getTime();
@@ -213,7 +262,7 @@ function App(): React.JSX.Element {
     if (!token) return;
     try {
       const result = await getOrderById(orderId, token);
-      const mapped = mapApiOrderToUi(result);
+      const mapped = mapApiOrderToUi(result, productsRef.current);
       setOrders(prev => {
         const exists = prev.some(o => o.id === mapped.id);
         const updated = exists ? prev.map(o => (o.id === mapped.id ? mapped : o)) : [mapped, ...prev];
@@ -252,6 +301,10 @@ function App(): React.JSX.Element {
     };
 
     restoreAuth();
+  }, []);
+
+  useEffect(() => {
+    void loadProducts();
   }, []);
 
   useEffect(() => {
@@ -421,7 +474,7 @@ function App(): React.JSX.Element {
     setIsPlacingOrder(true);
     try {
       const created = await apiCreateOrder(payload, authTokensRef.current.accessToken);
-      const uiOrder = mapApiOrderToUi(created);
+      const uiOrder = mapApiOrderToUi(created, productsRef.current);
       setOrders(prev => [uiOrder, ...prev]);
       return uiOrder;
     } catch (error: any) {
@@ -478,7 +531,7 @@ function App(): React.JSX.Element {
   const renderContent = () => {
     switch (currentScreen) {
       case 'home':
-        return <Home onNavigate={(tab) => handleTabChange(tab as NavTab)} onProductClick={navigateToProduct} theme={theme} />;
+        return <Home onNavigate={(tab) => handleTabChange(tab as NavTab)} onProductClick={navigateToProduct} theme={theme} products={products} />;
       case 'catalog':
         return (
           <Catalog 
@@ -486,7 +539,8 @@ function App(): React.JSX.Element {
             onProductClick={navigateToProduct} 
             filters={filters}
             applyFilters={applyFilters}
-            theme={theme} 
+            theme={theme}
+            products={products}
           />
         );
       case 'ai':
@@ -605,6 +659,7 @@ function App(): React.JSX.Element {
             onQueryChange={setSearchQuery}
             filters={filters}
             applyFilters={applyFilters}
+            products={products}
             theme={theme}
           />
         );
@@ -633,7 +688,7 @@ function App(): React.JSX.Element {
               };
               
               // Apply filters without changing state
-              return PRODUCTS.filter(product => {
+              return products.filter(product => {
                 if (product.price < tempFilterState.priceRange[0] || product.price > tempFilterState.priceRange[1]) {
                   return false;
                 }
@@ -704,7 +759,7 @@ function App(): React.JSX.Element {
         );
 
       default:
-        return <Home onNavigate={(tab) => handleTabChange(tab as NavTab)} onProductClick={navigateToProduct} />;
+        return <Home onNavigate={(tab) => handleTabChange(tab as NavTab)} onProductClick={navigateToProduct} products={products} />;
     }
   };
 

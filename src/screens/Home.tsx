@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import { CATEGORIES, PRODUCTS, Product } from '../lib/data';
+import { CATEGORIES, Product } from '../lib/data';
 import { ProductCard } from '../components/ui/ProductCard';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
@@ -10,15 +10,16 @@ interface HomeProps {
   onNavigate: (tab: string) => void;
   onProductClick?: (product: Product) => void;
   theme?: Theme;
+  products?: Product[];
 }
 
 const { width } = Dimensions.get('window');
 
-export function Home({ onNavigate, onProductClick, theme }: HomeProps) {
+export function Home({ onNavigate, onProductClick, theme, products = [] }: HomeProps) {
   const { theme: ctxTheme } = useTheme();
   const resolvedTheme = theme || ctxTheme || lightTheme;
-  const featuredProducts = PRODUCTS.slice(0, 4);
-  const raspberryProduct = PRODUCTS.find(p => p.name.includes("Raspberry")) || PRODUCTS[0];
+  const featuredProducts = (products.length ? products : []).slice(0, 4);
+  const raspberryProduct = products.find(p => p.name.toLowerCase().includes('rasp')) || products[0];
 
   return (
     <ScrollView 
@@ -37,13 +38,15 @@ export function Home({ onNavigate, onProductClick, theme }: HomeProps) {
           <Text style={styles.bannerBadge}>New Arrival</Text>
           <Text style={styles.bannerTitle}>Raspberry Pi 5</Text>
           <Text style={styles.bannerSubtitle}>Sức mạnh vượt trội cho dự án IoT của bạn</Text>
-          <TouchableOpacity
-            onPress={() => onProductClick?.(raspberryProduct)}
-            style={styles.bannerButton}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.bannerButtonText}>Khám phá ngay</Text>
-          </TouchableOpacity>
+          {raspberryProduct ? (
+            <TouchableOpacity
+              onPress={() => onProductClick?.(raspberryProduct)}
+              style={styles.bannerButton}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.bannerButtonText}>Khám phá ngay</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </View>
 

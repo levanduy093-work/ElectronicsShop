@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, FlatList } from 'react-native';
-import { CATEGORIES, PRODUCTS, Product } from '../lib/data';
+import { CATEGORIES, Product } from '../lib/data';
 import { ProductCard } from '../components/ui/ProductCard';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme } from '../lib/theme';
@@ -16,14 +16,15 @@ interface CatalogProps {
   };
   applyFilters?: (products: Product[], searchText?: string) => Product[];
   theme?: Theme;
+  products?: Product[];
 }
 
-export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, theme = lightTheme }: CatalogProps) {
+export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, theme = lightTheme, products = [] }: CatalogProps) {
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Start with all products
-  let filteredProducts = PRODUCTS;
+  let filteredProducts = products;
   
   // Apply search filter first (if any)
   if (searchQuery) {

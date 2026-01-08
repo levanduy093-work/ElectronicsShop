@@ -6,6 +6,27 @@ export type AuthResponse = {
   refreshToken: string;
 };
 
+export type ApiProduct = {
+  _id: string;
+  name: string;
+  category?: string;
+  description?: string;
+  images?: string[];
+  specs?: Record<string, string>;
+  price: {
+    originalPrice: number;
+    salePrice: number;
+  };
+  averageRating?: number;
+  reviewCount?: number;
+  saleCount?: number;
+  stock?: number;
+  datasheet?: string;
+  code?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type ApiOrderItem = {
   productId: string;
   name: string;
@@ -121,6 +142,14 @@ async function deleteJson<TResponse>(
   options?: { token?: string },
 ): Promise<TResponse> {
   return requestJson<TResponse>(path, { method: 'DELETE', token: options?.token });
+}
+
+export function getProducts() {
+  return getJson<ApiProduct[]>('/products');
+}
+
+export function getProductById(id: string) {
+  return getJson<ApiProduct>(`/products/${id}`);
 }
 
 export function login(email: string, password: string) {

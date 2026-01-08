@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { PRODUCTS, Product } from '../lib/data';
+import { Product } from '../lib/data';
 import { ProductCard } from '../components/ui/ProductCard';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
@@ -20,6 +20,7 @@ interface SearchScreenProps {
   };
   applyFilters?: (products: Product[], searchText?: string) => Product[];
   theme?: Theme;
+  products?: Product[];
 }
 
 export function SearchScreen({
@@ -31,6 +32,7 @@ export function SearchScreen({
   filters,
   applyFilters,
   theme,
+  products = [],
 }: SearchScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
@@ -49,7 +51,7 @@ export function SearchScreen({
 
   // Apply filters and search
   const filteredProducts = query
-    ? (applyFilters ? applyFilters(PRODUCTS, query) : PRODUCTS.filter(p => p.name.toLowerCase().includes(query.toLowerCase())))
+    ? (applyFilters ? applyFilters(products, query) : products.filter(p => p.name.toLowerCase().includes(query.toLowerCase())))
     : [];
 
   const trendingSearches = ['Raspberry Pi 5', 'ESP32 Cam', 'Mỏ hàn', 'Cảm biến nhiệt độ', 'Led RGB'];

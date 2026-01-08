@@ -6,13 +6,19 @@ export interface Product {
   name: string;
   price: number;
   originalPrice?: number;
+  salePrice?: number;
   rating: number;
   reviews: number;
   image: string;
+  images?: string[];
   category: string;
   stock: "In Stock" | "Low Stock" | "Out of Stock";
+  stockQuantity?: number;
   description: string;
   specs: Record<string, string>;
+  code?: string;
+  saleCount?: number;
+  datasheet?: string;
 }
 
 export interface Category {
