@@ -578,17 +578,6 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
             {isSubmitting ? "Đang xử lý..." : isRegister ? "Đăng ký" : "Đăng nhập"}
           </Text>
         </TouchableOpacity>
-
-        <View style={[styles.divider, { borderBottomColor: t.border }]}>
-          <View style={[styles.dividerLine, { backgroundColor: t.border }]} />
-          <Text style={[styles.dividerText, { color: t.muted, backgroundColor: t.background }]}>Hoặc tiếp tục với</Text>
-          <View style={[styles.dividerLine, { backgroundColor: t.border }]} />
-        </View>
-
-        <TouchableOpacity style={[styles.socialButton, { backgroundColor: t.surface, borderColor: t.border }]} activeOpacity={0.7}>
-          <GoogleIcon size={20} />
-          <Text style={[styles.socialButtonText, { color: t.text }]}>Đăng nhập với Google</Text>
-        </TouchableOpacity>
       </View>
 
       <View style={styles.footer}>
@@ -717,38 +706,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E5E7EB',
-  },
-  dividerText: {
-    paddingHorizontal: 16,
-    fontSize: 14,
-    color: '#6B7280',
-    backgroundColor: '#FFFFFF',
-  },
-  socialButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    height: 48,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-  },
-  socialButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#111827',
   },
   footer: {
     flexDirection: 'row',
