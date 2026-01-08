@@ -152,6 +152,18 @@ export function getProductById(id: string) {
   return getJson<ApiProduct>(`/products/${id}`);
 }
 
+export function getFavorites(token: string) {
+  return getJson<ApiProduct[]>('/users/me/favorites', { token });
+}
+
+export function addFavorite(productId: string, token: string) {
+  return postJson<ApiProduct[]>(`/users/me/favorites/${productId}`, {}, { token });
+}
+
+export function removeFavorite(productId: string, token: string) {
+  return deleteJson<ApiProduct[]>(`/users/me/favorites/${productId}`, { token });
+}
+
 export function login(email: string, password: string) {
   return postJson<AuthResponse>('/auth/login', { email, password });
 }

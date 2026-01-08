@@ -32,7 +32,7 @@ import { Product, CartItem, Order, PRODUCTS } from './src/lib/data';
 import { Address, DEFAULT_ADDRESSES } from './src/lib/address';
 import { darkTheme, lightTheme, ThemeProvider } from './src/lib/theme';
 import { ToastProvider } from './src/components/common/ToastProvider';
-import { ApiOrder, ApiProduct, AuthResponse, createOrder as apiCreateOrder, getOrderById, getOrders as apiGetOrders, getProducts } from './src/lib/api';
+import { ApiOrder, ApiProduct, AuthResponse, addFavorite, createOrder as apiCreateOrder, getFavorites as apiGetFavorites, getOrderById, getOrders as apiGetOrders, getProducts, removeFavorite } from './src/lib/api';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'payment-methods' | 'settings' | 'support' | 'wishlist' | 'change-password';
@@ -238,6 +238,18 @@ function App(): React.JSX.Element {
     }
   };
 
+  const loadFavorites = async (tokenOverride?: string) => {
+    const token = tokenOverride || authTokensRef.current?.accessToken;
+    if (!token) return;
+    try {
+      const result = await apiGetFavorites(token);
+      const mapped = result.map(mapApiProductToUi);
+      setWishlist(mapped);
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to load favorites', error?.message || error);
+    }
+  };
+
   const loadOrders = async (tokenOverride?: string) => {
     const token = tokenOverride || authTokensRef.current?.accessToken;
     if (!token) return;
@@ -291,6 +303,7 @@ function App(): React.JSX.Element {
             }
             setIsLoggedIn(true);
             await loadOrders(parsed.tokens.accessToken);
+            await loadFavorites(parsed.tokens.accessToken);
           }
         }
       } catch (error) {
@@ -317,8 +330,10 @@ function App(): React.JSX.Element {
   useEffect(() => {
     if (isLoggedIn && authTokens?.accessToken) {
       void loadOrders();
+      void loadFavorites();
     } else if (!isLoggedIn) {
       setOrders([]);
+      setWishlist([]);
     }
   }, [isLoggedIn, authTokens?.accessToken]);
 
@@ -485,14 +500,46 @@ function App(): React.JSX.Element {
     }
   };
 
-  const handleToggleWishlist = (product: Product) => {
-    setWishlist(prev => {
-      const exists = prev.some(item => item.id === product.id);
+  const syncFavorites = (apiProducts: ApiProduct[]) => {
+    const mapped = apiProducts.map(mapApiProductToUi);
+    setWishlist(mapped);
+  };
+
+  const handleRemoveFavorite = async (productId: string) => {
+    if (!authTokensRef.current?.accessToken) {
+      setPreviousScreen(currentScreen);
+      setCurrentTab('profile');
+      setCurrentScreen('auth');
+      return;
+    }
+    try {
+      const updated = await removeFavorite(productId, authTokensRef.current.accessToken);
+      syncFavorites(updated);
+    } catch (error) {
+      console.warn('App.tsx - Failed to remove favorite', error);
+    }
+  };
+
+  const handleToggleWishlistAsync = async (product: Product) => {
+    if (!authTokensRef.current?.accessToken) {
+      setPreviousScreen(currentScreen);
+      setCurrentTab('profile');
+      setCurrentScreen('auth');
+      return;
+    }
+
+    const exists = wishlist.some(item => item.id === product.id);
+    try {
       if (exists) {
-        return prev.filter(item => item.id !== product.id);
+        const updated = await removeFavorite(product.id, authTokensRef.current.accessToken);
+        syncFavorites(updated);
+      } else {
+        const updated = await addFavorite(product.id, authTokensRef.current.accessToken);
+        syncFavorites(updated);
       }
-      return [...prev, product];
-    });
+    } catch (error) {
+      console.warn('App.tsx - Failed to toggle favorite', error);
+    }
   };
 
   const handleLoginSuccess = (data: AuthResponse) => {
@@ -512,6 +559,7 @@ function App(): React.JSX.Element {
 
     setIsLoggedIn(true);
     void loadOrders(tokens.accessToken);
+    void loadFavorites(tokens.accessToken);
     void persistAuthState(tokens, profile);
 
     if (currentScreen === 'auth') {
@@ -587,7 +635,7 @@ function App(): React.JSX.Element {
             onBack={() => handleTabChange(currentTab)}
             onAddToCart={handleAddToCart}
             isFavorite={wishlist.some(item => item.id === selectedProduct.id)}
-            onToggleFavorite={() => handleToggleWishlist(selectedProduct)}
+            onToggleFavorite={() => handleToggleWishlistAsync(selectedProduct)}
             isLoggedIn={isLoggedIn}
             onRequireLogin={() => {
               setPreviousScreen('product-detail');
@@ -741,7 +789,7 @@ function App(): React.JSX.Element {
           <Wishlist
             items={wishlist}
             onBack={() => handleTabChange('profile')}
-            onRemove={(id) => setWishlist(prev => prev.filter(p => p.id !== id))}
+            onRemove={(id) => { void handleRemoveFavorite(id); }}
             onProductClick={navigateToProduct}
             theme={theme}
           />
