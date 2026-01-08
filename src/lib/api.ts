@@ -27,6 +27,16 @@ export type ApiProduct = {
   updatedAt?: string;
 };
 
+export type ApiReview = {
+  _id: string;
+  productId: string;
+  userId: string;
+  rating: number;
+  comment?: string;
+  images?: string[];
+  createdAt?: string;
+};
+
 export type ApiOrderItem = {
   productId: string;
   name: string;
@@ -162,6 +172,20 @@ export function addFavorite(productId: string, token: string) {
 
 export function removeFavorite(productId: string, token: string) {
   return deleteJson<ApiProduct[]>(`/users/me/favorites/${productId}`, { token });
+}
+
+export function getReviews(productId: string) {
+  return getJson<ApiReview[]>(`/reviews/product/${productId}`);
+}
+
+export function createReview(
+  productId: string,
+  rating: number,
+  comment: string,
+  images: string[] | undefined,
+  token: string,
+) {
+  return postJson<ApiReview>('/reviews', { productId, rating, comment, images }, { token });
 }
 
 export function login(email: string, password: string) {

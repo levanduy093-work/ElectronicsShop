@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Share, Dimensions, Modal, TextInput, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Share, Dimensions, Modal, TextInput, Image } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Product } from '../lib/data';
@@ -8,6 +8,7 @@ import { AppIcon } from '../components/common/Icon';
 import { formatPrice } from '../lib/utils';
 import { useTheme } from '../lib/theme';
 import { useToast } from '../components/common/ToastProvider';
+import { ApiReview, createReview, getReviews } from '../lib/api';
 
 interface ProductDetailProps {
   product: Product;
@@ -17,50 +18,8 @@ interface ProductDetailProps {
   onToggleFavorite: () => void;
   isLoggedIn: boolean;
   onRequireLogin: () => void;
+  accessToken?: string;
 }
-
-const defaultReviews = [
-  {
-    id: 'r1',
-    name: 'Nguyễn Văn Nam',
-    rating: 5,
-    date: '20/01/2026',
-    comment: 'Sản phẩm chính hãng, đóng gói rất cẩn thận. Shop tư vấn nhiệt tình, sẽ ủng hộ dài dài.',
-    images: [
-      'https://images.unsplash.com/photo-1581093588401-99f9c5ae695a?auto=format&fit=crop&q=80&w=300',
-      'https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b?auto=format&fit=crop&q=80&w=300',
-      'https://images.unsplash.com/photo-1581093588401-99f9c5ae695a?auto=format&fit=crop&q=80&w=300',
-      'https://images.unsplash.com/photo-1581091015181-8a0b24f4c82c?auto=format&fit=crop&q=80&w=300',
-    ],
-  },
-  {
-    id: 'r2',
-    name: 'Trần Thị Hạnh',
-    rating: 4,
-    date: '18/01/2026',
-    comment: 'Giao hàng hơi chậm một chút nhưng chất lượng sản phẩm tốt, đúng mô tả.',
-    images: [
-      'https://images.unsplash.com/photo-1470246973918-29a93221c455?auto=format&fit=crop&q=80&w=300',
-      'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=300',
-      'https://images.unsplash.com/photo-1581092334318-3a79a6f6cf1a?auto=format&fit=crop&q=80&w=300',
-      'https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&q=80&w=300',
-      'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&q=80&w=300',
-      'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&q=80&w=300',
-    ],
-  },
-  {
-    id: 'r3',
-    name: 'Lê Minh Tuấn',
-    rating: 5,
-    date: '15/01/2026',
-    comment: 'Đã test chạy ổn định, hiệu năng tốt. Sẽ quay lại mua thêm linh kiện.',
-    images: [
-      'https://images.unsplash.com/photo-1593642532871-8b12e02d091c?auto=format&fit=crop&q=80&w=300',
-      'https://images.unsplash.com/photo-1581091012184-5c1e4b29db5c?auto=format&fit=crop&q=80&w=300',
-      'https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&q=80&w=300',
-    ],
-  },
-];
 
 export function ProductDetail({
   product,
@@ -70,6 +29,7 @@ export function ProductDetail({
   onToggleFavorite,
   isLoggedIn,
   onRequireLogin,
+  accessToken,
 }: ProductDetailProps) {
   const { width } = Dimensions.get('window');
   const [quantity, setQuantity] = useState(1);
@@ -79,11 +39,47 @@ export function ProductDetail({
   const reviewImageSize = (width - 16 * 2 - 8 * 3) / 4; // content padding 16, gap 8
   const { theme, isDarkMode } = useTheme();
   const { showToast } = useToast();
-  const [reviews, setReviews] = useState(defaultReviews);
+  const [reviews, setReviews] = useState<ApiReview[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewContent, setReviewContent] = useState('');
   const [reviewImages, setReviewImages] = useState<string[]>([]);
+  const totalReviews = reviews.length || product.reviews || 0;
+  const averageRating =
+    reviews.length > 0
+      ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
+      : product.rating;
+  const ratingCounts = reviews.reduce(
+    (acc, r) => {
+      acc[r.rating] = (acc[r.rating] || 0) + 1;
+      return acc;
+    },
+    { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } as Record<number, number>,
+  );
+
+  const fetchReviews = async () => {
+    setReviewsLoading(true);
+    try {
+      const data = await getReviews(product.id);
+      setReviews(data);
+    } catch (error: any) {
+      console.warn('ProductDetail - Failed to load reviews', error?.message || error);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReviews();
+  }, [product.id]);
+
+  const formatReviewDate = (value?: string) => {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleDateString('vi-VN');
+  };
 
   const handleShare = async () => {
     try {
@@ -133,20 +129,23 @@ export function ProductDetail({
       return;
     }
 
-    const newReview = {
-      id: `r-${Date.now()}`,
-      name: 'Bạn',
-      rating: reviewRating,
-      date: new Date().toLocaleDateString('vi-VN'),
-      comment: content,
-      images: reviewImages,
-    };
+    if (!accessToken) {
+      onRequireLogin();
+      return;
+    }
 
-    setReviews(prev => [newReview, ...prev]);
-    resetReviewForm();
-    setShowReviewModal(false);
-    setActiveTab('reviews');
-    setExpandedReviews({});
+    createReview(product.id, reviewRating, content, reviewImages, accessToken)
+      .then(() => {
+        resetReviewForm();
+        setShowReviewModal(false);
+        setActiveTab('reviews');
+        setExpandedReviews({});
+        showToast('Đã gửi đánh giá', 'success');
+        fetchReviews();
+      })
+      .catch((error: any) => {
+        showToast(error?.message || 'Không thể gửi đánh giá', 'error');
+      });
   };
 
   const handleCloseModal = () => {
@@ -270,10 +269,10 @@ export function ProductDetail({
             <View style={styles.ratingRow}>
               <View style={styles.ratingContainer}>
                 <AppIcon name="star" size={16} color="#FBBF24" />
-                <Text style={[styles.ratingText, { color: theme.text }]}>{product.rating}</Text>
+                <Text style={[styles.ratingText, { color: theme.text }]}>{averageRating.toFixed(1)}</Text>
               </View>
               <Text style={styles.separator}>|</Text>
-              <Text style={[styles.reviewsText, { color: theme.muted }]}>{product.reviews} đánh giá</Text>
+              <Text style={[styles.reviewsText, { color: theme.muted }]}>{totalReviews} đánh giá</Text>
               <Text style={styles.separator}>|</Text>
               <Text style={[styles.soldText, { color: '#10B981' }]}>Đã bán 1.2k</Text>
             </View>
@@ -344,25 +343,30 @@ export function ProductDetail({
                   }
                 ]}>
                   <View style={styles.ratingScore}>
-                    <Text style={[styles.ratingScoreText, { color: theme.text }]}>{product.rating.toFixed(1)}</Text>
+                    <Text style={[styles.ratingScoreText, { color: theme.text }]}>{averageRating.toFixed(1)}</Text>
                     <View style={styles.ratingStarsRow}>
                       {Array.from({ length: 5 }).map((_, idx) => (
                         <AppIcon
                           key={idx}
                           name="star"
                           size={16}
-                          color={idx < Math.round(product.rating) ? '#FBBF24' : theme.border}
+                          color={idx < Math.round(averageRating) ? '#FBBF24' : theme.border}
                         />
                       ))}
                     </View>
-                    <Text style={[styles.ratingCount, { color: theme.muted }]}>{product.reviews} đánh giá</Text>
+                    <Text style={[styles.ratingCount, { color: theme.muted }]}>{totalReviews} đánh giá</Text>
                   </View>
                   <View style={styles.ratingBars}>
                     {[5, 4, 3, 2, 1].map((star) => (
                       <View key={star} style={styles.ratingBarRow}>
                         <Text style={[styles.starLabel, { color: theme.muted }]}>{star}</Text>
                         <View style={[styles.barTrack, { backgroundColor: theme.border }]}>
-                          <View style={[styles.barFill, { width: `${(star / 5) * 80}%` }]} />
+                          <View style={[
+                            styles.barFill,
+                            {
+                              width: totalReviews ? `${(ratingCounts[star] || 0) / totalReviews * 100}%` : '0%',
+                            }
+                          ]} />
                         </View>
                         <AppIcon name="star" size={14} color="#FBBF24" />
                       </View>
@@ -385,9 +389,19 @@ export function ProductDetail({
                   <Text style={[styles.writeReviewText, { color: theme.primary }]}>Viết đánh giá của bạn</Text>
                 </TouchableOpacity>
 
+                {reviewsLoading && (
+                  <Text style={[styles.reviewsText, { color: theme.muted, paddingVertical: 8 }]}>Đang tải đánh giá...</Text>
+                )}
+
+                {reviews.length === 0 && !reviewsLoading && (
+                  <Text style={[styles.reviewsText, { color: theme.muted, paddingVertical: 8 }]}>
+                    Chưa có đánh giá nào. Hãy là người đầu tiên!
+                  </Text>
+                )}
+
                 {reviews.map((r) => (
                   <View 
-                    key={r.id} 
+                    key={r._id || r.productId + r.userId + (r.comment || '')} 
                     style={[
                       styles.reviewCard,
                       {
@@ -400,7 +414,7 @@ export function ProductDetail({
                         <AppIcon name="user" size={20} color={theme.muted} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={[styles.reviewName, { color: theme.text }]}>{r.name}</Text>
+                        <Text style={[styles.reviewName, { color: theme.text }]}>Khách hàng</Text>
                         <View style={styles.ratingStarsRow}>
                           {Array.from({ length: 5 }).map((_, idx) => (
                             <AppIcon
@@ -412,16 +426,16 @@ export function ProductDetail({
                           ))}
                         </View>
                       </View>
-                      <Text style={[styles.reviewDate, { color: theme.muted }]}>{r.date}</Text>
+                      <Text style={[styles.reviewDate, { color: theme.muted }]}>{formatReviewDate(r.createdAt)}</Text>
                     </View>
-                    <Text style={[styles.reviewComment, { color: theme.text }]}>{r.comment}</Text>
+                    {r.comment ? <Text style={[styles.reviewComment, { color: theme.text }]}>{r.comment}</Text> : null}
                     {r.images && r.images.length > 0 && (
                       <View style={styles.reviewImagesRow}>
                         {r.images
-                          .slice(0, expandedReviews[r.id] ? r.images.length : 4)
+                          .slice(0, expandedReviews[r._id || r.productId] ? r.images.length : 4)
                           .map((img, idx) => {
                             const extra = r.images.length - 4;
-                            const showOverlay = !expandedReviews[r.id] && idx === 3 && extra > 0;
+                            const showOverlay = !(expandedReviews[r._id || r.productId]) && idx === 3 && extra > 0;
                             const Wrapper = showOverlay ? TouchableOpacity : View;
                             return (
                               <Wrapper
@@ -439,7 +453,7 @@ export function ProductDetail({
                                 activeOpacity={0.8}
                                 onPress={
                                   showOverlay
-                                    ? () => setExpandedReviews(prev => ({ ...prev, [r.id]: true }))
+                                    ? () => setExpandedReviews(prev => ({ ...prev, [r._id || r.productId]: true }))
                                     : undefined
                                 }
                               >

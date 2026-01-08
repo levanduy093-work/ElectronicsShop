@@ -162,10 +162,10 @@ const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS): 
   };
 };
 
-const mapApiProductToUi = (product: ApiProduct): Product => {
-  const stockNumber = product.stock ?? 0;
-  const stockLabel =
-    stockNumber <= 0 ? 'Out of Stock' : stockNumber < 5 ? 'Low Stock' : 'In Stock';
+  const mapApiProductToUi = (product: ApiProduct): Product => {
+    const stockNumber = product.stock ?? 0;
+    const stockLabel =
+      stockNumber <= 0 ? 'Out of Stock' : stockNumber < 5 ? 'Low Stock' : 'In Stock';
 
   const price = product.price?.salePrice ?? product.price?.originalPrice ?? 0;
   const originalPrice = product.price?.originalPrice || undefined;
@@ -642,6 +642,7 @@ function App(): React.JSX.Element {
               setCurrentTab('profile');
               setCurrentScreen('auth');
             }}
+            accessToken={authTokens?.accessToken}
             theme={theme}
           />
         ) : null;
