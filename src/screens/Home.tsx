@@ -11,11 +11,12 @@ interface HomeProps {
   onProductClick?: (product: Product) => void;
   theme?: Theme;
   products?: Product[];
+  onSelectCategory?: (category: string) => void;
 }
 
 const { width } = Dimensions.get('window');
 
-export function Home({ onNavigate, onProductClick, theme, products = [] }: HomeProps) {
+export function Home({ onNavigate, onProductClick, theme, products = [], onSelectCategory }: HomeProps) {
   const { theme: ctxTheme } = useTheme();
   const resolvedTheme = theme || ctxTheme || lightTheme;
   const [visibleCount, setVisibleCount] = React.useState(10);
@@ -78,7 +79,10 @@ export function Home({ onNavigate, onProductClick, theme, products = [] }: HomeP
           {CATEGORIES.map((cat) => (
             <TouchableOpacity
               key={cat.id}
-              onPress={() => onNavigate('catalog')}
+              onPress={() => {
+                onSelectCategory?.(cat.name);
+                onNavigate('catalog');
+              }}
               style={styles.categoryItem}
               activeOpacity={0.7}
             >

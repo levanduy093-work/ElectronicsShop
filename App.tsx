@@ -51,6 +51,41 @@ const DEFAULT_PROFILE = {
   avatar: "",
 };
 
+const CATEGORY_ALIASES: Record<string, string> = {
+  'vi dieu khien': 'Vi điều khiển',
+  'controller': 'Vi điều khiển',
+  'microcontroller': 'Vi điều khiển',
+  'cảm biến': 'Cảm biến',
+  'sensor': 'Cảm biến',
+  'nguon & pin': 'Nguồn & Pin',
+  'nguon': 'Nguồn & Pin',
+  'power': 'Nguồn & Pin',
+  'battery': 'Nguồn & Pin',
+  'dây & cáp': 'Dây & Cáp',
+  'day & cap': 'Dây & Cáp',
+  'cable': 'Dây & Cáp',
+  'wire': 'Dây & Cáp',
+  'dụng cụ': 'Dụng cụ',
+  'dung cu': 'Dụng cụ',
+  'tool': 'Dụng cụ',
+  'tools': 'Dụng cụ',
+  'ic số': 'IC số',
+  'ic so': 'IC số',
+  'ic': 'IC số',
+  'digital ic': 'IC số',
+  'điện trở': 'Điện trở',
+  'dien tro': 'Điện trở',
+  'resistor': 'Điện trở',
+  'tụ điện': 'Tụ điện',
+  'tu dien': 'Tụ điện',
+  'capacitor': 'Tụ điện',
+};
+
+const normalizeCategoryName = (value?: string) => {
+  const key = (value || '').trim().toLowerCase();
+  return CATEGORY_ALIASES[key] || (value || '').trim();
+};
+
 async function persistAuthState(
   tokens: { accessToken: string; refreshToken: string },
   profile: typeof DEFAULT_PROFILE,
@@ -204,6 +239,7 @@ function App(): React.JSX.Element {
   const [currentTab, setCurrentTab] = useState<NavTab>('home');
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [previousScreen, setPreviousScreen] = useState<Screen>('home');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
   const productsRef = useRef<Product[]>(PRODUCTS);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -356,8 +392,12 @@ function App(): React.JSX.Element {
       }
 
       // Category filter
-      if (filters.categories.length > 0 && !filters.categories.includes(product.category)) {
-        return false;
+      if (filters.categories.length > 0) {
+        const productCat = normalizeCategoryName(product.category);
+        const filterCats = filters.categories.map(normalizeCategoryName);
+        if (!filterCats.includes(productCat)) {
+          return false;
+        }
       }
 
       // Rating filter
@@ -385,6 +425,11 @@ function App(): React.JSX.Element {
   const handleTabChange = (tab: NavTab) => {
     setCurrentTab(tab);
     setCurrentScreen(tab);
+  };
+  const handleSelectCategory = (category: string) => {
+    setSelectedCategory(category);
+    setCurrentTab('catalog');
+    setCurrentScreen('catalog');
   };
 
   const navigateToProduct = (product: Product) => {
@@ -579,7 +624,7 @@ function App(): React.JSX.Element {
   const renderContent = () => {
     switch (currentScreen) {
       case 'home':
-        return <Home onNavigate={(tab) => handleTabChange(tab as NavTab)} onProductClick={navigateToProduct} theme={theme} products={products} />;
+        return <Home onNavigate={(tab) => handleTabChange(tab as NavTab)} onProductClick={navigateToProduct} theme={theme} products={products} onSelectCategory={handleSelectCategory} />;
       case 'catalog':
         return (
           <Catalog 
@@ -589,6 +634,7 @@ function App(): React.JSX.Element {
             applyFilters={applyFilters}
             theme={theme}
             products={products}
+            initialCategory={selectedCategory}
           />
         );
       case 'ai':

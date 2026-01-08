@@ -17,11 +17,46 @@ interface CatalogProps {
   applyFilters?: (products: Product[], searchText?: string) => Product[];
   theme?: Theme;
   products?: Product[];
+  initialCategory?: string;
 }
 
-export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, theme = lightTheme, products = [] }: CatalogProps) {
-  const [activeCategory, setActiveCategory] = useState<string>('All');
+export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, theme = lightTheme, products = [], initialCategory = 'All' }: CatalogProps) {
+  const [activeCategory, setActiveCategory] = useState<string>(initialCategory || 'All');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const normalizeCategory = (value?: string) => {
+    const key = (value || '').trim().toLowerCase();
+    const map: Record<string, string> = {
+      'vi dieu khien': 'Vi điều khiển',
+      'controller': 'Vi điều khiển',
+      'microcontroller': 'Vi điều khiển',
+      'cảm biến': 'Cảm biến',
+      'sensor': 'Cảm biến',
+      'nguon & pin': 'Nguồn & Pin',
+      'nguon': 'Nguồn & Pin',
+      'power': 'Nguồn & Pin',
+      'battery': 'Nguồn & Pin',
+      'dây & cáp': 'Dây & Cáp',
+      'day & cap': 'Dây & Cáp',
+      'cable': 'Dây & Cáp',
+      'wire': 'Dây & Cáp',
+      'dụng cụ': 'Dụng cụ',
+      'dung cu': 'Dụng cụ',
+      'tool': 'Dụng cụ',
+      'tools': 'Dụng cụ',
+      'ic số': 'IC số',
+      'ic so': 'IC số',
+      'ic': 'IC số',
+      'digital ic': 'IC số',
+      'điện trở': 'Điện trở',
+      'dien tro': 'Điện trở',
+      'resistor': 'Điện trở',
+      'tụ điện': 'Tụ điện',
+      'tu dien': 'Tụ điện',
+      'capacitor': 'Tụ điện',
+    };
+    return map[key] || (value || '').trim();
+  };
 
   // Start with all products
   let filteredProducts = products;
@@ -35,7 +70,8 @@ export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, 
   
   // Apply category filter (if not 'All')
   if (activeCategory !== 'All') {
-    filteredProducts = filteredProducts.filter(p => p.category === activeCategory);
+    const normalizedActive = normalizeCategory(activeCategory);
+    filteredProducts = filteredProducts.filter(p => normalizeCategory(p.category) === normalizedActive);
   }
   
   // Apply advanced filters (price, rating, stock, categories from filter screen)
@@ -44,6 +80,10 @@ export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, 
   }
 
   const categories = ['All', ...CATEGORIES.map(c => c.name)];
+
+  React.useEffect(() => {
+    setActiveCategory(initialCategory || 'All');
+  }, [initialCategory]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>

@@ -48,6 +48,8 @@ export const CATEGORIES: Category[] = [
   { id: "4", name: "Dây & Cáp", icon: "cable-data", type: "passive" },
   { id: "5", name: "Dụng cụ", icon: "toolbox", type: "tools" },
   { id: "6", name: "IC số", icon: "integrated-circuit", type: "active" },
+  { id: "7", name: "Điện trở", icon: "omega", type: "passive" },
+  { id: "8", name: "Tụ điện", icon: "capacitor", type: "passive" },
 ];
 
 export const PRODUCTS: Product[] = [
