@@ -18,7 +18,14 @@ const { width } = Dimensions.get('window');
 export function Home({ onNavigate, onProductClick, theme, products = [] }: HomeProps) {
   const { theme: ctxTheme } = useTheme();
   const resolvedTheme = theme || ctxTheme || lightTheme;
-  const featuredProducts = (products.length ? products : []).slice(0, 4);
+  const [visibleCount, setVisibleCount] = React.useState(10);
+
+  React.useEffect(() => {
+    setVisibleCount(10);
+  }, [products]);
+
+  const visibleProducts = (products.length ? products : []).slice(0, visibleCount);
+  const featuredProducts = visibleProducts;
   const raspberryProduct = products.find(p => p.name.toLowerCase().includes('rasp')) || products[0];
 
   return (
@@ -121,6 +128,18 @@ export function Home({ onNavigate, onProductClick, theme, products = [] }: HomeP
             />
           ))}
         </View>
+        {products.length > visibleCount && (
+          <TouchableOpacity
+            onPress={() => setVisibleCount(prev => Math.min(prev + 10, products.length))}
+            style={[styles.loadMoreButton, { borderColor: resolvedTheme.primary }]}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.loadMoreText, { color: resolvedTheme.primary }]}>
+              Xem thêm sản phẩm ({Math.max(products.length - visibleCount, 0)})
+            </Text>
+            <AppIcon name="chevron-down" size={16} color={resolvedTheme.primary} />
+          </TouchableOpacity>
+        )}
       </View>
     </ScrollView>
   );
@@ -303,5 +322,20 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 16,
     justifyContent: 'space-between',
+  },
+  loadMoreButton: {
+    marginTop: 12,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  loadMoreText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
