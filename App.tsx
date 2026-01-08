@@ -86,6 +86,31 @@ const normalizeCategoryName = (value?: string) => {
   return CATEGORY_ALIASES[key] || (value || '').trim();
 };
 
+const normalizeText = (value?: string) =>
+  (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+const fuzzyMatch = (haystack: string, needle: string) => {
+  const h = normalizeText(haystack);
+  const n = normalizeText(needle);
+  if (!n) return true;
+  if (h.includes(n)) return true;
+
+  const tokens = n.split(/\s+/).filter(Boolean);
+  if (!tokens.length) return true;
+
+  // Mỗi từ khóa nhỏ phải xuất hiện ở đâu đó trong chuỗi gốc
+  const allTokensIncluded = tokens.every(t => h.includes(t));
+  if (allTokensIncluded) return true;
+
+  // Cho phép match prefix của từ
+  const words = h.split(/\s+/).filter(Boolean);
+  return tokens.every(t => words.some(w => w.startsWith(t)));
+};
+
 async function persistAuthState(
   tokens: { accessToken: string; refreshToken: string },
   profile: typeof DEFAULT_PROFILE,
@@ -386,6 +411,7 @@ function App(): React.JSX.Element {
   // Filter function to apply filters to products
   const applyFilters = (products: Product[], searchText?: string): Product[] => {
     return products.filter(product => {
+      const normalizedSearch = normalizeText(searchText);
       // Price range filter
       if (product.price < filters.priceRange[0] || product.price > filters.priceRange[1]) {
         return false;
@@ -411,8 +437,19 @@ function App(): React.JSX.Element {
       }
 
       // Search text filter
-      if (searchText && !product.name.toLowerCase().includes(searchText.toLowerCase())) {
-        return false;
+      if (searchText) {
+        const haystacks = [
+          product.name,
+          product.code || '',
+          product.category || '',
+          normalizeCategoryName(product.category),
+          product.description || '',
+          Object.entries(product.specs || {})
+            .map(([k, v]) => `${k} ${v}`)
+            .join(' '),
+        ];
+        const matches = haystacks.some(hay => fuzzyMatch(hay, searchText));
+        if (!matches) return false;
       }
 
       return true;

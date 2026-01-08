@@ -50,8 +50,55 @@ export function SearchScreen({
   };
 
   // Apply filters and search
+  const normalizeText = (value?: string) =>
+    (value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+
+  const fuzzyMatch = (haystack: string, needle: string) => {
+    const h = normalizeText(haystack);
+    const n = normalizeText(needle);
+    if (!n) return true;
+    if (h.includes(n)) return true;
+    const tokens = n.split(/\s+/).filter(Boolean);
+    if (!tokens.length) return true;
+    const allTokensIncluded = tokens.every(t => h.includes(t));
+    if (allTokensIncluded) return true;
+    const words = h.split(/\s+/).filter(Boolean);
+    return tokens.every(t => words.some(w => w.startsWith(t)));
+  };
+
+  const categoryAliases: Record<string, string[]> = {
+    capacitor: ['tu dien', 'tụ điện', 'tụ điện hóa', 'tudien'],
+    resistor: ['dien tro', 'điện trở', 'trở'],
+    microcontroller: ['vi dieu khien', 'vi điều khiển', 'controller'],
+    controller: ['vi dieu khien', 'vi điều khiển', 'controller'],
+    sensor: ['cam bien', 'cảm biến'],
+    power: ['nguon', 'nguon & pin', 'nguồn', 'nguồn & pin', 'battery', 'pin'],
+    battery: ['pin', 'nguon', 'nguon & pin'],
+    cable: ['day cap', 'dây cáp', 'dây & cáp', 'wire'],
+    wire: ['day', 'day cap', 'dây', 'cable'],
+    tool: ['dung cu', 'dụng cụ', 'tools'],
+    ic: ['ic so', 'ic số', 'digital ic'],
+  };
+
   const filteredProducts = query
-    ? (applyFilters ? applyFilters(products, query) : products.filter(p => p.name.toLowerCase().includes(query.toLowerCase())))
+    ? products.filter(p => {
+        const aliases = categoryAliases[normalizeText(p.category)] || [];
+        const haystacks = [
+          p.name,
+          p.code || '',
+          p.category || '',
+          ...aliases,
+          p.description || '',
+          Object.entries(p.specs || {})
+            .map(([k, v]) => `${k} ${v}`)
+            .join(' '),
+        ];
+        return haystacks.some(h => fuzzyMatch(h, query));
+      })
     : [];
 
   const trendingSearches = ['Raspberry Pi 5', 'ESP32 Cam', 'Mỏ hàn', 'Cảm biến nhiệt độ', 'Led RGB'];
