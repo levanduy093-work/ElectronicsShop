@@ -13,11 +13,12 @@ interface HomeProps {
   theme?: Theme;
   products?: Product[];
   onSelectCategory?: (category: string) => void;
+  onRefreshProducts?: () => void;
 }
 
 const { width } = Dimensions.get('window');
 
-export function Home({ onNavigate, onProductClick, theme, products = [], onSelectCategory }: HomeProps) {
+export function Home({ onNavigate, onProductClick, theme, products = [], onSelectCategory, onRefreshProducts }: HomeProps) {
   const { theme: ctxTheme } = useTheme();
   const resolvedTheme = theme || ctxTheme || lightTheme;
   const [visibleCount, setVisibleCount] = React.useState(10);
@@ -32,12 +33,7 @@ export function Home({ onNavigate, onProductClick, theme, products = [], onSelec
 
     const handleProductUpdate = (updatedProduct: any) => {
       console.log('Received product update:', updatedProduct);
-      Alert.alert(
-        'Cập nhật sản phẩm',
-        `Sản phẩm "${updatedProduct.name}" vừa được cập nhật giá/kho!`
-      );
-      // Ở đây bạn có thể gọi lại API lấy danh sách sản phẩm để reload UI
-      // onRefresh?.(); 
+      onRefreshProducts?.();
     };
 
     socketService.on('product_updated', handleProductUpdate);

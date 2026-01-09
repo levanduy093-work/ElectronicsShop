@@ -680,7 +680,16 @@ function App(): React.JSX.Element {
   const renderContent = () => {
     switch (currentScreen) {
       case 'home':
-        return <Home onNavigate={(tab) => handleTabChange(tab as NavTab)} onProductClick={navigateToProduct} theme={theme} products={products} onSelectCategory={handleSelectCategory} />;
+        return (
+          <Home
+            onNavigate={(tab) => handleTabChange(tab as NavTab)}
+            onProductClick={navigateToProduct}
+            theme={theme}
+            products={products}
+            onSelectCategory={handleSelectCategory}
+            onRefreshProducts={() => { void loadProducts(); }}
+          />
+        );
       case 'catalog':
         return (
           <Catalog 
