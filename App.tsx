@@ -32,6 +32,7 @@ import { Address, DEFAULT_ADDRESSES } from './src/lib/address';
 import { darkTheme, lightTheme, ThemeProvider } from './src/lib/theme';
 import { ToastProvider } from './src/components/common/ToastProvider';
 import { ApiOrder, ApiProduct, AuthResponse, addFavorite, configureApiAuth, createOrder as apiCreateOrder, getFavorites as apiGetFavorites, getOrderById, getOrders as apiGetOrders, getProducts, removeFavorite, updateProfile as apiUpdateProfile } from './src/lib/api';
+import { socketService } from './src/lib/socket';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'settings' | 'support' | 'wishlist' | 'change-password';
@@ -113,11 +114,12 @@ const fuzzyMatch = (haystack: string, needle: string) => {
 async function persistAuthState(
   tokens: { accessToken: string; refreshToken: string },
   profile: typeof DEFAULT_PROFILE,
+  userId?: string | null,
 ) {
   try {
     await AsyncStorage.setItem(
       AUTH_STORAGE_KEY,
-      JSON.stringify({ tokens, profile }),
+      JSON.stringify({ tokens, profile, userId }),
     );
   } catch (error) {
     console.warn('App.tsx - Failed to persist auth state', error);
@@ -293,6 +295,7 @@ function App(): React.JSX.Element {
     onlyInStock: false,
   });
   const [userProfile, setUserProfile] = useState(DEFAULT_PROFILE);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const loadProducts = async () => {
     try {
@@ -358,11 +361,14 @@ function App(): React.JSX.Element {
 
   const syncAuthTokens = useCallback((
     tokens: { accessToken: string; refreshToken: string },
-    user?: { name?: string; email?: string; avatar?: string },
+    user?: { name?: string; email?: string; avatar?: string; _id?: string },
+    userIdOverride?: string | null,
   ) => {
     authTokensRef.current = tokens;
     setAuthTokens(tokens);
     setIsLoggedIn(true);
+    const nextUserId = userIdOverride ?? user?._id ?? userId ?? null;
+    setUserId(nextUserId);
     setUserProfile(prev => {
       const nextProfile = {
         ...prev,
@@ -370,16 +376,17 @@ function App(): React.JSX.Element {
         ...(user?.email ? { email: user.email } : {}),
         ...(user?.avatar ? { avatar: user.avatar } : {}),
       };
-      void persistAuthState(tokens, nextProfile);
+      void persistAuthState(tokens, nextProfile, nextUserId);
       return nextProfile;
     });
-  }, []);
+  }, [userId]);
 
   const handleAuthFailure = useCallback(() => {
     setIsLoggedIn(false);
     setAuthTokens(null);
     authTokensRef.current = null;
     setUserProfile(DEFAULT_PROFILE);
+    setUserId(null);
     void clearPersistedAuthState();
   }, []);
 
@@ -398,7 +405,7 @@ function App(): React.JSX.Element {
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed?.tokens?.accessToken && parsed?.tokens?.refreshToken) {
-            syncAuthTokens(parsed.tokens, parsed.profile);
+            syncAuthTokens(parsed.tokens, parsed.profile, parsed.userId ?? null);
             await loadOrders(parsed.tokens.accessToken);
             await loadFavorites(parsed.tokens.accessToken);
           }
@@ -418,11 +425,34 @@ function App(): React.JSX.Element {
   }, []);
 
   useEffect(() => {
+    socketService.connect();
+    const handleDbChange = (payload: any) => {
+      if (payload?.collection === 'users' && userId && `${payload.documentId}` === `${userId}`) {
+        const doc = payload.fullDocument || {};
+        setUserProfile(prev => {
+          const next = {
+            ...prev,
+            ...(doc.name ? { name: doc.name } : {}),
+            ...(doc.email ? { email: doc.email } : {}),
+            ...(doc.avatar ? { avatar: doc.avatar } : {}),
+          };
+          void persistAuthState(authTokensRef.current as any, next, userId);
+          return next;
+        });
+      }
+    };
+    socketService.on('db_change', handleDbChange);
+    return () => {
+      socketService.off('db_change');
+    };
+  }, [userId]);
+
+  useEffect(() => {
     if (isRestoringAuth) return;
     if (isLoggedIn && authTokens) {
-      void persistAuthState(authTokens, userProfile);
+      void persistAuthState(authTokens, userProfile, userId);
     }
-  }, [authTokens, isLoggedIn, userProfile, isRestoringAuth]);
+  }, [authTokens, isLoggedIn, userProfile, isRestoringAuth, userId]);
 
   useEffect(() => {
     if (isLoggedIn && authTokens?.accessToken) {
@@ -454,7 +484,7 @@ function App(): React.JSX.Element {
         const updatedUser = result.user || data;
         setUserProfile(prev => {
           const next = { ...prev, ...updatedUser };
-          void persistAuthState(authTokensRef.current as any, next);
+          void persistAuthState(authTokensRef.current as any, next, userId);
           return next;
         });
         return true;
@@ -688,7 +718,7 @@ function App(): React.JSX.Element {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
     };
-    syncAuthTokens(tokens, data.user);
+    syncAuthTokens(tokens, data.user, data.user?._id ?? null);
     void loadOrders(tokens.accessToken);
     void loadFavorites(tokens.accessToken);
 

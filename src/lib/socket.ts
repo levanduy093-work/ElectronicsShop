@@ -44,6 +44,14 @@ class SocketService {
   off(event: string) {
     this.socket?.off(event);
   }
+
+  emit(event: string, data?: any) {
+    this.socket?.emit(event, data);
+  }
+
+  getId() {
+    return this.socket?.id;
+  }
 }
 
 export const socketService = new SocketService();
