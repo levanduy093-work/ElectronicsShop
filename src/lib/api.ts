@@ -82,13 +82,57 @@ export type ApiOrder = {
 const API_BASE_URL =
   Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 
+type RequestOptions = {
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  body?: Record<string, unknown>;
+  token?: string;
+  skipAuthRefresh?: boolean;
+};
+
+type AuthTokens = {
+  accessToken: string;
+  refreshToken: string;
+};
+
+type ApiAuthHandlers = {
+  getTokens: () => AuthTokens | null;
+  onTokensRefreshed?: (tokens: AuthTokens, user?: any) => void;
+  onAuthFailure?: () => void;
+};
+
+let apiAuthHandlers: ApiAuthHandlers | null = null;
+
+export function configureApiAuth(handlers: ApiAuthHandlers | null) {
+  apiAuthHandlers = handlers;
+}
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (!apiAuthHandlers?.getTokens) return null;
+
+  const tokens = apiAuthHandlers.getTokens();
+  if (!tokens?.refreshToken) return null;
+
+  try {
+    const result = await postJson<AuthResponse>(
+      '/auth/refresh',
+      { refreshToken: tokens.refreshToken },
+      { skipAuthRefresh: true },
+    );
+    const newTokens = {
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    };
+    apiAuthHandlers.onTokensRefreshed?.(newTokens, (result as any)?.user);
+    return result.accessToken;
+  } catch {
+    apiAuthHandlers?.onAuthFailure?.();
+    return null;
+  }
+}
+
 async function requestJson<TResponse>(
   path: string,
-  options: {
-    method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
-    body?: Record<string, unknown>;
-    token?: string;
-  },
+  options: RequestOptions,
 ): Promise<TResponse> {
   const url = `${API_BASE_URL}${path}`;
 
@@ -114,10 +158,24 @@ async function requestJson<TResponse>(
   }
 
   if (!response.ok) {
+    if (response.status === 401 && options.token && !options.skipAuthRefresh) {
+      const refreshedToken = await refreshAccessToken();
+      if (refreshedToken) {
+        return requestJson<TResponse>(path, {
+          ...options,
+          token: refreshedToken,
+          skipAuthRefresh: true,
+        });
+      }
+    }
+
+    const fallbackMessage = response.status === 401
+      ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
+      : 'Đã xảy ra lỗi. Vui lòng thử lại.';
     const message =
       (Array.isArray(data?.message) && data?.message[0]) ||
       data?.message ||
-      'Đã xảy ra lỗi. Vui lòng thử lại.';
+      fallbackMessage;
     throw new Error(message);
   }
 
@@ -127,31 +185,49 @@ async function requestJson<TResponse>(
 async function postJson<TResponse>(
   path: string,
   body: Record<string, unknown>,
-  options?: { token?: string },
+  options?: { token?: string; skipAuthRefresh?: boolean },
 ): Promise<TResponse> {
-  return requestJson<TResponse>(path, { method: 'POST', body, token: options?.token });
+  return requestJson<TResponse>(path, {
+    method: 'POST',
+    body,
+    token: options?.token,
+    skipAuthRefresh: options?.skipAuthRefresh,
+  });
 }
 
 async function getJson<TResponse>(
   path: string,
-  options?: { token?: string },
+  options?: { token?: string; skipAuthRefresh?: boolean },
 ): Promise<TResponse> {
-  return requestJson<TResponse>(path, { method: 'GET', token: options?.token });
+  return requestJson<TResponse>(path, {
+    method: 'GET',
+    token: options?.token,
+    skipAuthRefresh: options?.skipAuthRefresh,
+  });
 }
 
 async function patchJson<TResponse>(
   path: string,
   body: Record<string, unknown>,
-  options?: { token?: string },
+  options?: { token?: string; skipAuthRefresh?: boolean },
 ): Promise<TResponse> {
-  return requestJson<TResponse>(path, { method: 'PATCH', body, token: options?.token });
+  return requestJson<TResponse>(path, {
+    method: 'PATCH',
+    body,
+    token: options?.token,
+    skipAuthRefresh: options?.skipAuthRefresh,
+  });
 }
 
 async function deleteJson<TResponse>(
   path: string,
-  options?: { token?: string },
+  options?: { token?: string; skipAuthRefresh?: boolean },
 ): Promise<TResponse> {
-  return requestJson<TResponse>(path, { method: 'DELETE', token: options?.token });
+  return requestJson<TResponse>(path, {
+    method: 'DELETE',
+    token: options?.token,
+    skipAuthRefresh: options?.skipAuthRefresh,
+  });
 }
 
 export function getProducts() {

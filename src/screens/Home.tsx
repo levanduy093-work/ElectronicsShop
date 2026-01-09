@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Alert } from 'react-native';
 import { CATEGORIES, Product } from '../lib/data';
 import { ProductCard } from '../components/ui/ProductCard';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
+import { socketService } from '../lib/socket';
 
 interface HomeProps {
   onNavigate: (tab: string) => void;
@@ -24,6 +25,28 @@ export function Home({ onNavigate, onProductClick, theme, products = [], onSelec
   React.useEffect(() => {
     setVisibleCount(10);
   }, [products]);
+
+  // Real-time listener
+  React.useEffect(() => {
+    socketService.connect();
+
+    const handleProductUpdate = (updatedProduct: any) => {
+      console.log('Received product update:', updatedProduct);
+      Alert.alert(
+        'Cập nhật sản phẩm',
+        `Sản phẩm "${updatedProduct.name}" vừa được cập nhật giá/kho!`
+      );
+      // Ở đây bạn có thể gọi lại API lấy danh sách sản phẩm để reload UI
+      // onRefresh?.(); 
+    };
+
+    socketService.on('product_updated', handleProductUpdate);
+
+    return () => {
+      socketService.off('product_updated');
+      // socketService.disconnect(); // Có thể giữ kết nối nếu muốn
+    };
+  }, []);
 
   const visibleProducts = (products.length ? products : []).slice(0, visibleCount);
   const featuredProducts = visibleProducts;

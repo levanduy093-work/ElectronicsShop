@@ -3,7 +3,7 @@
  * React Native version converted from Figma design
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -32,7 +32,7 @@ import { Product, CartItem, Order, PRODUCTS } from './src/lib/data';
 import { Address, DEFAULT_ADDRESSES } from './src/lib/address';
 import { darkTheme, lightTheme, ThemeProvider } from './src/lib/theme';
 import { ToastProvider } from './src/components/common/ToastProvider';
-import { ApiOrder, ApiProduct, AuthResponse, addFavorite, createOrder as apiCreateOrder, getFavorites as apiGetFavorites, getOrderById, getOrders as apiGetOrders, getProducts, removeFavorite } from './src/lib/api';
+import { ApiOrder, ApiProduct, AuthResponse, addFavorite, configureApiAuth, createOrder as apiCreateOrder, getFavorites as apiGetFavorites, getOrderById, getOrders as apiGetOrders, getProducts, removeFavorite } from './src/lib/api';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'payment-methods' | 'settings' | 'support' | 'wishlist' | 'change-password';
@@ -350,6 +350,41 @@ function App(): React.JSX.Element {
     }
   };
 
+  const syncAuthTokens = useCallback((
+    tokens: { accessToken: string; refreshToken: string },
+    user?: { name?: string; email?: string; avatar?: string },
+  ) => {
+    authTokensRef.current = tokens;
+    setAuthTokens(tokens);
+    setIsLoggedIn(true);
+    setUserProfile(prev => {
+      const nextProfile = {
+        ...prev,
+        ...(user?.name ? { name: user.name } : {}),
+        ...(user?.email ? { email: user.email } : {}),
+        ...(user?.avatar ? { avatar: user.avatar } : {}),
+      };
+      void persistAuthState(tokens, nextProfile);
+      return nextProfile;
+    });
+  }, []);
+
+  const handleAuthFailure = useCallback(() => {
+    setIsLoggedIn(false);
+    setAuthTokens(null);
+    authTokensRef.current = null;
+    setUserProfile(DEFAULT_PROFILE);
+    void clearPersistedAuthState();
+  }, []);
+
+  useEffect(() => {
+    configureApiAuth({
+      getTokens: () => authTokensRef.current,
+      onTokensRefreshed: (tokens, user) => syncAuthTokens(tokens, user),
+      onAuthFailure: handleAuthFailure,
+    });
+  }, [handleAuthFailure, syncAuthTokens]);
+
   useEffect(() => {
     const restoreAuth = async () => {
       try {
@@ -357,12 +392,7 @@ function App(): React.JSX.Element {
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed?.tokens?.accessToken && parsed?.tokens?.refreshToken) {
-            authTokensRef.current = parsed.tokens;
-            setAuthTokens(parsed.tokens);
-            if (parsed.profile) {
-              setUserProfile(prev => ({ ...prev, ...parsed.profile }));
-            }
-            setIsLoggedIn(true);
+            syncAuthTokens(parsed.tokens, parsed.profile);
             await loadOrders(parsed.tokens.accessToken);
             await loadFavorites(parsed.tokens.accessToken);
           }
@@ -375,7 +405,7 @@ function App(): React.JSX.Element {
     };
 
     restoreAuth();
-  }, []);
+  }, [syncAuthTokens]);
 
   useEffect(() => {
     void loadProducts();
@@ -629,20 +659,9 @@ function App(): React.JSX.Element {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
     };
-    const profile = {
-      name: data.user?.name ?? userProfile.name,
-      email: data.user?.email ?? userProfile.email,
-      avatar: data.user?.avatar ?? userProfile.avatar,
-    };
-
-    authTokensRef.current = tokens;
-    setAuthTokens(tokens);
-    setUserProfile(profile);
-
-    setIsLoggedIn(true);
+    syncAuthTokens(tokens, data.user);
     void loadOrders(tokens.accessToken);
     void loadFavorites(tokens.accessToken);
-    void persistAuthState(tokens, profile);
 
     if (currentScreen === 'auth') {
       if (previousScreen === 'product-detail') {
@@ -698,13 +717,7 @@ function App(): React.JSX.Element {
             onNavigateToSettings={() => setCurrentScreen('settings')}
             onNavigateToSupport={() => setCurrentScreen('support')}
             onNavigateToWishlist={() => setCurrentScreen('wishlist')}
-            onLogout={() => {
-              setIsLoggedIn(false);
-              setAuthTokens(null);
-              authTokensRef.current = null;
-              setUserProfile(DEFAULT_PROFILE);
-              void clearPersistedAuthState();
-            }}
+            onLogout={handleAuthFailure}
             userProfile={userProfile}
             onUpdateProfile={(data) => setUserProfile(prev => ({ ...prev, ...data }))}
             theme={theme}
