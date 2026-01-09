@@ -78,6 +78,14 @@ const iconMap: Record<string, string> = {
   'truck': 'truck',
   'check-circle': 'check-circle',
   'cash': 'cash',
+  'omega': 'omega',
+  'capacitor': 'capacitor',
+  'flash': 'flash',
+  'lightbulb-on-outline': 'lightbulb-on-outline',
+  'coil': 'coil',
+  'switch': 'switch',
+  'toggle-switch': 'toggle-switch',
+  'package-variant': 'package-variant',
 };
 
 export function AppIcon({ name, size = 24, color = '#000', style }: IconProps) {
