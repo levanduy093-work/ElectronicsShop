@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Image, View, StyleSheet, ImageProps, Text } from 'react-native';
 
 interface ImageWithFallbackProps extends ImageProps {
@@ -12,6 +12,16 @@ export function ImageWithFallback({
   ...props 
 }: ImageWithFallbackProps) {
   const [hasError, setHasError] = useState(false);
+  const [isUsingProxy, setIsUsingProxy] = useState(false);
+
+  const resolvedSource = useMemo(() => {
+    if (!isUsingProxy) return source;
+    const uri = (source as any)?.uri as string | undefined;
+    if (!uri) return source;
+    // Proxy qua weserv để tránh lỗi SSL/hotlink trên một số domain
+    const stripped = uri.replace(/^https?:\/\//, '');
+    return { uri: `https://images.weserv.nl/?url=${encodeURIComponent(stripped)}` };
+  }, [isUsingProxy, source]);
 
   if (hasError) {
     return (
@@ -28,9 +38,16 @@ export function ImageWithFallback({
   return (
     <Image
       {...props}
-      source={source}
+      source={resolvedSource}
       style={style}
-      onError={() => setHasError(true)}
+      onError={() => {
+        const uri = (source as any)?.uri as string | undefined;
+        if (uri && !isUsingProxy) {
+          setIsUsingProxy(true);
+          return;
+        }
+        setHasError(true);
+      }}
     />
   );
 }

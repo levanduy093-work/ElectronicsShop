@@ -237,6 +237,13 @@ const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS): 
     });
   }
 
+  const normalizedImages = (product.images || [])
+    .map(img => (img || '').trim())
+    .filter(Boolean);
+  const primaryImage =
+    normalizedImages.find(() => true) ||
+    'https://images.unsplash.com/photo-1581093588401-99b6fa-2?auto=format&fit=crop&w=600&q=80';
+
   return {
     id: product._id,
     name: product.name,
@@ -245,8 +252,8 @@ const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS): 
     originalPrice,
     rating: product.averageRating ?? 4.5,
     reviews: product.reviewCount ?? 0,
-    image: product.images?.[0] || 'https://images.unsplash.com/photo-1581093588401-99b6fa-2?auto=format&fit=crop&w=600&q=80',
-    images: product.images ?? [],
+    image: primaryImage,
+    images: normalizedImages,
     category: product.category || 'Khác',
     stock: stockLabel,
     stockQuantity: stockNumber,
