@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, KeyboardEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MOCK_CHATS, ChatMessage } from '../lib/data';
+import { ChatMessage } from '../lib/data';
 import { MessageBubble } from '../components/ai/MessageBubble';
 import { TopBar } from '../components/layout/TopBar';
 import { AppIcon } from '../components/common/Icon';
@@ -13,7 +13,7 @@ interface AIChatProps {
 }
 
 export function AIChat({ theme = lightTheme, onNotificationClick }: AIChatProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>(MOCK_CHATS);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);

@@ -250,6 +250,14 @@ export function removeFavorite(productId: string, token: string) {
   return deleteJson<ApiProduct[]>(`/users/me/favorites/${productId}`, { token });
 }
 
+export function updateProfile(data: { name?: string; avatar?: string; email?: string }, token: string) {
+  return patchJson<{ user: any; accessToken?: string; refreshToken?: string }>(
+    '/users/me',
+    data,
+    { token },
+  );
+}
+
 export function getReviews(productId: string) {
   return getJson<ApiReview[]>(`/reviews/product/${productId}`);
 }

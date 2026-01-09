@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CATEGORIES } from '../lib/data';
+import { CATEGORIES, Product, extractCategoriesFromProducts } from '../lib/data';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
 
@@ -156,27 +156,35 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: t.muted }]}>Danh mục</Text>
           <View style={styles.categoriesContainer}>
-            {CATEGORIES.map((cat) => {
-              const isSelected = selectedCategories.includes(cat.name);
-              return (
-                <TouchableOpacity
-                  key={cat.id}
-                  onPress={() => toggleCategory(cat.name)}
-                  style={[
-                    styles.categoryTag,
-                    isSelected && styles.categoryTagSelected,
-                  ]}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.categoryText,
-                    isSelected && styles.categoryTextSelected,
-                  ]}>
-                    {cat.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+            {CATEGORIES.length > 0 ? (
+              CATEGORIES.map((cat) => {
+                const isSelected = selectedCategories.includes(cat.name);
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
+                    onPress={() => toggleCategory(cat.name)}
+                    style={[
+                      styles.categoryTag,
+                      isSelected && styles.categoryTagSelected,
+                    ]}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[
+                      styles.categoryText,
+                      isSelected && styles.categoryTextSelected,
+                    ]}>
+                      {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })
+            ) : (
+              <View style={styles.emptyCategoriesContainer}>
+                <Text style={[styles.emptyCategoriesText, { color: t.muted }]}>
+                  Chưa có danh mục nào
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -407,5 +415,13 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  emptyCategoriesContainer: {
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+  },
+  emptyCategoriesText: {
+    fontSize: 14,
+    color: '#6B7280',
   },
 });

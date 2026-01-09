@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, FlatList } from 'react-native';
-import { CATEGORIES, Product } from '../lib/data';
+import { CATEGORIES, Product, extractCategoriesFromProducts } from '../lib/data';
 import { ProductCard } from '../components/ui/ProductCard';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme } from '../lib/theme';
@@ -79,7 +79,9 @@ export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, 
     filteredProducts = applyFilters(filteredProducts);
   }
 
-  const categories = ['All', ...CATEGORIES.map(c => c.name)];
+  // Extract categories from products if CATEGORIES is empty
+  const displayCategories = CATEGORIES.length > 0 ? CATEGORIES : extractCategoriesFromProducts(products);
+  const categories = ['All', ...displayCategories.map(c => c.name)];
 
   React.useEffect(() => {
     setActiveCategory(initialCategory || 'All');

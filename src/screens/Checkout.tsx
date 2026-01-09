@@ -59,7 +59,7 @@ export function Checkout({ onBack, onSuccess, onPlaceOrder, placingOrder, cartIt
   const paymentOptions = [
     {
       name: 'VNPAY',
-      desc: 'Thanh toán qua QR, thẻ nội địa và thẻ quốc tế qua cổng VNPAY.',
+      desc: 'Thanh toán qua QR cổng VNPAY.',
       icon: null,
     },
     {

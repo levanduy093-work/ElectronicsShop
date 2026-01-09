@@ -206,57 +206,65 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
             </View>
             
             <ScrollView style={styles.voucherList}>
-              {AVAILABLE_VOUCHERS.map((voucher) => {
-                const isEligible = subtotal >= voucher.minOrder;
-                const isSelected = appliedVoucher?.code === voucher.code;
+              {AVAILABLE_VOUCHERS.length > 0 ? (
+                AVAILABLE_VOUCHERS.map((voucher) => {
+                  const isEligible = subtotal >= voucher.minOrder;
+                  const isSelected = appliedVoucher?.code === voucher.code;
 
-                return (
-                  <View
-                    key={voucher.code}
-                    style={[
-                      styles.voucherCard,
-                      { backgroundColor: t.surface, borderColor: t.border },
-                      isSelected && { borderColor: accentBorder, backgroundColor: accentBg },
-                      !isEligible && styles.voucherCardDisabled
-                    ]}
-                  >
-                    <View style={[styles.voucherIconContainer, { backgroundColor: accentBg }]}>
-                      <AppIcon name="ticket" size={24} color={accentBorder} />
-                    </View>
-                    <View style={styles.voucherInfo}>
-                      <View style={styles.voucherHeader}>
-                        <Text style={[styles.voucherCode, { color: t.text }]}>{voucher.code}</Text>
-                        {isSelected && <AppIcon name="check-circle" size={20} color={accentBorder} />}
+                  return (
+                    <View
+                      key={voucher.code}
+                      style={[
+                        styles.voucherCard,
+                        { backgroundColor: t.surface, borderColor: t.border },
+                        isSelected && { borderColor: accentBorder, backgroundColor: accentBg },
+                        !isEligible && styles.voucherCardDisabled
+                      ]}
+                    >
+                      <View style={[styles.voucherIconContainer, { backgroundColor: accentBg }]}>
+                        <AppIcon name="ticket" size={24} color={accentBorder} />
                       </View>
-                      <Text style={[styles.voucherDescription, { color: t.muted }]}>{voucher.description}</Text>
-                      {!isEligible && (
-                        <Text style={[styles.voucherWarning, { color: '#FCA5A5' }]}>
-                          Mua thêm {(voucher.minOrder - subtotal).toLocaleString('vi-VN')}đ để sử dụng
-                        </Text>
+                      <View style={styles.voucherInfo}>
+                        <View style={styles.voucherHeader}>
+                          <Text style={[styles.voucherCode, { color: t.text }]}>{voucher.code}</Text>
+                          {isSelected && <AppIcon name="check-circle" size={20} color={accentBorder} />}
+                        </View>
+                        <Text style={[styles.voucherDescription, { color: t.muted }]}>{voucher.description}</Text>
+                        {!isEligible && (
+                          <Text style={[styles.voucherWarning, { color: '#FCA5A5' }]}>
+                            Mua thêm {(voucher.minOrder - subtotal).toLocaleString('vi-VN')}đ để sử dụng
+                          </Text>
+                        )}
+                      </View>
+                      {isEligible && (
+                        <TouchableOpacity
+                          onPress={() => handleApplyVoucher(voucher.code)}
+                          style={[
+                            styles.voucherApplyButton,
+                            { backgroundColor: accentBg },
+                            isSelected && { backgroundColor: accentBorder }
+                          ]}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[
+                            styles.voucherApplyText,
+                            { color: accentBorder },
+                            isSelected && styles.voucherApplyTextActive
+                          ]}>
+                            {isSelected ? 'Đang dùng' : 'Dùng ngay'}
+                          </Text>
+                        </TouchableOpacity>
                       )}
                     </View>
-                    {isEligible && (
-                      <TouchableOpacity
-                        onPress={() => handleApplyVoucher(voucher.code)}
-                        style={[
-                          styles.voucherApplyButton,
-                          { backgroundColor: accentBg },
-                          isSelected && { backgroundColor: accentBorder }
-                        ]}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[
-                          styles.voucherApplyText,
-                          { color: accentBorder },
-                          isSelected && styles.voucherApplyTextActive
-                        ]}>
-                          {isSelected ? 'Đang dùng' : 'Dùng ngay'}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <View style={styles.emptyVoucherContainer}>
+                  <AppIcon name="ticket-outline" size={48} color={t.muted} />
+                  <Text style={[styles.emptyVoucherText, { color: t.text }]}>Không có mã giảm giá nào</Text>
+                  <Text style={[styles.emptyVoucherSubtext, { color: t.muted }]}>Vui lòng kiểm tra lại sau</Text>
+                </View>
+              )}
             </ScrollView>
           </View>
         </View>
@@ -595,5 +603,19 @@ const styles = StyleSheet.create({
   },
   voucherApplyTextActive: {
     color: '#FFFFFF',
+  },
+  emptyVoucherContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+  },
+  emptyVoucherText: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  emptyVoucherSubtext: {
+    fontSize: 14,
   },
 });

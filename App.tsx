@@ -21,7 +21,6 @@ import { SearchScreen } from './src/screens/SearchScreen';
 import { FilterScreen } from './src/screens/FilterScreen';
 import { Wishlist } from './src/screens/Wishlist';
 import { AddressBook } from './src/screens/AddressBook';
-import { PaymentMethods } from './src/screens/PaymentMethods';
 import { Settings } from './src/screens/Settings';
 import { SupportCenter } from './src/screens/SupportCenter';
 import { Notifications } from './src/screens/Notifications';
@@ -32,10 +31,10 @@ import { Product, CartItem, Order, PRODUCTS } from './src/lib/data';
 import { Address, DEFAULT_ADDRESSES } from './src/lib/address';
 import { darkTheme, lightTheme, ThemeProvider } from './src/lib/theme';
 import { ToastProvider } from './src/components/common/ToastProvider';
-import { ApiOrder, ApiProduct, AuthResponse, addFavorite, configureApiAuth, createOrder as apiCreateOrder, getFavorites as apiGetFavorites, getOrderById, getOrders as apiGetOrders, getProducts, removeFavorite } from './src/lib/api';
+import { ApiOrder, ApiProduct, AuthResponse, addFavorite, configureApiAuth, createOrder as apiCreateOrder, getFavorites as apiGetFavorites, getOrderById, getOrders as apiGetOrders, getProducts, removeFavorite, updateProfile as apiUpdateProfile } from './src/lib/api';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
-type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'payment-methods' | 'settings' | 'support' | 'wishlist' | 'change-password';
+type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'settings' | 'support' | 'wishlist' | 'change-password';
 
 interface FilterState {
   priceRange: [number, number];
@@ -441,8 +440,31 @@ function App(): React.JSX.Element {
     }
   }, [selectedOrderId, orders]);
 
-  const handleUpdateProfile = (data: Partial<typeof userProfile>) => {
-    setUserProfile(prev => ({ ...prev, ...data }));
+  const handleUpdateProfile = async (data: Partial<typeof userProfile>) => {
+    try {
+      if (authTokensRef.current?.accessToken) {
+        const result = await apiUpdateProfile(
+          {
+            name: data.name,
+            avatar: data.avatar,
+            email: data.email,
+          },
+          authTokensRef.current.accessToken,
+        );
+        const updatedUser = result.user || data;
+        setUserProfile(prev => {
+          const next = { ...prev, ...updatedUser };
+          void persistAuthState(authTokensRef.current as any, next);
+          return next;
+        });
+        return true;
+      }
+      setUserProfile(prev => ({ ...prev, ...data }));
+      return true;
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to update profile', error?.message || error);
+      return false;
+    }
   };
 
   // Filter function to apply filters to products
@@ -729,13 +751,12 @@ function App(): React.JSX.Element {
             onNavigateToOrders={navigateToOrderHistory}
             orderCount={orders.length}
             onNavigateToAddress={() => setCurrentScreen('address-book')}
-            onNavigateToPayment={() => setCurrentScreen('payment-methods')}
             onNavigateToSettings={() => setCurrentScreen('settings')}
             onNavigateToSupport={() => setCurrentScreen('support')}
             onNavigateToWishlist={() => setCurrentScreen('wishlist')}
             onLogout={handleAuthFailure}
             userProfile={userProfile}
-            onUpdateProfile={(data) => setUserProfile(prev => ({ ...prev, ...data }))}
+            onUpdateProfile={handleUpdateProfile}
             theme={theme}
           />
         );
@@ -880,9 +901,6 @@ function App(): React.JSX.Element {
           />
         );
 
-      case 'payment-methods':
-        return <PaymentMethods onBack={() => handleTabChange('profile')} theme={theme} />;
-
       case 'settings':
         return (
           <Settings
@@ -924,7 +942,7 @@ function App(): React.JSX.Element {
     }
   };
 
-  const isFullScreen = ['product-detail', 'checkout', 'order-history', 'order-detail', 'notifications', 'search', 'filter', 'address-book', 'payment-methods', 'settings', 'support', 'wishlist', 'change-password'].includes(currentScreen);
+  const isFullScreen = ['product-detail', 'checkout', 'order-history', 'order-detail', 'notifications', 'search', 'filter', 'address-book', 'settings', 'support', 'wishlist', 'change-password'].includes(currentScreen);
   const showTopBar = !isFullScreen && currentScreen !== 'ai' && currentScreen !== 'profile' && currentScreen !== 'auth';
 
   return (

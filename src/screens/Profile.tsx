@@ -31,13 +31,12 @@ interface ProfileProps {
   onNavigateToOrders?: () => void;
   orderCount?: number;
   onNavigateToAddress?: () => void;
-  onNavigateToPayment?: () => void;
   onNavigateToSettings?: () => void;
   onNavigateToSupport?: () => void;
   onNavigateToWishlist?: () => void;
   onLogout?: () => void;
   userProfile?: UserProfile;
-  onUpdateProfile?: (data: Partial<UserProfile>) => void;
+  onUpdateProfile?: (data: Partial<UserProfile>) => Promise<boolean> | void;
   theme?: Theme;
 }
 
@@ -45,7 +44,6 @@ export function Profile({
   onNavigateToOrders,
   orderCount = 0,
   onNavigateToAddress,
-  onNavigateToPayment,
   onNavigateToSettings,
   onNavigateToSupport,
   onNavigateToWishlist,
@@ -87,12 +85,23 @@ export function Profile({
       avatar: editingAvatar.trim(),
     };
     
-    if (onUpdateProfile) {
-      onUpdateProfile(updatedProfile);
-    }
-    
-    setShowEditModal(false);
-    showToast('Đã cập nhật thông tin cá nhân', 'success');
+    const doUpdate = async () => {
+      try {
+        if (onUpdateProfile) {
+          const ok = await onUpdateProfile(updatedProfile);
+          if (ok === false) {
+            showToast('Cập nhật thất bại. Vui lòng thử lại.', 'error');
+            return;
+          }
+        }
+        setShowEditModal(false);
+        showToast('Đã cập nhật thông tin cá nhân', 'success');
+      } catch (err: any) {
+        showToast(err?.message || 'Cập nhật thất bại. Vui lòng thử lại.', 'error');
+      }
+    };
+
+    void doUpdate();
   };
 
   const handleCancelEdit = () => {
@@ -250,13 +259,6 @@ export function Profile({
             onPress={onNavigateToAddress}
             theme={t}
           />
-          <View style={[styles.menuDivider, { backgroundColor: t.border }]} />
-          <MenuItem
-            icon="credit-card"
-            label="Phương thức thanh toán"
-            onPress={onNavigateToPayment}
-            theme={t}
-          />
         </View>
 
         <View style={[styles.menuGroup, { backgroundColor: t.card, shadowOpacity: t === lightTheme ? 0.05 : 0, borderColor: t.border }]}>
@@ -317,25 +319,33 @@ export function Profile({
                 contentContainerStyle={{ paddingBottom: 16 }}
                 showsVerticalScrollIndicator={false}
               >
-                {AVAILABLE_VOUCHERS.map((voucher) => (
-                  <View key={voucher.code} style={[styles.voucherCard, { borderColor: t.border, backgroundColor: t.surface }]}>
-                    <View style={[styles.voucherIconContainer, { backgroundColor: t.primary + '22' }]}>
-                      <AppIcon name="ticket" size={24} color={t.primary} />
+                {AVAILABLE_VOUCHERS.length > 0 ? (
+                  AVAILABLE_VOUCHERS.map((voucher) => (
+                    <View key={voucher.code} style={[styles.voucherCard, { borderColor: t.border, backgroundColor: t.surface }]}>
+                      <View style={[styles.voucherIconContainer, { backgroundColor: t.primary + '22' }]}>
+                        <AppIcon name="ticket" size={24} color={t.primary} />
+                      </View>
+                      <View style={styles.voucherInfo}>
+                        <Text style={[styles.voucherCode, { color: t.text }]}>{voucher.code}</Text>
+                        <Text style={[styles.voucherDescription, { color: t.muted }]}>{voucher.description}</Text>
+                        <Text style={[styles.voucherExpiry, { color: t.primary }]}>HSD: 31/12/2026</Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => handleCopyVoucher(voucher.code)}
+                        style={[styles.voucherCopyButton, { backgroundColor: t.primary + '22' }]}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.voucherCopyText, { color: t.primary }]}>Sao chép</Text>
+                      </TouchableOpacity>
                     </View>
-                    <View style={styles.voucherInfo}>
-                      <Text style={[styles.voucherCode, { color: t.text }]}>{voucher.code}</Text>
-                      <Text style={[styles.voucherDescription, { color: t.muted }]}>{voucher.description}</Text>
-                      <Text style={[styles.voucherExpiry, { color: t.primary }]}>HSD: 31/12/2026</Text>
-                    </View>
-                    <TouchableOpacity
-                      onPress={() => handleCopyVoucher(voucher.code)}
-                      style={[styles.voucherCopyButton, { backgroundColor: t.primary + '22' }]}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[styles.voucherCopyText, { color: t.primary }]}>Sao chép</Text>
-                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <View style={styles.emptyVoucherContainer}>
+                    <AppIcon name="ticket-outline" size={48} color={t.muted} />
+                    <Text style={[styles.emptyVoucherText, { color: t.text }]}>Không có mã giảm giá nào</Text>
+                    <Text style={[styles.emptyVoucherSubtext, { color: t.muted }]}>Vui lòng kiểm tra lại sau</Text>
                   </View>
-                ))}
+                )}
               </ScrollView>
             </View>
           </View>
@@ -913,5 +923,19 @@ const styles = StyleSheet.create({
   urlActionText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  emptyVoucherContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+  },
+  emptyVoucherText: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  emptyVoucherSubtext: {
+    fontSize: 14,
   },
 });

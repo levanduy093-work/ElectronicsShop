@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Alert } from 'react-native';
-import { CATEGORIES, Product } from '../lib/data';
+import { CATEGORIES, Product, extractCategoriesFromProducts } from '../lib/data';
 import { ProductCard } from '../components/ui/ProductCard';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
@@ -47,6 +47,9 @@ export function Home({ onNavigate, onProductClick, theme, products = [], onSelec
   const visibleProducts = (products.length ? products : []).slice(0, visibleCount);
   const featuredProducts = visibleProducts;
   const raspberryProduct = products.find(p => p.name.toLowerCase().includes('rasp')) || products[0];
+  
+  // Extract categories from products if CATEGORIES is empty
+  const displayCategories = CATEGORIES.length > 0 ? CATEGORIES : extractCategoriesFromProducts(products);
 
   return (
     <ScrollView 
@@ -95,22 +98,30 @@ export function Home({ onNavigate, onProductClick, theme, products = [], onSelec
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoriesContainer}
         >
-          {CATEGORIES.map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
-              onPress={() => {
-                onSelectCategory?.(cat.name);
-                onNavigate('catalog');
-              }}
-              style={styles.categoryItem}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.categoryIcon, { backgroundColor: resolvedTheme.surface }]}>
-                <AppIcon name={cat.icon} size={28} color={resolvedTheme.muted} />
-              </View>
-              <Text style={[styles.categoryName, { color: resolvedTheme.text }]}>{cat.name}</Text>
-            </TouchableOpacity>
-          ))}
+          {displayCategories.length > 0 ? (
+            displayCategories.map((cat) => (
+              <TouchableOpacity
+                key={cat.id}
+                onPress={() => {
+                  onSelectCategory?.(cat.name);
+                  onNavigate('catalog');
+                }}
+                style={styles.categoryItem}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.categoryIcon, { backgroundColor: resolvedTheme.surface }]}>
+                  <AppIcon name={cat.icon} size={28} color={resolvedTheme.muted} />
+                </View>
+                <Text style={[styles.categoryName, { color: resolvedTheme.text }]}>{cat.name}</Text>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.emptyCategoriesContainer}>
+              <Text style={[styles.emptyCategoriesText, { color: resolvedTheme.muted }]}>
+                Chưa có danh mục nào
+              </Text>
+            </View>
+          )}
         </ScrollView>
       </View>
 
@@ -360,5 +371,13 @@ const styles = StyleSheet.create({
   loadMoreText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  emptyCategoriesContainer: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  emptyCategoriesText: {
+    fontSize: 14,
+    color: '#6B7280',
   },
 });
