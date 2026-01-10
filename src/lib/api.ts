@@ -91,6 +91,23 @@ export type ApiVoucher = {
   expire?: string;
 };
 
+export type ApiNotification = {
+  id?: string;
+  _id?: string;
+  title: string;
+  body: string;
+  type?: string;
+  metadata?: Record<string, unknown>;
+  priority?: 'low' | 'normal' | 'high';
+  sendAt?: string;
+  expiresAt?: string;
+  isRead?: boolean;
+  readAt?: string;
+  deliveredAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 const API_BASE_URL =
   Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 
@@ -341,6 +358,18 @@ export function getOrders(token: string) {
 
 export function getOrderById(id: string, token: string) {
   return getJson<ApiOrder>(`/orders/${id}`, { token });
+}
+
+export function getNotifications(token: string) {
+  return getJson<ApiNotification[]>('/notifications', { token });
+}
+
+export function markNotificationRead(id: string, token: string) {
+  return patchJson<ApiNotification[]>(`/notifications/${id}/read`, {}, { token });
+}
+
+export function markAllNotificationsRead(token: string) {
+  return patchJson<ApiNotification[]>('/notifications/read-all', {}, { token });
 }
 
 // Address API types

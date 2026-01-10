@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  StatusBar,
+  Platform,
+  RefreshControl,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
@@ -7,10 +16,15 @@ import { Theme, lightTheme, useTheme } from '../lib/theme';
 interface NotificationsProps {
   onBack: () => void;
   theme?: Theme;
+  notifications: NotificationItem[];
+  onMarkAllRead?: () => void;
+  onMarkRead?: (id: string) => void;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 interface NotificationItem {
-  id: number;
+  id: string;
   type: 'order' | 'promo' | 'system' | string;
   title: string;
   message: string;
@@ -18,54 +32,29 @@ interface NotificationItem {
   read: boolean;
 }
 
-export function Notifications({ onBack, theme }: NotificationsProps) {
+export function Notifications({
+  onBack,
+  theme,
+  notifications,
+  onMarkAllRead,
+  onMarkRead,
+  refreshing = false,
+  onRefresh,
+}: NotificationsProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
   const t = theme || ctxTheme || lightTheme;
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: 1,
-      type: 'order',
-      title: 'Giao hàng thành công',
-      message: 'Đơn hàng #ORD-2024-001 đã được giao thành công. Vui lòng đánh giá sản phẩm nhé!',
-      time: '2 giờ trước',
-      read: false,
-    },
-    {
-      id: 2,
-      type: 'promo',
-      title: 'Giảm 20% linh kiện Arduino',
-      message: 'Duy nhất hôm nay! Nhập mã ARDUINO20 khi thanh toán.',
-      time: '5 giờ trước',
-      read: false,
-    },
-    {
-      id: 3,
-      type: 'system',
-      title: 'Chào mừng đến với ElectroAI',
-      message: 'Cảm ơn bạn đã tạo tài khoản. Khám phá ngay các tính năng AI độc đáo của chúng tôi.',
-      time: '1 ngày trước',
-      read: true,
-    },
-  ]);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const handleMarkAllAsRead = () => {
-    setNotifications(prevNotifications =>
-      prevNotifications.map(notification => ({
-        ...notification,
-        read: true,
-      }))
-    );
+    onMarkAllRead?.();
     setExpandedId(null);
   };
 
   const handleToggleNotification = (notification: NotificationItem) => {
-    setNotifications(prevNotifications =>
-      prevNotifications.map(item =>
-        item.id === notification.id ? { ...item, read: true } : item
-      )
-    );
+    if (!notification.read) {
+      onMarkRead?.(notification.id);
+    }
     setExpandedId(prev => (prev === notification.id ? null : notification.id));
   };
 
@@ -108,7 +97,17 @@ export function Notifications({ onBack, theme }: NotificationsProps) {
         )}
       </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh || (() => {})}
+            tintColor={t.primary}
+          />
+        }
+      >
         {notifications.map((item) => {
           const isExpanded = expandedId === item.id;
           return (

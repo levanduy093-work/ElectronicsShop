@@ -11,6 +11,7 @@ interface TopBarProps {
   onFilterClick?: () => void;
   onNotificationClick?: () => void;
   theme?: Theme;
+  hasUnread?: boolean;
 }
 
 export function TopBar({ 
@@ -19,7 +20,8 @@ export function TopBar({
   onSearchClick, 
   onFilterClick,
   onNotificationClick,
-  theme = lightTheme
+  theme = lightTheme,
+  hasUnread = false,
 }: TopBarProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
@@ -58,7 +60,14 @@ export function TopBar({
           >
             <View style={styles.notificationContainer}>
               <AppIcon name="bell" size={22} color={resolvedTheme.muted} />
-              <View style={[styles.notificationBadge, { backgroundColor: resolvedTheme.primary, borderColor: resolvedTheme.surface }]} />
+              {hasUnread && (
+                <View
+                  style={[
+                    styles.notificationBadge,
+                    { backgroundColor: resolvedTheme.primary, borderColor: resolvedTheme.surface },
+                  ]}
+                />
+              )}
             </View>
           </TouchableOpacity>
         </View>

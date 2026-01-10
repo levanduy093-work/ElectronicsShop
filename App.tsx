@@ -31,7 +31,26 @@ import { Product, CartItem, Order, Voucher, PRODUCTS } from './src/lib/data';
 import { Address, DEFAULT_ADDRESSES } from './src/lib/address';
 import { darkTheme, lightTheme, ThemeProvider } from './src/lib/theme';
 import { ToastProvider } from './src/components/common/ToastProvider';
-import { ApiOrder, ApiProduct, ApiVoucher, AuthResponse, addFavorite, configureApiAuth, createOrder as apiCreateOrder, getFavorites as apiGetFavorites, getMyVouchers, getOrderById, getOrders as apiGetOrders, getProducts, removeFavorite, updateProfile as apiUpdateProfile } from './src/lib/api';
+import {
+  ApiNotification,
+  ApiOrder,
+  ApiProduct,
+  ApiVoucher,
+  AuthResponse,
+  addFavorite,
+  configureApiAuth,
+  createOrder as apiCreateOrder,
+  getFavorites as apiGetFavorites,
+  getMyVouchers,
+  getNotifications as apiGetNotifications,
+  getOrderById,
+  getOrders as apiGetOrders,
+  getProducts,
+  markAllNotificationsRead as apiMarkAllNotificationsRead,
+  markNotificationRead as apiMarkNotificationRead,
+  removeFavorite,
+  updateProfile as apiUpdateProfile,
+} from './src/lib/api';
 import { socketService } from './src/lib/socket';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
@@ -153,6 +172,31 @@ const formatDateTime = (value?: string | Date | null) => {
   return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
 };
 
+const formatRelativeTime = (value?: string | Date | null) => {
+  if (!value) return '';
+  const date = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return '';
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+  if (diffMinutes < 1) return 'Vừa xong';
+  if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays} ngày trước`;
+  return formatDateTime(date);
+};
+
+type UiNotification = {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+  sendAt?: string;
+};
+
 const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS): Order => {
   const created = order.status?.ordered || order.createdAt || new Date().toISOString();
   const hasShipped = Boolean(order.status?.shipped);
@@ -220,6 +264,20 @@ const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS): 
       total: order.totalPrice,
     },
     timeline,
+  };
+};
+
+const mapApiNotificationToUi = (item: ApiNotification): UiNotification => {
+  const fallbackDate = item.deliveredAt || item.readAt || item.updatedAt || new Date().toISOString();
+  const sendAt = item.sendAt || item.createdAt || fallbackDate;
+  return {
+    id: item.id || item._id || '',
+    type: item.type || 'system',
+    title: item.title || '',
+    message: item.body || '',
+    time: formatRelativeTime(sendAt),
+    read: Boolean(item.isRead),
+    sendAt: sendAt || undefined,
   };
 };
 
@@ -302,6 +360,8 @@ function App(): React.JSX.Element {
   const [isRestoringAuth, setIsRestoringAuth] = useState(true);
   const authTokensRef = useRef<{ accessToken: string; refreshToken: string } | null>(null);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [notifications, setNotifications] = useState<UiNotification[]>([]);
+  const [isRefreshingNotifications, setIsRefreshingNotifications] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({
@@ -367,6 +427,33 @@ function App(): React.JSX.Element {
     }
   };
 
+  const syncNotificationsFromApi = (items: ApiNotification[]) => {
+    const mapped = (items || [])
+      .map(mapApiNotificationToUi)
+      .filter(item => item.id)
+      .sort((a, b) => {
+        const timeA = a.sendAt ? new Date(a.sendAt).getTime() : 0;
+        const timeB = b.sendAt ? new Date(b.sendAt).getTime() : 0;
+        return timeB - timeA;
+      });
+    setNotifications(mapped);
+  };
+
+  const loadNotifications = async (tokenOverride?: string, options?: { silent?: boolean }) => {
+    const token = tokenOverride || authTokensRef.current?.accessToken;
+    if (!token) return;
+    const showSpinner = !options?.silent;
+    if (showSpinner) setIsRefreshingNotifications(true);
+    try {
+      const result = await apiGetNotifications(token);
+      syncNotificationsFromApi(result);
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to load notifications', error?.message || error);
+    } finally {
+      if (showSpinner) setIsRefreshingNotifications(false);
+    }
+  };
+
   const fetchOrderDetail = async (orderId: string) => {
     const token = authTokensRef.current?.accessToken;
     if (!token) return;
@@ -416,6 +503,8 @@ function App(): React.JSX.Element {
     setUserProfile(DEFAULT_PROFILE);
     setUserId(null);
     setVouchers([]);
+    setNotifications([]);
+    setIsRefreshingNotifications(false);
     void clearPersistedAuthState();
   }, []);
 
@@ -438,6 +527,7 @@ function App(): React.JSX.Element {
             await loadOrders(parsed.tokens.accessToken);
             await loadFavorites(parsed.tokens.accessToken);
             await loadVouchers(parsed.tokens.accessToken);
+            await loadNotifications(parsed.tokens.accessToken, { silent: true });
           }
         }
       } catch (error) {
@@ -474,6 +564,20 @@ function App(): React.JSX.Element {
       if (payload?.collection === 'vouchers' && authTokensRef.current?.accessToken) {
         void loadVouchers();
       }
+
+      // Lắng nghe thay đổi notification state theo user (Mongo change stream)
+      if (
+        payload?.collection === 'user_notification_status' &&
+        userId &&
+        `${payload.fullDocument?.user_id || payload.fullDocument?.userId}` === `${userId}`
+      ) {
+        void loadNotifications(undefined, { silent: true });
+      }
+
+      if (payload?.collection === 'notifications' && authTokensRef.current?.accessToken) {
+        // Khi có broadcast mới, refresh danh sách người dùng hiện tại
+        void loadNotifications(undefined, { silent: true });
+      }
     };
     socketService.on('db_change', handleDbChange);
     return () => {
@@ -493,10 +597,12 @@ function App(): React.JSX.Element {
       void loadOrders();
       void loadFavorites();
       void loadVouchers();
+      void loadNotifications(undefined, { silent: true });
     } else if (!isLoggedIn) {
       setOrders([]);
       setWishlist([]);
       setVouchers([]);
+      setNotifications([]);
     }
   }, [isLoggedIn, authTokens?.accessToken]);
 
@@ -581,6 +687,7 @@ function App(): React.JSX.Element {
     });
   };
 
+  const hasUnreadNotifications = notifications.some(notification => !notification.read);
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const theme = isDarkMode ? darkTheme : lightTheme;
 
@@ -610,6 +717,43 @@ function App(): React.JSX.Element {
 
   const navigateToOrderHistory = () => {
     setCurrentScreen('order-history');
+  };
+
+  const openNotifications = () => {
+    if (!authTokensRef.current?.accessToken) {
+      setPreviousScreen(currentScreen);
+      setCurrentTab('profile');
+      setCurrentScreen('auth');
+      return;
+    }
+    void loadNotifications(undefined, { silent: false });
+    setCurrentScreen('notifications');
+  };
+
+  const refreshNotifications = () => {
+    void loadNotifications(undefined, { silent: false });
+  };
+
+  const handleMarkNotificationRead = async (id: string) => {
+    if (!authTokensRef.current?.accessToken) return;
+    setNotifications(prev => prev.map(item => (item.id === id ? { ...item, read: true } : item)));
+    try {
+      const result = await apiMarkNotificationRead(id, authTokensRef.current.accessToken);
+      syncNotificationsFromApi(result);
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to mark notification read', error?.message || error);
+      void loadNotifications(undefined, { silent: true });
+    }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    if (!authTokensRef.current?.accessToken) return;
+    try {
+      const result = await apiMarkAllNotificationsRead(authTokensRef.current.accessToken);
+      syncNotificationsFromApi(result);
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to mark all notifications read', error?.message || error);
+    }
   };
 
   const navigateToOrderDetail = (orderId: string) => {
@@ -758,6 +902,7 @@ function App(): React.JSX.Element {
     void loadOrders(tokens.accessToken);
     void loadFavorites(tokens.accessToken);
     void loadVouchers(tokens.accessToken);
+    void loadNotifications(tokens.accessToken, { silent: true });
 
     if (currentScreen === 'auth') {
       if (previousScreen === 'product-detail') {
@@ -799,7 +944,7 @@ function App(): React.JSX.Element {
           />
         );
       case 'ai':
-        return <AIChat theme={theme} onNotificationClick={() => setCurrentScreen('notifications')} />;
+        return <AIChat theme={theme} onNotificationClick={openNotifications} />;
       case 'cart':
         return (
           <Cart
@@ -898,7 +1043,17 @@ function App(): React.JSX.Element {
         return <Auth onBack={() => handleTabChange(currentTab)} onLoginSuccess={handleLoginSuccess} theme={theme} />;
 
       case 'notifications':
-        return <Notifications onBack={() => handleTabChange(currentTab)} theme={theme} />;
+        return (
+          <Notifications
+            onBack={() => handleTabChange(currentTab)}
+            theme={theme}
+            notifications={notifications}
+            onMarkAllRead={handleMarkAllNotificationsRead}
+            onMarkRead={handleMarkNotificationRead}
+            refreshing={isRefreshingNotifications}
+            onRefresh={refreshNotifications}
+          />
+        );
 
       case 'search':
         return (
@@ -1030,7 +1185,8 @@ function App(): React.JSX.Element {
               showSearch={currentScreen === 'home'}
               onSearchClick={() => setCurrentScreen('search')}
               onFilterClick={openFilter}
-              onNotificationClick={() => setCurrentScreen('notifications')}
+              onNotificationClick={openNotifications}
+              hasUnread={hasUnreadNotifications}
               theme={theme}
             />
           )}
