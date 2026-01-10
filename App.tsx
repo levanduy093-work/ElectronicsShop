@@ -27,11 +27,11 @@ import { Notifications } from './src/screens/Notifications';
 import { ChangePassword } from './src/screens/ChangePassword';
 import { BottomNav } from './src/components/layout/BottomNav';
 import { TopBar } from './src/components/layout/TopBar';
-import { Product, CartItem, Order, PRODUCTS } from './src/lib/data';
+import { Product, CartItem, Order, Voucher, PRODUCTS } from './src/lib/data';
 import { Address, DEFAULT_ADDRESSES } from './src/lib/address';
 import { darkTheme, lightTheme, ThemeProvider } from './src/lib/theme';
 import { ToastProvider } from './src/components/common/ToastProvider';
-import { ApiOrder, ApiProduct, AuthResponse, addFavorite, configureApiAuth, createOrder as apiCreateOrder, getFavorites as apiGetFavorites, getOrderById, getOrders as apiGetOrders, getProducts, removeFavorite, updateProfile as apiUpdateProfile } from './src/lib/api';
+import { ApiOrder, ApiProduct, ApiVoucher, AuthResponse, addFavorite, configureApiAuth, createOrder as apiCreateOrder, getFavorites as apiGetFavorites, getMyVouchers, getOrderById, getOrders as apiGetOrders, getProducts, removeFavorite, updateProfile as apiUpdateProfile } from './src/lib/api';
 import { socketService } from './src/lib/socket';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
@@ -223,7 +223,7 @@ const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS): 
   };
 };
 
-  const mapApiProductToUi = (product: ApiProduct): Product => {
+const mapApiProductToUi = (product: ApiProduct): Product => {
     const stockNumber = product.stock ?? 0;
     const stockLabel =
       stockNumber <= 0 ? 'Out of Stock' : stockNumber < 5 ? 'Low Stock' : 'In Stock';
@@ -266,6 +266,19 @@ const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS): 
   };
 };
 
+const mapApiVoucherToUi = (voucher: ApiVoucher): Voucher => {
+  const fallbackType = voucher.description?.toLowerCase().includes('ship') ? 'shipping' : 'fixed';
+  return {
+    id: voucher._id,
+    code: voucher.code,
+    description: voucher.description || '',
+    type: voucher.type || fallbackType,
+    discountPrice: Number(voucher.discountPrice) || 0,
+    minTotal: Number(voucher.minTotal) || 0,
+    expire: voucher.expire,
+  };
+};
+
 function App(): React.JSX.Element {
   const systemDarkMode = useColorScheme() === 'dark';
   const [isDarkMode, setIsDarkMode] = useState(systemDarkMode);
@@ -286,6 +299,7 @@ function App(): React.JSX.Element {
   const [authTokens, setAuthTokens] = useState<{ accessToken: string; refreshToken: string } | null>(null);
   const [isRestoringAuth, setIsRestoringAuth] = useState(true);
   const authTokensRef = useRef<{ accessToken: string; refreshToken: string } | null>(null);
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({
@@ -339,6 +353,18 @@ function App(): React.JSX.Element {
     }
   };
 
+  const loadVouchers = async (tokenOverride?: string) => {
+    const token = tokenOverride || authTokensRef.current?.accessToken;
+    if (!token) return;
+    try {
+      const result = await getMyVouchers(token);
+      const mapped = result.map(mapApiVoucherToUi);
+      setVouchers(mapped);
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to load vouchers', error?.message || error);
+    }
+  };
+
   const fetchOrderDetail = async (orderId: string) => {
     const token = authTokensRef.current?.accessToken;
     if (!token) return;
@@ -387,6 +413,7 @@ function App(): React.JSX.Element {
     authTokensRef.current = null;
     setUserProfile(DEFAULT_PROFILE);
     setUserId(null);
+    setVouchers([]);
     void clearPersistedAuthState();
   }, []);
 
@@ -408,6 +435,7 @@ function App(): React.JSX.Element {
             syncAuthTokens(parsed.tokens, parsed.profile, parsed.userId ?? null);
             await loadOrders(parsed.tokens.accessToken);
             await loadFavorites(parsed.tokens.accessToken);
+            await loadVouchers(parsed.tokens.accessToken);
           }
         }
       } catch (error) {
@@ -440,6 +468,10 @@ function App(): React.JSX.Element {
           return next;
         });
       }
+
+      if (payload?.collection === 'vouchers' && authTokensRef.current?.accessToken) {
+        void loadVouchers();
+      }
     };
     socketService.on('db_change', handleDbChange);
     return () => {
@@ -458,9 +490,11 @@ function App(): React.JSX.Element {
     if (isLoggedIn && authTokens?.accessToken) {
       void loadOrders();
       void loadFavorites();
+      void loadVouchers();
     } else if (!isLoggedIn) {
       setOrders([]);
       setWishlist([]);
+      setVouchers([]);
     }
   }, [isLoggedIn, authTokens?.accessToken]);
 
@@ -721,6 +755,7 @@ function App(): React.JSX.Element {
     syncAuthTokens(tokens, data.user, data.user?._id ?? null);
     void loadOrders(tokens.accessToken);
     void loadFavorites(tokens.accessToken);
+    void loadVouchers(tokens.accessToken);
 
     if (currentScreen === 'auth') {
       if (previousScreen === 'product-detail') {
@@ -772,6 +807,7 @@ function App(): React.JSX.Element {
             onExplore={() => handleTabChange('catalog')}
             onCheckout={navigateToCheckout}
             theme={theme}
+            vouchers={vouchers}
           />
         );
       case 'profile':
@@ -788,6 +824,7 @@ function App(): React.JSX.Element {
             userProfile={userProfile}
             onUpdateProfile={handleUpdateProfile}
             theme={theme}
+            vouchers={vouchers}
           />
         );
 

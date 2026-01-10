@@ -14,12 +14,14 @@ interface CartProps {
   onRemoveItem: (id: string) => void;
   onExplore?: () => void;
   theme?: Theme;
+  vouchers?: Voucher[];
 }
 
-export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExplore, theme }: CartProps) {
+export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExplore, theme, vouchers }: CartProps) {
   const { theme: ctxTheme } = useTheme();
   const { showToast } = useToast();
   const t = theme || ctxTheme || lightTheme;
+  const voucherList = vouchers && vouchers.length > 0 ? vouchers : AVAILABLE_VOUCHERS;
   const [voucherCode, setVoucherCode] = useState('');
   const [showVoucherList, setShowVoucherList] = useState(false);
   const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
@@ -32,25 +34,26 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
   
   let discountAmount = 0;
   if (appliedVoucher) {
-    if (appliedVoucher.type === 'shipping') {
-      discountAmount = Math.min(appliedVoucher.discount, shipping);
+    const voucherType = appliedVoucher.type || 'fixed';
+    if (voucherType === 'shipping') {
+      discountAmount = Math.min(appliedVoucher.discountPrice, shipping);
     } else {
-      discountAmount = appliedVoucher.discount;
+      discountAmount = appliedVoucher.discountPrice;
     }
   }
 
   const total = Math.max(0, subtotal + shipping - discountAmount);
 
   const handleApplyVoucher = (code: string) => {
-    const voucher = AVAILABLE_VOUCHERS.find(v => v.code === code);
+    const voucher = voucherList.find(v => v.code === code);
     if (voucher) {
-      if (subtotal >= voucher.minOrder) {
+      if (subtotal >= voucher.minTotal) {
         setAppliedVoucher(voucher);
         setVoucherCode(voucher.code);
         setShowVoucherList(false);
         showToast('Áp dụng mã giảm giá thành công', 'success');
       } else {
-        showToast(`Đơn hàng cần tối thiểu ${voucher.minOrder.toLocaleString('vi-VN')}đ để sử dụng mã này.`, 'error');
+        showToast(`Đơn hàng cần tối thiểu ${voucher.minTotal.toLocaleString('vi-VN')}đ để sử dụng mã này.`, 'error');
       }
     } else {
       showToast('Mã giảm giá không hợp lệ', 'error');
@@ -206,10 +209,12 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
             </View>
             
             <ScrollView style={styles.voucherList}>
-              {AVAILABLE_VOUCHERS.length > 0 ? (
-                AVAILABLE_VOUCHERS.map((voucher) => {
-                  const isEligible = subtotal >= voucher.minOrder;
+              {voucherList.length > 0 ? (
+                voucherList.map((voucher) => {
+                  const isEligible = subtotal >= voucher.minTotal;
                   const isSelected = appliedVoucher?.code === voucher.code;
+                  const voucherType = voucher.type || (voucher.description?.toLowerCase().includes('ship') ? 'shipping' : 'fixed');
+                  const expireDate = voucher.expire ? new Date(voucher.expire) : null;
 
                   return (
                     <View
@@ -227,12 +232,20 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
                       <View style={styles.voucherInfo}>
                         <View style={styles.voucherHeader}>
                           <Text style={[styles.voucherCode, { color: t.text }]}>{voucher.code}</Text>
-                          {isSelected && <AppIcon name="check-circle" size={20} color={accentBorder} />}
-                        </View>
-                        <Text style={[styles.voucherDescription, { color: t.muted }]}>{voucher.description}</Text>
-                        {!isEligible && (
-                          <Text style={[styles.voucherWarning, { color: '#FCA5A5' }]}>
-                            Mua thêm {(voucher.minOrder - subtotal).toLocaleString('vi-VN')}đ để sử dụng
+                        {isSelected && <AppIcon name="check-circle" size={20} color={accentBorder} />}
+                      </View>
+                      <Text style={[styles.voucherDescription, { color: t.muted }]}>{voucher.description}</Text>
+                      <Text style={[styles.voucherMeta, { color: t.muted }]}>
+                        {voucherType === 'shipping' ? 'Giảm phí ship' : 'Giảm giá đơn hàng'} · ĐH tối thiểu {voucher.minTotal.toLocaleString('vi-VN')}đ
+                      </Text>
+                      {expireDate && (
+                        <Text style={[styles.voucherMeta, { color: t.muted }]}>
+                          HSD: {expireDate.toLocaleDateString('vi-VN')}
+                        </Text>
+                      )}
+                      {!isEligible && (
+                        <Text style={[styles.voucherWarning, { color: '#FCA5A5' }]}>
+                            Mua thêm {(voucher.minTotal - subtotal).toLocaleString('vi-VN')}đ để sử dụng
                           </Text>
                         )}
                       </View>
@@ -581,6 +594,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     marginTop: 4,
+  },
+  voucherMeta: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
   },
   voucherWarning: {
     fontSize: 12,

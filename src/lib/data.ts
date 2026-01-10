@@ -195,11 +195,13 @@ export const extractCategoriesFromProducts = (products: Product[]): Category[] =
 };
 
 export interface Voucher {
+  id?: string;
   code: string;
-  description: string;
-  discount: number;
-  minOrder: number;
-  type: 'fixed' | 'shipping';
+  description?: string;
+  type?: 'fixed' | 'shipping';
+  discountPrice: number;
+  minTotal: number;
+  expire?: string;
 }
 
 export interface OrderItem {

@@ -79,6 +79,16 @@ export type ApiOrder = {
   updatedAt?: string;
 };
 
+export type ApiVoucher = {
+  _id: string;
+  code: string;
+  description?: string;
+  type?: 'fixed' | 'shipping';
+  discountPrice: number;
+  minTotal: number;
+  expire?: string;
+};
+
 const API_BASE_URL =
   Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 
@@ -248,6 +258,10 @@ export function addFavorite(productId: string, token: string) {
 
 export function removeFavorite(productId: string, token: string) {
   return deleteJson<ApiProduct[]>(`/users/me/favorites/${productId}`, { token });
+}
+
+export function getMyVouchers(token: string) {
+  return getJson<ApiVoucher[]>('/vouchers/my', { token });
 }
 
 export function updateProfile(data: { name?: string; avatar?: string; email?: string }, token: string) {

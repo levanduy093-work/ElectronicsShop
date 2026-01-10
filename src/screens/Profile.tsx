@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, StatusBar,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
-import { AVAILABLE_VOUCHERS } from '../lib/data';
+import { AVAILABLE_VOUCHERS, Voucher } from '../lib/data';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
 import { useToast } from '../components/common/ToastProvider';
 
@@ -38,6 +38,7 @@ interface ProfileProps {
   userProfile?: UserProfile;
   onUpdateProfile?: (data: Partial<UserProfile>) => Promise<boolean> | void;
   theme?: Theme;
+  vouchers?: Voucher[];
 }
 
 export function Profile({
@@ -51,6 +52,7 @@ export function Profile({
   userProfile = { name: "Nguyễn Văn A", email: "nguyenva@example.com", avatar: "" },
   onUpdateProfile,
   theme,
+  vouchers,
 }: ProfileProps) {
   const [showVouchers, setShowVouchers] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -62,6 +64,7 @@ export function Profile({
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   const t = theme || ctxTheme || lightTheme;
+  const userVouchers = vouchers && vouchers.length > 0 ? vouchers : AVAILABLE_VOUCHERS;
 
   const handleCopyVoucher = (code: string) => {
     showToast(`Đã sao chép mã ${code}`, 'success');
@@ -231,7 +234,7 @@ export function Profile({
           style={[styles.statCard, { backgroundColor: t.card, borderColor: t.border, shadowOpacity: t === lightTheme ? 0.05 : 0 }]}
           activeOpacity={0.7}
         >
-          <Text style={[styles.statValue, { color: t.text }]}>{AVAILABLE_VOUCHERS.length}</Text>
+          <Text style={[styles.statValue, { color: t.text }]}>{userVouchers.length}</Text>
           <Text style={[styles.statLabel, { color: t.muted }]}>Voucher</Text>
         </TouchableOpacity>
       </View>
@@ -319,8 +322,10 @@ export function Profile({
                 contentContainerStyle={{ paddingBottom: 16 }}
                 showsVerticalScrollIndicator={false}
               >
-                {AVAILABLE_VOUCHERS.length > 0 ? (
-                  AVAILABLE_VOUCHERS.map((voucher) => (
+                {userVouchers.length > 0 ? (
+                  userVouchers.map((voucher) => {
+                    const expireDate = voucher.expire ? new Date(voucher.expire) : null;
+                    return (
                     <View key={voucher.code} style={[styles.voucherCard, { borderColor: t.border, backgroundColor: t.surface }]}>
                       <View style={[styles.voucherIconContainer, { backgroundColor: t.primary + '22' }]}>
                         <AppIcon name="ticket" size={24} color={t.primary} />
@@ -328,7 +333,11 @@ export function Profile({
                       <View style={styles.voucherInfo}>
                         <Text style={[styles.voucherCode, { color: t.text }]}>{voucher.code}</Text>
                         <Text style={[styles.voucherDescription, { color: t.muted }]}>{voucher.description}</Text>
-                        <Text style={[styles.voucherExpiry, { color: t.primary }]}>HSD: 31/12/2026</Text>
+                        {expireDate && (
+                          <Text style={[styles.voucherExpiry, { color: t.primary }]}>
+                            HSD: {expireDate.toLocaleDateString('vi-VN')}
+                          </Text>
+                        )}
                       </View>
                       <TouchableOpacity
                         onPress={() => handleCopyVoucher(voucher.code)}
@@ -338,7 +347,8 @@ export function Profile({
                         <Text style={[styles.voucherCopyText, { color: t.primary }]}>Sao chép</Text>
                       </TouchableOpacity>
                     </View>
-                  ))
+                    );
+                  })
                 ) : (
                   <View style={styles.emptyVoucherContainer}>
                     <AppIcon name="ticket-outline" size={48} color={t.muted} />
