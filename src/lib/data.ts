@@ -49,28 +49,46 @@ const CATEGORY_ICON_MAP: Record<string, IconName> = {
   'Nguồn & Pin': 'battery',
   'Dây & Cáp': 'cable-data',
   'Dụng cụ': 'toolbox',
-  'IC số': 'integrated-circuit',
-  'Điện trở': 'omega',
-  'Tụ điện': 'capacitor',
-  // English categories - using MaterialCommunityIcons available icons
-  'Resistor': 'omega',
-  'Capacitor': 'capacitor',
-  'Diode': 'flash', // Using flash icon for diode
-  'LED': 'lightbulb-on-outline', // Using lightbulb for LED
-  'Transistor': 'chip', // Using chip icon for transistor
-  'Inductor': 'coil', // Using coil icon if available, fallback handled
-  'Crystal': 'clock-outline', // Using clock for crystal oscillator
-  'Relay': 'switch', // Using switch icon for relay
+  'IC số': 'integrated-circuit-chip',
+  'Điện trở': 'resistor',
+  'Tụ điện': 'sine-wave',
+
+  // English categories - using valid MaterialCommunityIcons
+  'Resistor': 'resistor',
+  'Capacitor': 'sine-wave',
+  'Diode': 'flash',
+  'LED': 'lightbulb-on-outline',
+  'Transistor': 'chip',
+  'Inductor': 'current-ac',
+  'Crystal': 'clock-outline',
+  'Relay': 'toggle-switch',
   'Switch': 'toggle-switch',
   'Connector': 'cable-data',
   'Module': 'chip',
   'Sensor': 'wifi',
   'Power Supply': 'battery',
+  'Power Module': 'server',
+  'IC Power': 'power-plug',
+  'IC Driver': 'integrated-circuit-chip',
+  'IC': 'integrated-circuit-chip',
   'Tool': 'toolbox',
   'Microcontroller': 'chip',
   'Battery': 'battery',
   'Cable': 'cable-data',
   'Wire': 'cable-data',
+  'Accessory': 'puzzle-outline',
+  'MOSFET': 'flash',
+  'Communication': 'access-point',
+  'Audio': 'music',
+  'Memory': 'memory',
+  'Prototype': 'flask-outline',
+  'Cooling': 'fan',
+  'Display': 'monitor',
+  'Motor': 'engine',
+  'Motor Driver': 'engine-outline',
+  'Potentiometer': 'tune-vertical',
+  'Power': 'power-plug',
+  'Power Driver': 'power-plug',
 };
 
 // Categories should be fetched from API or extracted from products dynamically
@@ -98,12 +116,12 @@ export const extractCategoriesFromProducts = (products: Product[]): Category[] =
     
     // Partial match - check if category name contains keywords
     if (lowerName.includes('resistor') || lowerName.includes('điện trở')) {
-      return 'omega';
+      return 'resistor';
     }
     if (lowerName.includes('capacitor') || lowerName.includes('tụ điện')) {
-      return 'capacitor';
+      return 'sine-wave';
     }
-    if (lowerName.includes('diode')) {
+    if (lowerName.includes('diode') || lowerName.includes('mosfet')) {
       return 'flash';
     }
     if (lowerName.includes('led')) {
@@ -112,23 +130,47 @@ export const extractCategoriesFromProducts = (products: Product[]): Category[] =
     if (lowerName.includes('transistor')) {
       return 'chip';
     }
-    if (lowerName.includes('sensor') || lowerName.includes('cảm biến')) {
-      return 'wifi';
+    if (lowerName.includes('sensor') || lowerName.includes('cảm biến') || lowerName.includes('communication')) {
+      return 'access-point';
+    }
+    if (lowerName.includes('audio')) {
+      return 'music';
     }
     if (lowerName.includes('microcontroller') || lowerName.includes('vi điều khiển') || lowerName.includes('arduino') || lowerName.includes('esp')) {
       return 'chip';
     }
-    if (lowerName.includes('battery') || lowerName.includes('pin') || lowerName.includes('nguồn')) {
+    if (lowerName.includes('battery') || lowerName.includes('power') || lowerName.includes('pin') || lowerName.includes('nguồn')) {
       return 'battery';
     }
-    if (lowerName.includes('cable') || lowerName.includes('wire') || lowerName.includes('dây') || lowerName.includes('cáp')) {
+    if (lowerName.includes('cable') || lowerName.includes('wire') || lowerName.includes('connector') || lowerName.includes('dây') || lowerName.includes('cáp')) {
       return 'cable-data';
     }
-    if (lowerName.includes('tool') || lowerName.includes('dụng cụ')) {
+    if (lowerName.includes('tool') || lowerName.includes('dụng cụ') || lowerName.includes('accessory')) {
       return 'toolbox';
     }
-    if (lowerName.includes('ic') || lowerName.includes('integrated circuit')) {
-      return 'integrated-circuit';
+    if (lowerName.includes('ic') || lowerName.includes('integrated circuit') || lowerName.includes('driver')) {
+      return 'integrated-circuit-chip';
+    }
+    if (lowerName.includes('display') || lowerName.includes('screen') || lowerName.includes('monitor')) {
+      return 'monitor';
+    }
+    if (lowerName.includes('motor')) {
+      return lowerName.includes('driver') ? 'engine-outline' : 'engine';
+    }
+    if (lowerName.includes('cool')) {
+      return 'fan';
+    }
+    if (lowerName.includes('prototype')) {
+      return 'flask-outline';
+    }
+    if (lowerName.includes('memory')) {
+      return 'memory';
+    }
+    if (lowerName.includes('connector')) {
+      return 'cable-data';
+    }
+    if (lowerName.includes('potentiometer')) {
+      return 'tune-vertical';
     }
     
     // Default fallback

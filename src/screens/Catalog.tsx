@@ -81,7 +81,10 @@ export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, 
 
   // Extract categories from products if CATEGORIES is empty
   const displayCategories = CATEGORIES.length > 0 ? CATEGORIES : extractCategoriesFromProducts(products);
-  const categories = ['All', ...displayCategories.map(c => c.name)];
+  const categories = [{ name: 'All', icon: 'grid' as const }, ...displayCategories.map(c => ({
+    name: c.name,
+    icon: c.icon || 'package-variant',
+  }))];
 
   React.useEffect(() => {
     setActiveCategory(initialCategory || 'All');
@@ -121,11 +124,11 @@ export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, 
         style={styles.categoriesScroll}
       >
         {categories.map((cat) => {
-          const isActive = activeCategory === cat;
+          const isActive = activeCategory === cat.name;
           return (
             <TouchableOpacity
-              key={cat}
-              onPress={() => setActiveCategory(cat)}
+              key={cat.name}
+              onPress={() => setActiveCategory(cat.name)}
               style={[
                 styles.categoryTab,
                 {
@@ -135,12 +138,19 @@ export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, 
               ]}
               activeOpacity={0.7}
             >
-              <Text style={[
-                styles.categoryTabText,
-                { color: isActive ? theme.surface : theme.muted }
-              ]}>
-                {cat === 'All' ? 'Tất cả' : cat}
-              </Text>
+              <View style={styles.categoryTabContent}>
+                <AppIcon 
+                  name={cat.icon} 
+                  size={16} 
+                  color={isActive ? theme.surface : theme.muted} 
+                />
+                <Text style={[
+                  styles.categoryTabText,
+                  { color: isActive ? theme.surface : theme.muted }
+                ]}>
+                  {cat.name === 'All' ? 'Tất cả' : cat.name}
+                </Text>
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -232,6 +242,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
     marginRight: 8,
+  },
+  categoryTabContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   categoryTabText: {
     fontSize: 14,
