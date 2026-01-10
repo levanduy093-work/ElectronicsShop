@@ -273,7 +273,9 @@ const mapApiVoucherToUi = (voucher: ApiVoucher): Voucher => {
     code: voucher.code,
     description: voucher.description || '',
     type: voucher.type || fallbackType,
-    discountPrice: Number(voucher.discountPrice) || 0,
+    discountPrice: Number(voucher.discountPrice ?? 0) || 0,
+    discountRate: voucher.discountRate,
+    maxDiscountPrice: voucher.maxDiscountPrice,
     minTotal: Number(voucher.minTotal) || 0,
     expire: voucher.expire,
   };

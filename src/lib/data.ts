@@ -198,8 +198,10 @@ export interface Voucher {
   id?: string;
   code: string;
   description?: string;
-  type?: 'fixed' | 'shipping';
+  type?: 'fixed' | 'shipping' | 'percentage';
   discountPrice: number;
+  discountRate?: number;
+  maxDiscountPrice?: number;
   minTotal: number;
   expire?: string;
 }

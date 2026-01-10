@@ -37,6 +37,11 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
     const voucherType = appliedVoucher.type || 'fixed';
     if (voucherType === 'shipping') {
       discountAmount = Math.min(appliedVoucher.discountPrice, shipping);
+    } else if (voucherType === 'percentage') {
+      const rate = Number(appliedVoucher.discountRate ?? 0);
+      const rawDiscount = Math.max(0, subtotal * (rate / 100));
+      const cap = appliedVoucher.maxDiscountPrice ?? Number.POSITIVE_INFINITY;
+      discountAmount = Math.min(rawDiscount, cap);
     } else {
       discountAmount = appliedVoucher.discountPrice;
     }
@@ -215,6 +220,16 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
                   const isSelected = appliedVoucher?.code === voucher.code;
                   const voucherType = voucher.type || (voucher.description?.toLowerCase().includes('ship') ? 'shipping' : 'fixed');
                   const expireDate = voucher.expire ? new Date(voucher.expire) : null;
+                  const voucherLabel =
+                    voucherType === 'shipping'
+                      ? 'Giảm phí ship'
+                      : voucherType === 'percentage'
+                        ? `Giảm ${voucher.discountRate ?? 0}%`
+                        : 'Giảm giá đơn hàng';
+                  const voucherCap =
+                    voucherType === 'percentage' && voucher.maxDiscountPrice
+                      ? `(tối đa ${voucher.maxDiscountPrice.toLocaleString('vi-VN')}đ)`
+                      : '';
 
                   return (
                     <View
@@ -236,7 +251,7 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
                       </View>
                       <Text style={[styles.voucherDescription, { color: t.muted }]}>{voucher.description}</Text>
                       <Text style={[styles.voucherMeta, { color: t.muted }]}>
-                        {voucherType === 'shipping' ? 'Giảm phí ship' : 'Giảm giá đơn hàng'} · ĐH tối thiểu {voucher.minTotal.toLocaleString('vi-VN')}đ
+                        {voucherLabel} {voucherCap ? voucherCap : ''} · ĐH tối thiểu {voucher.minTotal.toLocaleString('vi-VN')}đ
                       </Text>
                       {expireDate && (
                         <Text style={[styles.voucherMeta, { color: t.muted }]}>
