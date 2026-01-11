@@ -52,6 +52,8 @@ import {
   removeFavorite,
   updateProfile as apiUpdateProfile,
   getAddresses,
+  uploadImage,
+  UploadImageFile,
 } from './src/lib/api';
 import { socketService } from './src/lib/socket';
 
@@ -691,26 +693,66 @@ function App(): React.JSX.Element {
     }
   }, [selectedOrderId, orders]);
 
-  const handleUpdateProfile = async (data: Partial<typeof userProfile>) => {
+  const handleUpdateProfile = async (
+    data: Partial<typeof userProfile> & { avatarFile?: UploadImageFile },
+  ) => {
     try {
-      if (authTokensRef.current?.accessToken) {
-        const result = await apiUpdateProfile(
-          {
-            name: data.name,
-            avatar: data.avatar,
-            email: data.email,
-          },
-          authTokensRef.current.accessToken,
-        );
-        const updatedUser = result.user || data;
-        setUserProfile(prev => {
-          const next = { ...prev, ...updatedUser };
-          void persistAuthState(authTokensRef.current as any, next, userId);
-          return next;
-        });
+      // Optimistic update so UI responds instantly
+      const optimisticAvatar = data.avatar || data.avatarFile?.uri || userProfile.avatar;
+      const optimisticProfile = {
+        ...userProfile,
+        ...(data.name ? { name: data.name } : {}),
+        ...(data.email ? { email: data.email } : {}),
+        ...(optimisticAvatar ? { avatar: optimisticAvatar } : {}),
+      };
+      setUserProfile(optimisticProfile);
+      if (authTokensRef.current) {
+        void persistAuthState(authTokensRef.current as any, optimisticProfile, userId);
+      }
+
+      const accessToken = authTokensRef.current?.accessToken;
+      if (!accessToken) {
         return true;
       }
-      setUserProfile(prev => ({ ...prev, ...data }));
+
+      // Sync in background to avoid blocking UI
+      const syncProfile = async () => {
+        try {
+          let avatarToUpdate = optimisticAvatar;
+
+          if (data.avatarFile?.uri) {
+            const uploadResult = await uploadImage(data.avatarFile, {
+              token: authTokensRef.current?.accessToken,
+            });
+            avatarToUpdate = uploadResult?.secure_url || uploadResult?.url || avatarToUpdate;
+          }
+
+          const payload = {
+            ...(data.name ? { name: data.name } : {}),
+            ...(data.email ? { email: data.email } : {}),
+            ...(avatarToUpdate ? { avatar: avatarToUpdate } : {}),
+          };
+
+          if (!Object.keys(payload).length) return;
+
+          const result = await apiUpdateProfile(
+            payload,
+            authTokensRef.current?.accessToken || accessToken,
+          );
+          const updatedUser = result.user || payload;
+          setUserProfile(prev => {
+            const next = { ...prev, ...updatedUser };
+            if (authTokensRef.current) {
+              void persistAuthState(authTokensRef.current as any, next, userId);
+            }
+            return next;
+          });
+        } catch (error: any) {
+          console.warn('App.tsx - Background profile sync failed', error?.message || error);
+        }
+      };
+
+      void syncProfile();
       return true;
     } catch (error: any) {
       console.warn('App.tsx - Failed to update profile', error?.message || error);

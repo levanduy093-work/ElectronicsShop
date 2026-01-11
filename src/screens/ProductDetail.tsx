@@ -8,7 +8,7 @@ import { AppIcon } from '../components/common/Icon';
 import { formatPrice } from '../lib/utils';
 import { useTheme } from '../lib/theme';
 import { useToast } from '../components/common/ToastProvider';
-import { ApiReview, createReview, getReviews } from '../lib/api';
+import { ApiReview, createReview, getReviews, uploadImage, UploadImageFile } from '../lib/api';
 import { socketService } from '../lib/socket';
 
 interface ProductDetailProps {
@@ -171,18 +171,53 @@ export function ProductDetail({
       return;
     }
 
-    createReview(product.id, reviewRating, content, reviewImages, accessToken)
-      .then(() => {
-        resetReviewForm();
-        setShowReviewModal(false);
-        setActiveTab('reviews');
-        setExpandedReviews({});
-        showToast('Đã gửi đánh giá', 'success');
+    const imagesToUpload = [...reviewImages];
+    const tempId = `temp-${Date.now()}`;
+    const optimisticReview: ApiReview = {
+      _id: tempId,
+      productId: product.id,
+      userId: currentUserId || 'me',
+      userName: currentUserName || 'Bạn',
+      rating: reviewRating,
+      comment: content,
+      images: imagesToUpload,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setReviews(prev => [optimisticReview, ...prev]);
+
+    setShowReviewModal(false);
+    resetReviewForm();
+    setActiveTab('reviews');
+    setExpandedReviews({});
+    showToast('Đã gửi đánh giá', 'success');
+
+    const doSubmit = async () => {
+      try {
+        const uploadedUrls = await Promise.all(
+          imagesToUpload.map(async (uri) => {
+            if (uri.startsWith('http://') || uri.startsWith('https://')) {
+              return uri;
+            }
+            const file: UploadImageFile = {
+              uri,
+              name: uri.split('/').pop() || 'review.jpg',
+              type: 'image/jpeg',
+            };
+            const res = await uploadImage(file, { token: accessToken });
+            return res?.secure_url || res?.url || uri;
+          }),
+        );
+
+        await createReview(product.id, reviewRating, content, uploadedUrls.filter(Boolean), accessToken);
         fetchReviews();
-      })
-      .catch((error: any) => {
+      } catch (error: any) {
+        setReviews(prev => prev.filter(r => r._id !== tempId));
         showToast(error?.message || 'Không thể gửi đánh giá', 'error');
-      });
+      }
+    };
+
+    void doSubmit();
   };
 
   const handleCloseModal = () => {

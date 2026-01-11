@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 
 export type AuthResponse = {
   user: any;
@@ -117,8 +117,23 @@ export type ApiNotification = {
   updatedAt?: string;
 };
 
-const API_BASE_URL =
-  Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
+export type UploadImageFile = {
+  uri: string;
+  name?: string;
+  type?: string;
+};
+
+// Derive API host from Metro bundler URL so it works on simulator & real device.
+const resolveApiHost = () => {
+  const scriptURL = NativeModules?.SourceCode?.scriptURL as string | undefined;
+  if (scriptURL) {
+    const match = scriptURL.match(/https?:\/\/([^/:]+)(?::\d+)?/);
+    if (match?.[1]) return match[1];
+  }
+  return Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+};
+
+const API_BASE_URL = `http://${resolveApiHost()}:3000`;
 
 type RequestOptions = {
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
@@ -220,6 +235,63 @@ async function requestJson<TResponse>(
   return data as TResponse;
 }
 
+async function uploadImageRequest(
+  file: UploadImageFile,
+  options?: { token?: string; skipAuthRefresh?: boolean },
+): Promise<any> {
+  const url = `${API_BASE_URL}/upload/image`;
+  const buildFormData = () => {
+    const formData = new FormData();
+    formData.append('file', {
+      uri: file.uri,
+      name: file.name || 'image.jpg',
+      type: file.type || 'image/jpeg',
+    } as any);
+    return formData;
+  };
+
+  const execute = async (token?: string, skipAuthRefresh?: boolean): Promise<any> => {
+    let response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: buildFormData(),
+      });
+    } catch (error: any) {
+      throw new Error(error?.message || 'Không thể kết nối tới máy chủ');
+    }
+
+    let data: any = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (!response.ok) {
+      if (response.status === 401 && token && !skipAuthRefresh) {
+        const refreshedToken = await refreshAccessToken();
+        if (refreshedToken) {
+          return execute(refreshedToken, true);
+        }
+      }
+
+      const message =
+        (Array.isArray(data?.message) && data?.message[0]) ||
+        data?.message ||
+        'Đã xảy ra lỗi khi tải ảnh lên. Vui lòng thử lại.';
+      throw new Error(message);
+    }
+
+    return data;
+  };
+
+  return execute(options?.token, options?.skipAuthRefresh);
+}
+
 async function postJson<TResponse>(
   path: string,
   body: Record<string, unknown>,
@@ -298,6 +370,10 @@ export function updateProfile(data: { name?: string; avatar?: string; email?: st
     data,
     { token },
   );
+}
+
+export function uploadImage(file: UploadImageFile, options?: { token?: string; skipAuthRefresh?: boolean }) {
+  return uploadImageRequest(file, options);
 }
 
 export function getReviews(productId: string) {

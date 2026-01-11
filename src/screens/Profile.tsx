@@ -6,6 +6,7 @@ import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AVAILABLE_VOUCHERS, Voucher } from '../lib/data';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
 import { useToast } from '../components/common/ToastProvider';
+import { UploadImageFile } from '../lib/api';
 
 // Dynamic import để tránh lỗi khi module chưa được link
 let launchImageLibrary: any = null;
@@ -36,7 +37,7 @@ interface ProfileProps {
   onNavigateToWishlist?: () => void;
   onLogout?: () => void;
   userProfile?: UserProfile;
-  onUpdateProfile?: (data: Partial<UserProfile>) => Promise<boolean> | void;
+  onUpdateProfile?: (data: Partial<UserProfile> & { avatarFile?: UploadImageFile }) => Promise<boolean> | void;
   theme?: Theme;
   vouchers?: Voucher[];
 }
@@ -58,6 +59,7 @@ export function Profile({
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingName, setEditingName] = useState(userProfile.name);
   const [editingAvatar, setEditingAvatar] = useState(userProfile.avatar);
+  const [avatarFile, setAvatarFile] = useState<UploadImageFile | null>(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
   const { theme: ctxTheme, isDarkMode } = useTheme();
@@ -74,6 +76,9 @@ export function Profile({
   const handleEditProfile = () => {
     setEditingName(userProfile.name);
     setEditingAvatar(userProfile.avatar);
+    setAvatarFile(null);
+    setShowUrlInput(false);
+    setAvatarUrl('');
     setShowEditModal(true);
   };
 
@@ -83,9 +88,10 @@ export function Profile({
       return;
     }
     
-    const updatedProfile: Partial<UserProfile> = {
+    const updatedProfile: Partial<UserProfile> & { avatarFile?: UploadImageFile } = {
       name: editingName.trim(),
       avatar: editingAvatar.trim(),
+      ...(avatarFile ? { avatarFile } : {}),
     };
     
     const doUpdate = async () => {
@@ -110,6 +116,7 @@ export function Profile({
   const handleCancelEdit = () => {
     setEditingName(userProfile.name);
     setEditingAvatar(userProfile.avatar);
+    setAvatarFile(null);
     setShowEditModal(false);
   };
 
@@ -139,9 +146,17 @@ export function Profile({
       }
 
       if (response.assets && response.assets[0]) {
-        const imageUri = response.assets[0].uri;
+        const asset = response.assets[0];
+        const imageUri = asset.uri;
         if (imageUri) {
           setEditingAvatar(imageUri);
+          setAvatarFile({
+            uri: imageUri,
+            name: asset.fileName || 'avatar.jpg',
+            type: asset.type || 'image/jpeg',
+          });
+          setShowUrlInput(false);
+          setAvatarUrl('');
         }
       }
     });
@@ -153,6 +168,7 @@ export function Profile({
     }
     setShowUrlInput(false);
     setAvatarUrl('');
+    setAvatarFile(null);
   };
 
   return (
