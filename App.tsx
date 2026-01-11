@@ -723,6 +723,7 @@ function App(): React.JSX.Element {
           if (data.avatarFile?.uri) {
             const uploadResult = await uploadImage(data.avatarFile, {
               token: authTokensRef.current?.accessToken,
+              folder: `electronics-shop/avatars/${userId || 'guest'}`,
             });
             avatarToUpdate = uploadResult?.secure_url || uploadResult?.url || avatarToUpdate;
           }

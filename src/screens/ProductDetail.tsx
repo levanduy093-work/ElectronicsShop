@@ -215,7 +215,10 @@ export function ProductDetail({
               name: uri.split('/').pop() || 'review.jpg',
               type: 'image/jpeg',
             };
-            const res = await uploadImage(file, { token: accessToken });
+            const res = await uploadImage(file, {
+              token: accessToken,
+              folder: `electronics-shop/reviews/${product.id}/${currentUserId || 'guest'}`,
+            });
             return res?.secure_url || res?.url || uri;
           }),
         );

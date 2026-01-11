@@ -237,9 +237,9 @@ async function requestJson<TResponse>(
 
 async function uploadImageRequest(
   file: UploadImageFile,
-  options?: { token?: string; skipAuthRefresh?: boolean },
+  options?: { token?: string; skipAuthRefresh?: boolean; folder?: string },
 ): Promise<any> {
-  const url = `${API_BASE_URL}/upload/image`;
+  const url = `${API_BASE_URL}/upload/image${options?.folder ? `?folder=${encodeURIComponent(options.folder)}` : ''}`;
   const buildFormData = () => {
     const formData = new FormData();
     formData.append('file', {
@@ -372,7 +372,10 @@ export function updateProfile(data: { name?: string; avatar?: string; email?: st
   );
 }
 
-export function uploadImage(file: UploadImageFile, options?: { token?: string; skipAuthRefresh?: boolean }) {
+export function uploadImage(
+  file: UploadImageFile,
+  options?: { token?: string; skipAuthRefresh?: boolean; folder?: string },
+) {
   return uploadImageRequest(file, options);
 }
 
