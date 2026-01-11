@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, StatusBar, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, StatusBar, Platform, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 import { Address, AddressFormValues, DEFAULT_ADDRESSES, buildFullAddress } from '../lib/address';
@@ -20,7 +20,7 @@ interface CheckoutProps {
     totalAmount: number;
     subTotal: number;
     discount?: number;
-  }) => Promise<{ id?: string; code?: string } | void>;
+  }) => Promise<{ id?: string; code?: string; paymentUrl?: string } | void>;
   placingOrder?: boolean;
   cartItems: CartItem[];
   theme?: Theme;
@@ -70,6 +70,8 @@ export function Checkout({ onBack, onSuccess, onPlaceOrder, placingOrder, cartIt
     },
   ];
   const lineBg = t === lightTheme ? '#E5E7EB' : t.border;
+  const selectedPaymentOption = paymentOptions[selectedPayment];
+  const isVnpaySelected = selectedPaymentOption?.name?.toLowerCase().includes('vnpay');
 
   useEffect(() => {
     if (addresses) {
@@ -99,6 +101,7 @@ export function Checkout({ onBack, onSuccess, onPlaceOrder, placingOrder, cartIt
   ];
 
   const [orderId, setOrderId] = useState<string>('');
+  const [justOpenedGateway, setJustOpenedGateway] = useState(false);
 
   const handleNext = async () => {
     if (isSubmitting || placingOrder) return;
@@ -129,7 +132,7 @@ export function Checkout({ onBack, onSuccess, onPlaceOrder, placingOrder, cartIt
       try {
         const created = await onPlaceOrder({
           address: selectedAddress,
-          paymentMethod: paymentOptions[selectedPayment]?.name || 'Thanh toán khi nhận hàng (COD)',
+          paymentMethod: selectedPaymentOption?.name || 'Thanh toán khi nhận hàng (COD)',
           shippingFee,
           items: cartItems,
           totalAmount: total,
@@ -138,6 +141,15 @@ export function Checkout({ onBack, onSuccess, onPlaceOrder, placingOrder, cartIt
         });
         const newId = created?.code || created?.id || fallbackCode;
         setOrderId(newId);
+        if (isVnpaySelected && created?.paymentUrl) {
+          setJustOpenedGateway(true);
+          Linking.openURL(created.paymentUrl).catch(() => {
+            showToast('Không thể mở cổng VNPAY', 'error');
+          });
+          setStep('success');
+          onSuccess?.(newId);
+          return;
+        }
         setStep('success');
         onSuccess?.(newId);
       } catch (error: any) {

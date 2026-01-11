@@ -79,6 +79,13 @@ export type ApiOrder = {
   updatedAt?: string;
 };
 
+export type ApiVnpayPaymentResponse = {
+  paymentUrl: string;
+  order: ApiOrder;
+  transactionId?: string;
+  paymentCode?: string;
+};
+
 export type ApiVoucher = {
   _id: string;
   code: string;
@@ -346,6 +353,10 @@ export function sendChangePasswordOtp(currentPassword: string, token: string) {
 
 export function changePassword(currentPassword: string, newPassword: string, code: string, token: string) {
   return postJson<{ message: string }>('/auth/password/change', { currentPassword, newPassword, code }, { token });
+}
+
+export function createVnpayPayment(data: Record<string, unknown>, token: string) {
+  return postJson<ApiVnpayPaymentResponse>('/payments/vnpay', data, { token });
 }
 
 export function createOrder(data: Record<string, unknown>, token: string) {

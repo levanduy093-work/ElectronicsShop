@@ -4,7 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import { Alert, Linking, StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Home } from './src/screens/Home';
@@ -40,6 +40,7 @@ import {
   addFavorite,
   configureApiAuth,
   createOrder as apiCreateOrder,
+  createVnpayPayment,
   getFavorites as apiGetFavorites,
   getMyVouchers,
   getNotifications as apiGetNotifications,
@@ -396,7 +397,7 @@ function App(): React.JSX.Element {
     }
   };
 
-  const loadOrders = async (tokenOverride?: string) => {
+  const loadOrders = useCallback(async (tokenOverride?: string) => {
     const token = tokenOverride || authTokensRef.current?.accessToken;
     if (!token) return;
 
@@ -413,7 +414,7 @@ function App(): React.JSX.Element {
     } catch (error: any) {
       console.warn('App.tsx - Failed to load orders', error?.message || error);
     }
-  };
+  }, []);
 
   const loadVouchers = async (tokenOverride?: string) => {
     const token = tokenOverride || authTokensRef.current?.accessToken;
@@ -474,6 +475,34 @@ function App(): React.JSX.Element {
     }
   };
 
+  const handleDeepLink = useCallback(
+    (url?: string | null) => {
+      if (!url) return;
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== 'electronicsshop:') return;
+        const host = parsed.host;
+        if (host === 'payment' || host === 'payment-return') {
+          const order = parsed.searchParams.get('order') || '';
+          const status = parsed.searchParams.get('status') || '';
+          const success = status === 'paid';
+          Alert.alert(
+            'Thanh toán',
+            success
+              ? `Đơn hàng ${order ? `#${order} ` : ''}đã thanh toán thành công`
+              : 'Thanh toán không thành công',
+          );
+          setCurrentTab('home');
+          setCurrentScreen('home');
+          void loadOrders();
+        }
+      } catch (error) {
+        console.warn('App.tsx - Failed to handle deep link', error);
+      }
+    },
+    [loadOrders],
+  );
+
   const syncAuthTokens = useCallback((
     tokens: { accessToken: string; refreshToken: string },
     user?: { name?: string; email?: string; avatar?: string; _id?: string },
@@ -515,6 +544,14 @@ function App(): React.JSX.Element {
       onAuthFailure: handleAuthFailure,
     });
   }, [handleAuthFailure, syncAuthTokens]);
+
+  useEffect(() => {
+    Linking.getInitialURL()
+      .then(handleDeepLink)
+      .catch(() => undefined);
+    const sub = Linking.addEventListener('url', event => handleDeepLink(event.url));
+    return () => sub.remove();
+  }, [handleDeepLink]);
 
   useEffect(() => {
     const restoreAuth = async () => {
@@ -800,6 +837,7 @@ function App(): React.JSX.Element {
     }
 
     const code = `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+    const isVnpay = params.paymentMethod.toLowerCase().includes('vnpay');
     const normalizeProductId = (id: string) => {
       if (/^[a-f0-9]{24}$/i.test(id)) return id;
       const sanitized = id.replace(/[^a-f0-9]/gi, 'a');
@@ -839,6 +877,13 @@ function App(): React.JSX.Element {
 
     setIsPlacingOrder(true);
     try {
+      if (isVnpay) {
+        const payment = await createVnpayPayment(payload, authTokensRef.current.accessToken);
+        const uiOrder = mapApiOrderToUi(payment.order, productsRef.current);
+        setOrders(prev => [uiOrder, ...prev]);
+        return { ...uiOrder, paymentUrl: payment.paymentUrl };
+      }
+
       const created = await apiCreateOrder(payload, authTokensRef.current.accessToken);
       const uiOrder = mapApiOrderToUi(created, productsRef.current);
       setOrders(prev => [uiOrder, ...prev]);
@@ -1010,7 +1055,7 @@ function App(): React.JSX.Element {
                 },
                 shippingAddress: address,
               });
-              return { id: created.id, code: created.code };
+              return { id: (created as any).id, code: (created as any).code, paymentUrl: (created as any).paymentUrl };
             }}
             placingOrder={isPlacingOrder}
             onSuccess={() => {
