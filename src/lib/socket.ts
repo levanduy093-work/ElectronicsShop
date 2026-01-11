@@ -1,8 +1,16 @@
 import { io, Socket } from 'socket.io-client';
-import { Platform } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 
-const SOCKET_URL =
-  Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
+const resolveHost = () => {
+  const scriptURL = (NativeModules as any)?.SourceCode?.scriptURL as string | undefined;
+  if (scriptURL) {
+    const match = scriptURL.match(/https?:\/\/([^/:]+)(?::\d+)?/);
+    if (match?.[1]) return match[1];
+  }
+  return Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+};
+
+const SOCKET_URL = `http://${resolveHost()}:3000`;
 
 class SocketService {
   private socket: Socket | null = null;
