@@ -492,8 +492,6 @@ function App(): React.JSX.Element {
               ? `Đơn hàng ${order ? `#${order} ` : ''}đã thanh toán thành công`
               : 'Thanh toán không thành công',
           );
-          setCurrentTab('home');
-          setCurrentScreen('home');
           void loadOrders();
         }
       } catch (error) {
@@ -1056,6 +1054,19 @@ function App(): React.JSX.Element {
                 shippingAddress: address,
               });
               return { id: (created as any).id, code: (created as any).code, paymentUrl: (created as any).paymentUrl };
+            }}
+            onCheckPaymentStatus={async (orderId: string) => {
+              if (!authTokensRef.current?.accessToken) return 'pending';
+              try {
+                const order = await getOrderById(orderId, authTokensRef.current.accessToken);
+                const status = order.paymentStatus?.toLowerCase?.() || '';
+                if (status === 'paid') return 'paid';
+                if (status === 'failed') return 'failed';
+                return 'pending';
+              } catch (error) {
+                console.warn('App.tsx - Failed to check payment status', error);
+                return undefined;
+              }
             }}
             placingOrder={isPlacingOrder}
             onSuccess={() => {

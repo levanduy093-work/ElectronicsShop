@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, StatusBar, Platform, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, StatusBar, Platform, Linking, AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 import { Address, AddressFormValues, DEFAULT_ADDRESSES, buildFullAddress } from '../lib/address';
@@ -21,6 +21,7 @@ interface CheckoutProps {
     subTotal: number;
     discount?: number;
   }) => Promise<{ id?: string; code?: string; paymentUrl?: string } | void>;
+  onCheckPaymentStatus?: (orderId: string) => Promise<'paid' | 'failed' | 'pending' | undefined>;
   placingOrder?: boolean;
   cartItems: CartItem[];
   theme?: Theme;
@@ -29,9 +30,20 @@ interface CheckoutProps {
   onUpdateAddresses?: React.Dispatch<React.SetStateAction<Address[]>>;
 }
 
-type Step = 'address' | 'shipping' | 'payment' | 'success';
+type Step = 'address' | 'shipping' | 'payment' | 'waiting' | 'success';
 
-export function Checkout({ onBack, onSuccess, onPlaceOrder, placingOrder, cartItems, theme, onAddAddress, addresses, onUpdateAddresses }: CheckoutProps) {
+export function Checkout({
+  onBack,
+  onSuccess,
+  onPlaceOrder,
+  placingOrder,
+  cartItems,
+  theme,
+  onAddAddress,
+  addresses,
+  onUpdateAddresses,
+  onCheckPaymentStatus = async () => 'pending',
+}: CheckoutProps) {
   const { theme: ctxTheme, isDarkMode } = useTheme();
   const t = theme || ctxTheme || lightTheme;
   const insets = useSafeAreaInsets();
@@ -101,7 +113,14 @@ export function Checkout({ onBack, onSuccess, onPlaceOrder, placingOrder, cartIt
   ];
 
   const [orderId, setOrderId] = useState<string>('');
-  const [justOpenedGateway, setJustOpenedGateway] = useState(false);
+  const [pendingPayment, setPendingPayment] = useState<{ url: string; code?: string; amount: number; id?: string }>({
+    url: '',
+    amount: 0,
+  });
+  const [checkingPayment, setCheckingPayment] = useState(false);
+  const [successInfo, setSuccessInfo] = useState<{ code?: string; amount: number; payment?: string }>({
+    amount: 0,
+  });
 
   const handleNext = async () => {
     if (isSubmitting || placingOrder) return;
@@ -123,8 +142,8 @@ export function Checkout({ onBack, onSuccess, onPlaceOrder, placingOrder, cartIt
 
       if (!onPlaceOrder) {
         setOrderId(fallbackCode);
+        setSuccessInfo({ code: fallbackCode, amount: total, payment: selectedPaymentOption?.name });
         setStep('success');
-        onSuccess?.(fallbackCode);
         return;
       }
 
@@ -141,17 +160,16 @@ export function Checkout({ onBack, onSuccess, onPlaceOrder, placingOrder, cartIt
         });
         const newId = created?.code || created?.id || fallbackCode;
         setOrderId(newId);
+        setSuccessInfo({ code: newId, amount: total, payment: selectedPaymentOption?.name });
         if (isVnpaySelected && created?.paymentUrl) {
-          setJustOpenedGateway(true);
+          setPendingPayment({ url: created.paymentUrl, code: newId, amount: total, id: created?.id || created?.code });
+          setStep('waiting');
           Linking.openURL(created.paymentUrl).catch(() => {
             showToast('Không thể mở cổng VNPAY', 'error');
           });
-          setStep('success');
-          onSuccess?.(newId);
           return;
         }
         setStep('success');
-        onSuccess?.(newId);
       } catch (error: any) {
         showToast(error?.message || 'Không thể đặt hàng', 'error');
       } finally {
@@ -176,6 +194,39 @@ export function Checkout({ onBack, onSuccess, onPlaceOrder, placingOrder, cartIt
     setIsAddingAddress(false);
   };
 
+  const handleCheckPayment = async () => {
+    if (!pendingPayment.id || !onCheckPaymentStatus) return;
+    setCheckingPayment(true);
+    try {
+      const status = await onCheckPaymentStatus(pendingPayment.id);
+      if (status === 'paid') {
+        setSuccessInfo({
+          code: pendingPayment.code || pendingPayment.id,
+          amount: pendingPayment.amount,
+          payment: 'VNPAY',
+        });
+        setStep('success');
+      } else if (status === 'failed') {
+        showToast('Thanh toán không thành công', 'error');
+      } else {
+        showToast('Thanh toán đang xử lý, vui lòng thử lại sau', 'info');
+      }
+    } catch (error: any) {
+      showToast(error?.message || 'Không thể kiểm tra trạng thái thanh toán', 'error');
+    } finally {
+      setCheckingPayment(false);
+    }
+  };
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', state => {
+      if (state === 'active' && step === 'waiting' && pendingPayment.id) {
+        void handleCheckPayment();
+      }
+    });
+    return () => sub.remove();
+  }, [step, pendingPayment.id]);
+
   if (isAddingAddress) {
     return (
       <AddressForm
@@ -188,6 +239,61 @@ export function Checkout({ onBack, onSuccess, onPlaceOrder, placingOrder, cartIt
     );
   }
 
+  if (step === 'waiting') {
+    return (
+      <View style={[styles.waitingContainer, { backgroundColor: t.background }]}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={t.background} />
+        <View style={[styles.waitingCard, { backgroundColor: t.card, shadowColor: t.text }]}>
+          <View style={[styles.waitingIcon, { backgroundColor: t === lightTheme ? '#DBEAFE' : 'rgba(59,130,246,0.16)' }]}>
+            <AppIcon name="clock" size={32} color={t.primary} />
+          </View>
+          <Text style={[styles.waitingTitle, { color: t.text }]}>Đang chờ thanh toán</Text>
+          <Text style={[styles.waitingSub, { color: t.muted }]}>
+            Đơn hàng {pendingPayment.code ? `#${pendingPayment.code}` : ''} • {formatPrice(pendingPayment.amount)}
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              if (!pendingPayment.url) return;
+              Linking.openURL(pendingPayment.url).catch(() => {
+                showToast('Không thể mở cổng VNPAY', 'error');
+              });
+            }}
+            style={[styles.waitingButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.waitingButtonText}>Mở lại cổng VNPAY</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              if (!checkingPayment) void handleCheckPayment();
+            }}
+            style={[
+              styles.waitingSecondary,
+              { borderColor: t.border, backgroundColor: t.surface },
+              checkingPayment && { opacity: 0.7 },
+            ]}
+            activeOpacity={0.8}
+            disabled={checkingPayment}
+          >
+            <AppIcon name="check-circle" size={16} color={t.muted} />
+            <Text style={[styles.waitingSecondaryText, { color: t.muted }]}>
+              {checkingPayment ? 'Đang kiểm tra...' : 'Tôi đã thanh toán'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              setStep('payment');
+              setPendingPayment({ url: '', amount: 0 });
+            }}
+            style={[styles.waitingTertiary, { color: t.muted }]}
+          >
+            <Text style={[styles.waitingTertiaryText, { color: t.muted }]}>Chọn phương thức khác</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   if (step === 'success') {
     return (
       <View style={[styles.successContainer, { backgroundColor: t.background }]}>
@@ -196,11 +302,12 @@ export function Checkout({ onBack, onSuccess, onPlaceOrder, placingOrder, cartIt
         </View>
         <Text style={[styles.successTitle, { color: t.text }]}>Đặt hàng thành công!</Text>
         <Text style={[styles.successText, { color: t.muted }]}>
-          Đơn hàng {orderId ? `#${orderId}` : ''} của bạn đang được xử lý. Chúng tôi sẽ thông báo khi hàng được gửi đi.
+          Đơn hàng {successInfo.code ? `#${successInfo.code}` : orderId ? `#${orderId}` : ''} •{' '}
+          {formatPrice(successInfo.amount || total)} {successInfo.payment ? `• ${successInfo.payment}` : ''}
         </Text>
         <TouchableOpacity
           onPress={() => {
-            onSuccess?.(orderId);
+            onSuccess?.(successInfo.code || orderId);
           }}
           style={[styles.successButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
           activeOpacity={0.8}
@@ -212,6 +319,7 @@ export function Checkout({ onBack, onSuccess, onPlaceOrder, placingOrder, cartIt
   }
 
   const currentStepIndex = steps.findIndex(s => s.id === step);
+  const effectiveStepIndex = currentStepIndex === -1 ? steps.length - 1 : currentStepIndex;
 
   return (
     <View style={[styles.container, { backgroundColor: t.background }]}>
@@ -240,7 +348,7 @@ export function Checkout({ onBack, onSuccess, onPlaceOrder, placingOrder, cartIt
         <View style={[styles.progressLine, { backgroundColor: lineBg }]} />
         {steps.map((s, idx) => {
           const isActive = s.id === step;
-          const isCompleted = currentStepIndex > idx;
+          const isCompleted = effectiveStepIndex > idx;
 
           return (
             <TouchableOpacity
@@ -739,6 +847,80 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  waitingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: '#FFFFFF',
+  },
+  waitingCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  waitingIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  waitingTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+  waitingSub: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 16,
+  },
+  waitingButton: {
+    width: '100%',
+    backgroundColor: '#2563EB',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  waitingButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  waitingSecondary: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  waitingSecondaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  waitingTertiary: {
+    marginTop: 12,
+  },
+  waitingTertiaryText: {
+    fontSize: 13,
+    fontWeight: '500',
+    textDecorationLine: 'underline',
   },
   successContainer: {
     flex: 1,
