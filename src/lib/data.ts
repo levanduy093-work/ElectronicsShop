@@ -9,6 +9,8 @@ export interface Product {
   salePrice?: number;
   rating: number;
   reviews: number;
+  reviewCount?: number;
+  averageRating?: number;
   image: string;
   images?: string[];
   category: string;
@@ -93,6 +95,9 @@ const CATEGORY_ICON_MAP: Record<string, IconName> = {
 
 // Categories should be fetched from API or extracted from products dynamically
 export const CATEGORIES: Category[] = [];
+
+// Products should be loaded from the backend; keep empty to avoid showing fake placeholders
+export const PRODUCTS: Product[] = [];
 
 // Helper function to extract unique categories from products
 export const extractCategoriesFromProducts = (products: Product[]): Category[] => {

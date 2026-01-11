@@ -18,6 +18,10 @@ const { width } = Dimensions.get('window');
 const cardWidth = (width - 48) / 2; // 2 columns with padding
 
 export function ProductCard({ product, style, onPress, onAdd, theme = lightTheme }: ProductCardProps) {
+  const hasReviews = (product.reviews ?? 0) > 0 && (product.rating ?? 0) > 0;
+  const displayRating = hasReviews ? Number(product.rating).toFixed(1) : '0';
+  const displayReviewCount = hasReviews ? product.reviews : 0;
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -51,7 +55,7 @@ export function ProductCard({ product, style, onPress, onAdd, theme = lightTheme
         <View style={styles.ratingContainer}>
           <AppIcon name="star" size={12} color="#FBBF24" />
           <Text style={[styles.rating, { color: theme.muted }]}>
-            {product.rating} ({product.reviews})
+            {displayRating} ({displayReviewCount})
           </Text>
         </View>
 

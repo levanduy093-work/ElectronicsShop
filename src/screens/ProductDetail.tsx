@@ -53,11 +53,7 @@ export function ProductDetail({
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewContent, setReviewContent] = useState('');
   const [reviewImages, setReviewImages] = useState<string[]>([]);
-  const totalReviews = reviews.length || product.reviews || 0;
-  const averageRating =
-    reviews.length > 0
-      ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
-      : product.rating;
+  const [reviewsFetched, setReviewsFetched] = useState(false);
   const ratingCounts = reviews.reduce(
     (acc, r) => {
       acc[r.rating] = (acc[r.rating] || 0) + 1;
@@ -65,12 +61,21 @@ export function ProductDetail({
     },
     { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } as Record<number, number>,
   );
+  const derivedReviewCount = reviewsFetched
+    ? reviews.length
+    : product.reviewCount ?? product.reviews ?? 0;
+  const derivedAverageRating = reviewsFetched
+    ? reviews.length > 0
+      ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
+      : 0
+    : product.rating || product.averageRating || 0;
 
   const fetchReviews = async () => {
     setReviewsLoading(true);
     try {
       const data = await getReviews(product.id);
       setReviews(data);
+      setReviewsFetched(true);
     } catch (error: any) {
       console.warn('ProductDetail - Failed to load reviews', error?.message || error);
     } finally {
@@ -79,6 +84,7 @@ export function ProductDetail({
   };
 
   useEffect(() => {
+    setReviewsFetched(false);
     fetchReviews();
   }, [product.id]);
 
@@ -297,13 +303,13 @@ export function ProductDetail({
               </View>
             </View>
             
-            <View style={styles.ratingRow}>
-              <View style={styles.ratingContainer}>
+              <View style={styles.ratingRow}>
+                <View style={styles.ratingContainer}>
                 <AppIcon name="star" size={16} color="#FBBF24" />
-                <Text style={[styles.ratingText, { color: theme.text }]}>{averageRating.toFixed(1)}</Text>
-              </View>
-              <Text style={styles.separator}>|</Text>
-              <Text style={[styles.reviewsText, { color: theme.muted }]}>{totalReviews} đánh giá</Text>
+                <Text style={[styles.ratingText, { color: theme.text }]}>{derivedAverageRating.toFixed(1)}</Text>
+                </View>
+                <Text style={styles.separator}>|</Text>
+              <Text style={[styles.reviewsText, { color: theme.muted }]}>{derivedReviewCount} đánh giá</Text>
               <Text style={styles.separator}>|</Text>
               <Text style={[styles.soldText, { color: '#10B981' }]}>Đã bán 1.2k</Text>
             </View>
@@ -374,18 +380,18 @@ export function ProductDetail({
                   }
                 ]}>
                   <View style={styles.ratingScore}>
-                    <Text style={[styles.ratingScoreText, { color: theme.text }]}>{averageRating.toFixed(1)}</Text>
+                    <Text style={[styles.ratingScoreText, { color: theme.text }]}>{derivedAverageRating.toFixed(1)}</Text>
                     <View style={styles.ratingStarsRow}>
                       {Array.from({ length: 5 }).map((_, idx) => (
                         <AppIcon
                           key={idx}
                           name="star"
                           size={16}
-                          color={idx < Math.round(averageRating) ? '#FBBF24' : theme.border}
+                          color={idx < Math.round(derivedAverageRating) ? '#FBBF24' : theme.border}
                         />
                       ))}
                     </View>
-                    <Text style={[styles.ratingCount, { color: theme.muted }]}>{totalReviews} đánh giá</Text>
+                    <Text style={[styles.ratingCount, { color: theme.muted }]}>{derivedReviewCount} đánh giá</Text>
                   </View>
                   <View style={styles.ratingBars}>
                     {[5, 4, 3, 2, 1].map((star) => (
@@ -395,7 +401,7 @@ export function ProductDetail({
                           <View style={[
                             styles.barFill,
                             {
-                              width: totalReviews ? `${(ratingCounts[star] || 0) / totalReviews * 100}%` : '0%',
+                              width: derivedReviewCount ? `${(ratingCounts[star] || 0) / derivedReviewCount * 100}%` : '0%',
                             }
                           ]} />
                         </View>
@@ -426,7 +432,7 @@ export function ProductDetail({
                   <Text style={[styles.reviewsText, { color: theme.muted, paddingVertical: 8 }]}>Đang tải đánh giá...</Text>
                 )}
 
-                {reviews.length === 0 && !reviewsLoading && (
+                {reviewsFetched && reviews.length === 0 && !reviewsLoading && (
                   <Text style={[styles.reviewsText, { color: theme.muted, paddingVertical: 8 }]}>
                     Chưa có đánh giá nào. Hãy là người đầu tiên!
                   </Text>
