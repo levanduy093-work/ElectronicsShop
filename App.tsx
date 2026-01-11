@@ -1053,6 +1053,8 @@ function App(): React.JSX.Element {
             }}
             accessToken={authTokens?.accessToken}
             theme={theme}
+            currentUserId={userId}
+            currentUserName={userProfile.name}
           />
         ) : null;
 

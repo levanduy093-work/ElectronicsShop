@@ -9,6 +9,7 @@ import { formatPrice } from '../lib/utils';
 import { useTheme } from '../lib/theme';
 import { useToast } from '../components/common/ToastProvider';
 import { ApiReview, createReview, getReviews } from '../lib/api';
+import { socketService } from '../lib/socket';
 
 interface ProductDetailProps {
   product: Product;
@@ -19,6 +20,9 @@ interface ProductDetailProps {
   isLoggedIn: boolean;
   onRequireLogin: () => void;
   accessToken?: string;
+  currentUserId?: string | null;
+  currentUserName?: string;
+  theme?: ReturnType<typeof useTheme>['theme'];
 }
 
 export function ProductDetail({
@@ -30,6 +34,9 @@ export function ProductDetail({
   isLoggedIn,
   onRequireLogin,
   accessToken,
+  currentUserId,
+  currentUserName,
+  theme: injectedTheme,
 }: ProductDetailProps) {
   const { width } = Dimensions.get('window');
   const [quantity, setQuantity] = useState(1);
@@ -37,7 +44,8 @@ export function ProductDetail({
   const insets = useSafeAreaInsets();
   const [expandedReviews, setExpandedReviews] = useState<Record<string, boolean>>({});
   const reviewImageSize = (width - 16 * 2 - 8 * 3) / 4; // content padding 16, gap 8
-  const { theme, isDarkMode } = useTheme();
+  const { theme: ctxTheme, isDarkMode } = useTheme();
+  const theme = injectedTheme || ctxTheme;
   const { showToast } = useToast();
   const [reviews, setReviews] = useState<ApiReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
@@ -72,6 +80,21 @@ export function ProductDetail({
 
   useEffect(() => {
     fetchReviews();
+  }, [product.id]);
+
+  useEffect(() => {
+    const handler = (payload: any) => {
+      if (payload?.collection === 'reviews') {
+        const doc = payload.fullDocument || {};
+        if (`${doc.productId}` === `${product.id}`) {
+          fetchReviews();
+        }
+      }
+    };
+    socketService.on('db_change', handler);
+    return () => {
+      socketService.off('db_change');
+    };
   }, [product.id]);
 
   const formatReviewDate = (value?: string) => {
@@ -119,6 +142,14 @@ export function ProductDetail({
       return;
     }
 
+    const myReview = reviews.find(r => r.userId === currentUserId);
+    if (myReview) {
+      setReviewRating(myReview.rating || 5);
+      setReviewContent(myReview.comment || '');
+      setReviewImages(myReview.images || []);
+    } else {
+      resetReviewForm();
+    }
     setShowReviewModal(true);
   };
 
@@ -386,7 +417,9 @@ export function ProductDetail({
                   ]}
                 >
                   <AppIcon name="edit" size={18} color={theme.primary} />
-                  <Text style={[styles.writeReviewText, { color: theme.primary }]}>Viết đánh giá của bạn</Text>
+                  <Text style={[styles.writeReviewText, { color: theme.primary }]}>
+                    {reviews.find(r => r.userId === currentUserId) ? 'Chỉnh sửa đánh giá' : 'Viết đánh giá của bạn'}
+                  </Text>
                 </TouchableOpacity>
 
                 {reviewsLoading && (
@@ -414,7 +447,9 @@ export function ProductDetail({
                         <AppIcon name="user" size={20} color={theme.muted} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={[styles.reviewName, { color: theme.text }]}>Khách hàng</Text>
+                        <Text style={[styles.reviewName, { color: theme.text }]}>
+                          {r.userName || 'Khách hàng'}
+                        </Text>
                         <View style={styles.ratingStarsRow}>
                           {Array.from({ length: 5 }).map((_, idx) => (
                             <AppIcon
@@ -426,7 +461,9 @@ export function ProductDetail({
                           ))}
                         </View>
                       </View>
-                      <Text style={[styles.reviewDate, { color: theme.muted }]}>{formatReviewDate(r.createdAt)}</Text>
+                      <Text style={[styles.reviewDate, { color: theme.muted }]}>
+                        {formatReviewDate(r.updatedAt || r.createdAt)}
+                      </Text>
                     </View>
                     {r.comment ? <Text style={[styles.reviewComment, { color: theme.text }]}>{r.comment}</Text> : null}
                     {r.images && r.images.length > 0 && (

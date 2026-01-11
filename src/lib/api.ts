@@ -35,6 +35,8 @@ export type ApiReview = {
   comment?: string;
   images?: string[];
   createdAt?: string;
+  updatedAt?: string;
+  userName?: string;
 };
 
 export type ApiOrderItem = {
