@@ -8,6 +8,7 @@ import { CartItem } from '../lib/data';
 import { formatPrice } from '../lib/utils';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
 import { useToast } from '../components/common/ToastProvider';
+import { addAddress } from '../lib/api';
 
 interface CheckoutProps {
   onBack: () => void;
@@ -28,6 +29,7 @@ interface CheckoutProps {
   onAddAddress?: () => void;
   addresses?: Address[];
   onUpdateAddresses?: React.Dispatch<React.SetStateAction<Address[]>>;
+  accessToken?: string | null;
 }
 
 type Step = 'address' | 'shipping' | 'payment' | 'waiting' | 'success';
@@ -42,6 +44,7 @@ export function Checkout({
   onAddAddress,
   addresses,
   onUpdateAddresses,
+  accessToken,
   onCheckPaymentStatus = async () => 'pending',
 }: CheckoutProps) {
   const { theme: ctxTheme, isDarkMode } = useTheme();
@@ -59,6 +62,7 @@ export function Checkout({
   );
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
   const shippingOptions = [
     { name: "Nhanh (24h)", price: 30000, desc: "Nhận hàng vào ngày mai" },
     { name: "Tiêu chuẩn (2-3 ngày)", price: 15000, desc: "Nhận hàng T5, 20/01" },
@@ -180,20 +184,42 @@ export function Checkout({
     }
   };
 
-  const handleSaveAddress = (data: AddressFormValues) => {
-    const newId = `addr-${Date.now()}`;
-    const fullAddress = buildFullAddress(data);
-    updateAddresses(prev => {
-      const updatedExisting = data.isDefault ? prev.map(a => ({ ...a, isDefault: false })) : [...prev];
-      const newAddress: Address = {
-        ...data,
-        id: newId,
-        address: fullAddress,
-      };
-      return [...updatedExisting, newAddress];
-    });
-    setSelectedAddressId(newId);
-    setIsAddingAddress(false);
+  const handleSaveAddress = async (data: AddressFormValues) => {
+    if (isSavingAddress) return;
+    setIsSavingAddress(true);
+    try {
+      if (accessToken) {
+        const updated = await addAddress(
+          {
+            ...data,
+            detailedAddress: data.detailedAddress,
+            address: buildFullAddress(data),
+          },
+          accessToken,
+        );
+        updateAddresses(() => updated);
+        const preferred = updated.find(a => a.isDefault) || updated[updated.length - 1];
+        setSelectedAddressId(preferred?.id);
+      } else {
+        const newId = `addr-${Date.now()}`;
+        const fullAddress = buildFullAddress(data);
+        updateAddresses(prev => {
+          const updatedExisting = data.isDefault ? prev.map(a => ({ ...a, isDefault: false })) : [...prev];
+          const newAddress: Address = {
+            ...data,
+            id: newId,
+            address: fullAddress,
+          };
+          return [...updatedExisting, newAddress];
+        });
+        setSelectedAddressId(newId);
+      }
+      setIsAddingAddress(false);
+    } catch (error: any) {
+      showToast(error?.message || 'Không thể lưu địa chỉ', 'error');
+    } finally {
+      setIsSavingAddress(false);
+    }
   };
 
   const handleCheckPayment = async () => {

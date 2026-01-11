@@ -51,6 +51,7 @@ import {
   markNotificationRead as apiMarkNotificationRead,
   removeFavorite,
   updateProfile as apiUpdateProfile,
+  getAddresses,
 } from './src/lib/api';
 import { socketService } from './src/lib/socket';
 
@@ -428,6 +429,17 @@ function App(): React.JSX.Element {
     }
   };
 
+  const loadAddresses = async (tokenOverride?: string) => {
+    const token = tokenOverride || authTokensRef.current?.accessToken;
+    if (!token) return;
+    try {
+      const result = await getAddresses(token);
+      setAddresses(result);
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to load addresses', error?.message || error);
+    }
+  };
+
   const syncNotificationsFromApi = (items: ApiNotification[]) => {
     const mapped = (items || [])
       .map(mapApiNotificationToUi)
@@ -532,6 +544,7 @@ function App(): React.JSX.Element {
     setVouchers([]);
     setNotifications([]);
     setIsRefreshingNotifications(false);
+    setAddresses(DEFAULT_ADDRESSES);
     void clearPersistedAuthState();
   }, []);
 
@@ -563,6 +576,7 @@ function App(): React.JSX.Element {
             await loadFavorites(parsed.tokens.accessToken);
             await loadVouchers(parsed.tokens.accessToken);
             await loadNotifications(parsed.tokens.accessToken, { silent: true });
+            await loadAddresses(parsed.tokens.accessToken);
           }
         }
       } catch (error) {
@@ -633,11 +647,13 @@ function App(): React.JSX.Element {
       void loadFavorites();
       void loadVouchers();
       void loadNotifications(undefined, { silent: true });
+      void loadAddresses();
     } else if (!isLoggedIn) {
       setOrders([]);
       setWishlist([]);
       setVouchers([]);
       setNotifications([]);
+      setAddresses(DEFAULT_ADDRESSES);
     }
   }, [isLoggedIn, authTokens?.accessToken]);
 
@@ -942,11 +958,13 @@ function App(): React.JSX.Element {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
     };
+    setAddresses([]); // reset stale addresses from previous session
     syncAuthTokens(tokens, data.user, data.user?._id ?? null);
     void loadOrders(tokens.accessToken);
     void loadFavorites(tokens.accessToken);
     void loadVouchers(tokens.accessToken);
     void loadNotifications(tokens.accessToken, { silent: true });
+    void loadAddresses(tokens.accessToken);
 
     if (currentScreen === 'auth') {
       if (previousScreen === 'product-detail') {
@@ -1040,11 +1058,11 @@ function App(): React.JSX.Element {
 
       case 'checkout':
         return (
-          <Checkout
-            onBack={() => handleTabChange('cart')}
-            onPlaceOrder={async ({ address, paymentMethod, shippingFee, items, totalAmount, subTotal, discount }) => {
-              const created = await placeOrder({
-                items,
+      <Checkout
+        onBack={() => handleTabChange('cart')}
+        onPlaceOrder={async ({ address, paymentMethod, shippingFee, items, totalAmount, subTotal, discount }) => {
+          const created = await placeOrder({
+            items,
                 paymentMethod,
                 totals: {
                   subTotal,
@@ -1076,10 +1094,11 @@ function App(): React.JSX.Element {
               void loadOrders();
             }}
             cartItems={cartItems}
-            theme={theme}
-            addresses={addresses}
-            onUpdateAddresses={setAddresses}
-          />
+        theme={theme}
+        addresses={addresses}
+        onUpdateAddresses={setAddresses}
+        accessToken={authTokens?.accessToken}
+      />
         );
 
       case 'order-history':
