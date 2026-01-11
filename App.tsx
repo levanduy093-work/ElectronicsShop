@@ -627,6 +627,32 @@ function App(): React.JSX.Element {
         // Khi có broadcast mới, refresh danh sách người dùng hiện tại
         void loadNotifications(undefined, { silent: true });
       }
+
+      if (payload?.collection === 'products') {
+        const op = payload.operationType;
+        const doc = payload.fullDocument;
+        if (op === 'delete') {
+          setProducts(prev => {
+            const filtered = prev.filter(p => p.id !== `${payload.documentId}`);
+            productsRef.current = filtered;
+            return filtered;
+          });
+          setSelectedProduct(prev => (prev && prev.id === `${payload.documentId}` ? null : prev));
+          return;
+        }
+        if (doc) {
+          const mapped = mapApiProductToUi(doc);
+          setProducts(prev => {
+            const exists = prev.some(p => p.id === mapped.id);
+            const next = exists ? prev.map(p => (p.id === mapped.id ? mapped : p)) : [mapped, ...prev];
+            productsRef.current = next;
+            return next;
+          });
+          setSelectedProduct(prev => (prev && prev.id === mapped.id ? mapped : prev));
+        } else {
+          void loadProducts(); // fallback
+        }
+      }
     };
     socketService.on('db_change', handleDbChange);
     return () => {
