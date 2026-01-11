@@ -258,7 +258,7 @@ const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS): 
       address: addressString,
     },
     payment: {
-      method: order.payment || 'Thanh toán khi nhận hàng (COD)',
+      method: order.payment || 'cod',
       subtotal: order.subTotal,
       shippingFee: order.shippingFee,
       discount: order.discount,
@@ -835,7 +835,8 @@ function App(): React.JSX.Element {
     }
 
     const code = `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
-    const isVnpay = params.paymentMethod.toLowerCase().includes('vnpay');
+    const normalizedPayment = params.paymentMethod?.toLowerCase() || 'cod';
+    const isVnpay = normalizedPayment === 'vnpay';
     const normalizeProductId = (id: string) => {
       if (/^[a-f0-9]{24}$/i.test(id)) return id;
       const sanitized = id.replace(/[^a-f0-9]/gi, 'a');
@@ -859,8 +860,8 @@ function App(): React.JSX.Element {
       shippingFee: params.totals.shippingFee,
       discount: params.totals.discount,
       totalPrice: params.totals.total,
-      payment: params.paymentMethod,
-      paymentStatus: params.paymentMethod.toLowerCase().includes('cod') ? 'pending' : 'pending',
+      payment: normalizedPayment,
+      paymentStatus: normalizedPayment === 'cod' ? 'pending' : 'pending',
       shippingAddress: params.shippingAddress
         ? {
             name: params.shippingAddress.name,

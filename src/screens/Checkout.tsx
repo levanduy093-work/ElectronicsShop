@@ -70,12 +70,14 @@ export function Checkout({
   const accentBg = t === lightTheme ? 'rgba(37,99,235,0.08)' : 'rgba(255,255,255,0.06)';
   const paymentOptions = [
     {
-      name: 'VNPAY',
+      name: 'vnpay',
+      label: 'VNPAY',
       desc: 'Thanh toán qua QR cổng VNPAY.',
       icon: null,
     },
     {
-      name: 'Thanh toán khi nhận hàng (COD)',
+      name: 'cod',
+      label: 'Thanh toán khi nhận hàng (COD)',
       desc: 'Trả tiền mặt khi nhận hàng, không cần ví hay thẻ.',
       icon: null,
       iconName: 'cash',
@@ -83,7 +85,7 @@ export function Checkout({
   ];
   const lineBg = t === lightTheme ? '#E5E7EB' : t.border;
   const selectedPaymentOption = paymentOptions[selectedPayment];
-  const isVnpaySelected = selectedPaymentOption?.name?.toLowerCase().includes('vnpay');
+  const isVnpaySelected = selectedPaymentOption?.name === 'vnpay';
 
   useEffect(() => {
     if (addresses) {
@@ -142,7 +144,7 @@ export function Checkout({
 
       if (!onPlaceOrder) {
         setOrderId(fallbackCode);
-        setSuccessInfo({ code: fallbackCode, amount: total, payment: selectedPaymentOption?.name });
+        setSuccessInfo({ code: fallbackCode, amount: total, payment: selectedPaymentOption?.label });
         setStep('success');
         return;
       }
@@ -151,7 +153,7 @@ export function Checkout({
       try {
         const created = await onPlaceOrder({
           address: selectedAddress,
-          paymentMethod: selectedPaymentOption?.name || 'Thanh toán khi nhận hàng (COD)',
+          paymentMethod: selectedPaymentOption?.name || 'cod',
           shippingFee,
           items: cartItems,
           totalAmount: total,
@@ -160,7 +162,7 @@ export function Checkout({
         });
         const newId = created?.code || created?.id || fallbackCode;
         setOrderId(newId);
-        setSuccessInfo({ code: newId, amount: total, payment: selectedPaymentOption?.name });
+        setSuccessInfo({ code: newId, amount: total, payment: selectedPaymentOption?.label });
         if (isVnpaySelected && created?.paymentUrl) {
           setPendingPayment({ url: created.paymentUrl, code: newId, amount: total, id: created?.id || created?.code });
           setStep('waiting');
@@ -470,10 +472,10 @@ export function Checkout({
         )}
 
         {step === 'payment' && (
-          <View style={styles.stepContent}>
-            <Text style={[styles.stepTitle, { color: t.muted }]}>Thanh toán</Text>
+      <View style={styles.stepContent}>
+        <Text style={[styles.stepTitle, { color: t.muted }]}>Thanh toán</Text>
 
-            {paymentOptions.map((opt, i) => (
+        {paymentOptions.map((opt, i) => (
               <TouchableOpacity
                 key={i}
                 onPress={() => setSelectedPayment(i)}
@@ -495,12 +497,12 @@ export function Checkout({
                       <View style={[styles.paymentIconPlaceholder, { backgroundColor: accentBg }]}>
                         <AppIcon name={opt.iconName} size={16} color={t.muted} />
                       </View>
-                    ) : (
-                      <View style={[styles.paymentIconPlaceholder, { backgroundColor: accentBg }]}>
-                        <AppIcon name="credit-card" size={16} color={t.muted} />
-                      </View>
-                    )}
-                    <Text style={[styles.optionName, { color: t.text }]}>{opt.name}</Text>
+                  ) : (
+                    <View style={[styles.paymentIconPlaceholder, { backgroundColor: accentBg }]}>
+                      <AppIcon name="credit-card" size={16} color={t.muted} />
+                    </View>
+                  )}
+                  <Text style={[styles.optionName, { color: t.text }]}>{opt.label || opt.name}</Text>
                   </View>
                   {opt.desc ? (
                     <Text style={[styles.optionDesc, { color: t.muted, marginTop: 4 }]}>
