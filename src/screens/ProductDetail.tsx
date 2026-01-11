@@ -23,6 +23,7 @@ interface ProductDetailProps {
   currentUserId?: string | null;
   currentUserName?: string;
   theme?: ReturnType<typeof useTheme>['theme'];
+  onReviewStatsChange?: (productId: string, stats: { averageRating: number; reviewCount: number }) => void;
 }
 
 export function ProductDetail({
@@ -37,6 +38,7 @@ export function ProductDetail({
   currentUserId,
   currentUserName,
   theme: injectedTheme,
+  onReviewStatsChange,
 }: ProductDetailProps) {
   const { width } = Dimensions.get('window');
   const [quantity, setQuantity] = useState(1);
@@ -75,6 +77,9 @@ export function ProductDetail({
     try {
       const data = await getReviews(product.id);
       setReviews(data);
+      const avg =
+        data.length > 0 ? data.reduce((sum, r) => sum + (r.rating || 0), 0) / data.length : 0;
+      onReviewStatsChange?.(product.id, { averageRating: avg, reviewCount: data.length });
       setReviewsFetched(true);
     } catch (error: any) {
       console.warn('ProductDetail - Failed to load reviews', error?.message || error);
@@ -184,7 +189,13 @@ export function ProductDetail({
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setReviews(prev => [optimisticReview, ...prev]);
+    setReviews(prev => {
+      const next = [optimisticReview, ...prev];
+      const avg =
+        next.length > 0 ? next.reduce((sum, r) => sum + (r.rating || 0), 0) / next.length : 0;
+      onReviewStatsChange?.(product.id, { averageRating: avg, reviewCount: next.length });
+      return next;
+    });
 
     setShowReviewModal(false);
     resetReviewForm();

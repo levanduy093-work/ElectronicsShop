@@ -1023,6 +1023,39 @@ function App(): React.JSX.Element {
     }
   };
 
+  const handleReviewStatsChange = (
+    productId: string,
+    stats: { averageRating: number; reviewCount: number },
+  ) => {
+    setProducts(prev => {
+      const next = prev.map(p =>
+        p.id === productId
+          ? {
+              ...p,
+              rating: stats.averageRating,
+              averageRating: stats.averageRating,
+              reviews: stats.reviewCount,
+              reviewCount: stats.reviewCount,
+            }
+          : p,
+      );
+      productsRef.current = next;
+      return next;
+    });
+
+    setSelectedProduct(prev =>
+      prev?.id === productId
+        ? {
+            ...prev,
+            rating: stats.averageRating,
+            averageRating: stats.averageRating,
+            reviews: stats.reviewCount,
+            reviewCount: stats.reviewCount,
+          }
+        : prev,
+    );
+  };
+
   const handleLoginSuccess = (data: AuthResponse) => {
     const tokens = {
       accessToken: data.accessToken,
@@ -1125,6 +1158,7 @@ function App(): React.JSX.Element {
             theme={theme}
             currentUserId={userId}
             currentUserName={userProfile.name}
+            onReviewStatsChange={handleReviewStatsChange}
           />
         ) : null;
 
