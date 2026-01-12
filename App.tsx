@@ -27,7 +27,7 @@ import { Notifications } from './src/screens/Notifications';
 import { ChangePassword } from './src/screens/ChangePassword';
 import { BottomNav } from './src/components/layout/BottomNav';
 import { TopBar } from './src/components/layout/TopBar';
-import { Product, CartItem, Order, Voucher, PRODUCTS, HomeBanner } from './src/lib/data';
+import { Product, CartItem, Order, Voucher, PRODUCTS, HomeBanner, ChatMessage } from './src/lib/data';
 import { Address, DEFAULT_ADDRESSES } from './src/lib/address';
 import { darkTheme, lightTheme, ThemeProvider } from './src/lib/theme';
 import { ToastProvider } from './src/components/common/ToastProvider';
@@ -391,6 +391,7 @@ function App(): React.JSX.Element {
     rating: null,
     onlyInStock: false,
   });
+  const [aiMessages, setAiMessages] = useState<ChatMessage[]>([]);
   const [userProfile, setUserProfile] = useState(DEFAULT_PROFILE);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -1161,6 +1162,8 @@ function App(): React.JSX.Element {
             theme={theme}
             onNotificationClick={openNotifications}
             accessToken={authTokens?.accessToken}
+            messages={aiMessages}
+            onMessagesChange={setAiMessages}
             onAddToCart={handleAddToCart}
             onRequireLogin={() => {
               setPreviousScreen('ai');

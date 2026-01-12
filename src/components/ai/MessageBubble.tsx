@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { AiAction, AiProductCard, ChatMessage } from '../../lib/data';
 import { AppIcon } from '../common/Icon';
 import { useTheme, lightTheme } from '../../lib/theme';
@@ -110,6 +110,15 @@ export function MessageBubble({ message, onAction, onSelectCard }: MessageBubble
                 <AppIcon name="copy" size={12} color={isDark ? '#9CA3AF' : '#9CA3AF'} />
               </TouchableOpacity>
             </View>
+          )}
+
+          {/* Image preview */}
+          {message.metadata?.imageUrl && (
+            <Image
+              source={{ uri: message.metadata.imageUrl }}
+              style={styles.previewImage}
+              resizeMode="cover"
+            />
           )}
 
           {/* Product cards / actions */}
@@ -293,5 +302,12 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  previewImage: {
+    marginTop: 10,
+    width: '100%',
+    minHeight: 120,
+    borderRadius: 12,
+    backgroundColor: '#E5E7EB',
   },
 });

@@ -10,6 +10,7 @@ interface TopBarProps {
   onSearchClick?: () => void;
   onFilterClick?: () => void;
   onNotificationClick?: () => void;
+  onNewChat?: () => void;
   theme?: Theme;
   hasUnread?: boolean;
 }
@@ -20,6 +21,7 @@ export function TopBar({
   onSearchClick, 
   onFilterClick,
   onNotificationClick,
+  onNewChat,
   theme = lightTheme,
   hasUnread = false,
 }: TopBarProps) {
@@ -51,6 +53,15 @@ export function TopBar({
               activeOpacity={0.7}
             >
               <AppIcon name="search" size={22} color={resolvedTheme.muted} />
+            </TouchableOpacity>
+          )}
+          {onNewChat && (
+            <TouchableOpacity
+              onPress={onNewChat}
+              style={[styles.iconButton, styles.newChatButton, { backgroundColor: resolvedTheme.primary }]}
+              activeOpacity={0.8}
+            >
+              <AppIcon name="plus" size={16} color="#FFFFFF" />
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -123,6 +134,13 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     padding: 4,
+  },
+  newChatButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   notificationContainer: {
     position: 'relative',

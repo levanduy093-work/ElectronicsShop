@@ -12,13 +12,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AiAction, AiProductCard, ChatMessage, Product } from '../lib/data';
 import { MessageBubble } from '../components/ai/MessageBubble';
 import { TopBar } from '../components/layout/TopBar';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme } from '../lib/theme';
-import { aiChat, confirmAiAction, addCartItem } from '../lib/api';
+import { aiChat, confirmAiAction, addCartItem, uploadImage, UploadImageFile } from '../lib/api';
 import { useToast } from '../components/common/ToastProvider';
 
 interface AIChatProps {
@@ -28,6 +29,8 @@ interface AIChatProps {
   onAddToCart?: (product: Product, quantity: number) => void;
   onRequireLogin?: () => void;
   onOpenProduct?: (productId: string) => void;
+  messages?: ChatMessage[];
+  onMessagesChange?: (messages: ChatMessage[]) => void;
 }
 
 export function AIChat({
@@ -37,15 +40,32 @@ export function AIChat({
   onAddToCart,
   onRequireLogin,
   onOpenProduct,
+  messages: externalMessages,
+  onMessagesChange,
 }: AIChatProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessagesState] = useState<ChatMessage[]>(externalMessages || []);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
+
+  const setMessages = (updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
+    setMessagesState((prev) => {
+      const next = typeof updater === 'function' ? (updater as any)(prev) : updater;
+      onMessagesChange?.(next);
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (externalMessages) {
+      setMessagesState(externalMessages);
+    }
+  }, [externalMessages]);
 
   useEffect(() => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -173,6 +193,82 @@ export function AIChat({
 
   const suggestions = ['Tư vấn linh kiện Arduino', 'Scan sơ đồ mạch', 'Tìm thay thế cho chip ESP8266'];
 
+  const pickAndSendImage = async () => {
+    if (!accessToken) {
+      showToast('Vui lòng đăng nhập để dùng trợ lý AI.', 'error');
+      onRequireLogin?.();
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        quality: 0.8,
+        selectionLimit: 1,
+      });
+      const asset = result?.assets?.[0];
+      if (!asset?.uri) {
+        setIsUploading(false);
+        return;
+      }
+
+      const file: UploadImageFile = {
+        uri: asset.uri.replace('file://', ''),
+        name: asset.fileName || 'upload.jpg',
+        type: asset.type || 'image/jpeg',
+      };
+
+      const uploaded = await uploadImage(file, {
+        token: accessToken,
+        folder: 'electronics-shop/ai-chat',
+      });
+
+      const imageUrl = (uploaded as any)?.secure_url || (uploaded as any)?.url;
+      if (!imageUrl) {
+        throw new Error('Không lấy được URL ảnh sau khi tải lên');
+      }
+
+      const content = inputValue.trim() || 'Phân tích giúp mình ảnh này';
+      const userMessage: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'user',
+        content,
+        timestamp: new Date(),
+        type: 'text',
+        metadata: { imageUrl },
+      };
+
+      const nextMessages = [...messages, userMessage];
+      setMessages(nextMessages);
+      setInputValue('');
+      setIsTyping(true);
+      setIsSending(true);
+
+      const history = nextMessages.slice(-12).map((m) => ({ role: m.role, content: m.content }));
+      const response = await aiChat({ message: content, history, imageUrl }, accessToken);
+
+      const aiMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'ai',
+        content: response.reply,
+        timestamp: new Date(),
+        type: 'text',
+        cards: response.cards,
+        actions: response.actions,
+      };
+
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch (error: any) {
+      console.warn('AIChat.tsx - pickAndSendImage error', error);
+      showToast(error?.message || 'Không thể tải ảnh lên', 'error');
+    } finally {
+      setIsUploading(false);
+      setIsTyping(false);
+      setIsSending(false);
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <TopBar
@@ -180,6 +276,10 @@ export function AIChat({
         showSearch={false}
         theme={theme}
         onNotificationClick={onNotificationClick}
+        onNewChat={() => {
+          setMessages([]);
+          setInputValue('');
+        }}
       />
 
       <KeyboardAvoidingView
@@ -256,8 +356,17 @@ export function AIChat({
               },
             ]}
           >
-            <TouchableOpacity style={styles.inputButton} activeOpacity={0.7}>
-              <AppIcon name="file-upload" size={20} color={theme.muted} />
+            <TouchableOpacity
+              style={styles.inputButton}
+              activeOpacity={0.7}
+              onPress={pickAndSendImage}
+              disabled={isUploading || isSending}
+            >
+              {isUploading ? (
+                <ActivityIndicator size="small" color={theme.primary} />
+              ) : (
+                <AppIcon name="file-upload" size={20} color={theme.muted} />
+              )}
             </TouchableOpacity>
 
             <TextInput
@@ -267,6 +376,7 @@ export function AIChat({
               style={[styles.input, { color: theme.text }]}
               placeholderTextColor={theme.muted}
               multiline
+              textAlignVertical="center"
               maxLength={500}
             />
 
@@ -354,31 +464,35 @@ const styles = StyleSheet.create({
   },
   inputWrapper: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     backgroundColor: '#F9FAFB',
     borderRadius: 16,
-    padding: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    gap: 8,
+    gap: 10,
   },
   input: {
     flex: 1,
     fontSize: 15,
     color: '#111827',
-    minHeight: 44,
+    minHeight: 40,
+    paddingTop: 0,
+    paddingBottom: 0,
+    lineHeight: 20,
   },
   inputButton: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 12,
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
