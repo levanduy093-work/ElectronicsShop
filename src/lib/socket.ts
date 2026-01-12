@@ -10,7 +10,10 @@ const resolveHost = () => {
   return Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
 };
 
-const SOCKET_URL = `http://${resolveHost()}:3000`;
+// Use deployed backend in production; keep local host for development/testing.
+const SOCKET_URL = __DEV__
+  ? `http://${resolveHost()}:3000`
+  : 'https://electronics-backend-69bpr.onrender.com';
 
 class SocketService {
   private socket: Socket | null = null;

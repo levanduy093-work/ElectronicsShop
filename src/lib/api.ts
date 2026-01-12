@@ -172,7 +172,10 @@ const resolveApiHost = () => {
   return Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
 };
 
-const API_BASE_URL = `http://${resolveApiHost()}:3000`;
+// In production build, always hit the deployed backend; in dev keep pointing to local/network host.
+const API_BASE_URL = __DEV__
+  ? `http://${resolveApiHost()}:3000`
+  : 'https://electronics-backend-69bpr.onrender.com';
 
 type RequestOptions = {
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
