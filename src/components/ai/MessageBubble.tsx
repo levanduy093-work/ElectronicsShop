@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Modal, SafeAreaView } from 'react-native';
 import { AiAction, AiProductCard, ChatMessage } from '../../lib/data';
 import { AppIcon } from '../common/Icon';
 import { useTheme, lightTheme } from '../../lib/theme';
@@ -14,6 +14,7 @@ export function MessageBubble({ message, onAction, onSelectCard }: MessageBubble
   const isUser = message.role === 'user';
   const { theme } = useTheme();
   const isDark = theme !== lightTheme;
+  const [modalVisible, setModalVisible] = useState(false);
 
   const renderProductCard = (card: AiProductCard) => {
     const action = message.actions?.find(
@@ -114,11 +115,28 @@ export function MessageBubble({ message, onAction, onSelectCard }: MessageBubble
 
           {/* Image preview */}
           {message.metadata?.imageUrl && (
-            <Image
-              source={{ uri: message.metadata.imageUrl }}
-              style={styles.previewImage}
-              resizeMode="cover"
-            />
+            <>
+              <TouchableOpacity onPress={() => setModalVisible(true)} activeOpacity={0.9}>
+                <Image
+                  source={{ uri: message.metadata.imageUrl }}
+                  style={styles.previewImage}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+
+              <Modal visible={modalVisible} transparent={true} animationType="fade" onRequestClose={() => setModalVisible(false)}>
+                <View style={styles.fullScreenContainer}>
+                  <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
+                    <AppIcon name="close" size={24} color="#FFFFFF" />
+                  </TouchableOpacity>
+                  <Image
+                    source={{ uri: message.metadata.imageUrl }}
+                    style={styles.fullScreenImage}
+                    resizeMode="contain"
+                  />
+                </View>
+              </Modal>
+            </>
           )}
 
           {/* Product cards / actions */}
@@ -309,5 +327,24 @@ const styles = StyleSheet.create({
     minHeight: 120,
     borderRadius: 12,
     backgroundColor: '#E5E7EB',
+  },
+  fullScreenContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '100%',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 999,
+    padding: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 20,
   },
 });
