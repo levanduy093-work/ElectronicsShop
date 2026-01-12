@@ -34,6 +34,18 @@ export interface CartItem extends Product {
   quantity: number;
 }
 
+export interface HomeBanner {
+  id: string;
+  title: string;
+  subtitle?: string;
+  imageUrl: string;
+  ctaLabel?: string;
+  ctaLink?: string;
+  ctaProductId?: string;
+  isActive?: boolean;
+  order?: number;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "ai";

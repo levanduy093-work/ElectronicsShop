@@ -117,6 +117,20 @@ export type ApiNotification = {
   updatedAt?: string;
 };
 
+export type ApiBanner = {
+  _id: string;
+  title: string;
+  subtitle?: string;
+  imageUrl: string;
+  ctaLabel?: string;
+  ctaLink?: string;
+  productId?: string;
+  isActive?: boolean;
+  order?: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type UploadImageFile = {
   uri: string;
   name?: string;
@@ -342,6 +356,10 @@ async function deleteJson<TResponse>(
 
 export function getProducts() {
   return getJson<ApiProduct[]>('/products');
+}
+
+export function getPublicBanners() {
+  return getJson<ApiBanner[]>('/banners/public');
 }
 
 export function getProductById(id: string) {

@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Alert } from 'react-native';
-import { CATEGORIES, Product, extractCategoriesFromProducts } from '../lib/data';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Alert, FlatList, ViewToken } from 'react-native';
+import { CATEGORIES, HomeBanner, Product, extractCategoriesFromProducts } from '../lib/data';
 import { ProductCard } from '../components/ui/ProductCard';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
@@ -12,20 +12,77 @@ interface HomeProps {
   onProductClick?: (product: Product) => void;
   theme?: Theme;
   products?: Product[];
+  banners?: HomeBanner[];
+  onBannerPress?: (banner: HomeBanner) => void;
   onSelectCategory?: (category: string) => void;
   onRefreshProducts?: () => void;
 }
 
 const { width } = Dimensions.get('window');
 
-export function Home({ onNavigate, onProductClick, theme, products = [], onSelectCategory, onRefreshProducts }: HomeProps) {
+export function Home({
+  onNavigate,
+  onProductClick,
+  theme,
+  products = [],
+  banners = [],
+  onBannerPress,
+  onSelectCategory,
+  onRefreshProducts,
+}: HomeProps) {
   const { theme: ctxTheme } = useTheme();
   const resolvedTheme = theme || ctxTheme || lightTheme;
   const [visibleCount, setVisibleCount] = React.useState(10);
+  const [currentBannerIndex, setCurrentBannerIndex] = React.useState(0);
+  const bannerListRef = React.useRef<FlatList<HomeBanner>>(null);
+  const viewabilityConfig = React.useRef({ viewAreaCoveragePercentThreshold: 60 }).current;
+  const onViewableItemsChanged = React.useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    if (viewableItems?.length && typeof viewableItems[0].index === 'number') {
+      setCurrentBannerIndex(viewableItems[0].index);
+    }
+  }).current;
 
   React.useEffect(() => {
     setVisibleCount(10);
   }, [products]);
+
+  const visibleProducts = (products.length ? products : []).slice(0, visibleCount);
+  const featuredProducts = visibleProducts;
+  const raspberryProduct = products.find(p => p.name.toLowerCase().includes('rasp')) || products[0];
+  const sliderBanners: HomeBanner[] = banners.length
+    ? banners
+    : [
+        {
+          id: 'fallback-banner',
+          title: 'Raspberry Pi 5',
+          subtitle: 'Sức mạnh vượt trội cho dự án IoT của bạn',
+          imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=1000',
+          ctaLabel: 'Khám phá ngay',
+          ctaProductId: raspberryProduct?.id || products[0]?.id,
+        },
+      ];
+  const sliderWidth = width - 32;
+
+  React.useEffect(() => {
+    setCurrentBannerIndex(0);
+  }, [sliderBanners.length]);
+
+  React.useEffect(() => {
+    if (sliderBanners.length <= 1) return;
+    const timer = setInterval(() => {
+      setCurrentBannerIndex(prev => {
+        const nextIndex = (prev + 1) % sliderBanners.length;
+        try {
+          bannerListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+        } catch {
+          // ignore scroll errors when list not ready
+        }
+        return nextIndex;
+      });
+    }, 20000);
+
+    return () => clearInterval(timer);
+  }, [sliderBanners.length]);
 
   // Real-time listener
   React.useEffect(() => {
@@ -44,10 +101,6 @@ export function Home({ onNavigate, onProductClick, theme, products = [], onSelec
     };
   }, []);
 
-  const visibleProducts = (products.length ? products : []).slice(0, visibleCount);
-  const featuredProducts = visibleProducts;
-  const raspberryProduct = products.find(p => p.name.toLowerCase().includes('rasp')) || products[0];
-  
   // Extract categories from products if CATEGORIES is empty
   const displayCategories = CATEGORIES.length > 0 ? CATEGORIES : extractCategoriesFromProducts(products);
 
@@ -57,27 +110,75 @@ export function Home({ onNavigate, onProductClick, theme, products = [], onSelec
       contentContainerStyle={[styles.contentContainer, { backgroundColor: resolvedTheme.background }]}
       showsVerticalScrollIndicator={false}
     >
-      {/* Banner */}
-      <View style={styles.bannerContainer}>
-        <ImageWithFallback
-          source={{ uri: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=1000" }}
-          style={styles.bannerImage}
-          resizeMode="cover"
+      {/* Banner Slider */}
+      <View style={styles.bannerSection}>
+        <FlatList
+          ref={bannerListRef}
+          data={sliderBanners}
+          keyExtractor={(item) => item.id}
+          horizontal
+          pagingEnabled
+          style={styles.bannerList}
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={sliderWidth}
+          snapToAlignment="start"
+          decelerationRate="fast"
+          getItemLayout={(_, index) => ({ length: sliderWidth, offset: sliderWidth * index, index })}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          contentContainerStyle={styles.bannerListContent}
+          renderItem={({ item }) => (
+            <View style={[styles.bannerContainer, { width: sliderWidth }]}>
+              <ImageWithFallback
+                source={{ uri: item.imageUrl }}
+                style={styles.bannerImage}
+                resizeMode="cover"
+              />
+              <View style={styles.bannerOverlay}>
+                <Text style={styles.bannerBadge}>New Arrival</Text>
+                <Text style={styles.bannerTitle}>{item.title}</Text>
+                {item.subtitle ? <Text style={styles.bannerSubtitle}>{item.subtitle}</Text> : null}
+                <TouchableOpacity
+                  onPress={() => {
+                    if (onBannerPress) {
+                      onBannerPress(item);
+                      return;
+                    }
+                    if (item.ctaProductId && onProductClick) {
+                      const targetProduct = products.find(p => p.id === item.ctaProductId);
+                      if (targetProduct) {
+                        onProductClick(targetProduct);
+                        return;
+                      }
+                    }
+                    if (raspberryProduct) {
+                      onProductClick?.(raspberryProduct);
+                    } else {
+                      Alert.alert('Không tìm thấy sản phẩm', 'Vui lòng thử lại sau.');
+                    }
+                  }}
+                  style={styles.bannerButton}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.bannerButtonText}>{item.ctaLabel || 'Khám phá ngay'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         />
-        <View style={styles.bannerOverlay}>
-          <Text style={styles.bannerBadge}>New Arrival</Text>
-          <Text style={styles.bannerTitle}>Raspberry Pi 5</Text>
-          <Text style={styles.bannerSubtitle}>Sức mạnh vượt trội cho dự án IoT của bạn</Text>
-          {raspberryProduct ? (
-            <TouchableOpacity
-              onPress={() => onProductClick?.(raspberryProduct)}
-              style={styles.bannerButton}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.bannerButtonText}>Khám phá ngay</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
+        {sliderBanners.length > 1 && (
+          <View style={styles.bannerPager}>
+            {sliderBanners.map((item, index) => (
+              <View
+                key={item.id}
+                style={[
+                  styles.bannerPagerDot,
+                  index === currentBannerIndex ? styles.bannerPagerDotActive : undefined,
+                ]}
+              />
+            ))}
+          </View>
+        )}
       </View>
 
       {/* Categories Shortcut */}
@@ -189,17 +290,26 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingHorizontal: 16,
   },
+  bannerSection: {
+    marginBottom: 32,
+  },
   bannerContainer: {
     width: '100%',
     aspectRatio: 2,
     borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: 32,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+  },
+  bannerListContent: {
+    paddingHorizontal: 0,
+  },
+  bannerList: {
+    flexGrow: 0,
   },
   bannerImage: {
     width: '100%',
@@ -243,6 +353,22 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 14,
     fontWeight: '600',
+  },
+  bannerPager: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  bannerPagerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#E5E7EB',
+  },
+  bannerPagerDotActive: {
+    backgroundColor: '#2563EB',
   },
   section: {
     marginBottom: 32,

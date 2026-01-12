@@ -27,7 +27,7 @@ import { Notifications } from './src/screens/Notifications';
 import { ChangePassword } from './src/screens/ChangePassword';
 import { BottomNav } from './src/components/layout/BottomNav';
 import { TopBar } from './src/components/layout/TopBar';
-import { Product, CartItem, Order, Voucher, PRODUCTS } from './src/lib/data';
+import { Product, CartItem, Order, Voucher, PRODUCTS, HomeBanner } from './src/lib/data';
 import { Address, DEFAULT_ADDRESSES } from './src/lib/address';
 import { darkTheme, lightTheme, ThemeProvider } from './src/lib/theme';
 import { ToastProvider } from './src/components/common/ToastProvider';
@@ -37,10 +37,12 @@ import {
   ApiProduct,
   ApiVoucher,
   AuthResponse,
+  ApiBanner,
   addFavorite,
   configureApiAuth,
   createOrder as apiCreateOrder,
   createVnpayPayment,
+  getPublicBanners,
   getFavorites as apiGetFavorites,
   getMyVouchers,
   getNotifications as apiGetNotifications,
@@ -345,6 +347,18 @@ const mapApiVoucherToUi = (voucher: ApiVoucher): Voucher => {
   };
 };
 
+const mapApiBannerToUi = (banner: ApiBanner): HomeBanner => ({
+  id: banner._id,
+  title: banner.title,
+  subtitle: banner.subtitle,
+  imageUrl: banner.imageUrl,
+  ctaLabel: banner.ctaLabel,
+  ctaLink: banner.ctaLink,
+  ctaProductId: banner.productId,
+  isActive: banner.isActive,
+  order: banner.order,
+});
+
 function App(): React.JSX.Element {
   const systemDarkMode = useColorScheme() === 'dark';
   const [isDarkMode, setIsDarkMode] = useState(systemDarkMode);
@@ -353,6 +367,7 @@ function App(): React.JSX.Element {
   const [previousScreen, setPreviousScreen] = useState<Screen>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [banners, setBanners] = useState<HomeBanner[]>([]);
   const productsRef = useRef<Product[]>(PRODUCTS);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -387,6 +402,15 @@ function App(): React.JSX.Element {
       productsRef.current = mapped;
     } catch (error: any) {
       console.warn('App.tsx - Failed to load products', error?.message || error);
+    }
+  };
+
+  const loadBanners = async () => {
+    try {
+      const result = await getPublicBanners();
+      setBanners(result.map(mapApiBannerToUi));
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to load banners', error?.message || error);
     }
   };
 
@@ -595,6 +619,7 @@ function App(): React.JSX.Element {
 
   useEffect(() => {
     void loadProducts();
+    void loadBanners();
   }, []);
 
   useEffect(() => {
@@ -826,6 +851,25 @@ function App(): React.JSX.Element {
   const navigateToProduct = (product: Product) => {
     setSelectedProduct(product);
     setCurrentScreen('product-detail');
+  };
+
+  const handleBannerPress = (banner: HomeBanner) => {
+    if (banner.ctaProductId) {
+      const targetProduct = productsRef.current.find(p => p.id === banner.ctaProductId);
+      if (targetProduct) {
+        navigateToProduct(targetProduct);
+        return;
+      }
+    }
+
+    if (banner.ctaLink) {
+      Linking.openURL(banner.ctaLink).catch(() => Alert.alert('Không mở được liên kết', 'Vui lòng thử lại sau.'));
+      return;
+    }
+
+    if (productsRef.current[0]) {
+      navigateToProduct(productsRef.current[0]);
+    }
   };
 
   const navigateToCheckout = () => {
@@ -1093,6 +1137,8 @@ function App(): React.JSX.Element {
             onProductClick={navigateToProduct}
             theme={theme}
             products={products}
+            banners={banners}
+            onBannerPress={handleBannerPress}
             onSelectCategory={handleSelectCategory}
             onRefreshProducts={() => { void loadProducts(); }}
           />
@@ -1345,7 +1391,15 @@ function App(): React.JSX.Element {
         );
 
       default:
-        return <Home onNavigate={(tab) => handleTabChange(tab as NavTab)} onProductClick={navigateToProduct} products={products} />;
+        return (
+          <Home
+            onNavigate={(tab) => handleTabChange(tab as NavTab)}
+            onProductClick={navigateToProduct}
+            products={products}
+            banners={banners}
+            onBannerPress={handleBannerPress}
+          />
+        );
     }
   };
 
