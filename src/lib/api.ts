@@ -1,4 +1,5 @@
 import { NativeModules, Platform } from 'react-native';
+import { API_BASE_URL as ENV_API_URL } from '@env';
 
 export type AuthResponse = {
   user: any;
@@ -173,10 +174,7 @@ const resolveApiHost = () => {
 };
 
 // Allow build-time override; otherwise, point to the resolved local/network backend.
-const API_BASE_URL =
-  process.env.API_BASE_URL ||
-  process.env.APP_API_URL ||
-  `http://${resolveApiHost()}:3000`;
+const API_BASE_URL = ENV_API_URL || `http://${resolveApiHost()}:3000`;
 
 type RequestOptions = {
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
