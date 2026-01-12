@@ -54,11 +54,7 @@ export function AIChat({
   const { showToast } = useToast();
 
   const setMessages = (updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
-    setMessagesState((prev) => {
-      const next = typeof updater === 'function' ? (updater as any)(prev) : updater;
-      onMessagesChange?.(next);
-      return next;
-    });
+    setMessagesState((prev) => (typeof updater === 'function' ? (updater as any)(prev) : updater));
   };
 
   useEffect(() => {
@@ -66,6 +62,12 @@ export function AIChat({
       setMessagesState(externalMessages);
     }
   }, [externalMessages]);
+
+  useEffect(() => {
+    if (onMessagesChange) {
+      onMessagesChange(messages);
+    }
+  }, [messages, onMessagesChange]);
 
   useEffect(() => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
