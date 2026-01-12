@@ -53,6 +53,33 @@ export interface ChatMessage {
   timestamp: Date;
   type?: "text" | "bom" | "schematic";
   metadata?: any;
+  cards?: AiProductCard[];
+  actions?: AiAction[];
+}
+
+export interface AiProductCard {
+  productId: string;
+  name: string;
+  price: number;
+  stock: number;
+  image?: string;
+  category?: string;
+  code?: string;
+}
+
+export type AiAction =
+  | {
+      type: 'ADD_TO_CART';
+      payload: { productId: string; quantity: number };
+      requiresConfirmation: boolean;
+      confirmationId?: string;
+      note?: string;
+    };
+
+export interface AiChatResponse {
+  reply: string;
+  cards?: AiProductCard[];
+  actions?: AiAction[];
 }
 
 // Category icon mapping - should ideally come from API

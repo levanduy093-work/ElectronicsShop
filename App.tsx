@@ -1156,7 +1156,25 @@ function App(): React.JSX.Element {
           />
         );
       case 'ai':
-        return <AIChat theme={theme} onNotificationClick={openNotifications} />;
+        return (
+          <AIChat
+            theme={theme}
+            onNotificationClick={openNotifications}
+            accessToken={authTokens?.accessToken}
+            onAddToCart={handleAddToCart}
+            onRequireLogin={() => {
+              setPreviousScreen('ai');
+              setCurrentTab('profile');
+              setCurrentScreen('auth');
+            }}
+            onOpenProduct={(productId) => {
+              const target = products.find((p) => p.id === productId);
+              if (target) {
+                navigateToProduct(target);
+              }
+            }}
+          />
+        );
       case 'cart':
         return (
           <Cart

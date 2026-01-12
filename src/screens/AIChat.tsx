@@ -1,41 +1,66 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, KeyboardEvent } from 'react-native';
+import {
+  ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  KeyboardEvent,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChatMessage } from '../lib/data';
+import { AiAction, AiProductCard, ChatMessage, Product } from '../lib/data';
 import { MessageBubble } from '../components/ai/MessageBubble';
 import { TopBar } from '../components/layout/TopBar';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme } from '../lib/theme';
+import { aiChat, confirmAiAction, addCartItem } from '../lib/api';
+import { useToast } from '../components/common/ToastProvider';
 
 interface AIChatProps {
   theme?: Theme;
   onNotificationClick?: () => void;
+  accessToken?: string | null;
+  onAddToCart?: (product: Product, quantity: number) => void;
+  onRequireLogin?: () => void;
+  onOpenProduct?: (productId: string) => void;
 }
 
-export function AIChat({ theme = lightTheme, onNotificationClick }: AIChatProps) {
+export function AIChat({
+  theme = lightTheme,
+  onNotificationClick,
+  accessToken,
+  onAddToCart,
+  onRequireLogin,
+  onOpenProduct,
+}: AIChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
+  const { showToast } = useToast();
 
   useEffect(() => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
   }, [messages, isTyping]);
 
-  // Keyboard handling to adjust spacing without overshooting
   useEffect(() => {
-    const onKeyboardShow = (e: KeyboardEvent) => {
-      setKeyboardHeight(e.endCoordinates?.height ?? 0);
-    };
+    const onKeyboardShow = (e: KeyboardEvent) => setKeyboardHeight(e.endCoordinates?.height ?? 0);
     const onKeyboardHide = () => setKeyboardHeight(0);
 
     const showSub = Keyboard.addListener('keyboardDidShow', onKeyboardShow);
     const hideSub = Keyboard.addListener('keyboardDidHide', onKeyboardHide);
-    const frameSub = Platform.OS === 'ios' 
-      ? Keyboard.addListener('keyboardWillChangeFrame', onKeyboardShow)
-      : undefined;
+    const frameSub =
+      Platform.OS === 'ios'
+        ? Keyboard.addListener('keyboardWillChangeFrame', onKeyboardShow)
+        : undefined;
 
     return () => {
       showSub.remove();
@@ -44,14 +69,37 @@ export function AIChat({ theme = lightTheme, onNotificationClick }: AIChatProps)
     };
   }, []);
 
-  // BottomNav height: 80px base + safe area bottom
   const bottomNavHeight = 80 + Math.max(insets.bottom, 12);
   const isKeyboardVisible = keyboardHeight > 0;
 
-  const handleSend = () => {
+  const toProduct = (card: AiProductCard): Product => ({
+    id: card.productId,
+    name: card.name,
+    price: card.price,
+    originalPrice: card.price,
+    salePrice: card.price,
+    rating: 0,
+    reviews: 0,
+    image: card.image || 'https://via.placeholder.com/300x300.png?text=No+Image',
+    images: card.image ? [card.image] : [],
+    category: card.category || 'Sản phẩm',
+    stock: card.stock > 0 ? 'In Stock' : 'Out of Stock',
+    stockQuantity: card.stock,
+    description: '',
+    specs: {},
+    code: card.code,
+  });
+
+  const handleSend = async () => {
     if (!inputValue.trim()) return;
 
-    const newMsg: ChatMessage = {
+    if (!accessToken) {
+      showToast('Vui lòng đăng nhập để dùng trợ lý AI.', 'error');
+      onRequireLogin?.();
+      return;
+    }
+
+    const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
       content: inputValue,
@@ -59,31 +107,77 @@ export function AIChat({ theme = lightTheme, onNotificationClick }: AIChatProps)
       type: 'text',
     };
 
-    setMessages(prev => [...prev, newMsg]);
+    const nextMessages = [...messages, userMessage];
+    setMessages(nextMessages);
     setInputValue('');
     setIsTyping(true);
+    setIsSending(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: ChatMessage = {
+    try {
+      const history = nextMessages.slice(-12).map((m) => ({ role: m.role, content: m.content }));
+      const response = await aiChat({ message: userMessage.content, history }, accessToken);
+
+      const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'ai',
-        content: "Tôi đã nhận được yêu cầu của bạn. Bạn có thể cung cấp thêm thông tin chi tiết về sơ đồ mạch hoặc linh kiện bạn đang tìm kiếm không?",
+        content: response.reply,
         timestamp: new Date(),
         type: 'text',
+        cards: response.cards,
+        actions: response.actions,
       };
-      setMessages(prev => [...prev, aiResponse]);
+
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch (error: any) {
+      console.warn('AIChat.tsx - aiChat error', error);
+      showToast(error?.message || 'Không thể gửi yêu cầu tới AI', 'error');
+    } finally {
       setIsTyping(false);
-    }, 1500);
+      setIsSending(false);
+    }
   };
 
-  const suggestions = ["Tư vấn linh kiện Arduino", "Scan sơ đồ mạch", "Tìm thay thế cho chip ESP8266"];
+  const handleAction = async (action: AiAction, sourceMessage: ChatMessage) => {
+    if (!accessToken) {
+      showToast('Vui lòng đăng nhập để thực hiện hành động.', 'error');
+      onRequireLogin?.();
+      return;
+    }
+
+    if (action.type === 'ADD_TO_CART') {
+      try {
+        if (action.requiresConfirmation && action.confirmationId) {
+          await confirmAiAction(
+            action.confirmationId,
+            accessToken,
+            action.payload?.quantity,
+            action.payload?.productId,
+          );
+        } else if (action.payload?.productId) {
+          await addCartItem(action.payload.productId, action.payload.quantity || 1, accessToken);
+        }
+
+        const card =
+          sourceMessage.cards?.find((c) => c.productId === action.payload.productId) ||
+          sourceMessage.cards?.[0];
+        if (card && onAddToCart) {
+          onAddToCart(toProduct(card), action.payload.quantity || 1);
+        }
+        showToast('Đã thêm sản phẩm vào giỏ', 'success');
+      } catch (error: any) {
+        console.warn('AIChat.tsx - handleAction error', error);
+        showToast(error?.message || 'Không thể thực hiện hành động', 'error');
+      }
+    }
+  };
+
+  const suggestions = ['Tư vấn linh kiện Arduino', 'Scan sơ đồ mạch', 'Tìm thay thế cho chip ESP8266'];
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <TopBar 
-        title="AI Engineer Support" 
-        showSearch={false} 
+      <TopBar
+        title="AI Engineer Support"
+        showSearch={false}
         theme={theme}
         onNotificationClick={onNotificationClick}
       />
@@ -93,22 +187,26 @@ export function AIChat({ theme = lightTheme, onNotificationClick }: AIChatProps)
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
-        {/* Messages Area */}
         <ScrollView
           ref={scrollViewRef}
           style={[styles.messagesContainer, { backgroundColor: theme.background }]}
           contentContainerStyle={[
-            styles.messagesContent, 
-            { 
+            styles.messagesContent,
+            {
               backgroundColor: theme.background,
-              paddingBottom: 16
-            }
+              paddingBottom: 16,
+            },
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {messages.map((msg) => (
-            <MessageBubble key={msg.id} message={msg} />
+            <MessageBubble
+              key={msg.id}
+              message={msg}
+              onAction={handleAction}
+              onSelectCard={(card) => onOpenProduct?.(card.productId)}
+            />
           ))}
 
           {isTyping && (
@@ -119,75 +217,83 @@ export function AIChat({ theme = lightTheme, onNotificationClick }: AIChatProps)
           )}
         </ScrollView>
 
-        {/* Input Area */}
-        <View style={[
-          styles.inputContainer,
-          { 
-            paddingBottom: isKeyboardVisible
-              ? Math.max(insets.bottom, 8)
-              : bottomNavHeight,
-            backgroundColor: theme.surface, 
-            borderTopColor: theme.border 
-          }
-        ]}>
-            {/* Suggestion Chips */}
-            {messages.length < 3 && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.suggestionsContainer}
-                contentContainerStyle={styles.suggestionsContent}
-              >
-                {suggestions.map((suggestion) => (
-                  <TouchableOpacity
-                    key={suggestion}
-                    onPress={() => setInputValue(suggestion)}
-                    style={[styles.suggestionChip, { backgroundColor: theme.background, borderColor: theme.border }]}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.suggestionText, { color: theme.text }]}>{suggestion}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
+        <View
+          style={[
+            styles.inputContainer,
+            {
+              paddingBottom: isKeyboardVisible ? Math.max(insets.bottom, 8) : bottomNavHeight,
+              backgroundColor: theme.surface,
+              borderTopColor: theme.border,
+            },
+          ]}
+        >
+          {messages.length < 3 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.suggestionsContainer}
+              contentContainerStyle={styles.suggestionsContent}
+            >
+              {suggestions.map((suggestion) => (
+                <TouchableOpacity
+                  key={suggestion}
+                  onPress={() => setInputValue(suggestion)}
+                  style={[styles.suggestionChip, { backgroundColor: theme.background, borderColor: theme.border }]}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.suggestionText, { color: theme.text }]}>{suggestion}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
 
-            <View style={[
+          <View
+            style={[
               styles.inputWrapper,
               {
                 backgroundColor: theme.surface,
                 borderColor: theme.border,
-              }
-            ]}>
-              <TouchableOpacity style={styles.inputButton} activeOpacity={0.7}>
-                <AppIcon name="file-upload" size={20} color={theme.muted} />
+              },
+            ]}
+          >
+            <TouchableOpacity style={styles.inputButton} activeOpacity={0.7}>
+              <AppIcon name="file-upload" size={20} color={theme.muted} />
+            </TouchableOpacity>
+
+            <TextInput
+              value={inputValue}
+              onChangeText={setInputValue}
+              placeholder="Hỏi AI hoặc tải lên hình ảnh..."
+              style={[styles.input, { color: theme.text }]}
+              placeholderTextColor={theme.muted}
+              multiline
+              maxLength={500}
+            />
+
+            {inputValue.trim() ? (
+              <TouchableOpacity
+                onPress={handleSend}
+                style={[styles.sendButton, { backgroundColor: theme.primary }]}
+                activeOpacity={0.8}
+                disabled={isSending}
+              >
+                <AppIcon name="send" size={18} color="#FFFFFF" />
               </TouchableOpacity>
-
-              <TextInput
-                value={inputValue}
-                onChangeText={setInputValue}
-                placeholder="Hỏi AI hoặc tải lên hình ảnh..."
-                style={[styles.input, { color: theme.text }]}
-                placeholderTextColor={theme.muted}
-                multiline
-                maxLength={500}
-              />
-
-              {inputValue.trim() ? (
-                <TouchableOpacity
-                  onPress={handleSend}
-                  style={[styles.sendButton, { backgroundColor: theme.primary }]}
-                  activeOpacity={0.8}
-                >
-                  <AppIcon name="send" size={18} color="#FFFFFF" />
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity style={styles.inputButton} activeOpacity={0.7}>
-                  <AppIcon name="mic" size={20} color={theme.muted} />
-                </TouchableOpacity>
-              )}
-            </View>
+            ) : (
+              <TouchableOpacity style={styles.inputButton} activeOpacity={0.7}>
+                <AppIcon name="mic" size={20} color={theme.muted} />
+              </TouchableOpacity>
+            )}
           </View>
+        </View>
       </KeyboardAvoidingView>
+
+      {isSending && (
+        <View style={styles.sendingOverlay}>
+          <ActivityIndicator size="small" color={theme.primary} />
+          <Text style={[styles.sendingText, { color: theme.muted }]}>Đang gửi...</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -258,18 +364,42 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     color: '#111827',
-    maxHeight: 120,
-    paddingVertical: 8,
+    minHeight: 44,
   },
   inputButton: {
-    padding: 8,
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: 12,
   },
   sendButton: {
-    padding: 8,
-    backgroundColor: '#2563EB',
+    width: 40,
+    height: 40,
     borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  sendingOverlay: {
+    position: 'absolute',
+    right: 16,
+    bottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  sendingText: {
+    fontSize: 12,
   },
 });

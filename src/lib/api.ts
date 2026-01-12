@@ -137,6 +137,31 @@ export type UploadImageFile = {
   type?: string;
 };
 
+export type AiProductCard = {
+  productId: string;
+  name: string;
+  price: number;
+  stock: number;
+  image?: string;
+  category?: string;
+  code?: string;
+};
+
+export type AiAction =
+  | {
+      type: 'ADD_TO_CART';
+      payload: { productId: string; quantity: number };
+      requiresConfirmation: boolean;
+      confirmationId?: string;
+      note?: string;
+    };
+
+export type AiChatResponse = {
+  reply: string;
+  cards?: AiProductCard[];
+  actions?: AiAction[];
+};
+
 // Derive API host from Metro bundler URL so it works on simulator & real device.
 const resolveApiHost = () => {
   const scriptURL = NativeModules?.SourceCode?.scriptURL as string | undefined;
@@ -594,4 +619,24 @@ export function setDefaultAddress(index: number, token: string): Promise<Fronten
     const addresses = extractAddressesFromResponse(response);
     return addresses.map((addr, idx) => backendToFrontendAddress(addr, idx));
   });
+}
+
+// AI endpoints
+export function aiChat(
+  data: { message: string; history?: { role: 'user' | 'ai'; content: string }[]; imageUrl?: string },
+  token: string,
+) {
+  return postJson<AiChatResponse>('/ai/chat', data, { token });
+}
+
+export function confirmAiAction(confirmationId: string, token: string, quantity?: number, productId?: string) {
+  return postJson<{ message: string }>(
+    '/ai/confirm',
+    { confirmationId, quantity, productId },
+    { token },
+  );
+}
+
+export function addCartItem(productId: string, quantity: number, token: string) {
+  return postJson('/carts/items', { productId, quantity }, { token });
 }
