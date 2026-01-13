@@ -173,8 +173,11 @@ const resolveApiHost = () => {
   return Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
 };
 
-// Allow build-time override; otherwise, point to the resolved local/network backend.
-const API_BASE_URL = ENV_API_URL || `http://${resolveApiHost()}:3000`;
+// Allow build-time override; but if env points to localhost/127/0.0.1, use device-resolvable host instead.
+const isLocalHost = (url?: string) => !!url && /localhost|127\.0\.0\.1/.test(url);
+const API_BASE_URL = isLocalHost(ENV_API_URL)
+  ? `http://${resolveApiHost()}:3000`
+  : (ENV_API_URL || `http://${resolveApiHost()}:3000`);
 
 type RequestOptions = {
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
