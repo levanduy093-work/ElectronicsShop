@@ -94,8 +94,8 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
         <Text style={[styles.title, { color: t.text }]}>Giỏ hàng ({items.length})</Text>
         
         <View style={styles.itemsContainer}>
-          {items.map((item) => (
-            <View key={item.id} style={[styles.itemCard, { backgroundColor: t.card, borderColor: t.border, shadowOpacity: t === lightTheme ? 0.05 : 0, elevation: t === lightTheme ? 2 : 0 }]}>
+          {items.map((item, index) => (
+            <View key={`${item.id}-${index}`} style={[styles.itemCard, { backgroundColor: t.card, borderColor: t.border, shadowOpacity: t === lightTheme ? 0.05 : 0, elevation: t === lightTheme ? 2 : 0 }]}>
               <ImageWithFallback
                 source={{ uri: item.image }}
                 style={styles.itemImage}

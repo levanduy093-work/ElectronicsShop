@@ -401,8 +401,18 @@ function App(): React.JSX.Element {
       const mapped = result.map(mapApiProductToUi);
       setProducts(mapped);
       productsRef.current = mapped;
+      setCartItems(prev =>
+        prev.map(item => {
+          const updated = mapped.find(p => p.id === item.id);
+          return updated
+            ? { ...item, stockQuantity: updated.stockQuantity, stock: updated.stock }
+            : item;
+        }),
+      );
+      return mapped;
     } catch (error: any) {
       console.warn('App.tsx - Failed to load products', error?.message || error);
+      return undefined;
     }
   };
 
@@ -953,33 +963,56 @@ function App(): React.JSX.Element {
   };
 
   const handleAddToCart = (product: Product, quantity: number) => {
-    const isOutOfStock =
-      product.stock === 'Out of Stock' ||
-      (product.stockQuantity !== undefined && product.stockQuantity <= 0);
-    if (isOutOfStock) return;
+    const available = product.stockQuantity;
+    const isOutOfStock = product.stock === 'Out of Stock' || (available !== undefined && available <= 0);
+    if (isOutOfStock) {
+      Alert.alert('Hết hàng', `${product.name} hiện không còn hàng.`);
+      return;
+    }
 
     const safeQuantity = Math.max(1, quantity);
+    const limit = available ?? Number.POSITIVE_INFINITY;
+
     setCartItems(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
+        const desired = existing.quantity + safeQuantity;
+        const clamped = Math.min(desired, limit);
+        if (clamped < desired) {
+          Alert.alert('Không đủ hàng', `Chỉ còn ${clamped} sản phẩm ${product.name} trong kho.`);
+        }
         return prev.map(item =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + safeQuantity }
-            : item
+          item.id === product.id ? { ...item, quantity: Math.max(1, clamped) } : item,
         );
       }
-      return [...prev, { ...product, quantity: safeQuantity }];
+
+      const initialQty = Math.min(safeQuantity, limit);
+      if (initialQty < safeQuantity) {
+        Alert.alert('Không đủ hàng', `Chỉ còn ${initialQty} sản phẩm ${product.name} trong kho.`);
+      }
+      return [...prev, { ...product, quantity: Math.max(1, initialQty) }];
     });
   };
 
   const updateCartQuantity = (id: string, delta: number) => {
-    setCartItems(prev => prev.map(item => {
-      if (item.id === id) {
-        const newQty = Math.max(1, item.quantity + delta);
-        return { ...item, quantity: newQty };
-      }
-      return item;
-    }));
+    setCartItems(prev =>
+      prev.map(item => {
+        if (item.id !== id) return item;
+
+        const limit = item.stockQuantity ?? Number.POSITIVE_INFINITY;
+        const desired = item.quantity + delta;
+        const clamped = Math.max(1, Math.min(desired, limit));
+        if (clamped !== desired) {
+          Alert.alert(
+            'Không đủ hàng',
+            limit === Number.POSITIVE_INFINITY
+              ? 'Không thể giảm dưới 1 sản phẩm.'
+              : `Sản phẩm chỉ còn ${limit} cái.`,
+          );
+        }
+        return { ...item, quantity: clamped };
+      }),
+    );
   };
 
   const removeFromCart = (id: string) => {
@@ -999,17 +1032,28 @@ function App(): React.JSX.Element {
     const code = `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
     const normalizedPayment = params.paymentMethod?.toLowerCase() || 'cod';
     const isVnpay = normalizedPayment === 'vnpay';
-    const normalizeProductId = (id: string) => {
-      if (/^[a-f0-9]{24}$/i.test(id)) return id;
-      const sanitized = id.replace(/[^a-f0-9]/gi, 'a');
-      return (sanitized + 'aaaaaaaaaaaaaaaaaaaaaaaaaaaa').slice(0, 24);
-    };
+
+    // Refresh stock before placing order to avoid overselling
+    const latestProducts = (await loadProducts()) || productsRef.current;
+    const stockMap = new Map<string, number | undefined>(
+      latestProducts.map(p => [p.id, p.stockQuantity]),
+    );
+
+    for (const item of params.items) {
+      const available = stockMap.get(item.id);
+      if (available !== undefined && available < item.quantity) {
+        throw new Error(`Sản phẩm ${item.name} chỉ còn ${available} cái trong kho.`);
+      }
+      if (!/^[a-f0-9]{24}$/i.test(item.id)) {
+        throw new Error(`ID sản phẩm ${item.name} không hợp lệ.`);
+      }
+    }
 
     const payload = {
       code,
       status: { ordered: new Date().toISOString() },
       items: params.items.map(item => ({
-        productId: normalizeProductId(item.id),
+        productId: item.id,
         name: item.name,
         quantity: item.quantity,
         price: item.price,
@@ -1048,6 +1092,7 @@ function App(): React.JSX.Element {
       const created = await apiCreateOrder(payload, authTokensRef.current.accessToken);
       const uiOrder = mapApiOrderToUi(created, productsRef.current);
       setOrders(prev => [uiOrder, ...prev]);
+      void loadProducts();
       return uiOrder;
     } catch (error: any) {
       console.warn('App.tsx - Failed to create order', error?.message || error);
@@ -1316,6 +1361,9 @@ function App(): React.JSX.Element {
             onBack={navigateToOrderHistory} 
             order={orders.find(o => o.id === selectedOrderId)}
             theme={theme}
+            onReorder={handleAddToCart}
+            products={products}
+            onNavigateToCart={() => handleTabChange('cart')}
           />
         ) : null;
 

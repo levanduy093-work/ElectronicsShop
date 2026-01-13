@@ -1,0 +1,10 @@
+Cần sửa 2 files:
+
+1. OrderDetail.tsx:
+   - Line 17: Thêm `onNavigateToCart?: () => void;` sau products
+   - Line 67: Thêm `onNavigateToCart` vào destructure
+   - Line 113-114: Thêm `setTimeout(() => onNavigateToCart?.(), 500);` sau success toast
+   - Line 119: Thêm `setTimeout(() => onNavigateToCart?.(), 500);` sau warning toast
+
+2. App.tsx:
+   - Tìm OrderDetail component và thêm prop: `onNavigateToCart={() => handleTabChange('cart')}`

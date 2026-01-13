@@ -1,17 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { formatPrice } from '../lib/utils';
-import { Order } from '../lib/data';
+import { Order, Product } from '../lib/data';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
+import { useToast } from '../components/common/ToastProvider';
 
 interface OrderDetailProps {
   orderId: string;
   onBack: () => void;
   order?: Order;
   theme?: Theme;
+  onReorder?: (product: Product, quantity: number) => void;
+  products?: Product[];
+  onNavigateToCart?: () => void;
 }
 
 const DEFAULT_ORDER: Order = {
@@ -57,11 +61,69 @@ const DEFAULT_ORDER: Order = {
   ],
 };
 
-export function OrderDetail({ orderId, onBack, order, theme }: OrderDetailProps) {
+export function OrderDetail({ orderId, onBack, order, theme, onReorder, products = [], onNavigateToCart }: OrderDetailProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme, isDarkMode } = useTheme();
   const t = theme || ctxTheme || lightTheme;
   const orderData = order || DEFAULT_ORDER;
+  const { showToast } = useToast();
+  const [isReordering, setIsReordering] = useState(false);
+
+  const handleReorder = () => {
+    if (!onReorder) {
+      showToast('Chức năng mua lại chưa được kích hoạt', 'error');
+      return;
+    }
+
+    if (isReordering) return;
+    setIsReordering(true);
+
+    const outOfStockItems: string[] = [];
+    const availableItems: Array<{ product: Product; quantity: number }> = [];
+
+    // Check stock for each item
+    orderData.items.forEach(item => {
+      const product = products.find(p => p.id === item.id);
+      
+      if (!product) {
+        outOfStockItems.push(item.name);
+        return;
+      }
+
+      const isOutOfStock = product.stock === 'Out of Stock' || 
+                          (product.stockQuantity !== undefined && product.stockQuantity <= 0);
+      
+      if (isOutOfStock) {
+        outOfStockItems.push(item.name);
+      } else {
+        // Check if requested quantity is available
+        const availableQuantity = product.stockQuantity ?? item.quantity;
+        const quantityToAdd = Math.min(item.quantity, availableQuantity);
+        availableItems.push({ product, quantity: quantityToAdd });
+      }
+    });
+
+    // Add available items to cart
+    availableItems.forEach(item => {
+      onReorder(item.product, item.quantity);
+    });
+
+    // Show appropriate message
+    if (availableItems.length === 0) {
+      showToast('Tất cả sản phẩm trong đơn hàng đã hết', 'error');
+    } else if (outOfStockItems.length === 0) {
+      showToast(`Đã thêm ${availableItems.length} sản phẩm vào giỏ hàng`, 'success');
+      setTimeout(() => onNavigateToCart?.(), 500);
+    } else {
+      showToast(
+        `Đã thêm ${availableItems.length} sản phẩm. ${outOfStockItems.length} sản phẩm hết hàng: ${outOfStockItems.slice(0, 2).join(', ')}${outOfStockItems.length > 2 ? '...' : ''}`,
+        'warning'
+      );
+      setTimeout(() => onNavigateToCart?.(), 500);
+    }
+
+    setIsReordering(false);
+  };
 
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -289,12 +351,16 @@ export function OrderDetail({ orderId, onBack, order, theme }: OrderDetailProps)
           style={[
             styles.reorderButton,
             {
-              backgroundColor: t.primary,
+              backgroundColor: isReordering ? t.border : t.primary,
             }
           ]} 
           activeOpacity={0.8}
+          onPress={handleReorder}
+          disabled={isReordering}
         >
-          <Text style={styles.reorderButtonText}>Mua lại</Text>
+          <Text style={[styles.reorderButtonText, { color: isReordering ? t.muted : '#FFFFFF' }]}>
+            {isReordering ? 'Đang xử lý...' : 'Mua lại'}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
