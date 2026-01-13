@@ -929,16 +929,22 @@ function App(): React.JSX.Element {
   };
 
   const handleAddToCart = (product: Product, quantity: number) => {
+    const isOutOfStock =
+      product.stock === 'Out of Stock' ||
+      (product.stockQuantity !== undefined && product.stockQuantity <= 0);
+    if (isOutOfStock) return;
+
+    const safeQuantity = Math.max(1, quantity);
     setCartItems(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
         return prev.map(item =>
           item.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
+            ? { ...item, quantity: item.quantity + safeQuantity }
             : item
         );
       }
-      return [...prev, { ...product, quantity }];
+      return [...prev, { ...product, quantity: safeQuantity }];
     });
   };
 

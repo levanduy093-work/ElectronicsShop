@@ -17,6 +17,7 @@ export function MessageBubble({ message, onAction, onSelectCard }: MessageBubble
   const [modalVisible, setModalVisible] = useState(false);
 
   const renderProductCard = (card: AiProductCard) => {
+    const isOutOfStock = card.stock <= 0;
     const action = message.actions?.find(
       (a) => a.type === 'ADD_TO_CART' && a.payload.productId === card.productId,
     );
@@ -63,11 +64,19 @@ export function MessageBubble({ message, onAction, onSelectCard }: MessageBubble
                   message,
                 )
               }
-              style={[styles.cardButton, styles.cardButtonPrimary, { backgroundColor: theme.primary }]}
+              style={[
+                styles.cardButton,
+                styles.cardButtonPrimary,
+                {
+                  backgroundColor: isOutOfStock ? theme.border : theme.primary,
+                  opacity: isOutOfStock ? 0.7 : 1,
+                },
+              ]}
               activeOpacity={0.8}
+              disabled={isOutOfStock}
             >
-              <AppIcon name="shopping-cart" size={14} color="#FFFFFF" />
-              <Text style={[styles.cardButtonText, { color: '#FFFFFF' }]}>Thêm</Text>
+              <AppIcon name="shopping-cart" size={14} color={isOutOfStock ? theme.muted : '#FFFFFF'} />
+              <Text style={[styles.cardButtonText, { color: isOutOfStock ? theme.muted : '#FFFFFF' }]}>Thêm</Text>
             </TouchableOpacity>
           </View>
         </View>

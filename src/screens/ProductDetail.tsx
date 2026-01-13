@@ -49,6 +49,9 @@ export function ProductDetail({
   const { theme: ctxTheme, isDarkMode } = useTheme();
   const theme = injectedTheme || ctxTheme;
   const { showToast } = useToast();
+  const isOutOfStock =
+    product.stock === 'Out of Stock' ||
+    (product.stockQuantity !== undefined && product.stockQuantity <= 0);
   const [reviews, setReviews] = useState<ApiReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -136,6 +139,10 @@ export function ProductDetail({
   };
 
   const handleAddToCart = () => {
+    if (isOutOfStock) {
+      showToast('Sản phẩm đã hết hàng, không thể thêm vào giỏ', 'error');
+      return;
+    }
     onAddToCart(product, quantity);
     showToast('Đã thêm vào giỏ hàng', 'success');
   };
@@ -724,11 +731,17 @@ export function ProductDetail({
         
         <TouchableOpacity
           onPress={handleAddToCart}
-          style={[styles.addToCartButton, { backgroundColor: theme.primary }]}
+          style={[
+            styles.addToCartButton,
+            { backgroundColor: isOutOfStock ? theme.border : theme.primary },
+          ]}
           activeOpacity={0.8}
+          disabled={isOutOfStock}
         >
           <AppIcon name="shopping-cart" size={20} color="#FFFFFF" />
-          <Text style={styles.addToCartText}>Thêm vào giỏ</Text>
+          <Text style={[styles.addToCartText, { color: isOutOfStock ? theme.muted : '#FFFFFF' }]}>
+            Thêm vào giỏ
+          </Text>
         </TouchableOpacity>
       </View>
     </View>

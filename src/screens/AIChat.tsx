@@ -167,6 +167,14 @@ export function AIChat({
     }
 
     if (action.type === 'ADD_TO_CART') {
+      const card =
+        sourceMessage.cards?.find((c) => c.productId === action.payload.productId) ||
+        sourceMessage.cards?.[0];
+      if (card && card.stock <= 0) {
+        showToast('Sản phẩm đã hết hàng, không thể thêm vào giỏ', 'error');
+        return;
+      }
+
       try {
         if (action.requiresConfirmation && action.confirmationId) {
           await confirmAiAction(
@@ -179,9 +187,6 @@ export function AIChat({
           await addCartItem(action.payload.productId, action.payload.quantity || 1, accessToken);
         }
 
-        const card =
-          sourceMessage.cards?.find((c) => c.productId === action.payload.productId) ||
-          sourceMessage.cards?.[0];
         if (card && onAddToCart) {
           onAddToCart(toProduct(card), action.payload.quantity || 1);
         }
