@@ -406,6 +406,17 @@ function App(): React.JSX.Element {
     }
   };
 
+  useEffect(() => {
+    socketService.connect();
+    const handleProductUpdate = () => {
+      void loadProducts();
+    };
+    socketService.on('product_updated', handleProductUpdate);
+    return () => {
+      socketService.off('product_updated');
+    };
+  }, []);
+
   const loadBanners = async () => {
     try {
       const result = await getPublicBanners();
@@ -576,6 +587,19 @@ function App(): React.JSX.Element {
     setAddresses(DEFAULT_ADDRESSES);
     void clearPersistedAuthState();
   }, []);
+
+  useEffect(() => {
+    if (!selectedProduct) return;
+    const updated = products.find(p => p.id === selectedProduct.id);
+    if (!updated) return;
+    const hasChanged =
+      updated.stockQuantity !== selectedProduct.stockQuantity ||
+      updated.stock !== selectedProduct.stock ||
+      updated.price !== selectedProduct.price;
+    if (hasChanged) {
+      setSelectedProduct(updated);
+    }
+  }, [products, selectedProduct]);
 
   useEffect(() => {
     configureApiAuth({

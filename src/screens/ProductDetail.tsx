@@ -52,6 +52,8 @@ export function ProductDetail({
   const isOutOfStock =
     product.stock === 'Out of Stock' ||
     (product.stockQuantity !== undefined && product.stockQuantity <= 0);
+  const availableStock = product.stockQuantity;
+  const maxQuantity = availableStock !== undefined ? Math.max(0, availableStock) : Number.MAX_SAFE_INTEGER;
   const [reviews, setReviews] = useState<ApiReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -143,7 +145,16 @@ export function ProductDetail({
       showToast('Sản phẩm đã hết hàng, không thể thêm vào giỏ', 'error');
       return;
     }
-    onAddToCart(product, quantity);
+    const allowedQuantity = Math.min(Math.max(1, quantity), maxQuantity);
+    if (allowedQuantity < 1) {
+      showToast('Sản phẩm đã hết hàng, không thể thêm vào giỏ', 'error');
+      return;
+    }
+    if (allowedQuantity !== quantity && availableStock !== undefined) {
+      showToast(`Chỉ còn ${availableStock} sản phẩm trong kho`, 'info');
+      setQuantity(allowedQuantity);
+    }
+    onAddToCart(product, allowedQuantity);
     showToast('Đã thêm vào giỏ hàng', 'success');
   };
 
@@ -367,7 +378,22 @@ export function ProductDetail({
                 <Text style={styles.separator}>|</Text>
               <Text style={[styles.reviewsText, { color: theme.muted }]}>{derivedReviewCount} đánh giá</Text>
               <Text style={styles.separator}>|</Text>
-              <Text style={[styles.soldText, { color: '#10B981' }]}>Đã bán 1.2k</Text>
+              <Text
+                style={[
+                  styles.soldText,
+                  { color: isOutOfStock ? '#DC2626' : '#10B981' },
+                ]}
+              >
+                {availableStock !== undefined
+                  ? availableStock > 0
+                    ? `Còn ${availableStock} sản phẩm`
+                    : 'Hết hàng'
+                  : product.stock === 'Low Stock'
+                    ? 'Sắp hết hàng'
+                    : product.stock === 'Out of Stock'
+                      ? 'Hết hàng'
+                      : 'Còn hàng'}
+              </Text>
             </View>
           </View>
 
@@ -713,19 +739,25 @@ export function ProductDetail({
           }
         ]}>
           <TouchableOpacity
-            onPress={() => setQuantity(Math.max(1, quantity - 1))}
+            onPress={() => setQuantity(prev => Math.max(1, Math.min(maxQuantity, prev - 1)))}
             style={styles.quantityButton}
             activeOpacity={0.7}
+            disabled={quantity <= 1}
           >
-            <AppIcon name="minus" size={20} color={theme.text} />
+            <AppIcon name="minus" size={20} color={quantity <= 1 ? theme.muted : theme.text} />
           </TouchableOpacity>
           <Text style={[styles.quantityText, { color: theme.text }]}>{quantity}</Text>
           <TouchableOpacity
-            onPress={() => setQuantity(quantity + 1)}
+            onPress={() => setQuantity(prev => Math.min(maxQuantity, prev + 1))}
             style={styles.quantityButton}
             activeOpacity={0.7}
+            disabled={quantity >= maxQuantity}
           >
-            <AppIcon name="plus" size={20} color={theme.text} />
+            <AppIcon
+              name="plus"
+              size={20}
+              color={quantity >= maxQuantity ? theme.muted : theme.text}
+            />
           </TouchableOpacity>
         </View>
         
