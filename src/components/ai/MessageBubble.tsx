@@ -22,7 +22,7 @@ export function MessageBubble({ message, onAction, onSelectCard }: MessageBubble
     );
 
     return (
-      <View key={card.productId} style={[styles.productCard, { borderColor: theme.border }]}>
+      <View key={card.productId} style={[styles.productCard, { borderColor: theme.border, backgroundColor: isDark ? '#1F2933' : '#F9FAFB' }]}>
         <View style={styles.productCardHeader}>
           <Text style={[styles.productName, { color: isDark ? '#E5E7EB' : '#111827' }]} numberOfLines={2}>
             {card.name}
