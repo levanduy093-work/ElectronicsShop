@@ -17,7 +17,7 @@ export interface Product {
   stock: "In Stock" | "Low Stock" | "Out of Stock";
   stockQuantity?: number;
   description: string;
-  specs: Record<string, string>;
+  specs: Record<string, any>;
   code?: string;
   saleCount?: number;
   datasheet?: string;

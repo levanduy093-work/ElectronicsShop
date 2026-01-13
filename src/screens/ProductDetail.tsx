@@ -410,12 +410,27 @@ export function ProductDetail({
             
             {activeTab === 'specs' && (
               <View style={styles.specsContainer}>
-                {Object.entries(product.specs).map(([key, value]) => (
-                  <View key={key} style={styles.specRow}>
-                    <Text style={[styles.specKey, { color: theme.muted }]}>{key}</Text>
-                    <Text style={[styles.specValue, { color: theme.text }]}>{value}</Text>
-                  </View>
-                ))}
+                {Object.entries(product.specs).map(([key, value]) => {
+                  let displayValue = '';
+                  if (Array.isArray(value)) {
+                    displayValue = value.map(v => (typeof v === 'object' ? JSON.stringify(v) : v)).join(', ');
+                  } else if (typeof value === 'object' && value !== null) {
+                    displayValue = Object.entries(value)
+                      .map(([k, v]) => `${k}: ${v}`)
+                      .join(', ');
+                  } else {
+                    displayValue = String(value);
+                  }
+                  
+                  return (
+                    <View key={key} style={styles.specRow}>
+                      <Text style={[styles.specKey, { color: theme.muted }]}>{key}</Text>
+                      <Text style={[styles.specValue, { color: theme.text }]}>
+                        {displayValue}
+                      </Text>
+                    </View>
+                  );
+                })}
               </View>
             )}
 
@@ -901,15 +916,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+    alignItems: 'flex-start',
   },
   specKey: {
     fontSize: 14,
     color: '#6B7280',
+    maxWidth: '40%',
   },
   specValue: {
     fontSize: 14,
     fontWeight: '500',
     color: '#111827',
+    flex: 1,
+    textAlign: 'right',
+    marginLeft: 12,
   },
   reviewsContainer: {
     gap: 16,
