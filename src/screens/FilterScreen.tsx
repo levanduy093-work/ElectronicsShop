@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CATEGORIES, Product, extractCategoriesFromProducts } from '../lib/data';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
 
@@ -10,7 +9,6 @@ interface FilterScreenProps {
   onApply: (filters: any) => void;
   currentFilters?: {
     priceRange: [number, number];
-    categories: string[];
     rating: number | null;
     onlyInStock: boolean;
   };
@@ -30,9 +28,6 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
   const [priceMaxInput, setPriceMaxInput] = useState(
     currentFilters?.priceRange?.[1]?.toString() || PRICE_MAX.toString()
   );
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    currentFilters?.categories || []
-  );
   const [rating, setRating] = useState<number | null>(currentFilters?.rating || null);
   const [onlyInStock, setOnlyInStock] = useState(currentFilters?.onlyInStock || false);
   const [filteredCount, setFilteredCount] = useState(12);
@@ -48,21 +43,13 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
       
       const count = getFilteredCount({
         priceRange: [finalMin, finalMax],
-        categories: selectedCategories,
         rating,
         onlyInStock,
       });
       setFilteredCount(count);
     }
-  }, [priceMinInput, priceMaxInput, selectedCategories, rating, onlyInStock, getFilteredCount]);
+  }, [priceMinInput, priceMaxInput, rating, onlyInStock, getFilteredCount]);
 
-  const toggleCategory = (cat: string) => {
-    if (selectedCategories.includes(cat)) {
-      setSelectedCategories(prev => prev.filter(c => c !== cat));
-    } else {
-      setSelectedCategories(prev => [...prev, cat]);
-    }
-  };
 
   const handleApply = () => {
     const parsedMin = parseInt(priceMinInput || `${PRICE_MIN}`, 10);
@@ -73,7 +60,6 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
 
     onApply({
       priceRange: [finalMin, finalMax],
-      categories: selectedCategories,
       rating,
       onlyInStock,
     });
@@ -83,13 +69,11 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
   const handleReset = () => {
     setPriceMinInput('0');
     setPriceMaxInput(PRICE_MAX.toString());
-    setSelectedCategories([]);
     setRating(null);
     setOnlyInStock(false);
     // Apply reset filters immediately
     onApply({
       priceRange: [PRICE_MIN, PRICE_MAX],
-      categories: [],
       rating: null,
       onlyInStock: false,
     });
@@ -149,42 +133,6 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
                 <Text style={[styles.currency, { color: t.muted }]}>₫</Text>
               </View>
             </View>
-          </View>
-        </View>
-
-        {/* Categories */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: t.muted }]}>Danh mục</Text>
-          <View style={styles.categoriesContainer}>
-            {CATEGORIES.length > 0 ? (
-              CATEGORIES.map((cat) => {
-                const isSelected = selectedCategories.includes(cat.name);
-                return (
-                  <TouchableOpacity
-                    key={cat.id}
-                    onPress={() => toggleCategory(cat.name)}
-                    style={[
-                      styles.categoryTag,
-                      isSelected && styles.categoryTagSelected,
-                    ]}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[
-                      styles.categoryText,
-                      isSelected && styles.categoryTextSelected,
-                    ]}>
-                      {cat.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })
-            ) : (
-              <View style={styles.emptyCategoriesContainer}>
-                <Text style={[styles.emptyCategoriesText, { color: t.muted }]}>
-                  Chưa có danh mục nào
-                </Text>
-              </View>
-            )}
           </View>
         </View>
 
@@ -331,31 +279,6 @@ const styles = StyleSheet.create({
     height: 2,
     backgroundColor: '#D1D5DB',
   },
-  categoriesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  categoryTag: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-  },
-  categoryTagSelected: {
-    borderColor: '#2563EB',
-    backgroundColor: '#EFF6FF',
-  },
-  categoryText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#4B5563',
-  },
-  categoryTextSelected: {
-    color: '#2563EB',
-  },
   ratingContainer: {
     gap: 8,
   },
@@ -415,13 +338,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  emptyCategoriesContainer: {
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-  },
-  emptyCategoriesText: {
-    fontSize: 14,
-    color: '#6B7280',
   },
 });
