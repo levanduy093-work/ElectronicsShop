@@ -834,8 +834,8 @@ function App(): React.JSX.Element {
         return false;
       }
 
-      // Stock filter
-      if (filters.onlyInStock && product.stock !== 'In Stock') {
+      // Stock filter - only exclude Out of Stock products
+      if (filters.onlyInStock && product.stock === 'Out of Stock') {
         return false;
       }
 
@@ -1384,7 +1384,7 @@ function App(): React.JSX.Element {
                 if (tempFilterState.rating !== null && product.rating < tempFilterState.rating) {
                   return false;
                 }
-                if (tempFilterState.onlyInStock && product.stock !== 'In Stock') {
+                if (tempFilterState.onlyInStock && product.stock === 'Out of Stock') {
                   return false;
                 }
                 return true;
