@@ -21,6 +21,7 @@ import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme } from '../lib/theme';
 import { aiChat, confirmAiAction, addCartItem, uploadImage, UploadImageFile } from '../lib/api';
 import { useToast } from '../components/common/ToastProvider';
+import { useSpeechToText } from '../hooks/useSpeechToText';
 
 interface AIChatProps {
   theme?: Theme;
@@ -52,6 +53,18 @@ export function AIChat({
   const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
+  const { isListening, recognizedText, error: speechError, startListening, stopListening } = useSpeechToText({
+    onResult: (text) => {
+      setInputValue(text);
+    },
+    onError: (error) => {
+      if (error.includes('No match') || error.includes('No speech input')) {
+        showToast('Không nghe thấy giọng nói, vui lòng thử lại', 'info');
+      } else {
+        showToast(`Lỗi: ${error}`, 'error');
+      }
+    },
+  });
 
   const setMessages = (updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
     setMessagesState((prev) => (typeof updater === 'function' ? (updater as any)(prev) : updater));
@@ -354,6 +367,15 @@ export function AIChat({
             </ScrollView>
           )}
 
+          {isListening && (
+            <View style={[styles.listeningIndicator, { backgroundColor: theme.background, borderColor: theme.primary }]}>
+              <View style={[styles.recordingDot, { backgroundColor: theme.primary }]} />
+              <Text style={[styles.listeningText, { color: theme.text }]}>
+                {recognizedText || 'Đang lắng nghe...'}
+              </Text>
+            </View>
+          )}
+
           <View
             style={[
               styles.inputWrapper,
@@ -397,8 +419,20 @@ export function AIChat({
                 <AppIcon name="send" size={18} color="#FFFFFF" />
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity style={styles.inputButton} activeOpacity={0.7}>
-                <AppIcon name="mic" size={20} color={theme.muted} />
+              <TouchableOpacity 
+                style={[
+                  styles.inputButton,
+                  isListening && { backgroundColor: theme.primary }
+                ]}
+                activeOpacity={0.7}
+                onPress={isListening ? stopListening : startListening}
+                disabled={isSending || isUploading}
+              >
+                <AppIcon 
+                  name="mic" 
+                  size={20} 
+                  color={isListening ? '#FFFFFF' : theme.muted}
+                />
               </TouchableOpacity>
             )}
           </View>
@@ -523,5 +557,29 @@ const styles = StyleSheet.create({
   },
   sendingText: {
     fontSize: 12,
+  },
+  listeningIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 8,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#3B82F6',
+  },
+  listeningText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#111827',
   },
 });

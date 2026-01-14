@@ -44,6 +44,10 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Need Location Permission</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Cần quyền truy cập microphone để sử dụng tính năng nhận diện giọng nói</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Cần quyền nhận diện giọng nói để sử dụng trợ lý AI</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Cần quyền truy cập thư viện ảnh để chọn ảnh đại diện</string>
 	<key>RCTNewArchEnabled</key>
