@@ -54,7 +54,7 @@ Tuy nhiên, cần bổ sung KeyboardAvoidingView cho các form nhập liệu (Ad
 | Variant Selection | 15 | ☐ | ☑ | Chưa có chức năng chọn biến thể (Màu/Size) |
 | Add to Cart with Animations | 10 | ☑ | ☐ | Chức năng hoạt động nhưng thiếu animation bay vào giỏ |
 | Reviews Section | 10 | ☑ | ☐ | Có danh sách đánh giá, viết đánh giá kèm ảnh |
-| Related Products | 5 | ☐ | ☑ | Chưa hiển thị sản phẩm liên quan |
+| Related Products | 5 | ☑ | ☐ | Chưa hiển thị sản phẩm liên quan |
 | Share & Favorite | 5 | ☑ | ☐ | Hoạt động tốt |
 
 ### Yêu Cầu Bắt Buộc

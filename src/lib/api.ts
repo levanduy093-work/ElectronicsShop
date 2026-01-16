@@ -396,6 +396,10 @@ export function getProductById(id: string) {
   return getJson<ApiProduct>(`/products/${id}`);
 }
 
+export function getRelatedProducts(id: string) {
+  return getJson<ApiProduct[]>(`/products/${id}/related`);
+}
+
 export function getFavorites(token: string) {
   return getJson<ApiProduct[]>('/users/me/favorites', { token });
 }

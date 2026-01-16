@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Share, Dimensions, Modal, TextInput, Image, Animated, Easing, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Share, Dimensions, Modal, TextInput, Image, Animated, Easing, KeyboardAvoidingView, Platform, FlatList } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Product } from '../lib/data';
@@ -10,6 +10,7 @@ import { useTheme } from '../lib/theme';
 import { useToast } from '../components/common/ToastProvider';
 import { ApiReview, createReview, getReviews, uploadImage, UploadImageFile } from '../lib/api';
 import { socketService } from '../lib/socket';
+import { ProductCard } from '../components/ui/ProductCard';
 
 interface ProductDetailProps {
   product: Product;
@@ -26,6 +27,8 @@ interface ProductDetailProps {
   onReviewStatsChange?: (productId: string, stats: { averageRating: number; reviewCount: number }) => void;
   onNavigateToCart?: () => void;
   cartItemCount?: number;
+  relatedProducts?: Product[];
+  onProductClick?: (product: Product) => void;
 }
 
 export function ProductDetail({
@@ -43,6 +46,8 @@ export function ProductDetail({
   onReviewStatsChange,
   onNavigateToCart,
   cartItemCount = 0,
+  relatedProducts = [],
+  onProductClick,
 }: ProductDetailProps) {
   const { width, height } = Dimensions.get('window');
   const [quantity, setQuantity] = useState(1);
@@ -54,43 +59,49 @@ export function ProductDetail({
   const animScale = useRef(new Animated.Value(0)).current;
   const animOpacity = useRef(new Animated.Value(0)).current;
 
+  // Gallery state
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const productImages = product.images && product.images.length > 0 ? product.images : [product.image];
+
+  // Variant state (Mock)
+  const [selectedVariant, setSelectedVariant] = useState(0);
+  const variants = [
+    { id: 0, name: 'Tiêu chuẩn', price: product.price },
+    // Mock variants if needed, or extract from specs
+  ];
+
   const runAddToCartAnimation = (callback: () => void) => {
-    // Reset values
     animItem.setValue({ x: 0, y: 0 });
     animScale.setValue(0.5);
     animOpacity.setValue(1);
 
-    // Target position (Top Right - Cart Icon)
-    // Center is (0,0). Cart icon is at top right.
-    // X: Move to right edge - padding
-    // Y: Move to top edge + padding
     const targetX = width / 2 - 40; 
     const targetY = -(height / 2) + insets.top + 30;
 
     Animated.parallel([
       Animated.timing(animItem, {
         toValue: { x: targetX, y: targetY },
-        duration: 600, // Reduced from 800ms
+        duration: 600, 
         useNativeDriver: true,
         easing: Easing.bezier(0.2, 0.8, 0.2, 1),
       }),
       Animated.sequence([
         Animated.timing(animScale, {
           toValue: 1, 
-          duration: 150, // Reduced from 200ms
+          duration: 150, 
           useNativeDriver: true,
         }),
         Animated.timing(animScale, {
           toValue: 0.2, 
-          duration: 450, // Reduced from 600ms
+          duration: 450, 
           useNativeDriver: true,
         }),
       ]),
       Animated.sequence([
-        Animated.delay(450), // Reduced from 600ms
+        Animated.delay(450), 
         Animated.timing(animOpacity, {
           toValue: 0,
-          duration: 150, // Reduced from 200ms
+          duration: 150, 
           useNativeDriver: true,
         }),
       ]),
@@ -100,7 +111,7 @@ export function ProductDetail({
   };
 
   const [expandedReviews, setExpandedReviews] = useState<Record<string, boolean>>({});
-  const reviewImageSize = (width - 16 * 2 - 8 * 3) / 4; // content padding 16, gap 8
+  const reviewImageSize = (width - 16 * 2 - 8 * 3) / 4; 
   const { theme: ctxTheme, isDarkMode } = useTheme();
   const theme = injectedTheme || ctxTheme;
   const { showToast } = useToast();
@@ -150,6 +161,7 @@ export function ProductDetail({
 
   useEffect(() => {
     setReviewsFetched(false);
+    setActiveImageIndex(0); // Reset gallery
     fetchReviews();
   }, [product.id]);
 
@@ -211,12 +223,10 @@ export function ProductDetail({
     }
 
     const result = onAddToCart(product, allowedQuantity);
-    if (result === false) return; // Nếu trả về false thì dừng
+    if (result === false) return; 
 
-    showToast('Đã thêm vào giỏ hàng', 'success'); // Show toast immediately for better UX
-    runAddToCartAnimation(() => {
-      // Animation completed
-    });
+    showToast('Đã thêm vào giỏ hàng', 'success'); 
+    runAddToCartAnimation(() => {});
   };
 
   const resetReviewForm = () => {
@@ -347,6 +357,13 @@ export function ProductDetail({
     setReviewImages(prev => prev.filter(item => item !== uri));
   };
 
+  const handleGalleryScroll = (event: any) => {
+    const slide = Math.ceil(event.nativeEvent.contentOffset.x / event.nativeEvent.layoutMeasurement.width);
+    if (slide !== activeImageIndex) {
+      setActiveImageIndex(slide);
+    }
+  };
+
   const datasheetFiles = [
     { id: 'd1', name: 'Datasheet.pdf', size: '2.4 MB', desc: 'Tài liệu kỹ thuật', icon: 'file-text' as const },
     { id: 'd2', name: 'Library & Example Code', size: '156 KB', desc: 'Arduino/C++', icon: 'file-code' as const },
@@ -355,13 +372,41 @@ export function ProductDetail({
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Product Image */}
+        {/* Product Image Gallery */}
         <View style={styles.imageContainer}>
-          <ImageWithFallback
-            source={{ uri: product.image }}
-            style={styles.image}
-            resizeMode="contain"
-            />
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={handleGalleryScroll}
+            scrollEventThrottle={16}
+            style={styles.galleryScroll}
+          >
+            {productImages.map((img, index) => (
+              <View key={index} style={{ width: width, height: width, justifyContent: 'center', alignItems: 'center' }}>
+                <ImageWithFallback
+                  source={{ uri: img }}
+                  style={styles.image}
+                  resizeMode="contain"
+                />
+              </View>
+            ))}
+          </ScrollView>
+          
+          {productImages.length > 1 && (
+            <View style={styles.pagination}>
+              {productImages.map((_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.paginationDot,
+                    { backgroundColor: index === activeImageIndex ? theme.primary : theme.border }
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+
           <View style={[styles.headerOverlay, { top: insets.top + 8 }]}>
             <TouchableOpacity 
               onPress={onBack} 
@@ -451,12 +496,12 @@ export function ProductDetail({
               </View>
             </View>
             
-              <View style={styles.ratingRow}>
-                <View style={styles.ratingContainer}>
+            <View style={styles.ratingRow}>
+              <View style={styles.ratingContainer}>
                 <AppIcon name="star" size={16} color="#FBBF24" />
                 <Text style={[styles.ratingText, { color: theme.text }]}>{derivedAverageRating.toFixed(1)}</Text>
-                </View>
-                <Text style={styles.separator}>|</Text>
+              </View>
+              <Text style={styles.separator}>|</Text>
               <Text style={[styles.reviewsText, { color: theme.muted }]}>{derivedReviewCount} đánh giá</Text>
               <Text style={styles.separator}>|</Text>
               <Text
@@ -476,6 +521,34 @@ export function ProductDetail({
                       : 'Còn hàng'}
               </Text>
             </View>
+          </View>
+
+          {/* Variants */}
+          <View style={styles.variantSection}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Tùy chọn</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.variantList}>
+              {variants.map((v, i) => (
+                <TouchableOpacity
+                  key={i}
+                  onPress={() => setSelectedVariant(i)}
+                  style={[
+                    styles.variantChip,
+                    {
+                      borderColor: selectedVariant === i ? theme.primary : theme.border,
+                      backgroundColor: selectedVariant === i ? (theme === ctxTheme ? '#EFF6FF' : 'rgba(37,99,235,0.2)') : theme.surface,
+                    }
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.variantText,
+                    { color: selectedVariant === i ? theme.primary : theme.text }
+                  ]}>
+                    {v.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
 
           {/* Tabs */}
@@ -550,6 +623,7 @@ export function ProductDetail({
 
             {activeTab === 'reviews' && (
               <View style={styles.reviewsContainer}>
+                {/* ... Review UI existing code ... */}
                 <View style={[
                   styles.ratingSummary,
                   {
@@ -732,6 +806,24 @@ export function ProductDetail({
               </View>
             )}
           </View>
+
+          {/* Related Products */}
+          {relatedProducts.length > 0 && (
+            <View style={styles.relatedSection}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Sản phẩm tương tự</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {relatedProducts.map(p => (
+                  <View key={p.id} style={styles.relatedCardWrapper}>
+                    <ProductCard
+                      product={p}
+                      theme={theme}
+                      onPress={() => onProductClick?.(p)}
+                    />
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -928,13 +1020,29 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
+  galleryScroll: {
+    width: '100%',
+    height: '100%',
+  },
+  pagination: {
+    position: 'absolute',
+    bottom: 16,
+    flexDirection: 'row',
+    alignSelf: 'center',
+    gap: 8,
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
   image: {
     width: '75%',
     height: '75%',
   },
   stockBadge: {
     position: 'absolute',
-    bottom: 16,
+    bottom: 40, // Moved up to clear pagination
     left: 16,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     paddingHorizontal: 12,
@@ -1008,6 +1116,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#10B981',
+  },
+  variantSection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  variantList: {
+    gap: 8,
+  },
+  variantChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 8,
+  },
+  variantText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   tabsContainer: {
     marginBottom: 24,
@@ -1414,5 +1544,13 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: 'bold',
+  },
+  relatedSection: {
+    marginTop: 24,
+    marginBottom: 40,
+  },
+  relatedCardWrapper: {
+    marginRight: 16,
+    width: 170, // Slightly smaller than half screen
   },
 });

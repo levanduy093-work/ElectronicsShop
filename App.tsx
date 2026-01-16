@@ -49,6 +49,7 @@ import {
   getOrderById,
   getOrders as apiGetOrders,
   getProducts,
+  getRelatedProducts,
   markAllNotificationsRead as apiMarkAllNotificationsRead,
   markNotificationRead as apiMarkNotificationRead,
   removeFavorite,
@@ -367,6 +368,7 @@ function App(): React.JSX.Element {
   const [previousScreen, setPreviousScreen] = useState<Screen>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [banners, setBanners] = useState<HomeBanner[]>([]);
   const productsRef = useRef<Product[]>(PRODUCTS);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -597,6 +599,27 @@ function App(): React.JSX.Element {
     setAddresses(DEFAULT_ADDRESSES);
     void clearPersistedAuthState();
   }, []);
+
+  useEffect(() => {
+    if (!selectedProduct) return;
+    
+    // Initial client-side filter for immediate feedback
+    const localRelated = products
+      .filter(p => p.category === selectedProduct.category && p.id !== selectedProduct.id)
+      .slice(0, 6);
+    setRelatedProducts(localRelated);
+
+    // Fetch from API for better recommendations
+    getRelatedProducts(selectedProduct.id)
+      .then(res => {
+        if (res && res.length > 0) {
+          setRelatedProducts(res.map(mapApiProductToUi));
+        }
+      })
+      .catch(err => {
+        console.warn('App.tsx - Failed to load related products', err);
+      });
+  }, [selectedProduct?.id]);
 
   useEffect(() => {
     if (!selectedProduct) return;
@@ -1310,6 +1333,8 @@ function App(): React.JSX.Element {
             onReviewStatsChange={handleReviewStatsChange}
             onNavigateToCart={() => handleTabChange('cart')}
             cartItemCount={cartCount}
+            relatedProducts={relatedProducts}
+            onProductClick={navigateToProduct}
           />
         ) : null;
 
