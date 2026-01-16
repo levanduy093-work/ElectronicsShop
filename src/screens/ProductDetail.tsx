@@ -14,7 +14,7 @@ import { socketService } from '../lib/socket';
 interface ProductDetailProps {
   product: Product;
   onBack: () => void;
-  onAddToCart: (product: Product, quantity: number) => void;
+  onAddToCart: (product: Product, quantity: number) => boolean | void;
   isFavorite: boolean;
   onToggleFavorite: () => void;
   isLoggedIn: boolean;
@@ -210,8 +210,10 @@ export function ProductDetail({
       setQuantity(allowedQuantity);
     }
 
+    const result = onAddToCart(product, allowedQuantity);
+    if (result === false) return; // Nếu trả về false thì dừng
+
     runAddToCartAnimation(() => {
-      onAddToCart(product, allowedQuantity);
       showToast('Đã thêm vào giỏ hàng', 'success');
     });
   };

@@ -967,12 +967,13 @@ function App(): React.JSX.Element {
     const isOutOfStock = product.stock === 'Out of Stock' || (available !== undefined && available <= 0);
     if (isOutOfStock) {
       Alert.alert('Hết hàng', `${product.name} hiện không còn hàng.`);
-      return;
+      return false;
     }
 
     const safeQuantity = Math.max(1, quantity);
     const limit = available ?? Number.POSITIVE_INFINITY;
 
+    let success = false;
     setCartItems(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
@@ -980,7 +981,9 @@ function App(): React.JSX.Element {
         const clamped = Math.min(desired, limit);
         if (clamped < desired) {
           Alert.alert('Không đủ hàng', `Chỉ còn ${clamped} sản phẩm ${product.name} trong kho.`);
+          return prev; // Không thay đổi gì
         }
+        success = true;
         return prev.map(item =>
           item.id === product.id ? { ...item, quantity: Math.max(1, clamped) } : item,
         );
@@ -989,9 +992,12 @@ function App(): React.JSX.Element {
       const initialQty = Math.min(safeQuantity, limit);
       if (initialQty < safeQuantity) {
         Alert.alert('Không đủ hàng', `Chỉ còn ${initialQty} sản phẩm ${product.name} trong kho.`);
+        return prev; // Không thay đổi gì
       }
+      success = true;
       return [...prev, { ...product, quantity: Math.max(1, initialQty) }];
     });
+    return success;
   };
 
   const updateCartQuantity = (id: string, delta: number) => {
