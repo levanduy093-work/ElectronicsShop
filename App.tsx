@@ -1393,7 +1393,14 @@ function App(): React.JSX.Element {
       return;
     }
 
+    const prevWishlist = wishlist;
     const exists = wishlist.some(item => item.id === product.id);
+    // Optimistic UI: update immediately for snappy feedback
+    setWishlist(prev => {
+      const filtered = prev.filter(item => item.id !== product.id);
+      return exists ? filtered : [product, ...filtered];
+    });
+
     try {
       if (exists) {
         const updated = await removeFavorite(product.id, authTokensRef.current.accessToken);
@@ -1404,6 +1411,7 @@ function App(): React.JSX.Element {
       }
     } catch (error) {
       console.warn('App.tsx - Failed to toggle favorite', error);
+      setWishlist(prevWishlist); // rollback on failure
     }
   };
 
