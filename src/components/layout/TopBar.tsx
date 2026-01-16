@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../common/Icon';
 import { Theme, lightTheme, useTheme } from '../../theme';
@@ -37,9 +37,11 @@ export function TopBar({
     ]}>
       <View style={styles.content}>
         <View style={styles.leftSection}>
-          <View style={[styles.logoImage, { backgroundColor: resolvedTheme.primary + '20', justifyContent: 'center', alignItems: 'center' }]}>
-            <AppIcon name="flash" size={20} color={resolvedTheme.primary} />
-          </View>
+          <Image
+            source={require('../../assets/images/logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={[styles.title, { color: resolvedTheme.text }]}>{title}</Text>
         </View>
         
