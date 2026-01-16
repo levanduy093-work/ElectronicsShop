@@ -703,6 +703,44 @@ function App(): React.JSX.Element {
               : 'Thanh toán không thành công',
           );
           void loadOrders();
+          return;
+        }
+
+        const normalizedPath = parsed.pathname.replace(/^\/+/, '');
+        const segments = normalizedPath.split('/').filter(Boolean);
+        const isProductPath = host === 'product' || segments[0] === 'product';
+
+        if (isProductPath) {
+          let productId =
+            parsed.searchParams.get('id') ||
+            parsed.searchParams.get('product') ||
+            parsed.searchParams.get('productId') ||
+            (host === 'product' && segments.length ? segments[0] : null);
+
+          if (!productId && segments[0] === 'product' && segments[1]) {
+            productId = segments[1];
+          }
+
+          if (!productId) return;
+
+          const openProduct = (targetId: string, list?: Product[]) => {
+            const source = list || productsRef.current;
+            const found = source.find(p => `${p.id}` === `${targetId}`);
+            if (found) {
+              setSelectedProduct(found);
+              setCurrentTab('home');
+              setCurrentScreen('product-detail');
+            } else {
+              Alert.alert('Không tìm thấy sản phẩm', 'Liên kết sản phẩm không hợp lệ hoặc đã bị xóa.');
+            }
+          };
+
+          const existing = productsRef.current.find(p => `${p.id}` === `${productId}`);
+          if (existing) {
+            openProduct(productId);
+          } else {
+            void loadProducts().then(res => openProduct(productId, res));
+          }
         }
       } catch (error) {
         console.warn('App.tsx - Failed to handle deep link', error);

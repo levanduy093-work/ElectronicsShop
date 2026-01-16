@@ -33,6 +33,9 @@
             <category android:name="android.intent.category.BROWSABLE" />
             <data android:scheme="electronicsshop" android:host="payment" android:pathPrefix="/return" />
             <data android:scheme="electronicsshop" android:host="payment-return" />
+            <data android:scheme="electronicsshop" android:host="product" />
+            <data android:scheme="electronicsshop" android:host="product" android:pathPrefix="/" />
+            <data android:scheme="electronicsshop" android:host="*" android:pathPrefix="/product" />
         </intent-filter>
       </activity>
       <meta-data
