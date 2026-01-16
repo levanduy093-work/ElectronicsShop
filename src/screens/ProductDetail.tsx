@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Share, Dimensions, Modal, TextInput, Image } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Share, Dimensions, Modal, TextInput, Image, Animated, Easing } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Product } from '../lib/data';
@@ -44,10 +44,61 @@ export function ProductDetail({
   onNavigateToCart,
   cartItemCount = 0,
 }: ProductDetailProps) {
-  const { width } = Dimensions.get('window');
+  const { width, height } = Dimensions.get('window');
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'desc' | 'specs' | 'reviews' | 'datasheet'>('desc');
   const insets = useSafeAreaInsets();
+  
+  // Animation values
+  const animItem = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const animScale = useRef(new Animated.Value(0)).current;
+  const animOpacity = useRef(new Animated.Value(0)).current;
+
+  const runAddToCartAnimation = (callback: () => void) => {
+    // Reset values
+    animItem.setValue({ x: 0, y: 0 });
+    animScale.setValue(0.5);
+    animOpacity.setValue(1);
+
+    // Target position (Top Right - Cart Icon)
+    // Center is (0,0). Cart icon is at top right.
+    // X: Move to right edge - padding
+    // Y: Move to top edge + padding
+    const targetX = width / 2 - 40; 
+    const targetY = -(height / 2) + insets.top + 30;
+
+    Animated.parallel([
+      Animated.timing(animItem, {
+        toValue: { x: targetX, y: targetY },
+        duration: 800,
+        useNativeDriver: true,
+        easing: Easing.bezier(0.2, 0.8, 0.2, 1),
+      }),
+      Animated.sequence([
+        Animated.timing(animScale, {
+          toValue: 1, // Zoom in a bit first
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animScale, {
+          toValue: 0.2, // Then shrink to icon size
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.sequence([
+        Animated.delay(600),
+        Animated.timing(animOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start(() => {
+      callback();
+    });
+  };
+
   const [expandedReviews, setExpandedReviews] = useState<Record<string, boolean>>({});
   const reviewImageSize = (width - 16 * 2 - 8 * 3) / 4; // content padding 16, gap 8
   const { theme: ctxTheme, isDarkMode } = useTheme();
@@ -158,8 +209,11 @@ export function ProductDetail({
       showToast(`Chỉ còn ${availableStock} sản phẩm trong kho`, 'info');
       setQuantity(allowedQuantity);
     }
-    onAddToCart(product, allowedQuantity);
-    showToast('Đã thêm vào giỏ hàng', 'success');
+
+    runAddToCartAnimation(() => {
+      onAddToCart(product, allowedQuantity);
+      showToast('Đã thêm vào giỏ hàng', 'success');
+    });
   };
 
   const resetReviewForm = () => {
@@ -800,6 +854,28 @@ export function ProductDetail({
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Animation Flying Item */}
+      <Animated.View
+        style={[
+          styles.flyingItem,
+          {
+            opacity: animOpacity,
+            transform: [
+              { translateX: animItem.x },
+              { translateY: animItem.y },
+              { scale: animScale },
+            ],
+          },
+        ]}
+        pointerEvents="none"
+      >
+        <ImageWithFallback
+          source={{ uri: product.image }}
+          style={styles.flyingImage}
+          resizeMode="cover"
+        />
+      </Animated.View>
     </View>
   );
 }
@@ -1290,6 +1366,30 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  flyingItem: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    width: 80,
+    height: 80,
+    marginTop: -40,
+    marginLeft: -40,
+    zIndex: 9999,
+    borderRadius: 40,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  flyingImage: {
+    width: '100%',
+    height: '100%',
   },
   badgeContainer: {
     position: 'absolute',
