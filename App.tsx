@@ -4,7 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Linking, StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import { Alert, Animated, Easing, Linking, StatusBar, StyleSheet, useColorScheme, useWindowDimensions, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Home } from './src/screens/Home';
@@ -74,6 +74,32 @@ import { useToast } from './src/components/common/ToastProvider';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'settings' | 'support' | 'wishlist' | 'change-password';
+
+const SCREEN_DEPTH: Record<Screen, number> = {
+  home: 0,
+  catalog: 0,
+  ai: 0,
+  cart: 0,
+  profile: 0,
+  'product-detail': 1,
+  checkout: 2,
+  'order-history': 1,
+  'order-detail': 2,
+  auth: 1,
+  notifications: 1,
+  search: 1,
+  filter: 2,
+  'address-book': 1,
+  settings: 1,
+  support: 1,
+  wishlist: 1,
+  'change-password': 2,
+};
+
+const isTabScreen = (screen: Screen) =>
+  screen === 'home' || screen === 'catalog' || screen === 'ai' || screen === 'cart' || screen === 'profile';
+
+const getScreenDepth = (screen: Screen) => SCREEN_DEPTH[screen] ?? 1;
 
 interface FilterState {
   priceRange: [number, number];
@@ -481,6 +507,8 @@ function App(): React.JSX.Element {
   const [isDarkMode, setIsDarkMode] = useState(systemDarkMode);
   const [currentTab, setCurrentTab] = useState<NavTab>('home');
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  const [activeScreen, setActiveScreen] = useState<Screen>('home');
+  const [transitionState, setTransitionState] = useState<{ from: Screen; to: Screen } | null>(null);
   const [previousScreen, setPreviousScreen] = useState<Screen>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
@@ -516,6 +544,38 @@ function App(): React.JSX.Element {
   const [aiMessages, setAiMessages] = useState<ChatMessage[]>([]);
   const [userProfile, setUserProfile] = useState(DEFAULT_PROFILE);
   const [userId, setUserId] = useState<string | null>(null);
+  const transitionAnim = useRef(new Animated.Value(1)).current;
+  const { width: screenWidth } = useWindowDimensions();
+
+  // Animate transitions between screens for smoother iOS-like feel
+  useEffect(() => {
+    if (currentScreen === activeScreen) {
+      if (transitionState) {
+        setTransitionState(null);
+        transitionAnim.setValue(1);
+      }
+      return;
+    }
+
+    const animation = Animated.timing(transitionAnim, {
+      toValue: 1,
+      duration: 280,
+      easing: Easing.bezier(0.22, 1, 0.36, 1), // gentle ease-out, closer to native iOS push
+      useNativeDriver: true,
+    });
+
+    setTransitionState({ from: activeScreen, to: currentScreen });
+    transitionAnim.setValue(0);
+    animation.start(() => {
+      setActiveScreen(currentScreen);
+      setTransitionState(null);
+      transitionAnim.setValue(1);
+    });
+
+    return () => {
+      animation.stop();
+    };
+  }, [activeScreen, currentScreen, transitionAnim, transitionState]);
 
   const loadProducts = async () => {
     try {
@@ -1441,8 +1501,8 @@ function App(): React.JSX.Element {
     setCurrentScreen('filter');
   };
 
-  const renderContent = () => {
-    switch (currentScreen) {
+  const renderScreen = (screen: Screen) => {
+    switch (screen) {
       case 'home':
         return (
           <Home
@@ -1745,6 +1805,27 @@ function App(): React.JSX.Element {
 
   const isFullScreen = ['product-detail', 'checkout', 'order-history', 'order-detail', 'notifications', 'search', 'filter', 'address-book', 'settings', 'support', 'wishlist', 'change-password'].includes(currentScreen);
   const showTopBar = !isFullScreen && currentScreen !== 'ai' && currentScreen !== 'profile' && currentScreen !== 'auth';
+  const isTransitioning = Boolean(transitionState);
+  const baseScreen = transitionState?.from ?? activeScreen;
+  const transitionDirection: 'forward' | 'back' | 'fade' = transitionState
+    ? (() => {
+        const fromDepth = getScreenDepth(transitionState.from);
+        const toDepth = getScreenDepth(transitionState.to);
+        if (isTabScreen(transitionState.from) && isTabScreen(transitionState.to)) return 'fade';
+        if (toDepth === fromDepth) return 'forward';
+        return toDepth > fromDepth ? 'forward' : 'back';
+      })()
+    : 'forward';
+  const slideDistance = screenWidth || 1;
+  const incomingTranslate = transitionAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: transitionDirection === 'back' ? [-slideDistance * 0.35, 0] : [slideDistance, 0],
+    extrapolate: 'clamp',
+  });
+  const fadeIn = transitionAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1],
+  });
 
   return (
     <SafeAreaProvider>
@@ -1770,7 +1851,37 @@ function App(): React.JSX.Element {
           )}
 
           <View style={[styles.content, { backgroundColor: theme.background }]}>
-            {renderContent()}
+            <Animated.View
+              style={[
+                StyleSheet.absoluteFill,
+                { backgroundColor: theme.background },
+              ]}
+              pointerEvents={isTransitioning ? 'none' : 'auto'}
+            >
+              {renderScreen(baseScreen)}
+            </Animated.View>
+
+            {transitionState && (
+              <Animated.View
+                style={[
+                  StyleSheet.absoluteFill,
+                  { backgroundColor: theme.background },
+                  transitionDirection === 'fade'
+                    ? { opacity: fadeIn }
+                    : {
+                        transform: [{ translateX: incomingTranslate }],
+                        shadowColor: '#000',
+                        shadowOpacity: 0.04,
+                        shadowRadius: 6,
+                        shadowOffset: { width: 0, height: 3 },
+                        elevation: 0,
+                      },
+                ]}
+                pointerEvents="auto"
+              >
+                {renderScreen(transitionState.to)}
+              </Animated.View>
+            )}
           </View>
 
           {!isFullScreen && (
@@ -1795,6 +1906,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    overflow: 'hidden',
   },
 });
 

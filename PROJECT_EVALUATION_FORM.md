@@ -142,7 +142,7 @@ Animation đã được bổ sung ở nhiều nơi.
 |----------|------|-----|-----------|
 | Dark Mode | 5 | ☑ | ☐ |
 | Internationalization (i18n) | 5 | ☐ | ☑ |
-| Advanced Animations with Reanimated | 5 | ☐ | ☑ |
+| Advanced Animations | 5 | ☐ | ☑ |
 | Gesture Handling | 5 | ☐ | ☑ |
 | Advanced Filtering & Search | 5 | ☑ | ☐ |
 
@@ -192,13 +192,13 @@ Animation đã được bổ sung ở nhiều nơi.
 ### Điểm Yếu / Cần Cải Thiện
 ```
 1. i18n: Chưa hỗ trợ đa ngôn ngữ.
-2. Advanced Animations: Có thể cải thiện thêm với Reanimated cho mượt mà hơn (dù Animated API hiện tại đã ổn).
+2. Advanced Animations: Có thể cải thiện thêm cho mượt mà hơn (dù Animated API hiện tại đã ổn).
 ```
 
 ### Kiến Nghị
 ```
 1. Tích hợp thư viện i18next để hỗ trợ đa ngôn ngữ (Anh/Việt).
-2. Nghiên cứu React Native Reanimated cho các animation phức tạp hơn trong tương lai.
+2. Nghiên cứu thêm giải pháp animation nâng cao cho các motion phức tạp hơn trong tương lai.
 ```
 
 ---

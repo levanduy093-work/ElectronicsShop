@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Alert, FlatList, ViewToken } from 'react-native';
-import Animated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Alert, FlatList, ViewToken, Animated } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { HomeBanner, Product, Category } from '../types';
 import { CATEGORIES } from '../constants/data';
@@ -23,27 +22,25 @@ const BannerCard = ({
   item: HomeBanner;
   index: number;
   sliderWidth: number;
-  scrollX: Animated.SharedValue<number>;
+  scrollX: Animated.Value;
   onPress: () => void;
 }) => {
-  const animatedStyle = useAnimatedStyle(() => {
-    const inputRange = [
-      (index - 1) * sliderWidth,
-      index * sliderWidth,
-      (index + 1) * sliderWidth,
-    ];
-    
-    const scale = interpolate(
-      scrollX.value,
-      inputRange,
-      [0.9, 1, 0.9],
-      Extrapolation.CLAMP
-    );
-
-    return {
-      transform: [{ scale }],
-    };
-  });
+  const inputRange = [
+    (index - 1) * sliderWidth,
+    index * sliderWidth,
+    (index + 1) * sliderWidth,
+  ];
+  const animatedStyle = {
+    transform: [
+      {
+        scale: scrollX.interpolate({
+          inputRange,
+          outputRange: [0.9, 1, 0.9],
+          extrapolate: 'clamp',
+        }),
+      },
+    ],
+  };
 
   return (
     <TouchableOpacity
@@ -141,18 +138,17 @@ export function Home({
   const [visibleCount, setVisibleCount] = React.useState(10);
   const [currentBannerIndex, setCurrentBannerIndex] = React.useState(0);
   const bannerListRef = React.useRef<FlatList<HomeBanner>>(null);
-  const scrollX = useSharedValue(0);
+  const scrollX = React.useRef(new Animated.Value(0)).current;
   const viewabilityConfig = React.useRef({ viewAreaCoveragePercentThreshold: 60 }).current;
   const onViewableItemsChanged = React.useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (viewableItems?.length && typeof viewableItems[0].index === 'number') {
       setCurrentBannerIndex(viewableItems[0].index);
     }
   }).current;
-  const bannerScrollHandler = useAnimatedScrollHandler({
-    onScroll: (event) => {
-      scrollX.value = event.contentOffset.x;
-    },
-  });
+  const bannerScrollHandler = Animated.event(
+    [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+    { useNativeDriver: true }
+  );
 
   React.useEffect(() => {
     setVisibleCount(10);

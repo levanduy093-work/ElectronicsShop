@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Share, Dimensions, Modal, TextInput, Image, Animated, Easing, KeyboardAvoidingView, Platform, FlatList } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Share, useWindowDimensions, Modal, TextInput, Image, Animated, Easing, KeyboardAvoidingView, Platform, FlatList } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Product } from '../types';
@@ -49,7 +49,8 @@ export function ProductDetail({
   relatedProducts = [],
   onProductClick,
 }: ProductDetailProps) {
-  const { width, height } = Dimensions.get('window');
+  const { width, height } = useWindowDimensions();
+  const slideWidth = Math.max(width, 1);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'desc' | 'specs' | 'reviews' | 'datasheet'>('desc');
   const insets = useSafeAreaInsets();
@@ -111,7 +112,7 @@ export function ProductDetail({
   };
 
   const [expandedReviews, setExpandedReviews] = useState<Record<string, boolean>>({});
-  const reviewImageSize = (width - 16 * 2 - 8 * 3) / 4; 
+  const reviewImageSize = (slideWidth - 16 * 2 - 8 * 3) / 4; 
   const { theme: ctxTheme, isDarkMode } = useTheme();
   const theme = injectedTheme || ctxTheme;
   const { showToast } = useToast();
@@ -358,7 +359,8 @@ export function ProductDetail({
   };
 
   const handleGalleryScroll = (event: any) => {
-    const slide = Math.ceil(event.nativeEvent.contentOffset.x / event.nativeEvent.layoutMeasurement.width);
+    const { contentOffset, layoutMeasurement } = event.nativeEvent;
+    const slide = Math.round(contentOffset.x / layoutMeasurement.width);
     if (slide !== activeImageIndex) {
       setActiveImageIndex(slide);
     }
@@ -371,7 +373,11 @@ export function ProductDetail({
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="never"
+      >
         {/* Product Image Gallery */}
         <View style={styles.imageContainer}>
           <ScrollView
@@ -381,9 +387,13 @@ export function ProductDetail({
             onScroll={handleGalleryScroll}
             scrollEventThrottle={16}
             style={styles.galleryScroll}
+            contentInsetAdjustmentBehavior="never"
+            decelerationRate="fast"
+            snapToInterval={slideWidth}
+            snapToAlignment="center"
           >
             {productImages.map((img, index) => (
-              <View key={index} style={{ width: width, height: width, justifyContent: 'center', alignItems: 'center' }}>
+              <View key={index} style={{ width: slideWidth, height: slideWidth, justifyContent: 'center', alignItems: 'center' }}>
                 <ImageWithFallback
                   source={{ uri: img }}
                   style={styles.image}
