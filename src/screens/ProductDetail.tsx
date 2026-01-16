@@ -70,27 +70,27 @@ export function ProductDetail({
     Animated.parallel([
       Animated.timing(animItem, {
         toValue: { x: targetX, y: targetY },
-        duration: 800,
+        duration: 600, // Reduced from 800ms
         useNativeDriver: true,
         easing: Easing.bezier(0.2, 0.8, 0.2, 1),
       }),
       Animated.sequence([
         Animated.timing(animScale, {
-          toValue: 1, // Zoom in a bit first
-          duration: 200,
+          toValue: 1, 
+          duration: 150, // Reduced from 200ms
           useNativeDriver: true,
         }),
         Animated.timing(animScale, {
-          toValue: 0.2, // Then shrink to icon size
-          duration: 600,
+          toValue: 0.2, 
+          duration: 450, // Reduced from 600ms
           useNativeDriver: true,
         }),
       ]),
       Animated.sequence([
-        Animated.delay(600),
+        Animated.delay(450), // Reduced from 600ms
         Animated.timing(animOpacity, {
           toValue: 0,
-          duration: 200,
+          duration: 150, // Reduced from 200ms
           useNativeDriver: true,
         }),
       ]),
@@ -213,8 +213,9 @@ export function ProductDetail({
     const result = onAddToCart(product, allowedQuantity);
     if (result === false) return; // Nếu trả về false thì dừng
 
+    showToast('Đã thêm vào giỏ hàng', 'success'); // Show toast immediately for better UX
     runAddToCartAnimation(() => {
-      showToast('Đã thêm vào giỏ hàng', 'success');
+      // Animation completed
     });
   };
 
