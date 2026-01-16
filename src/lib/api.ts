@@ -646,6 +646,10 @@ export function confirmAiAction(confirmationId: string, token: string, quantity?
   );
 }
 
+export function updateFcmToken(token: string, authToken: string) {
+  return postJson('/users/me/fcm-token', { token }, { token: authToken });
+}
+
 export function addCartItem(productId: string, quantity: number, token: string) {
   return postJson('/carts/items', { productId, quantity }, { token });
 }

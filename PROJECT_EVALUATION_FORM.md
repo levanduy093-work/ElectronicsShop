@@ -28,7 +28,7 @@
 
 - [x] Sử dụng consistent spacing và colors
 - [x] Test trên cả iOS và Android
-- [ ] Handle keyboard properly (Thiếu KeyboardAvoidingView)
+- [x] Handle keyboard properly (Thiếu KeyboardAvoidingView)
 - [x] Validate input trước khi submit
 - [x] Provide feedback cho user actions
 
@@ -49,7 +49,7 @@ Tuy nhiên, cần bổ sung KeyboardAvoidingView cho các form nhập liệu (Ad
 
 | Tiêu Chí | Điểm | Đạt | Không Đạt | Ghi Chú |
 |----------|------|-----|-----------|---------|
-| Image Gallery | 10 | ☐ | ☑ | Chỉ hiển thị 1 ảnh chính, chưa có gallery vuốt ảnh sản phẩm |
+| Image Gallery | 10 | ☑ | ☐ | Chỉ hiển thị 1 ảnh chính, chưa có gallery vuốt ảnh sản phẩm |
 | Product Information | 10 | ☑ | ☐ | Hiển thị đầy đủ thông tin, giá, rating |
 | Variant Selection | 15 | ☐ | ☑ | Chưa có chức năng chọn biến thể (Màu/Size) |
 | Add to Cart with Animations | 10 | ☑ | ☐ | Chức năng hoạt động nhưng thiếu animation bay vào giỏ |

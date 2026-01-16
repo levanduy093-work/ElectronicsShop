@@ -60,6 +60,10 @@ import {
 } from './src/lib/api';
 import { socketService } from './src/lib/socket';
 
+// UNCOMMENT THIS AFTER INSTALLING @react-native-firebase/messaging AND ADDING CONFIG FILES
+import { requestUserPermission, getFcmToken, subscribeForegroundMessage, subscribeToFcmTokenRefresh } from './src/lib/fcm';
+import { useToast } from './src/components/common/ToastProvider';
+
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'settings' | 'support' | 'wishlist' | 'change-password';
 
@@ -274,6 +278,20 @@ const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS): 
   };
 };
 
+const ForegroundNotificationHandler = () => {
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    const unsubscribe = subscribeForegroundMessage(({ title, body }) => {
+      const text = title && body ? `${title}: ${body}` : title || body || 'Bạn có thông báo mới';
+      showToast(text, 'info', 3500);
+    });
+    return () => unsubscribe?.();
+  }, [showToast]);
+
+  return null;
+};
+
 const mapApiNotificationToUi = (item: ApiNotification): UiNotification => {
   const fallbackDate = item.deliveredAt || item.readAt || item.updatedAt || new Date().toISOString();
   const sendAt = item.sendAt || item.createdAt || fallbackDate;
@@ -382,6 +400,7 @@ function App(): React.JSX.Element {
   const [authTokens, setAuthTokens] = useState<{ accessToken: string; refreshToken: string } | null>(null);
   const [isRestoringAuth, setIsRestoringAuth] = useState(true);
   const authTokensRef = useRef<{ accessToken: string; refreshToken: string } | null>(null);
+  const fcmRefreshUnsubRef = useRef<(() => void) | null>(null);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [notifications, setNotifications] = useState<UiNotification[]>([]);
   const [isRefreshingNotifications, setIsRefreshingNotifications] = useState(false);
@@ -641,6 +660,32 @@ function App(): React.JSX.Element {
       onAuthFailure: handleAuthFailure,
     });
   }, [handleAuthFailure, syncAuthTokens]);
+
+  useEffect(() => {
+    if (!isLoggedIn || !authTokens?.accessToken) {
+      fcmRefreshUnsubRef.current?.();
+      fcmRefreshUnsubRef.current = null;
+      return;
+    }
+
+    let isMounted = true;
+
+    requestUserPermission()
+      .then(enabled => {
+        if (!enabled || !isMounted) return;
+        return getFcmToken(authTokens.accessToken);
+      })
+      .catch(err => console.warn('App.tsx - FCM permission/token error', err));
+
+    fcmRefreshUnsubRef.current?.();
+    fcmRefreshUnsubRef.current = subscribeToFcmTokenRefresh(authTokens.accessToken);
+
+    return () => {
+      isMounted = false;
+      fcmRefreshUnsubRef.current?.();
+      fcmRefreshUnsubRef.current = null;
+    };
+  }, [isLoggedIn, authTokens?.accessToken]);
 
   useEffect(() => {
     Linking.getInitialURL()
@@ -1542,6 +1587,7 @@ function App(): React.JSX.Element {
     <SafeAreaProvider>
       <ThemeProvider value={{ theme, isDarkMode }}>
         <ToastProvider>
+          <ForegroundNotificationHandler />
           <StatusBar 
             barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
             backgroundColor={theme.surface}
