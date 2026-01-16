@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, StatusBar, Platform, Modal, TextInput, Image, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AVAILABLE_VOUCHERS, Voucher } from '../lib/data';
@@ -55,6 +56,7 @@ export function Profile({
   theme,
   vouchers,
 }: ProfileProps) {
+  const { t: translate } = useTranslation();
   const [showVouchers, setShowVouchers] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingName, setEditingName] = useState(userProfile.name);
@@ -69,7 +71,7 @@ export function Profile({
   const userVouchers = vouchers && vouchers.length > 0 ? vouchers : AVAILABLE_VOUCHERS;
 
   const handleCopyVoucher = (code: string) => {
-    showToast(`Đã sao chép mã ${code}`, 'success');
+    showToast(translate('copy_voucher_success', { code }), 'success');
     setShowVouchers(false);
   };
 
@@ -84,7 +86,7 @@ export function Profile({
 
   const handleSaveProfile = () => {
     if (!editingName.trim()) {
-      showToast('Vui lòng nhập tên', 'error');
+      showToast(translate('enter_name_error'), 'error');
       return;
     }
     
@@ -99,14 +101,14 @@ export function Profile({
         if (onUpdateProfile) {
           const ok = await onUpdateProfile(updatedProfile);
           if (ok === false) {
-            showToast('Cập nhật thất bại. Vui lòng thử lại.', 'error');
+            showToast(translate('update_failed'), 'error');
             return;
           }
         }
         setShowEditModal(false);
-        showToast('Đã cập nhật thông tin cá nhân', 'success');
+        showToast(translate('update_profile_success'), 'success');
       } catch (err: any) {
-        showToast(err?.message || 'Cập nhật thất bại. Vui lòng thử lại.', 'error');
+        showToast(err?.message || translate('update_failed'), 'error');
       }
     };
 
@@ -141,7 +143,7 @@ export function Profile({
       }
       
       if (response.errorCode) {
-        showToast(`Không thể chọn ảnh: ${response.errorMessage || 'Unknown error'}`, 'error');
+        showToast(translate('image_picker_error', { error: response.errorMessage || 'Unknown error' }), 'error');
         return;
       }
 
@@ -243,7 +245,7 @@ export function Profile({
           activeOpacity={0.7}
         >
           <Text style={[styles.statValue, { color: t.text }]}>{orderCount}</Text>
-          <Text style={[styles.statLabel, { color: t.muted }]}>Đơn hàng</Text>
+          <Text style={[styles.statLabel, { color: t.muted }]}>{translate('orders')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setShowVouchers(true)}
@@ -251,7 +253,7 @@ export function Profile({
           activeOpacity={0.7}
         >
           <Text style={[styles.statValue, { color: t.text }]}>{userVouchers.length}</Text>
-          <Text style={[styles.statLabel, { color: t.muted }]}>Voucher</Text>
+          <Text style={[styles.statLabel, { color: t.muted }]}>{translate('voucher')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -260,21 +262,21 @@ export function Profile({
         <View style={[styles.menuGroup, { backgroundColor: t.card, shadowOpacity: t === lightTheme ? 0.05 : 0, borderColor: t.border }]}>
           <MenuItem
             icon="package"
-            label="Đơn hàng của tôi"
+            label={translate('my_orders')}
             onPress={onNavigateToOrders}
             theme={t}
           />
           <View style={[styles.menuDivider, { backgroundColor: t.border }]} />
           <MenuItem
             icon="heart"
-            label="Sản phẩm yêu thích"
+            label={translate('favorite_products')}
             onPress={onNavigateToWishlist}
             theme={t}
           />
           <View style={[styles.menuDivider, { backgroundColor: t.border }]} />
           <MenuItem
             icon="map-pin"
-            label="Sổ địa chỉ"
+            label={translate('address_book')}
             onPress={onNavigateToAddress}
             theme={t}
           />
@@ -283,14 +285,14 @@ export function Profile({
         <View style={[styles.menuGroup, { backgroundColor: t.card, shadowOpacity: t === lightTheme ? 0.05 : 0, borderColor: t.border }]}>
           <MenuItem
             icon="settings"
-            label="Cài đặt"
+            label={translate('settings')}
             onPress={onNavigateToSettings}
             theme={t}
           />
           <View style={[styles.menuDivider, { backgroundColor: t.border }]} />
           <MenuItem
             icon="help-circle"
-            label="Trung tâm hỗ trợ"
+            label={translate('support_center')}
             onPress={onNavigateToSupport}
             theme={t}
           />
@@ -302,7 +304,7 @@ export function Profile({
           activeOpacity={0.7}
         >
           <AppIcon name="log-out" size={18} color="#EF4444" />
-          <Text style={[styles.logoutText, { color: '#EF4444' }]}>Đăng xuất</Text>
+          <Text style={[styles.logoutText, { color: '#EF4444' }]}>{translate('logout')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -325,7 +327,7 @@ export function Profile({
             />
             <View style={[styles.bottomSheetContent, { backgroundColor: t.card, paddingBottom: Math.max(insets.bottom, 16) }]}>
               <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: t.text }]}>Kho Voucher của tôi</Text>
+                <Text style={[styles.modalTitle, { color: t.text }]}>{translate('my_voucher_warehouse')}</Text>
                 <TouchableOpacity
                   onPress={() => setShowVouchers(false)}
                   activeOpacity={0.7}
@@ -351,7 +353,7 @@ export function Profile({
                         <Text style={[styles.voucherDescription, { color: t.muted }]}>{voucher.description}</Text>
                         {expireDate && (
                           <Text style={[styles.voucherExpiry, { color: t.primary }]}>
-                            HSD: {expireDate.toLocaleDateString('vi-VN')}
+                            {translate('expiry_date', { date: expireDate.toLocaleDateString('vi-VN') })}
                           </Text>
                         )}
                       </View>
@@ -360,7 +362,7 @@ export function Profile({
                         style={[styles.voucherCopyButton, { backgroundColor: t.primary + '22' }]}
                         activeOpacity={0.7}
                       >
-                        <Text style={[styles.voucherCopyText, { color: t.primary }]}>Sao chép</Text>
+                        <Text style={[styles.voucherCopyText, { color: t.primary }]}>{translate('copy')}</Text>
                       </TouchableOpacity>
                     </View>
                     );
@@ -368,8 +370,8 @@ export function Profile({
                 ) : (
                   <View style={styles.emptyVoucherContainer}>
                     <AppIcon name="ticket-outline" size={48} color={t.muted} />
-                    <Text style={[styles.emptyVoucherText, { color: t.text }]}>Không có mã giảm giá nào</Text>
-                    <Text style={[styles.emptyVoucherSubtext, { color: t.muted }]}>Vui lòng kiểm tra lại sau</Text>
+                    <Text style={[styles.emptyVoucherText, { color: t.text }]}>{translate('no_voucher')}</Text>
+                    <Text style={[styles.emptyVoucherSubtext, { color: t.muted }]}>{translate('check_later')}</Text>
                   </View>
                 )}
               </ScrollView>
@@ -391,7 +393,7 @@ export function Profile({
         >
           <View style={[styles.modalContent, { backgroundColor: t.card, borderColor: t.border }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: t.text }]}>Chỉnh sửa thông tin</Text>
+              <Text style={[styles.modalTitle, { color: t.text }]}>{translate('edit_profile')}</Text>
               <TouchableOpacity
                 onPress={handleCancelEdit}
                 style={styles.closeButton}
@@ -403,18 +405,18 @@ export function Profile({
 
             <ScrollView style={styles.modalBody}>
               <View style={styles.inputGroup}>
-                <Text style={[styles.inputLabel, { color: t.text }]}>Tên</Text>
+                <Text style={[styles.inputLabel, { color: t.text }]}>{translate('name')}</Text>
                 <TextInput
                   value={editingName}
                   onChangeText={setEditingName}
                   style={[styles.input, { backgroundColor: t.surface, borderColor: t.border, color: t.text }]}
-                  placeholder="Nhập tên của bạn"
+                  placeholder={translate('enter_name_placeholder')}
                   placeholderTextColor={t.muted}
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={[styles.inputLabel, { color: t.text }]}>Ảnh đại diện</Text>
+                <Text style={[styles.inputLabel, { color: t.text }]}>{translate('avatar')}</Text>
                 {!showUrlInput ? (
                   <>
                     <View style={styles.avatarPreviewContainer}>
@@ -431,7 +433,7 @@ export function Profile({
                         activeOpacity={0.8}
                       >
                         <AppIcon name="camera" size={18} color="#FFFFFF" />
-                        <Text style={styles.pickImageText}>Chọn ảnh</Text>
+                        <Text style={styles.pickImageText}>{translate('pick_image')}</Text>
                       </TouchableOpacity>
                     </View>
                     {!launchImageLibrary && (
@@ -440,7 +442,7 @@ export function Profile({
                         style={styles.urlInputToggle}
                         activeOpacity={0.7}
                       >
-                        <Text style={[styles.urlInputToggleText, { color: t.primary }]}>Hoặc nhập URL ảnh</Text>
+                        <Text style={[styles.urlInputToggleText, { color: t.primary }]}>{translate('or_enter_url')}</Text>
                       </TouchableOpacity>
                     )}
                     {editingAvatar && (
@@ -449,7 +451,7 @@ export function Profile({
                         style={styles.removeImageButton}
                         activeOpacity={0.7}
                       >
-                        <Text style={[styles.removeImageText, { color: t.muted }]}>Xóa ảnh</Text>
+                        <Text style={[styles.removeImageText, { color: t.muted }]}>{translate('remove_image')}</Text>
                       </TouchableOpacity>
                     )}
                   </>
@@ -459,7 +461,7 @@ export function Profile({
                       value={avatarUrl}
                       onChangeText={setAvatarUrl}
                       style={[styles.input, { backgroundColor: t.surface, borderColor: t.border, color: t.text }]}
-                      placeholder="Nhập URL ảnh"
+                      placeholder={translate('or_enter_url')}
                       placeholderTextColor={t.muted}
                       autoCapitalize="none"
                       keyboardType="url"
@@ -473,14 +475,14 @@ export function Profile({
                         style={[styles.urlActionButton, { borderColor: t.border }]}
                         activeOpacity={0.7}
                       >
-                        <Text style={[styles.urlActionText, { color: t.muted }]}>Hủy</Text>
+                        <Text style={[styles.urlActionText, { color: t.muted }]}>{translate('cancel')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={handleSaveUrl}
                         style={[styles.urlActionButton, { backgroundColor: t.primary }]}
                         activeOpacity={0.8}
                       >
-                        <Text style={[styles.urlActionText, { color: '#FFFFFF' }]}>Lưu</Text>
+                        <Text style={[styles.urlActionText, { color: '#FFFFFF' }]}>{translate('save')}</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -493,14 +495,14 @@ export function Profile({
                   style={[styles.modalButton, styles.cancelButton, { borderColor: t.border }]}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.modalButtonText, { color: t.muted }]}>Hủy</Text>
+                  <Text style={[styles.modalButtonText, { color: t.muted }]}>{translate('cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleSaveProfile}
                   style={[styles.modalButton, styles.saveButton, { backgroundColor: t.primary }]}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Lưu</Text>
+                  <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>{translate('save')}</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>

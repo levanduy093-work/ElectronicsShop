@@ -138,6 +138,28 @@ export type UploadImageFile = {
   type?: string;
 };
 
+export type ApiCartItem = {
+  productId: string;
+  name?: string;
+  category?: string;
+  image?: string;
+  price: number;
+  quantity: number;
+};
+
+export type ApiCart = {
+  _id: string;
+  userId?: string;
+  items: ApiCartItem[];
+  voucher?: string;
+  totalItem?: number;
+  subTotal?: number;
+  shippingFee?: number;
+  totalPrice?: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type AiProductCard = {
   productId: string;
   name: string;
@@ -652,4 +674,24 @@ export function updateFcmToken(token: string, authToken: string) {
 
 export function addCartItem(productId: string, quantity: number, token: string) {
   return postJson('/carts/items', { productId, quantity }, { token });
+}
+
+export function fetchMyCart(token: string) {
+  return getJson<ApiCart[]>('/carts', { token });
+}
+
+export function upsertCart(
+  items: ApiCartItem[],
+  token: string,
+  cartId?: string | null,
+  extra?: Partial<Pick<ApiCart, 'subTotal' | 'totalItem' | 'shippingFee' | 'totalPrice' | 'voucher'>>,
+) {
+  const payload = {
+    items,
+    ...extra,
+  };
+  if (cartId) {
+    return patchJson<ApiCart>(`/carts/${cartId}`, payload, { token });
+  }
+  return postJson<ApiCart>('/carts', payload, { token });
 }

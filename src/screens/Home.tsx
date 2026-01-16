@@ -1,11 +1,114 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Alert, FlatList, ViewToken } from 'react-native';
-import { CATEGORIES, HomeBanner, Product, extractCategoriesFromProducts } from '../lib/data';
+import Animated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
+import { CATEGORIES, HomeBanner, Product, extractCategoriesFromProducts, Category } from '../lib/data';
 import { ProductCard } from '../components/ui/ProductCard';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
 import { socketService } from '../lib/socket';
+
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
+
+const BannerCard = ({
+  item,
+  index,
+  sliderWidth,
+  scrollX,
+  onPress
+}: {
+  item: HomeBanner;
+  index: number;
+  sliderWidth: number;
+  scrollX: Animated.SharedValue<number>;
+  onPress: () => void;
+}) => {
+  const animatedStyle = useAnimatedStyle(() => {
+    const inputRange = [
+      (index - 1) * sliderWidth,
+      index * sliderWidth,
+      (index + 1) * sliderWidth,
+    ];
+    
+    const scale = interpolate(
+      scrollX.value,
+      inputRange,
+      [0.9, 1, 0.9],
+      Extrapolation.CLAMP
+    );
+
+    return {
+      transform: [{ scale }],
+    };
+  });
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={onPress}
+      style={{ width: sliderWidth, paddingHorizontal: 4 }}
+    >
+      <Animated.View style={[styles.bannerContainer, animatedStyle]}>
+        <ImageWithFallback
+          source={{ uri: item.imageUrl }}
+          style={styles.bannerImage}
+          resizeMode="cover"
+        />
+        <View style={styles.bannerOverlay}>
+          <Text style={styles.bannerBadge}>New Arrival</Text>
+          <Text style={styles.bannerTitle} numberOfLines={2}>
+            {item.title}
+          </Text>
+          {item.subtitle && (
+            <Text style={styles.bannerSubtitle} numberOfLines={1}>
+              {item.subtitle}
+            </Text>
+          )}
+          <View style={styles.bannerButton}>
+            <Text style={styles.bannerButtonText}>
+              {item.ctaLabel || 'Shop Now'}
+            </Text>
+          </View>
+        </View>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
+const CategoryPill = ({
+  item,
+  index,
+  resolvedTheme,
+  onPress
+}: {
+  item: Category;
+  index: number;
+  resolvedTheme: Theme;
+  onPress: () => void;
+}) => {
+  return (
+    <TouchableOpacity
+      style={styles.categoryItem}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.categoryIcon, { backgroundColor: resolvedTheme.card }]}>
+        <AppIcon
+          name={item.icon || 'package-variant'}
+          size={24}
+          color={resolvedTheme.primary}
+        />
+      </View>
+      <Text
+        style={[styles.categoryName, { color: resolvedTheme.text }]}
+        numberOfLines={2}
+      >
+        {item.name}
+      </Text>
+    </TouchableOpacity>
+  );
+};
 
 interface HomeProps {
   onNavigate: (tab: string) => void;
@@ -30,17 +133,24 @@ export function Home({
   onSelectCategory,
   onRefreshProducts,
 }: HomeProps) {
+  const { t } = useTranslation();
   const { theme: ctxTheme } = useTheme();
   const resolvedTheme = theme || ctxTheme || lightTheme;
   const [visibleCount, setVisibleCount] = React.useState(10);
   const [currentBannerIndex, setCurrentBannerIndex] = React.useState(0);
   const bannerListRef = React.useRef<FlatList<HomeBanner>>(null);
+  const scrollX = useSharedValue(0);
   const viewabilityConfig = React.useRef({ viewAreaCoveragePercentThreshold: 60 }).current;
   const onViewableItemsChanged = React.useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (viewableItems?.length && typeof viewableItems[0].index === 'number') {
       setCurrentBannerIndex(viewableItems[0].index);
     }
   }).current;
+  const bannerScrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollX.value = event.contentOffset.x;
+    },
+  });
 
   React.useEffect(() => {
     setVisibleCount(10);
@@ -55,9 +165,9 @@ export function Home({
         {
           id: 'fallback-banner',
           title: 'Raspberry Pi 5',
-          subtitle: 'Sức mạnh vượt trội cho dự án IoT của bạn',
+          subtitle: t('banner_fallback_subtitle'),
           imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=1000',
-          ctaLabel: 'Khám phá ngay',
+          ctaLabel: t('explore_now'),
           ctaProductId: raspberryProduct?.id || products[0]?.id,
         },
       ];
@@ -101,6 +211,25 @@ export function Home({
     };
   }, []);
 
+  const handleBannerPressInternal = (item: HomeBanner) => {
+    if (onBannerPress) {
+      onBannerPress(item);
+      return;
+    }
+    if (item.ctaProductId && onProductClick) {
+      const targetProduct = products.find(p => p.id === item.ctaProductId);
+      if (targetProduct) {
+        onProductClick(targetProduct);
+        return;
+      }
+    }
+    if (raspberryProduct) {
+      onProductClick?.(raspberryProduct);
+    } else {
+      Alert.alert(t('product_not_found'), t('try_again'));
+    }
+  };
+
   // Extract categories from products if CATEGORIES is empty
   const displayCategories = CATEGORIES.length > 0 ? CATEGORIES : extractCategoriesFromProducts(products);
 
@@ -112,7 +241,7 @@ export function Home({
     >
       {/* Banner Slider */}
       <View style={styles.bannerSection}>
-        <FlatList
+        <AnimatedFlatList
           ref={bannerListRef}
           data={sliderBanners}
           keyExtractor={(item) => item.id}
@@ -127,43 +256,16 @@ export function Home({
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
           contentContainerStyle={styles.bannerListContent}
-          renderItem={({ item }) => (
-            <View style={[styles.bannerContainer, { width: sliderWidth }]}>
-              <ImageWithFallback
-                source={{ uri: item.imageUrl }}
-                style={styles.bannerImage}
-                resizeMode="cover"
-              />
-              <View style={styles.bannerOverlay}>
-                <Text style={styles.bannerBadge}>New Arrival</Text>
-                <Text style={styles.bannerTitle}>{item.title}</Text>
-                {item.subtitle ? <Text style={styles.bannerSubtitle}>{item.subtitle}</Text> : null}
-                <TouchableOpacity
-                  onPress={() => {
-                    if (onBannerPress) {
-                      onBannerPress(item);
-                      return;
-                    }
-                    if (item.ctaProductId && onProductClick) {
-                      const targetProduct = products.find(p => p.id === item.ctaProductId);
-                      if (targetProduct) {
-                        onProductClick(targetProduct);
-                        return;
-                      }
-                    }
-                    if (raspberryProduct) {
-                      onProductClick?.(raspberryProduct);
-                    } else {
-                      Alert.alert('Không tìm thấy sản phẩm', 'Vui lòng thử lại sau.');
-                    }
-                  }}
-                  style={styles.bannerButton}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.bannerButtonText}>{item.ctaLabel || 'Khám phá ngay'}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+          scrollEventThrottle={16}
+          onScroll={bannerScrollHandler}
+          renderItem={({ item, index }) => (
+            <BannerCard
+              item={item}
+              index={index}
+              sliderWidth={sliderWidth}
+              scrollX={scrollX}
+              onPress={() => handleBannerPressInternal(item)}
+            />
           )}
         />
         {sliderBanners.length > 1 && (
@@ -184,13 +286,13 @@ export function Home({
       {/* Categories Shortcut */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: resolvedTheme.text }]}>Danh mục</Text>
+          <Text style={[styles.sectionTitle, { color: resolvedTheme.text }]}>{t('categories')}</Text>
           <TouchableOpacity
             onPress={() => onNavigate('catalog')}
             style={styles.seeAllButton}
             activeOpacity={0.7}
           >
-            <Text style={[styles.seeAllText, { color: resolvedTheme.primary }]}>Xem tất cả</Text>
+            <Text style={[styles.seeAllText, { color: resolvedTheme.primary }]}>{t('see_all')}</Text>
             <AppIcon name="chevron-right" size={16} color={resolvedTheme.primary} />
           </TouchableOpacity>
         </View>
@@ -200,26 +302,22 @@ export function Home({
           contentContainerStyle={styles.categoriesContainer}
         >
           {displayCategories.length > 0 ? (
-            displayCategories.map((cat) => (
-              <TouchableOpacity
+            displayCategories.map((cat, index) => (
+              <CategoryPill
                 key={cat.id}
+                item={cat}
+                index={index}
+                resolvedTheme={resolvedTheme}
                 onPress={() => {
                   onSelectCategory?.(cat.name);
                   onNavigate('catalog');
                 }}
-                style={styles.categoryItem}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.categoryIcon, { backgroundColor: resolvedTheme.surface }]}>
-                  <AppIcon name={cat.icon} size={28} color={resolvedTheme.muted} />
-                </View>
-                <Text style={[styles.categoryName, { color: resolvedTheme.text }]}>{cat.name}</Text>
-              </TouchableOpacity>
+              />
             ))
           ) : (
             <View style={styles.emptyCategoriesContainer}>
               <Text style={[styles.emptyCategoriesText, { color: resolvedTheme.muted }]}>
-                Chưa có danh mục nào
+                {t('no_categories')}
               </Text>
             </View>
           )}
@@ -239,12 +337,12 @@ export function Home({
                 <Text style={styles.aiBadgeText}>AI Engineer</Text>
               </View>
             </View>
-            <Text style={styles.aiTitle}>Gặp khó khăn với sơ đồ mạch?</Text>
+            <Text style={styles.aiTitle}>{t('ai_card_title')}</Text>
             <Text style={styles.aiDescription}>
-              Tải lên hình ảnh hoặc PDF, AI sẽ giúp bạn tạo BOM list và tư vấn linh kiện phù hợp.
+              {t('ai_card_desc')}
             </Text>
             <View style={styles.aiButton}>
-              <Text style={styles.aiButtonText}>Chat với AI ngay</Text>
+              <Text style={styles.aiButtonText}>{t('chat_with_ai')}</Text>
             </View>
           </View>
         </View>
@@ -252,7 +350,7 @@ export function Home({
 
       {/* Featured Products */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: resolvedTheme.text }]}>Sản phẩm nổi bật</Text>
+        <Text style={[styles.sectionTitle, { color: resolvedTheme.text }]}>{t('featured_products')}</Text>
         <View style={styles.productsGrid}>
           {featuredProducts.map((p) => (
             <ProductCard
@@ -270,7 +368,7 @@ export function Home({
             activeOpacity={0.8}
           >
             <Text style={[styles.loadMoreText, { color: resolvedTheme.primary }]}>
-              Xem thêm sản phẩm ({Math.max(products.length - visibleCount, 0)})
+              {t('view_more_products', { count: Math.max(products.length - visibleCount, 0) })}
             </Text>
             <AppIcon name="chevron-down" size={16} color={resolvedTheme.primary} />
           </TouchableOpacity>

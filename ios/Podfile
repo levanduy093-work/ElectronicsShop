@@ -15,7 +15,6 @@ if linkage != nil
 end
 
 target 'ElectronicsShop' do
-  use_modular_headers!
   config = use_native_modules!
 
   use_react_native!(
@@ -23,6 +22,10 @@ target 'ElectronicsShop' do
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
+
+  # Ensure Swift Firebase deps expose module maps when building static libs
+  pod 'GoogleUtilities', :modular_headers => true
+  pod 'PromisesObjC', :modular_headers => true
 
   post_install do |installer|
     react_native_post_install(

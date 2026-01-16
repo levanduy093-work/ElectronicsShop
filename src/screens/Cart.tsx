@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { CartItem, AVAILABLE_VOUCHERS, Voucher } from '../lib/data';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
@@ -18,6 +19,7 @@ interface CartProps {
 }
 
 export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExplore, theme, vouchers }: CartProps) {
+  const { t: translate } = useTranslation();
   const { theme: ctxTheme } = useTheme();
   const { showToast } = useToast();
   const t = theme || ctxTheme || lightTheme;
@@ -56,12 +58,12 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
         setAppliedVoucher(voucher);
         setVoucherCode(voucher.code);
         setShowVoucherList(false);
-        showToast('Áp dụng mã giảm giá thành công', 'success');
+        showToast(translate('voucher_success'), 'success');
       } else {
-        showToast(`Đơn hàng cần tối thiểu ${voucher.minTotal.toLocaleString('vi-VN')}đ để sử dụng mã này.`, 'error');
+        showToast(translate('voucher_min_order', { amount: voucher.minTotal.toLocaleString('vi-VN') }), 'error');
       }
     } else {
-      showToast('Mã giảm giá không hợp lệ', 'error');
+      showToast(translate('voucher_invalid'), 'error');
     }
   };
 
@@ -71,14 +73,14 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
         <View style={[styles.emptyIcon, { backgroundColor: t.surface }]}>
           <AppIcon name="shopping-cart" size={32} color={t.muted} />
         </View>
-        <Text style={[styles.emptyTitle, { color: t.text }]}>Giỏ hàng trống</Text>
-        <Text style={[styles.emptyText, { color: t.muted }]}>Bạn chưa thêm sản phẩm nào vào giỏ hàng.</Text>
+        <Text style={[styles.emptyTitle, { color: t.text }]}>{translate('cart_empty_title')}</Text>
+        <Text style={[styles.emptyText, { color: t.muted }]}>{translate('cart_empty_text')}</Text>
         <TouchableOpacity
           onPress={onExplore}
           style={[styles.exploreButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
           activeOpacity={0.8}
         >
-          <Text style={styles.exploreButtonText}>Khám phá sản phẩm</Text>
+          <Text style={styles.exploreButtonText}>{translate('explore_products')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -91,7 +93,7 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
         contentContainerStyle={[styles.scrollContent, { backgroundColor: t.background }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.title, { color: t.text }]}>Giỏ hàng ({items.length})</Text>
+        <Text style={[styles.title, { color: t.text }]}>{translate('cart_title_count', { count: items.length })}</Text>
         
         <View style={styles.itemsContainer}>
           {items.map((item, index) => (
@@ -154,17 +156,17 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
               !voucherCode && styles.voucherPlaceholder,
               { color: voucherCode ? t.text : t.muted }
             ]}>
-              {voucherCode || 'Chọn hoặc nhập mã giảm giá'}
+              {voucherCode || translate('voucher_placeholder')}
             </Text>
             <AppIcon name="chevron-right" size={16} color={t.muted} />
           </TouchableOpacity>
 
           <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: t.muted }]}>Tạm tính</Text>
+            <Text style={[styles.summaryLabel, { color: t.muted }]}>{translate('subtotal')}</Text>
             <Text style={[styles.summaryValue, { color: t.text }]}>{formatPrice(subtotal)}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: t.muted }]}>Phí vận chuyển</Text>
+            <Text style={[styles.summaryLabel, { color: t.muted }]}>{translate('shipping_fee')}</Text>
             <Text style={[styles.summaryValue, { color: t.text }]}>{formatPrice(shipping)}</Text>
           </View>
           
@@ -172,14 +174,14 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
             <View style={styles.summaryRow}>
             <View style={styles.discountRow}>
               <AppIcon name="ticket" size={14} color="#10B981" />
-              <Text style={[styles.discountLabel, { color: t.text }]}>Voucher giảm giá</Text>
+              <Text style={[styles.discountLabel, { color: t.text }]}>{translate('voucher_discount')}</Text>
             </View>
             <Text style={[styles.discountValue, { color: t.text }]}>-{formatPrice(discountAmount)}</Text>
           </View>
           )}
 
           <View style={styles.totalRow}>
-            <Text style={[styles.totalLabel, { color: t.text }]}>Tổng cộng</Text>
+            <Text style={[styles.totalLabel, { color: t.text }]}>{translate('total')}</Text>
             <Text style={[styles.totalValue, { color: t.primary }]}>{formatPrice(total)}</Text>
           </View>
           
@@ -188,7 +190,7 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
             style={[styles.checkoutButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
             activeOpacity={0.8}
           >
-            <Text style={styles.checkoutButtonText}>Thanh toán ngay</Text>
+            <Text style={styles.checkoutButtonText}>{translate('checkout_now')}</Text>
             <AppIcon name="arrow-right" size={18} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
@@ -204,7 +206,7 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
           />
           <View style={[styles.modalContent, { backgroundColor: t.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: t.text }]}>Chọn mã giảm giá</Text>
+              <Text style={[styles.modalTitle, { color: t.text }]}>{translate('select_voucher')}</Text>
               <TouchableOpacity
                 onPress={() => setShowVoucherList(false)}
                 activeOpacity={0.7}
@@ -222,13 +224,13 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
                   const expireDate = voucher.expire ? new Date(voucher.expire) : null;
                   const voucherLabel =
                     voucherType === 'shipping'
-                      ? 'Giảm phí ship'
+                      ? translate('discount_shipping')
                       : voucherType === 'percentage'
-                        ? `Giảm ${voucher.discountRate ?? 0}%`
-                        : 'Giảm giá đơn hàng';
+                        ? translate('discount_percent', { rate: voucher.discountRate ?? 0 })
+                        : translate('discount_order');
                   const voucherCap =
                     voucherType === 'percentage' && voucher.maxDiscountPrice
-                      ? `(tối đa ${voucher.maxDiscountPrice.toLocaleString('vi-VN')}đ)`
+                      ? translate('max_discount', { amount: voucher.maxDiscountPrice.toLocaleString('vi-VN') })
                       : '';
 
                   return (
@@ -251,16 +253,16 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
                       </View>
                       <Text style={[styles.voucherDescription, { color: t.muted }]}>{voucher.description}</Text>
                       <Text style={[styles.voucherMeta, { color: t.muted }]}>
-                        {voucherLabel} {voucherCap ? voucherCap : ''} · ĐH tối thiểu {voucher.minTotal.toLocaleString('vi-VN')}đ
+                        {voucherLabel} {voucherCap ? voucherCap : ''} · {translate('min_order', { amount: voucher.minTotal.toLocaleString('vi-VN') })}
                       </Text>
                       {expireDate && (
                         <Text style={[styles.voucherMeta, { color: t.muted }]}>
-                          HSD: {expireDate.toLocaleDateString('vi-VN')}
+                          {translate('expiry_date', { date: expireDate.toLocaleDateString('vi-VN') })}
                         </Text>
                       )}
                       {!isEligible && (
                         <Text style={[styles.voucherWarning, { color: '#FCA5A5' }]}>
-                            Mua thêm {(voucher.minTotal - subtotal).toLocaleString('vi-VN')}đ để sử dụng
+                            {translate('buy_more', { amount: (voucher.minTotal - subtotal).toLocaleString('vi-VN') })}
                           </Text>
                         )}
                       </View>
@@ -279,7 +281,7 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
                             { color: accentBorder },
                             isSelected && styles.voucherApplyTextActive
                           ]}>
-                            {isSelected ? 'Đang dùng' : 'Dùng ngay'}
+                            {isSelected ? translate('using') : translate('use_now')}
                           </Text>
                         </TouchableOpacity>
                       )}
@@ -289,8 +291,8 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
               ) : (
                 <View style={styles.emptyVoucherContainer}>
                   <AppIcon name="ticket-outline" size={48} color={t.muted} />
-                  <Text style={[styles.emptyVoucherText, { color: t.text }]}>Không có mã giảm giá nào</Text>
-                  <Text style={[styles.emptyVoucherSubtext, { color: t.muted }]}>Vui lòng kiểm tra lại sau</Text>
+                  <Text style={[styles.emptyVoucherText, { color: t.text }]}>{translate('no_voucher')}</Text>
+                  <Text style={[styles.emptyVoucherSubtext, { color: t.muted }]}>{translate('check_later')}</Text>
                 </View>
               )}
             </ScrollView>

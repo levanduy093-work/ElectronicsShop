@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
 import { useToast } from '../components/common/ToastProvider';
@@ -13,6 +14,7 @@ interface AuthProps {
 }
 
 export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
+  const { t: translate } = useTranslation();
   const { theme: ctxTheme } = useTheme();
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
@@ -43,16 +45,16 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
 
   const handleSubmit = async () => {
     if (!email || !password) {
-      showToast('Vui lòng điền đầy đủ thông tin', 'error');
+      showToast(translate('fill_all_info'), 'error');
       return;
     }
     if (password.length < 8) {
-      showToast('Mật khẩu phải có ít nhất 8 ký tự', 'error');
+      showToast(translate('password_min_length'), 'error');
       return;
     }
     if (isRegister) {
       if (!name) {
-        showToast('Vui lòng nhập họ và tên', 'error');
+        showToast(translate('enter_name'), 'error');
         return;
       }
       setIsSubmitting(true);
@@ -65,9 +67,9 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
         });
         setVerificationCode(['', '', '', '', '', '']);
         setIsVerifyingEmail(true);
-        showToast('Đã gửi mã xác nhận đến email của bạn', 'success');
+        showToast(translate('otp_sent'), 'success');
       } catch (error: any) {
-        showToast(error?.message || 'Không thể gửi mã xác nhận', 'error');
+        showToast(error?.message || translate('otp_send_error'), 'error');
       } finally {
         setIsSubmitting(false);
       }
@@ -75,10 +77,10 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
       setIsSubmitting(true);
       try {
         const result = await login(email.trim().toLowerCase(), password);
-        showToast('Đăng nhập thành công', 'success');
+        showToast(translate('login_success'), 'success');
         onLoginSuccess(result);
       } catch (error: any) {
-        showToast(error?.message || 'Đăng nhập thất bại', 'error');
+        showToast(error?.message || translate('login_failed'), 'error');
       } finally {
         setIsSubmitting(false);
       }
@@ -117,12 +119,12 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
   const handleVerifyCode = async () => {
     const code = verificationCode.join('');
     if (code.length !== 6) {
-      showToast('Vui lòng nhập đầy đủ 6 số', 'error');
+      showToast(translate('enter_full_otp'), 'error');
       return;
     }
 
     if (!pendingRegister) {
-      showToast('Vui lòng nhập lại thông tin đăng ký', 'error');
+      showToast(translate('reenter_register_info'), 'error');
       setIsVerifyingEmail(false);
       return;
     }
@@ -133,14 +135,14 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
         pendingRegister.email,
         code,
       );
-      showToast('Đăng ký thành công', 'success');
+      showToast(translate('register_success'), 'success');
       setIsVerifyingEmail(false);
       setIsRegister(false);
       setPendingRegister(null);
       setVerificationCode(['', '', '', '', '', '']);
       onLoginSuccess(result);
     } catch (error: any) {
-      showToast(error?.message || 'Mã xác nhận không đúng. Vui lòng thử lại.', 'error');
+      showToast(error?.message || translate('otp_invalid'), 'error');
       setVerificationCode(['', '', '', '', '', '']);
     } finally {
       setIsSubmitting(false);
@@ -149,7 +151,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
 
   const handleResendCode = async () => {
     if (!pendingRegister) {
-      showToast('Vui lòng nhập lại thông tin đăng ký', 'error');
+      showToast(translate('reenter_register_info'), 'error');
       setIsVerifyingEmail(false);
       return;
     }
@@ -160,9 +162,9 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
         pendingRegister.email,
         pendingRegister.password,
       );
-      showToast('Đã gửi lại mã xác nhận đến email của bạn', 'success');
+      showToast(translate('otp_resent'), 'success');
     } catch (error: any) {
-      showToast(error?.message || 'Không thể gửi lại mã xác nhận', 'error');
+      showToast(error?.message || translate('otp_resend_error'), 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -170,7 +172,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
 
   const handleResetPassword = async () => {
     if (!email) {
-      showToast('Vui lòng nhập email', 'error');
+      showToast(translate('enter_email'), 'error');
       return;
     }
     setIsSubmitting(true);
@@ -178,9 +180,9 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
       await sendResetOtp(email.trim().toLowerCase());
       setResetEmailSent(true);
       setResetStep('otp');
-      showToast('Đã gửi mã xác nhận', 'success');
+      showToast(translate('otp_sent'), 'success');
     } catch (error: any) {
-      showToast(error?.message || 'Không thể gửi mã xác nhận', 'error');
+      showToast(error?.message || translate('otp_send_error'), 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -189,7 +191,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
   const handleVerifyResetOtp = async () => {
     const code = verificationCode.join('');
     if (code.length !== 6) {
-      showToast('Vui lòng nhập đầy đủ 6 số', 'error');
+      showToast(translate('enter_full_otp'), 'error');
       return;
     }
     setIsSubmitting(true);
@@ -198,9 +200,9 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
       setResetToken(result.resetToken);
       setResetStep('password');
       setVerificationCode(['', '', '', '', '', '']);
-      showToast('Mã xác nhận hợp lệ', 'success');
+      showToast(translate('otp_valid'), 'success');
     } catch (error: any) {
-      showToast(error?.message || 'Mã xác nhận không đúng', 'error');
+      showToast(error?.message || translate('otp_invalid'), 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -208,21 +210,21 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
 
   const handleSubmitNewPassword = async () => {
     if (newPassword.length < 8) {
-      showToast('Mật khẩu phải có ít nhất 8 ký tự', 'error');
+      showToast(translate('password_min_length'), 'error');
       return;
     }
     if (newPassword !== confirmPassword) {
-      showToast('Mật khẩu xác nhận không khớp', 'error');
+      showToast(translate('password_mismatch'), 'error');
       return;
     }
     if (!resetToken) {
-      showToast('Vui lòng xác thực mã OTP trước', 'error');
+      showToast(translate('verify_otp_first'), 'error');
       return;
     }
     setIsSubmitting(true);
     try {
       await resetPassword(email.trim().toLowerCase(), resetToken, newPassword);
-      showToast('Đổi mật khẩu thành công. Vui lòng đăng nhập.', 'success');
+      showToast(translate('change_password_success'), 'success');
       setIsForgotPassword(false);
       setResetStep('email');
       setResetEmailSent(false);
@@ -232,7 +234,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
       setConfirmPassword('');
       setPassword('');
     } catch (error: any) {
-      showToast(error?.message || 'Không thể đổi mật khẩu', 'error');
+      showToast(error?.message || translate('change_password_failed'), 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -260,15 +262,15 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
           </TouchableOpacity>
 
           <View style={styles.header}>
-            <Text style={[styles.title, { color: t.text }]}>Xác nhận email</Text>
+            <Text style={[styles.title, { color: t.text }]}>{translate('verify_email')}</Text>
             <Text style={[styles.subtitle, { color: t.muted }]}>
-              Chúng tôi đã gửi mã xác nhận đến địa chỉ email{'\n'}
+              {translate('otp_sent_to')}{'\n'}
               <Text style={[styles.emailHighlight, { color: t.primary }]}>{pendingRegister?.email || email}</Text>
             </Text>
           </View>
 
           <View style={styles.verificationContainer}>
-            <Text style={[styles.verificationLabel, { color: t.text }]}>Nhập mã xác nhận</Text>
+            <Text style={[styles.verificationLabel, { color: t.text }]}>{translate('enter_otp')}</Text>
             <View style={styles.codeInputContainer}>
               {verificationCode.map((digit, index) => (
                 <TextInput
@@ -305,7 +307,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
               activeOpacity={0.7}
               disabled={isSubmitting}
             >
-              <Text style={[styles.resendText, { color: t.primary }]}>Gửi lại mã</Text>
+              <Text style={[styles.resendText, { color: t.primary }]}>{translate('resend_code')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -318,7 +320,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
               activeOpacity={0.8}
               disabled={isSubmitting}
             >
-              <Text style={styles.primaryButtonText}>{isSubmitting ? 'Đang xử lý...' : 'Xác nhận'}</Text>
+              <Text style={styles.primaryButtonText}>{isSubmitting ? translate('processing') : translate('confirm')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -353,18 +355,18 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
           </TouchableOpacity>
 
           <View style={styles.header}>
-            <Text style={[styles.title, { color: t.text }]}>Quên mật khẩu?</Text>
+            <Text style={[styles.title, { color: t.text }]}>{translate('forgot_password_title')}</Text>
             <Text style={[styles.subtitle, { color: t.muted }]}>
-              {resetStep === 'email' && "Đừng lo, chúng tôi sẽ giúp bạn lấy lại mật khẩu."}
-              {resetStep === 'otp' && "Nhập mã xác nhận đã được gửi đến email của bạn."}
-              {resetStep === 'password' && "Nhập mật khẩu mới cho tài khoản của bạn."}
+              {resetStep === 'email' && translate('forgot_password_subtitle_email')}
+              {resetStep === 'otp' && translate('forgot_password_subtitle_otp')}
+              {resetStep === 'password' && translate('forgot_password_subtitle_password')}
             </Text>
           </View>
 
           {resetStep === 'email' && (
             <View style={styles.form}>
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: t.text }]}>Email</Text>
+                <Text style={[styles.label, { color: t.text }]}>{translate('email')}</Text>
                 <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
                   <AppIcon name="mail" size={20} color={t.muted} style={styles.inputIcon} />
                   <TextInput
@@ -389,14 +391,14 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
                 activeOpacity={0.8}
                 disabled={isSubmitting}
               >
-                <Text style={styles.primaryButtonText}>{isSubmitting ? 'Đang gửi...' : 'Gửi mã xác nhận'}</Text>
+                <Text style={styles.primaryButtonText}>{isSubmitting ? translate('sending') : translate('send_otp')}</Text>
               </TouchableOpacity>
             </View>
           )}
 
           {resetStep === 'otp' && (
             <View style={styles.verificationContainer}>
-              <Text style={[styles.verificationLabel, { color: t.text }]}>Nhập mã xác nhận</Text>
+              <Text style={[styles.verificationLabel, { color: t.text }]}>{translate('enter_otp')}</Text>
               <View style={styles.codeInputContainer}>
                 {verificationCode.map((digit, index) => (
                   <TextInput
@@ -437,7 +439,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
                 activeOpacity={0.8}
                 disabled={isSubmitting}
               >
-                <Text style={styles.primaryButtonText}>{isSubmitting ? 'Đang kiểm tra...' : 'Xác nhận mã'}</Text>
+                <Text style={styles.primaryButtonText}>{isSubmitting ? translate('checking') : translate('verify_code')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -445,7 +447,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
           {resetStep === 'password' && (
             <View style={styles.form}>
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: t.text }]}>Mật khẩu mới</Text>
+                <Text style={[styles.label, { color: t.text }]}>{translate('new_password')}</Text>
                 <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
                   <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
                   <TextInput
@@ -460,7 +462,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: t.text }]}>Xác nhận mật khẩu</Text>
+                <Text style={[styles.label, { color: t.text }]}>{translate('confirm_password')}</Text>
                 <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
                   <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
                   <TextInput
@@ -484,7 +486,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
                 activeOpacity={0.8}
                 disabled={isSubmitting}
               >
-                <Text style={styles.primaryButtonText}>{isSubmitting ? 'Đang đổi...' : 'Đổi mật khẩu'}</Text>
+                <Text style={styles.primaryButtonText}>{isSubmitting ? translate('changing') : translate('change_password_btn')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -503,20 +505,20 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={[styles.brandTitle, { color: t.primary }]}>ElectroAI</Text>
+          <Text style={[styles.brandTitle, { color: t.primary }]}>{translate('app_name')}</Text>
           <Text style={[styles.subtitle, { color: t.muted }]}>
-            {isRegister ? "Tạo tài khoản mới" : "Chào mừng trở lại!"}
+            {isRegister ? translate('create_account') : translate('welcome_back')}
           </Text>
         </View>
 
         <View style={styles.form}>
           {isRegister && (
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: t.text }]}>Họ và tên</Text>
+              <Text style={[styles.label, { color: t.text }]}>{translate('full_name')}</Text>
               <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
                 <AppIcon name="user" size={20} color={t.muted} style={styles.inputIcon} />
                 <TextInput
-                  placeholder="Nhập họ tên"
+                  placeholder={translate('enter_name_placeholder')}
                   value={name}
                   onChangeText={setName}
                   style={[styles.input, { color: t.text }]}
@@ -527,7 +529,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
           )}
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: t.text }]}>Email</Text>
+            <Text style={[styles.label, { color: t.text }]}>{translate('email')}</Text>
             <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
               <AppIcon name="mail" size={20} color={t.muted} style={styles.inputIcon} />
               <TextInput
@@ -544,13 +546,13 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
 
           <View style={styles.inputGroup}>
             <View style={styles.labelRow}>
-              <Text style={[styles.label, { color: t.text }]}>Mật khẩu</Text>
+              <Text style={[styles.label, { color: t.text }]}>{translate('password')}</Text>
               {!isRegister && (
                 <TouchableOpacity
                   onPress={() => setIsForgotPassword(true)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.forgotPassword, { color: t.primary }]}>Quên mật khẩu?</Text>
+                  <Text style={[styles.forgotPassword, { color: t.primary }]}>{translate('forgot_password_link')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -589,14 +591,14 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
             disabled={isSubmitting}
           >
             <Text style={styles.primaryButtonText}>
-              {isSubmitting ? "Đang xử lý..." : isRegister ? "Đăng ký" : "Đăng nhập"}
+              {isSubmitting ? translate('processing') : isRegister ? translate('register') : translate('login')}
             </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: t.muted }]}>
-            {isRegister ? "Đã có tài khoản? " : "Chưa có tài khoản? "}
+            {isRegister ? translate('already_have_account') : translate('not_have_account')}
           </Text>
           <TouchableOpacity
             onPress={() => {
@@ -614,7 +616,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
             activeOpacity={0.7}
           >
             <Text style={[styles.footerLink, { color: t.primary }]}>
-              {isRegister ? "Đăng nhập" : "Đăng ký ngay"}
+              {isRegister ? translate('login') : translate('register_now')}
             </Text>
           </TouchableOpacity>
         </View>

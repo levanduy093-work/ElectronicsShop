@@ -8,11 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		1E72ABBEE6BF72110D92C333 /* Pods_ElectronicsShop.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EE0022E31BAF9CDBA9654F66 /* Pods_ElectronicsShop.framework */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		95B81E42C6193F6ADD7A56D4 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		C0F5AE602B1D4E7FA1B2C3D4 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = C0F5AE5F2B1D4E7FA1B2C3D4 /* GoogleService-Info.plist */; };
+		EE8C257A8DF6995722CEDA77 /* libPods-ElectronicsShop.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CC08FBF18F0522662F8B1C5E /* libPods-ElectronicsShop.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,9 +24,9 @@
 		5709B34CF0A7D63546082F79 /* Pods-ElectronicsShop.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ElectronicsShop.release.xcconfig"; path = "Target Support Files/Pods-ElectronicsShop/Pods-ElectronicsShop.release.xcconfig"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = ElectronicsShop/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = ElectronicsShop/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		C0F5AE5F2B1D4E7FA1B2C3D4 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = "GoogleService-Info.plist"; path = "ElectronicsShop/GoogleService-Info.plist"; sourceTree = "<group>"; };
+		CC08FBF18F0522662F8B1C5E /* libPods-ElectronicsShop.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-ElectronicsShop.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		EE0022E31BAF9CDBA9654F66 /* Pods_ElectronicsShop.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ElectronicsShop.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		C0F5AE5F2B1D4E7FA1B2C3D4 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = "GoogleService-Info.plist"; path = ElectronicsShop/GoogleService-Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -34,7 +34,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1E72ABBEE6BF72110D92C333 /* Pods_ElectronicsShop.framework in Frameworks */,
+				EE8C257A8DF6995722CEDA77 /* libPods-ElectronicsShop.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -58,7 +58,7 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				EE0022E31BAF9CDBA9654F66 /* Pods_ElectronicsShop.framework */,
+				CC08FBF18F0522662F8B1C5E /* libPods-ElectronicsShop.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";

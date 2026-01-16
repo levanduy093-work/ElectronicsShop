@@ -36,6 +36,8 @@ import {
   ApiOrder,
   ApiProduct,
   ApiVoucher,
+  ApiCart,
+  ApiCartItem,
   AuthResponse,
   ApiBanner,
   addFavorite,
@@ -57,8 +59,12 @@ import {
   getAddresses,
   uploadImage,
   UploadImageFile,
+  fetchMyCart,
+  upsertCart,
 } from './src/lib/api';
 import { socketService } from './src/lib/socket';
+
+import './src/i18n';
 
 // UNCOMMENT THIS AFTER INSTALLING @react-native-firebase/messaging AND ADDING CONFIG FILES
 import { requestUserPermission, getFcmToken, subscribeForegroundMessage, subscribeToFcmTokenRefresh } from './src/lib/fcm';
@@ -75,6 +81,7 @@ interface FilterState {
 }
 
 const AUTH_STORAGE_KEY = 'electronicsshop/auth';
+const CART_STORAGE_KEY = 'electronicsshop/cart';
 const DEFAULT_PROFILE = {
   name: "Nguyễn Văn A",
   email: "nguyenva@example.com",
@@ -161,6 +168,25 @@ async function clearPersistedAuthState() {
     await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
   } catch (error) {
     console.warn('App.tsx - Failed to clear auth state', error);
+  }
+}
+
+async function persistCartState(items: CartItem[]) {
+  try {
+    await AsyncStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+  } catch (error) {
+    console.warn('App.tsx - Failed to persist cart', error);
+  }
+}
+
+async function loadPersistedCart(): Promise<CartItem[] | null> {
+  try {
+    const stored = await AsyncStorage.getItem(CART_STORAGE_KEY);
+    if (!stored) return null;
+    return JSON.parse(stored) as CartItem[];
+  } catch (error) {
+    console.warn('App.tsx - Failed to load cart', error);
+    return null;
   }
 }
 
@@ -292,6 +318,73 @@ const ForegroundNotificationHandler = () => {
   return null;
 };
 
+const computeCartTotals = (items: CartItem[]) => {
+  const subTotal = items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
+  const totalItem = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+  const shippingFee = 0;
+  const totalPrice = subTotal + shippingFee;
+  return { subTotal, totalItem, shippingFee, totalPrice };
+};
+
+const mapApiCartToUi = (cart: ApiCart, productsLookup: Product[]): CartItem[] => {
+  return (cart.items || []).map(item => {
+    const found = productsLookup.find(p => p.id === item.productId);
+    const priceFromProduct = found?.salePrice ?? found?.price ?? found?.originalPrice ?? item.price;
+    return {
+      id: item.productId,
+      name: found?.name || item.name || 'Sản phẩm',
+      price: priceFromProduct || 0,
+      originalPrice: found?.originalPrice,
+      salePrice: found?.salePrice,
+      rating: found?.rating ?? 0,
+      reviews: found?.reviews ?? 0,
+      reviewCount: found?.reviewCount,
+      averageRating: found?.averageRating,
+      image: found?.image || item.image || '',
+      images: found?.images,
+      category: found?.category || item.category || 'Khác',
+      stock: found?.stock || 'In Stock',
+      stockQuantity: found?.stockQuantity,
+      description: found?.description || '',
+      specs: found?.specs || {},
+      code: found?.code,
+      saleCount: found?.saleCount,
+      datasheet: found?.datasheet,
+      quantity: item.quantity || 1,
+    };
+  });
+};
+
+const mapCartItemToApi = (item: CartItem): ApiCartItem => {
+  const price = item.salePrice ?? item.price ?? item.originalPrice ?? 0;
+  return {
+    productId: item.id,
+    quantity: item.quantity,
+    price,
+    name: item.name,
+    category: item.category,
+    image: item.image,
+  };
+};
+
+const mergeCartItems = (localItems: CartItem[], remoteItems: CartItem[]) => {
+  const map = new Map<string, CartItem>();
+  const upsert = (source: CartItem[]) => {
+    source.forEach(item => {
+      const existing = map.get(item.id);
+      if (existing) {
+        const qty = (existing.quantity || 0) + (item.quantity || 0);
+        map.set(item.id, { ...existing, ...item, quantity: qty });
+      } else {
+        map.set(item.id, item);
+      }
+    });
+  };
+  upsert(localItems);
+  upsert(remoteItems);
+  return Array.from(map.values());
+};
+
 const mapApiNotificationToUi = (item: ApiNotification): UiNotification => {
   const fallbackDate = item.deliveredAt || item.readAt || item.updatedAt || new Date().toISOString();
   const sendAt = item.sendAt || item.createdAt || fallbackDate;
@@ -378,7 +471,10 @@ const mapApiBannerToUi = (banner: ApiBanner): HomeBanner => ({
   order: banner.order,
 });
 
+import { useTranslation } from 'react-i18next';
+
 function App(): React.JSX.Element {
+  const { t } = useTranslation();
   const systemDarkMode = useColorScheme() === 'dark';
   const [isDarkMode, setIsDarkMode] = useState(systemDarkMode);
   const [currentTab, setCurrentTab] = useState<NavTab>('home');
@@ -400,7 +496,10 @@ function App(): React.JSX.Element {
   const [authTokens, setAuthTokens] = useState<{ accessToken: string; refreshToken: string } | null>(null);
   const [isRestoringAuth, setIsRestoringAuth] = useState(true);
   const authTokensRef = useRef<{ accessToken: string; refreshToken: string } | null>(null);
+  const cartIdRef = useRef<string | null>(null);
+  const cartSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fcmRefreshUnsubRef = useRef<(() => void) | null>(null);
+  const hasFetchedCartRef = useRef(false);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [notifications, setNotifications] = useState<UiNotification[]>([]);
   const [isRefreshingNotifications, setIsRefreshingNotifications] = useState(false);
@@ -610,12 +709,15 @@ function App(): React.JSX.Element {
     setIsLoggedIn(false);
     setAuthTokens(null);
     authTokensRef.current = null;
+    cartIdRef.current = null;
+    hasFetchedCartRef.current = false;
     setUserProfile(DEFAULT_PROFILE);
     setUserId(null);
     setVouchers([]);
     setNotifications([]);
     setIsRefreshingNotifications(false);
     setAddresses(DEFAULT_ADDRESSES);
+    setCartItems([]);
     void clearPersistedAuthState();
   }, []);
 
@@ -710,6 +812,11 @@ function App(): React.JSX.Element {
             await loadAddresses(parsed.tokens.accessToken);
           }
         }
+
+        const storedCart = await loadPersistedCart();
+        if (storedCart) {
+          setCartItems(storedCart);
+        }
       } catch (error) {
         console.warn('App.tsx - Failed to restore auth state', error);
       } finally {
@@ -719,6 +826,29 @@ function App(): React.JSX.Element {
 
     restoreAuth();
   }, [syncAuthTokens]);
+
+  useEffect(() => {
+    if (!isLoggedIn || !authTokens?.accessToken) {
+      cartIdRef.current = null;
+      hasFetchedCartRef.current = false;
+      return;
+    }
+    if (hasFetchedCartRef.current) return;
+    hasFetchedCartRef.current = true;
+    const token = authTokens.accessToken;
+    fetchMyCart(token)
+      .then(res => {
+        const cart = Array.isArray(res) ? res[0] : null;
+        if (!cart) {
+          cartIdRef.current = null;
+          return;
+        }
+        cartIdRef.current = cart._id || null;
+        const mapped = mapApiCartToUi(cart, productsRef.current);
+        setCartItems(prev => mergeCartItems(prev, mapped));
+      })
+      .catch(err => console.warn('App.tsx - Failed to fetch cart', err));
+  }, [isLoggedIn, authTokens?.accessToken, products]);
 
   useEffect(() => {
     void loadProducts();
@@ -1092,6 +1222,37 @@ function App(): React.JSX.Element {
   const removeFromCart = (id: string) => {
     setCartItems(prev => prev.filter(item => item.id !== id));
   };
+
+  useEffect(() => {
+    void persistCartState(cartItems);
+  }, [cartItems]);
+
+  useEffect(() => {
+    if (!authTokensRef.current?.accessToken) return;
+    if (cartSyncTimeoutRef.current) {
+      clearTimeout(cartSyncTimeoutRef.current);
+    }
+    cartSyncTimeoutRef.current = setTimeout(async () => {
+      const token = authTokensRef.current?.accessToken;
+      if (!token) return;
+      try {
+        const payloadItems = cartItems.map(mapCartItemToApi);
+        const totals = computeCartTotals(cartItems);
+        const result = await upsertCart(payloadItems, token, cartIdRef.current, totals);
+        if (result?._id) {
+          cartIdRef.current = result._id;
+        }
+      } catch (error) {
+        console.warn('App.tsx - Failed to sync cart to backend', error);
+      }
+    }, 400);
+
+    return () => {
+      if (cartSyncTimeoutRef.current) {
+        clearTimeout(cartSyncTimeoutRef.current);
+      }
+    };
+  }, [cartItems, authTokens?.accessToken]);
 
   const placeOrder = async (params: {
     items: CartItem[];
@@ -1596,7 +1757,7 @@ function App(): React.JSX.Element {
           <View style={[styles.container, { backgroundColor: theme.background }]}>
           {showTopBar && (
             <TopBar
-              title={currentScreen === 'cart' ? 'Giỏ hàng' : 'ElectroAI'}
+              title={currentScreen === 'cart' ? t('cart_title') : t('app_name')}
               showSearch={currentScreen === 'home'}
               onSearchClick={() => setCurrentScreen('search')}
               onFilterClick={openFilter}
