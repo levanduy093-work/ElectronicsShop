@@ -1302,6 +1302,8 @@ function App(): React.JSX.Element {
             currentUserId={userId}
             currentUserName={userProfile.name}
             onReviewStatsChange={handleReviewStatsChange}
+            onNavigateToCart={() => handleTabChange('cart')}
+            cartItemCount={cartCount}
           />
         ) : null;
 

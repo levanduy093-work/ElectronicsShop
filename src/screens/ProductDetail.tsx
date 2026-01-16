@@ -24,6 +24,8 @@ interface ProductDetailProps {
   currentUserName?: string;
   theme?: ReturnType<typeof useTheme>['theme'];
   onReviewStatsChange?: (productId: string, stats: { averageRating: number; reviewCount: number }) => void;
+  onNavigateToCart?: () => void;
+  cartItemCount?: number;
 }
 
 export function ProductDetail({
@@ -39,6 +41,8 @@ export function ProductDetail({
   currentUserName,
   theme: injectedTheme,
   onReviewStatsChange,
+  onNavigateToCart,
+  cartItemCount = 0,
 }: ProductDetailProps) {
   const { width } = Dimensions.get('window');
   const [quantity, setQuantity] = useState(1);
@@ -345,6 +349,26 @@ export function ProductDetail({
                   size={24} 
                   color={isFavorite ? "#EF4444" : theme.text} 
                 />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={onNavigateToCart} 
+                style={[
+                  styles.headerButton,
+                  {
+                    backgroundColor: theme.surface,
+                    shadowOpacity: !isDarkMode ? 0.12 : 0.3,
+                  }
+                ]} 
+                activeOpacity={0.7}
+              >
+                <AppIcon name="shopping-cart" size={24} color={theme.text} />
+                {cartItemCount > 0 && (
+                  <View style={[styles.badgeContainer, { borderColor: theme.surface }]}>
+                    <Text style={styles.badgeText}>
+                      {cartItemCount > 99 ? '99+' : cartItemCount}
+                    </Text>
+                  </View>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -1265,6 +1289,24 @@ const styles = StyleSheet.create({
   addToCartText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
     fontWeight: 'bold',
   },
 });
