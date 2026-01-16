@@ -2,9 +2,9 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
-import { Theme, lightTheme, useTheme } from '../lib/theme';
-import { Order } from '../lib/data';
-import { formatPrice } from '../lib/utils';
+import { Theme, lightTheme, useTheme } from '../theme';
+import { Order } from '../types';
+import { formatPrice } from '../utils';
 
 interface OrderHistoryProps {
   onBack: () => void;

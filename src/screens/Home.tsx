@@ -2,12 +2,14 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Alert, FlatList, ViewToken } from 'react-native';
 import Animated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { CATEGORIES, HomeBanner, Product, extractCategoriesFromProducts, Category } from '../lib/data';
+import { HomeBanner, Product, Category } from '../types';
+import { CATEGORIES } from '../constants/data';
+import { extractCategoriesFromProducts } from '../utils/product';
 import { ProductCard } from '../components/ui/ProductCard';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
-import { Theme, lightTheme, useTheme } from '../lib/theme';
-import { socketService } from '../lib/socket';
+import { Theme, lightTheme, useTheme } from '../theme';
+import { socketService } from '../services/socket';
 
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 

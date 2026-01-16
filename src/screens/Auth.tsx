@@ -3,9 +3,9 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Keyboa
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
-import { Theme, lightTheme, useTheme } from '../lib/theme';
+import { Theme, lightTheme, useTheme } from '../theme';
 import { useToast } from '../components/common/ToastProvider';
-import { AuthResponse, login, resetPassword, sendRegisterOtp, sendResetOtp, verifyRegisterOtp, verifyResetOtp } from '../lib/api';
+import { AuthResponse, login, resetPassword, sendRegisterOtp, sendResetOtp, verifyRegisterOtp, verifyResetOtp } from '../services/api';
 
 interface AuthProps {
   onBack: () => void;

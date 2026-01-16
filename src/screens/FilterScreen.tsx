@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
-import { Theme, lightTheme, useTheme } from '../lib/theme';
+import { Theme, lightTheme, useTheme } from '../theme';
 
 interface FilterScreenProps {
   onClose: () => void;

@@ -4,10 +4,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
-import { AVAILABLE_VOUCHERS, Voucher } from '../lib/data';
-import { Theme, lightTheme, useTheme } from '../lib/theme';
+import { Voucher } from '../types';
+import { AVAILABLE_VOUCHERS } from '../constants/data';
+import { Theme, lightTheme, useTheme } from '../theme';
 import { useToast } from '../components/common/ToastProvider';
-import { UploadImageFile } from '../lib/api';
+import { UploadImageFile } from '../services/api';
 
 // Dynamic import để tránh lỗi khi module chưa được link
 let launchImageLibrary: any = null;

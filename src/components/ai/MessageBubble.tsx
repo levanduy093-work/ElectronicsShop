@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Modal, SafeAreaView } from 'react-native';
-import { AiAction, AiProductCard, ChatMessage } from '../../lib/data';
+import { AiAction, AiProductCard, ChatMessage } from '../../types';
 import { AppIcon } from '../common/Icon';
-import { useTheme, lightTheme } from '../../lib/theme';
+import { useTheme, lightTheme } from '../../theme';
 
 interface MessageBubbleProps {
   message: ChatMessage;

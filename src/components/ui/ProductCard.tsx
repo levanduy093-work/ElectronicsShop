@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
-import { Product } from '../../lib/data';
+import { Product } from '../../types';
 import { ImageWithFallback } from '../common/ImageWithFallback';
 import { AppIcon } from '../common/Icon';
-import { formatPrice } from '../../lib/utils';
-import { Theme, lightTheme } from '../../lib/theme';
+import { formatPrice } from '../../utils';
+import { Theme, lightTheme } from '../../theme';
 
 interface ProductCardProps {
   product: Product;

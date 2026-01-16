@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { Platform, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
-import { Theme, lightTheme, useTheme } from '../lib/theme';
+import { Theme, lightTheme, useTheme } from '../theme';
 import { useToast } from '../components/common/ToastProvider';
-import { changePassword, sendChangePasswordOtp } from '../lib/api';
+import { changePassword, sendChangePasswordOtp } from '../services/api';
 
 interface ChangePasswordProps {
   onBack: () => void;

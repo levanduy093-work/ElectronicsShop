@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, FlatList, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Product } from '../lib/data';
+import { Product } from '../types';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
-import { formatPrice } from '../lib/utils';
-import { Theme, lightTheme, useTheme } from '../lib/theme';
+import { formatPrice } from '../utils';
+import { Theme, lightTheme, useTheme } from '../theme';
 
 interface WishlistProps {
   items: Product[];

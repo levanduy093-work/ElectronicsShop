@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, StatusBar
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
-import { darkTheme, lightTheme } from '../lib/theme';
+import { darkTheme, lightTheme } from '../theme';
 
 interface SettingsProps {
   onBack: () => void;

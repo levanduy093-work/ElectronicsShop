@@ -1,6 +1,6 @@
 import React from 'react';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { IconName } from '../../lib/data';
+import { IconName } from '../../types';
 
 interface IconProps {
   name: IconName;

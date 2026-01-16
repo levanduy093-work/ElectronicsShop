@@ -27,9 +27,11 @@ import { Notifications } from './src/screens/Notifications';
 import { ChangePassword } from './src/screens/ChangePassword';
 import { BottomNav } from './src/components/layout/BottomNav';
 import { TopBar } from './src/components/layout/TopBar';
-import { Product, CartItem, Order, Voucher, PRODUCTS, HomeBanner, ChatMessage } from './src/lib/data';
-import { Address, DEFAULT_ADDRESSES } from './src/lib/address';
-import { darkTheme, lightTheme, ThemeProvider } from './src/lib/theme';
+import { Product, CartItem, Order, Voucher, HomeBanner, ChatMessage } from './src/types';
+import { PRODUCTS } from './src/constants/data';
+import { Address } from './src/types';
+import { DEFAULT_ADDRESSES } from './src/constants/defaults';
+import { darkTheme, lightTheme, ThemeProvider } from './src/theme';
 import { ToastProvider } from './src/components/common/ToastProvider';
 import {
   ApiNotification,
@@ -61,13 +63,13 @@ import {
   UploadImageFile,
   fetchMyCart,
   upsertCart,
-} from './src/lib/api';
-import { socketService } from './src/lib/socket';
+} from './src/services/api';
+import { socketService } from './src/services/socket';
 
 import './src/i18n';
 
 // UNCOMMENT THIS AFTER INSTALLING @react-native-firebase/messaging AND ADDING CONFIG FILES
-import { requestUserPermission, getFcmToken, subscribeForegroundMessage, subscribeToFcmTokenRefresh } from './src/lib/fcm';
+import { requestUserPermission, getFcmToken, subscribeForegroundMessage, subscribeToFcmTokenRefresh } from './src/services/fcm';
 import { useToast } from './src/components/common/ToastProvider';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';

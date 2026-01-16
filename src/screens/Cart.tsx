@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { CartItem, AVAILABLE_VOUCHERS, Voucher } from '../lib/data';
+import { CartItem, Voucher } from '../types';
+import { AVAILABLE_VOUCHERS } from '../constants/data';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
-import { formatPrice } from '../lib/utils';
-import { Theme, lightTheme, useTheme } from '../lib/theme';
+import { formatPrice } from '../utils';
+import { Theme, lightTheme, useTheme } from '../theme';
 import { useToast } from '../components/common/ToastProvider';
 
 interface CartProps {

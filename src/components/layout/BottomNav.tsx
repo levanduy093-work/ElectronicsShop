@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../common/Icon';
-import { Theme, lightTheme, useTheme } from '../../lib/theme';
+import { Theme, lightTheme, useTheme } from '../../theme';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 

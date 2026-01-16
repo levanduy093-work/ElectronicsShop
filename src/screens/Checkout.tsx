@@ -2,13 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, StatusBar, Platform, Linking, AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
-import { Address, AddressFormValues, DEFAULT_ADDRESSES, buildFullAddress } from '../lib/address';
+import { Address, AddressFormValues } from '../types';
+import { DEFAULT_ADDRESSES } from '../constants/defaults';
+import { buildFullAddress } from '../utils/address';
 import { AddressForm } from '../components/address/AddressForm';
-import { CartItem } from '../lib/data';
-import { formatPrice } from '../lib/utils';
-import { Theme, lightTheme, useTheme } from '../lib/theme';
+import { CartItem } from '../types';
+import { formatPrice } from '../utils';
+import { Theme, lightTheme, useTheme } from '../theme';
 import { useToast } from '../components/common/ToastProvider';
-import { addAddress } from '../lib/api';
+import { addAddress } from '../services/api';
 
 interface CheckoutProps {
   onBack: () => void;

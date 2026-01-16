@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, StatusBar, Platform, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
-import { Theme, lightTheme, useTheme } from '../lib/theme';
-import { Address, AddressFormValues, DEFAULT_ADDRESSES, buildFullAddress } from '../lib/address';
+import { Theme, lightTheme, useTheme } from '../theme';
+import { Address, AddressFormValues } from '../types';
+import { DEFAULT_ADDRESSES } from '../constants/defaults';
+import { buildFullAddress } from '../utils/address';
 import { AddressForm } from '../components/address/AddressForm';
-import { getAddresses, addAddress, updateAddress, deleteAddress, setDefaultAddress, FrontendAddress } from '../lib/api';
+import { getAddresses, addAddress, updateAddress, deleteAddress, setDefaultAddress, FrontendAddress } from '../services/api';
 
 interface AddressBookProps {
   onBack: () => void;

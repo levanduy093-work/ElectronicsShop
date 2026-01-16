@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from './Icon';
-import { Theme, lightTheme, useTheme } from '../../lib/theme';
+import { Theme, lightTheme, useTheme } from '../../theme';
 
 export type ToastType = 'success' | 'error' | 'info';
 

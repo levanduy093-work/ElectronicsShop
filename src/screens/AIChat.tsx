@@ -14,12 +14,12 @@ import {
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AiAction, AiProductCard, ChatMessage, Product } from '../lib/data';
+import { AiAction, AiProductCard, ChatMessage, Product } from '../types';
 import { MessageBubble } from '../components/ai/MessageBubble';
 import { TopBar } from '../components/layout/TopBar';
 import { AppIcon } from '../components/common/Icon';
-import { Theme, lightTheme } from '../lib/theme';
-import { aiChat, confirmAiAction, addCartItem, uploadImage, UploadImageFile } from '../lib/api';
+import { Theme, lightTheme } from '../theme';
+import { aiChat, confirmAiAction, addCartItem, uploadImage, UploadImageFile } from '../services/api';
 import { useToast } from '../components/common/ToastProvider';
 
 interface AIChatProps {

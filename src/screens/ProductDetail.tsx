@@ -2,14 +2,14 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Share, Dimensions, Modal, TextInput, Image, Animated, Easing, KeyboardAvoidingView, Platform, FlatList } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Product } from '../lib/data';
+import { Product } from '../types';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
-import { formatPrice } from '../lib/utils';
-import { useTheme } from '../lib/theme';
+import { formatPrice } from '../utils';
+import { useTheme } from '../theme';
 import { useToast } from '../components/common/ToastProvider';
-import { ApiReview, createReview, getReviews, uploadImage, UploadImageFile } from '../lib/api';
-import { socketService } from '../lib/socket';
+import { ApiReview, createReview, getReviews, uploadImage, UploadImageFile } from '../services/api';
+import { socketService } from '../services/socket';
 import { ProductCard } from '../components/ui/ProductCard';
 
 interface ProductDetailProps {

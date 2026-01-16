@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
-import { CATEGORIES, Product, extractCategoriesFromProducts } from '../lib/data';
+import { Product } from '../types';
+import { CATEGORIES } from '../constants/data';
+import { extractCategoriesFromProducts } from '../utils/product';
 import { ProductCard } from '../components/ui/ProductCard';
 import { AppIcon } from '../components/common/Icon';
-import { Theme, lightTheme } from '../lib/theme';
+import { Theme, lightTheme } from '../theme';
 
 interface CatalogProps {
   onProductClick?: (product: Product) => void;

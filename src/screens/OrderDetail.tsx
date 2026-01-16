@@ -3,9 +3,9 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platfo
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
-import { formatPrice } from '../lib/utils';
-import { Order, Product } from '../lib/data';
-import { Theme, lightTheme, useTheme } from '../lib/theme';
+import { formatPrice } from '../utils';
+import { Order, Product } from '../types';
+import { Theme, lightTheme, useTheme } from '../theme';
 import { useToast } from '../components/common/ToastProvider';
 
 interface OrderDetailProps {
