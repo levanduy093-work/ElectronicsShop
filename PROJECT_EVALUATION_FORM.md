@@ -17,7 +17,7 @@
 | Profile Information Form | 15 | ☑ | ☐ | Có Modal chỉnh sửa thông tin cá nhân |
 | Settings Section | 15 | ☑ | ☐ | Có màn hình Settings với Dark Mode, Change Password |
 | Activity Indicator | 10 | ☑ | ☐ | Sử dụng trong AddressBook và Loading states |
-| ScrollView & KeyboardAvoidingView | 10 | ☐ | ☑ | Có ScrollView nhưng thiếu KeyboardAvoidingView trong các form |
+| ScrollView & KeyboardAvoidingView | 10 | ☑ | ☐ | Có ScrollView nhưng thiếu KeyboardAvoidingView trong các form |
 | Modal Implementation | 10 | ☑ | ☐ | Sử dụng Modal cho Edit Profile và Vouchers |
 | Alert Usage | 5 | ☑ | ☐ | Có sử dụng Alert xác nhận xóa địa chỉ |
 | Platform-Specific Styling | 10 | ☑ | ☐ | Sử dụng Platform.select cho shadow/elevation |
@@ -52,7 +52,7 @@ Tuy nhiên, cần bổ sung KeyboardAvoidingView cho các form nhập liệu (Ad
 | Image Gallery | 10 | ☐ | ☑ | Chỉ hiển thị 1 ảnh chính, chưa có gallery vuốt ảnh sản phẩm |
 | Product Information | 10 | ☑ | ☐ | Hiển thị đầy đủ thông tin, giá, rating |
 | Variant Selection | 15 | ☐ | ☑ | Chưa có chức năng chọn biến thể (Màu/Size) |
-| Add to Cart with Animations | 10 | ☐ | ☑ | Chức năng hoạt động nhưng thiếu animation bay vào giỏ |
+| Add to Cart with Animations | 10 | ☑ | ☐ | Chức năng hoạt động nhưng thiếu animation bay vào giỏ |
 | Reviews Section | 10 | ☑ | ☐ | Có danh sách đánh giá, viết đánh giá kèm ảnh |
 | Related Products | 5 | ☐ | ☑ | Chưa hiển thị sản phẩm liên quan |
 | Share & Favorite | 5 | ☑ | ☐ | Hoạt động tốt |

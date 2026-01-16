@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
@@ -88,7 +88,10 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: t.background }]}>
+    <KeyboardAvoidingView 
+      style={[styles.container, { backgroundColor: t.background }]} 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 12), backgroundColor: t.surface, borderBottomColor: t.border }]}>
         <TouchableOpacity onPress={onClose} style={styles.closeButton} activeOpacity={0.7}>
           <AppIcon name="close" size={24} color={t.muted} />
@@ -195,7 +198,7 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
           <Text style={styles.applyButtonText}>Áp dụng ({filteredCount} kết quả)</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

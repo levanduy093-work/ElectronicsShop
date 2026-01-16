@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Product } from '../lib/data';
 import { ProductCard } from '../components/ui/ProductCard';
@@ -104,7 +104,10 @@ export function SearchScreen({
   const trendingSearches = ['Raspberry Pi 5', 'ESP32 Cam', 'Mỏ hàn', 'Cảm biến nhiệt độ', 'Led RGB'];
 
   return (
-    <View style={[styles.container, { backgroundColor: t.background }]}>
+    <KeyboardAvoidingView 
+      style={[styles.container, { backgroundColor: t.background }]} 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       {/* Search Header */}
       <View style={[
         styles.header,
@@ -225,7 +228,7 @@ export function SearchScreen({
           </View>
         )}
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

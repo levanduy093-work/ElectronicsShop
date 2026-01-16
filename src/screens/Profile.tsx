@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, StatusBar, Platform, Modal, TextInput, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, StatusBar, Platform, Modal, TextInput, Image, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
@@ -385,7 +385,10 @@ export function Profile({
         animationType="slide"
         onRequestClose={handleCancelEdit}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <View style={[styles.modalContent, { backgroundColor: t.card, borderColor: t.border }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: t.text }]}>Chỉnh sửa thông tin</Text>
@@ -398,7 +401,7 @@ export function Profile({
               </TouchableOpacity>
             </View>
 
-            <View style={styles.modalBody}>
+            <ScrollView style={styles.modalBody}>
               <View style={styles.inputGroup}>
                 <Text style={[styles.inputLabel, { color: t.text }]}>Tên</Text>
                 <TextInput
@@ -500,9 +503,9 @@ export function Profile({
                   <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Lưu</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -714,21 +717,13 @@ const styles = StyleSheet.create({
     marginTop: 32,
     marginBottom: 16,
   },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+  bottomSheetOverlay: {
+    flex: 1,
     justifyContent: 'flex-end',
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
-  },
-  bottomSheetOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
   },
   bottomSheetContent: {
     width: '100%',
@@ -738,79 +733,6 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     maxHeight: '85%',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  voucherList: {
-    maxHeight: 400,
-  },
-  voucherCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginBottom: 12,
-  },
-  voucherIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#DBEAFE',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  voucherInfo: {
-    flex: 1,
-  },
-  voucherCode: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  voucherDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  voucherExpiry: {
-    fontSize: 12,
-    color: '#2563EB',
-  },
-  voucherCopyButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#EFF6FF',
-  },
-  voucherCopyText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#2563EB',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: '#FFFFFF',
@@ -857,11 +779,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     backgroundColor: '#F9FAFB',
     borderColor: '#E5E7EB',
-  },
-  inputHint: {
-    fontSize: 12,
-    marginTop: 4,
-    color: '#6B7280',
   },
   modalActions: {
     flexDirection: 'row',
@@ -950,6 +867,56 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  voucherList: {
+    maxHeight: 400,
+  },
+  voucherCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 12,
+  },
+  voucherIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  voucherInfo: {
+    flex: 1,
+  },
+  voucherCode: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  voucherDescription: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  voucherExpiry: {
+    fontSize: 12,
+    color: '#2563EB',
+  },
+  voucherCopyButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#EFF6FF',
+  },
+  voucherCopyText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#2563EB',
+  },
   emptyVoucherContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -963,5 +930,10 @@ const styles = StyleSheet.create({
   },
   emptyVoucherSubtext: {
     fontSize: 14,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
 });

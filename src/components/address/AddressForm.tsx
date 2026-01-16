@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../common/Icon';
 import { AddressFormValues, AddressType } from '../../lib/address';
@@ -77,7 +77,10 @@ export function AddressForm({
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: t.background }]}>
+    <KeyboardAvoidingView 
+      style={[styles.container, { backgroundColor: t.background }]} 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <StatusBar 
         barStyle={t === lightTheme ? 'dark-content' : 'light-content'} 
         backgroundColor="transparent"
@@ -196,7 +199,7 @@ export function AddressForm({
           <Text style={styles.saveButtonText}>{submitLabel}</Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

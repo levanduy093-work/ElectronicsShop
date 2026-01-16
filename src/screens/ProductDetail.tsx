@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Share, Dimensions, Modal, TextInput, Image, Animated, Easing } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Share, Dimensions, Modal, TextInput, Image, Animated, Easing, KeyboardAvoidingView, Platform } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Product } from '../lib/data';
@@ -361,7 +361,7 @@ export function ProductDetail({
             source={{ uri: product.image }}
             style={styles.image}
             resizeMode="contain"
-          />
+            />
           <View style={[styles.headerOverlay, { top: insets.top + 8 }]}>
             <TouchableOpacity 
               onPress={onBack} 
@@ -741,7 +741,10 @@ export function ProductDetail({
         animationType="fade"
         onRequestClose={handleCloseModal}
       >
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView 
+          style={styles.modalBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <View style={[styles.modalCard, { backgroundColor: theme.surface }]}>
             <Text style={[styles.modalTitle, { color: theme.text }]}>Viết đánh giá</Text>
 
@@ -802,7 +805,7 @@ export function ProductDetail({
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Bottom Action Bar */}

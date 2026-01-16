@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Platform, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Platform, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
@@ -157,7 +157,10 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: t.background }]}>
+    <KeyboardAvoidingView 
+      style={[styles.container, { backgroundColor: t.background }]} 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <StatusBar 
         barStyle={t === lightTheme ? 'dark-content' : 'light-content'} 
         backgroundColor={t.surface}
@@ -174,7 +177,11 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
         <View style={{ width: 24 }} />
       </View>
 
-      <View style={[styles.content, { backgroundColor: t.background }]}>
+      <ScrollView 
+        style={[styles.content, { backgroundColor: t.background }]}
+        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={[styles.helper, { color: t.muted }]}>
           Để bảo vệ tài khoản, vui lòng không chia sẻ mật khẩu cho bất kỳ ai.
         </Text>
@@ -198,8 +205,8 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
           <Text style={styles.saveButtonText}>{saving ? 'Đang cập nhật...' : 'Cập nhật'}</Text>
         </TouchableOpacity>
       </View>
-      </View>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -238,8 +245,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 16,
-    gap: 12,
   },
   helper: {
     fontSize: 13,

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../lib/theme';
@@ -240,152 +240,33 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
 
   if (isVerifyingEmail) {
     return (
-      <ScrollView 
-        style={[styles.container, { backgroundColor: t.background }]} 
-        contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomNavHeight + 24 }]}
+      <KeyboardAvoidingView
+        style={[styles.container, { backgroundColor: t.background }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <TouchableOpacity
-          onPress={() => {
-            setIsVerifyingEmail(false);
-            setVerificationCode(['', '', '', '', '', '']);
-          }}
-          style={styles.backButton}
-          activeOpacity={0.7}
+        <ScrollView 
+          contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomNavHeight + 24 }]}
+          showsVerticalScrollIndicator={false}
         >
-          <AppIcon name="arrow-left" size={24} color={t.muted} />
-        </TouchableOpacity>
-
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: t.text }]}>Xác nhận email</Text>
-          <Text style={[styles.subtitle, { color: t.muted }]}>
-            Chúng tôi đã gửi mã xác nhận đến địa chỉ email{'\n'}
-            <Text style={[styles.emailHighlight, { color: t.primary }]}>{pendingRegister?.email || email}</Text>
-          </Text>
-        </View>
-
-        <View style={styles.verificationContainer}>
-          <Text style={[styles.verificationLabel, { color: t.text }]}>Nhập mã xác nhận</Text>
-          <View style={styles.codeInputContainer}>
-            {verificationCode.map((digit, index) => (
-              <TextInput
-                key={index}
-                ref={(ref) => {
-                  codeInputRefs.current[index] = ref;
-                }}
-                style={[
-                  styles.codeInput,
-                  {
-                    backgroundColor: t.surface,
-                    borderColor: t.border,
-                    color: t.text,
-                  },
-                ]}
-                value={digit}
-                onChangeText={(value) => handleVerificationCodeChange(index, value)}
-                onKeyPress={({ nativeEvent }) => {
-                  if (nativeEvent.key === 'Backspace' && !digit && index > 0) {
-                    codeInputRefs.current[index - 1]?.focus();
-                  }
-                }}
-                keyboardType="number-pad"
-                maxLength={1}
-                selectTextOnFocus
-                textAlign="center"
-              />
-            ))}
-          </View>
-
           <TouchableOpacity
-            onPress={handleResendCode}
-            style={[styles.resendButton, isSubmitting && { opacity: 0.6 }]}
+            onPress={() => {
+              setIsVerifyingEmail(false);
+              setVerificationCode(['', '', '', '', '', '']);
+            }}
+            style={styles.backButton}
             activeOpacity={0.7}
-            disabled={isSubmitting}
           >
-            <Text style={[styles.resendText, { color: t.primary }]}>Gửi lại mã</Text>
+            <AppIcon name="arrow-left" size={24} color={t.muted} />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={handleVerifyCode}
-            style={[
-              styles.primaryButton,
-              { backgroundColor: t.primary, shadowColor: t.primary },
-              isSubmitting && { opacity: 0.9 },
-            ]}
-            activeOpacity={0.8}
-            disabled={isSubmitting}
-          >
-            <Text style={styles.primaryButtonText}>{isSubmitting ? 'Đang xử lý...' : 'Xác nhận'}</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    );
-  }
-
-  if (isForgotPassword) {
-    return (
-      <ScrollView 
-        style={[styles.container, { backgroundColor: t.background }]} 
-        contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomNavHeight + 24 }]}
-      >
-        <TouchableOpacity
-          onPress={() => {
-            setIsForgotPassword(false);
-            setResetEmailSent(false);
-            setResetStep('email');
-            setVerificationCode(['', '', '', '', '', '']);
-            setResetToken('');
-            setNewPassword('');
-            setConfirmPassword('');
-          }}
-          style={styles.backButton}
-          activeOpacity={0.7}
-        >
-          <AppIcon name="arrow-left" size={24} color={t.muted} />
-        </TouchableOpacity>
-
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: t.text }]}>Quên mật khẩu?</Text>
-          <Text style={[styles.subtitle, { color: t.muted }]}>
-            {resetStep === 'email' && "Đừng lo, chúng tôi sẽ giúp bạn lấy lại mật khẩu."}
-            {resetStep === 'otp' && "Nhập mã xác nhận đã được gửi đến email của bạn."}
-            {resetStep === 'password' && "Nhập mật khẩu mới cho tài khoản của bạn."}
-          </Text>
-        </View>
-
-        {resetStep === 'email' && (
-          <View style={styles.form}>
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: t.text }]}>Email</Text>
-              <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
-                <AppIcon name="mail" size={20} color={t.muted} style={styles.inputIcon} />
-                <TextInput
-                  placeholder="example@email.com"
-                  value={email}
-                  onChangeText={setEmail}
-                  style={[styles.input, { color: t.text }]}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  placeholderTextColor={t.muted}
-                />
-              </View>
-            </View>
-
-            <TouchableOpacity
-              onPress={handleResetPassword}
-              style={[
-                styles.primaryButton,
-                { backgroundColor: t.primary, shadowColor: t.primary },
-                isSubmitting && { opacity: 0.9 },
-              ]}
-              activeOpacity={0.8}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.primaryButtonText}>{isSubmitting ? 'Đang gửi...' : 'Gửi mã xác nhận'}</Text>
-            </TouchableOpacity>
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: t.text }]}>Xác nhận email</Text>
+            <Text style={[styles.subtitle, { color: t.muted }]}>
+              Chúng tôi đã gửi mã xác nhận đến địa chỉ email{'\n'}
+              <Text style={[styles.emailHighlight, { color: t.primary }]}>{pendingRegister?.email || email}</Text>
+            </Text>
           </View>
-        )}
 
-        {resetStep === 'otp' && (
           <View style={styles.verificationContainer}>
             <Text style={[styles.verificationLabel, { color: t.text }]}>Nhập mã xác nhận</Text>
             <View style={styles.codeInputContainer}>
@@ -419,54 +300,16 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
             </View>
 
             <TouchableOpacity
-              onPress={handleVerifyResetOtp}
-              style={[
-                styles.primaryButton,
-                { backgroundColor: t.primary, shadowColor: t.primary },
-                isSubmitting && { opacity: 0.9 },
-              ]}
-              activeOpacity={0.8}
+              onPress={handleResendCode}
+              style={[styles.resendButton, isSubmitting && { opacity: 0.6 }]}
+              activeOpacity={0.7}
               disabled={isSubmitting}
             >
-              <Text style={styles.primaryButtonText}>{isSubmitting ? 'Đang kiểm tra...' : 'Xác nhận mã'}</Text>
+              <Text style={[styles.resendText, { color: t.primary }]}>Gửi lại mã</Text>
             </TouchableOpacity>
-          </View>
-        )}
-
-        {resetStep === 'password' && (
-          <View style={styles.form}>
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: t.text }]}>Mật khẩu mới</Text>
-              <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
-                <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
-                <TextInput
-                  placeholder="••••••••"
-                  value={newPassword}
-                  onChangeText={setNewPassword}
-                  style={[styles.input, { color: t.text }]}
-                  secureTextEntry
-                  placeholderTextColor={t.muted}
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: t.text }]}>Xác nhận mật khẩu</Text>
-              <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
-                <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
-                <TextInput
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  style={[styles.input, { color: t.text }]}
-                  secureTextEntry
-                  placeholderTextColor={t.muted}
-                />
-              </View>
-            </View>
 
             <TouchableOpacity
-              onPress={handleSubmitNewPassword}
+              onPress={handleVerifyCode}
               style={[
                 styles.primaryButton,
                 { backgroundColor: t.primary, shadowColor: t.primary },
@@ -475,136 +318,308 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
               activeOpacity={0.8}
               disabled={isSubmitting}
             >
-              <Text style={styles.primaryButtonText}>{isSubmitting ? 'Đang đổi...' : 'Đổi mật khẩu'}</Text>
+              <Text style={styles.primaryButtonText}>{isSubmitting ? 'Đang xử lý...' : 'Xác nhận'}</Text>
             </TouchableOpacity>
           </View>
-        )}
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  if (isForgotPassword) {
+    return (
+      <KeyboardAvoidingView
+        style={[styles.container, { backgroundColor: t.background }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView 
+          contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomNavHeight + 24 }]}
+          showsVerticalScrollIndicator={false}
+        >
+          <TouchableOpacity
+            onPress={() => {
+              setIsForgotPassword(false);
+              setResetEmailSent(false);
+              setResetStep('email');
+              setVerificationCode(['', '', '', '', '', '']);
+              setResetToken('');
+              setNewPassword('');
+              setConfirmPassword('');
+            }}
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <AppIcon name="arrow-left" size={24} color={t.muted} />
+          </TouchableOpacity>
+
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: t.text }]}>Quên mật khẩu?</Text>
+            <Text style={[styles.subtitle, { color: t.muted }]}>
+              {resetStep === 'email' && "Đừng lo, chúng tôi sẽ giúp bạn lấy lại mật khẩu."}
+              {resetStep === 'otp' && "Nhập mã xác nhận đã được gửi đến email của bạn."}
+              {resetStep === 'password' && "Nhập mật khẩu mới cho tài khoản của bạn."}
+            </Text>
+          </View>
+
+          {resetStep === 'email' && (
+            <View style={styles.form}>
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: t.text }]}>Email</Text>
+                <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
+                  <AppIcon name="mail" size={20} color={t.muted} style={styles.inputIcon} />
+                  <TextInput
+                    placeholder="example@email.com"
+                    value={email}
+                    onChangeText={setEmail}
+                    style={[styles.input, { color: t.text }]}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    placeholderTextColor={t.muted}
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity
+                onPress={handleResetPassword}
+                style={[
+                  styles.primaryButton,
+                  { backgroundColor: t.primary, shadowColor: t.primary },
+                  isSubmitting && { opacity: 0.9 },
+                ]}
+                activeOpacity={0.8}
+                disabled={isSubmitting}
+              >
+                <Text style={styles.primaryButtonText}>{isSubmitting ? 'Đang gửi...' : 'Gửi mã xác nhận'}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {resetStep === 'otp' && (
+            <View style={styles.verificationContainer}>
+              <Text style={[styles.verificationLabel, { color: t.text }]}>Nhập mã xác nhận</Text>
+              <View style={styles.codeInputContainer}>
+                {verificationCode.map((digit, index) => (
+                  <TextInput
+                    key={index}
+                    ref={(ref) => {
+                      codeInputRefs.current[index] = ref;
+                    }}
+                    style={[
+                      styles.codeInput,
+                      {
+                        backgroundColor: t.surface,
+                        borderColor: t.border,
+                        color: t.text,
+                      },
+                    ]}
+                    value={digit}
+                    onChangeText={(value) => handleVerificationCodeChange(index, value)}
+                    onKeyPress={({ nativeEvent }) => {
+                      if (nativeEvent.key === 'Backspace' && !digit && index > 0) {
+                        codeInputRefs.current[index - 1]?.focus();
+                      }
+                    }}
+                    keyboardType="number-pad"
+                    maxLength={1}
+                    selectTextOnFocus
+                    textAlign="center"
+                  />
+                ))}
+              </View>
+
+              <TouchableOpacity
+                onPress={handleVerifyResetOtp}
+                style={[
+                  styles.primaryButton,
+                  { backgroundColor: t.primary, shadowColor: t.primary },
+                  isSubmitting && { opacity: 0.9 },
+                ]}
+                activeOpacity={0.8}
+                disabled={isSubmitting}
+              >
+                <Text style={styles.primaryButtonText}>{isSubmitting ? 'Đang kiểm tra...' : 'Xác nhận mã'}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {resetStep === 'password' && (
+            <View style={styles.form}>
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: t.text }]}>Mật khẩu mới</Text>
+                <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
+                  <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
+                  <TextInput
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    style={[styles.input, { color: t.text }]}
+                    secureTextEntry
+                    placeholderTextColor={t.muted}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: t.text }]}>Xác nhận mật khẩu</Text>
+                <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
+                  <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
+                  <TextInput
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    style={[styles.input, { color: t.text }]}
+                    secureTextEntry
+                    placeholderTextColor={t.muted}
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity
+                onPress={handleSubmitNewPassword}
+                style={[
+                  styles.primaryButton,
+                  { backgroundColor: t.primary, shadowColor: t.primary },
+                  isSubmitting && { opacity: 0.9 },
+                ]}
+                activeOpacity={0.8}
+                disabled={isSubmitting}
+              >
+                <Text style={styles.primaryButtonText}>{isSubmitting ? 'Đang đổi...' : 'Đổi mật khẩu'}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
     );
   }
 
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: t.background }]} 
-      contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomNavHeight + 24 }]}
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: t.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.header}>
-        <Text style={[styles.brandTitle, { color: t.primary }]}>ElectroAI</Text>
-        <Text style={[styles.subtitle, { color: t.muted }]}>
-          {isRegister ? "Tạo tài khoản mới" : "Chào mừng trở lại!"}
-        </Text>
-      </View>
+      <ScrollView 
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomNavHeight + 24 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <Text style={[styles.brandTitle, { color: t.primary }]}>ElectroAI</Text>
+          <Text style={[styles.subtitle, { color: t.muted }]}>
+            {isRegister ? "Tạo tài khoản mới" : "Chào mừng trở lại!"}
+          </Text>
+        </View>
 
-      <View style={styles.form}>
-        {isRegister && (
+        <View style={styles.form}>
+          {isRegister && (
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: t.text }]}>Họ và tên</Text>
+              <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
+                <AppIcon name="user" size={20} color={t.muted} style={styles.inputIcon} />
+                <TextInput
+                  placeholder="Nhập họ tên"
+                  value={name}
+                  onChangeText={setName}
+                  style={[styles.input, { color: t.text }]}
+                  placeholderTextColor={t.muted}
+                />
+              </View>
+            </View>
+          )}
+
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: t.text }]}>Họ và tên</Text>
+            <Text style={[styles.label, { color: t.text }]}>Email</Text>
             <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
-              <AppIcon name="user" size={20} color={t.muted} style={styles.inputIcon} />
+              <AppIcon name="mail" size={20} color={t.muted} style={styles.inputIcon} />
               <TextInput
-                placeholder="Nhập họ tên"
-                value={name}
-                onChangeText={setName}
+                placeholder="example@email.com"
+                value={email}
+                onChangeText={setEmail}
                 style={[styles.input, { color: t.text }]}
+                keyboardType="email-address"
+                autoCapitalize="none"
                 placeholderTextColor={t.muted}
               />
             </View>
           </View>
-        )}
 
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: t.text }]}>Email</Text>
-          <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
-            <AppIcon name="mail" size={20} color={t.muted} style={styles.inputIcon} />
-            <TextInput
-              placeholder="example@email.com"
-              value={email}
-              onChangeText={setEmail}
-              style={[styles.input, { color: t.text }]}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              placeholderTextColor={t.muted}
-            />
-          </View>
-        </View>
-
-        <View style={styles.inputGroup}>
-          <View style={styles.labelRow}>
-            <Text style={[styles.label, { color: t.text }]}>Mật khẩu</Text>
-            {!isRegister && (
+          <View style={styles.inputGroup}>
+            <View style={styles.labelRow}>
+              <Text style={[styles.label, { color: t.text }]}>Mật khẩu</Text>
+              {!isRegister && (
+                <TouchableOpacity
+                  onPress={() => setIsForgotPassword(true)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.forgotPassword, { color: t.primary }]}>Quên mật khẩu?</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
+              <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
+              <TextInput
+                placeholder="••••••••"
+                value={password}
+                onChangeText={setPassword}
+                style={[styles.input, { color: t.text }]}
+                secureTextEntry={!showPassword}
+                placeholderTextColor={t.muted}
+              />
               <TouchableOpacity
-                onPress={() => setIsForgotPassword(true)}
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeButton}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.forgotPassword, { color: t.primary }]}>Quên mật khẩu?</Text>
+                <AppIcon 
+                  name={showPassword ? "eye-off" : "eye"} 
+                  size={20} 
+                  color={t.muted} 
+                />
               </TouchableOpacity>
-            )}
+            </View>
           </View>
-          <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
-            <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
-            <TextInput
-              placeholder="••••••••"
-              value={password}
-              onChangeText={setPassword}
-              style={[styles.input, { color: t.text }]}
-              secureTextEntry={!showPassword}
-              placeholderTextColor={t.muted}
-            />
-            <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
-              style={styles.eyeButton}
-              activeOpacity={0.7}
-            >
-              <AppIcon 
-                name={showPassword ? "eye-off" : "eye"} 
-                size={20} 
-                color={t.muted} 
-              />
-            </TouchableOpacity>
-          </View>
+
+          <TouchableOpacity
+            onPress={handleSubmit}
+            style={[
+              styles.primaryButton,
+              { backgroundColor: t.primary },
+              isSubmitting && { opacity: 0.9 },
+            ]}
+            activeOpacity={0.8}
+            disabled={isSubmitting}
+          >
+            <Text style={styles.primaryButtonText}>
+              {isSubmitting ? "Đang xử lý..." : isRegister ? "Đăng ký" : "Đăng nhập"}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          onPress={handleSubmit}
-          style={[
-            styles.primaryButton,
-            { backgroundColor: t.primary },
-            isSubmitting && { opacity: 0.9 },
-          ]}
-          activeOpacity={0.8}
-          disabled={isSubmitting}
-        >
-          <Text style={styles.primaryButtonText}>
-            {isSubmitting ? "Đang xử lý..." : isRegister ? "Đăng ký" : "Đăng nhập"}
+        <View style={styles.footer}>
+          <Text style={[styles.footerText, { color: t.muted }]}>
+            {isRegister ? "Đã có tài khoản? " : "Chưa có tài khoản? "}
           </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.footer}>
-        <Text style={[styles.footerText, { color: t.muted }]}>
-          {isRegister ? "Đã có tài khoản? " : "Chưa có tài khoản? "}
-        </Text>
-        <TouchableOpacity
-          onPress={() => {
-            setIsRegister(!isRegister);
-            setIsForgotPassword(false);
-            setIsVerifyingEmail(false);
-            setPendingRegister(null);
-            setVerificationCode(['', '', '', '', '', '']);
-            setResetStep('email');
-            setResetEmailSent(false);
-            setResetToken('');
-            setNewPassword('');
-            setConfirmPassword('');
-          }}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.footerLink, { color: t.primary }]}>
-            {isRegister ? "Đăng nhập" : "Đăng ký ngay"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+          <TouchableOpacity
+            onPress={() => {
+              setIsRegister(!isRegister);
+              setIsForgotPassword(false);
+              setIsVerifyingEmail(false);
+              setPendingRegister(null);
+              setVerificationCode(['', '', '', '', '', '']);
+              setResetStep('email');
+              setResetEmailSent(false);
+              setResetToken('');
+              setNewPassword('');
+              setConfirmPassword('');
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.footerLink, { color: t.primary }]}>
+              {isRegister ? "Đăng nhập" : "Đăng ký ngay"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

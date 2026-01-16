@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, FlatList } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 import { CATEGORIES, Product, extractCategoriesFromProducts } from '../lib/data';
 import { ProductCard } from '../components/ui/ProductCard';
 import { AppIcon } from '../components/common/Icon';
@@ -91,7 +91,10 @@ export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, 
   }, [initialCategory]);
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <KeyboardAvoidingView 
+      style={[styles.container, { backgroundColor: theme.background }]} 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       {/* Search Header */}
       <View style={[styles.searchContainer, { backgroundColor: theme.background }]}>
         <View style={[
@@ -185,7 +188,7 @@ export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, 
           </View>
         )}
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
