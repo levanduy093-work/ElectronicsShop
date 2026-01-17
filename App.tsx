@@ -489,6 +489,8 @@ const mapApiProductToUi = (product: ApiProduct): Product => {
     code: product.code,
     saleCount: product.saleCount,
     datasheet: product.datasheet,
+    options: product.options,
+    classifications: product.classifications,
   };
 };
 
@@ -1274,7 +1276,7 @@ function App(): React.JSX.Element {
     setCurrentScreen('order-detail');
   };
 
-  const handleAddToCart = (product: Product, quantity: number) => {
+  const handleAddToCart = (product: Product, quantity: number, selectedOption?: string, selectedClassification?: string) => {
     const available = product.stockQuantity;
     const isOutOfStock = product.stock === 'Out of Stock' || (available !== undefined && available <= 0);
     if (isOutOfStock) {
@@ -1285,9 +1287,17 @@ function App(): React.JSX.Element {
     const safeQuantity = Math.max(1, quantity);
     const limit = available ?? Number.POSITIVE_INFINITY;
 
+    // Create a unique key for cart items based on product id, option, and classification
+    const itemKey = `${product.id}-${selectedOption || 'default'}-${selectedClassification || 'default'}`;
+
     let success = false;
     setCartItems(prev => {
-      const existing = prev.find(item => item.id === product.id);
+      // Find existing item with same product, option, and classification
+      const existing = prev.find(item => {
+        const itemKey2 = `${item.id}-${item.selectedOption || 'default'}-${item.selectedClassification || 'default'}`;
+        return itemKey2 === itemKey;
+      });
+      
       if (existing) {
         const desired = existing.quantity + safeQuantity;
         const clamped = Math.min(desired, limit);
@@ -1296,9 +1306,10 @@ function App(): React.JSX.Element {
           return prev; // Không thay đổi gì
         }
         success = true;
-        return prev.map(item =>
-          item.id === product.id ? { ...item, quantity: Math.max(1, clamped) } : item,
-        );
+        return prev.map(item => {
+          const itemKey2 = `${item.id}-${item.selectedOption || 'default'}-${item.selectedClassification || 'default'}`;
+          return itemKey2 === itemKey ? { ...item, quantity: Math.max(1, clamped) } : item;
+        });
       }
 
       const initialQty = Math.min(safeQuantity, limit);
@@ -1307,7 +1318,12 @@ function App(): React.JSX.Element {
         return prev; // Không thay đổi gì
       }
       success = true;
-      return [...prev, { ...product, quantity: Math.max(1, initialQty) }];
+      return [...prev, { 
+        ...product, 
+        quantity: Math.max(1, initialQty),
+        selectedOption: selectedOption,
+        selectedClassification: selectedClassification,
+      }];
     });
     return success;
   };
@@ -1335,6 +1351,58 @@ function App(): React.JSX.Element {
 
   const removeFromCart = (id: string) => {
     setCartItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const updateCartItemOptions = (itemId: string, selectedOption?: string, selectedClassification?: string) => {
+    setCartItems(prev => {
+      // Find the item to update
+      const itemIndex = prev.findIndex(item => item.id === itemId);
+      if (itemIndex === -1) return prev;
+
+      const currentItem = prev[itemIndex];
+      const newOption = selectedOption || currentItem.selectedOption;
+      const newClassification = selectedClassification || currentItem.selectedClassification;
+
+      // Create unique key for the new combination
+      const newItemKey = `${currentItem.id}-${newOption || 'default'}-${newClassification || 'default'}`;
+      const currentItemKey = `${currentItem.id}-${currentItem.selectedOption || 'default'}-${currentItem.selectedClassification || 'default'}`;
+
+      // If the key is the same, just update the item
+      if (newItemKey === currentItemKey) {
+        return prev.map((item, index) =>
+          index === itemIndex
+            ? { ...item, selectedOption: newOption, selectedClassification: newClassification }
+            : item
+        );
+      }
+
+      // If key is different, check if there's already an item with the new combination
+      const existingItemIndex = prev.findIndex(item => {
+        const itemKey = `${item.id}-${item.selectedOption || 'default'}-${item.selectedClassification || 'default'}`;
+        return itemKey === newItemKey && item.id === currentItem.id;
+      });
+
+      if (existingItemIndex !== -1 && existingItemIndex !== itemIndex) {
+        // Merge with existing item
+        const existingItem = prev[existingItemIndex];
+        const newQuantity = existingItem.quantity + currentItem.quantity;
+        return prev
+          .map((item, index) => {
+            if (index === existingItemIndex) {
+              return { ...item, quantity: newQuantity };
+            }
+            return item;
+          })
+          .filter((_, index) => index !== itemIndex);
+      }
+
+      // Update the item with new options
+      return prev.map((item, index) =>
+        index === itemIndex
+          ? { ...item, selectedOption: newOption, selectedClassification: newClassification }
+          : item
+      );
+    });
   };
 
   useEffect(() => {
@@ -1630,6 +1698,7 @@ function App(): React.JSX.Element {
             items={cartItems}
             onUpdateQuantity={updateCartQuantity}
             onRemoveItem={removeFromCart}
+            onUpdateItemOptions={updateCartItemOptions}
             onExplore={() => handleTabChange('catalog')}
             onCheckout={navigateToCheckout}
             theme={theme}

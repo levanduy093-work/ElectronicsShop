@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Modal } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CartItem, Voucher } from '../types';
@@ -15,12 +15,13 @@ interface CartProps {
   items: CartItem[];
   onUpdateQuantity: (id: string, delta: number) => void;
   onRemoveItem: (id: string) => void;
+  onUpdateItemOptions?: (itemId: string, selectedOption?: string, selectedClassification?: string) => void;
   onExplore?: () => void;
   theme?: Theme;
   vouchers?: Voucher[];
 }
 
-export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExplore, theme, vouchers }: CartProps) {
+export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpdateItemOptions, onExplore, theme, vouchers }: CartProps) {
   const { t: translate } = useTranslation();
   const { theme: ctxTheme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -30,6 +31,9 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
   const [voucherCode, setVoucherCode] = useState('');
   const [showVoucherList, setShowVoucherList] = useState(false);
   const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
+  const [showOptionModal, setShowOptionModal] = useState(false);
+  const [showClassificationModal, setShowClassificationModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<CartItem | null>(null);
   const accentBg = t === lightTheme ? 'rgba(37,99,235,0.1)' : 'rgba(255,255,255,0.08)';
   const accentBorder = t === lightTheme ? '#2563EB' : t.primary;
   const overlayBg = t === lightTheme ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.7)';
@@ -119,6 +123,46 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
                   </TouchableOpacity>
                 </View>
                 <Text style={[styles.itemCategory, { color: t.muted }]}>{item.category}</Text>
+                {((item.options && item.options.length > 0) || (item.classifications && item.classifications.length > 0)) && (
+                  <View style={styles.optionsContainer}>
+                    {item.options && item.options.length > 0 && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setEditingItem(item);
+                          setShowOptionModal(true);
+                        }}
+                        style={[styles.optionTag, { backgroundColor: t.surface, borderColor: t.border }]}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.optionLabel, { color: t.muted }]}>Tùy chọn: </Text>
+                        <Text style={[styles.optionValue, { color: t.primary }]}>
+                          {item.selectedOption || (item.options.length > 0 ? item.options[0] : '')}
+                        </Text>
+                        {item.options.length > 1 && (
+                          <AppIcon name="chevron-down" size={14} color={t.primary} style={{ marginLeft: 4 }} />
+                        )}
+                      </TouchableOpacity>
+                    )}
+                    {item.classifications && item.classifications.length > 0 && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setEditingItem(item);
+                          setShowClassificationModal(true);
+                        }}
+                        style={[styles.optionTag, { backgroundColor: t.surface, borderColor: t.border }]}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.optionLabel, { color: t.muted }]}>Phân loại: </Text>
+                        <Text style={[styles.optionValue, { color: t.primary }]}>
+                          {item.selectedClassification || (item.classifications.length > 0 ? item.classifications[0] : '')}
+                        </Text>
+                        {item.classifications.length > 1 && (
+                          <AppIcon name="chevron-down" size={14} color={t.primary} style={{ marginLeft: 4 }} />
+                        )}
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
                 
                 <View style={styles.itemFooter}>
                   <Text style={[styles.itemPrice, { color: t.primary }]}>{formatPrice(item.price)}</Text>
@@ -153,7 +197,7 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
             style={[styles.voucherInput, { backgroundColor: t.surface, borderColor: t.border }]}
             activeOpacity={0.7}
           >
-            <AppIcon name="ticket" size={18} color={t.muted} style={styles.voucherIcon} />
+            <AppIcon name="tag" size={18} color={t.muted} style={styles.voucherIcon} />
             <Text style={[
               styles.voucherText,
               !voucherCode && styles.voucherPlaceholder,
@@ -309,6 +353,130 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
           </View>
         </View>
       )}
+
+      {/* Option Selection Modal */}
+      <Modal
+        visible={showOptionModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowOptionModal(false)}
+      >
+        <View style={[styles.modalOverlay, { backgroundColor: overlayBg }]}>
+          <View style={[styles.modalContent, { backgroundColor: t.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: t.text }]}>Chọn Tùy chọn</Text>
+              <TouchableOpacity
+                onPress={() => setShowOptionModal(false)}
+                style={styles.modalCloseButton}
+                activeOpacity={0.7}
+              >
+                <AppIcon name="x" size={24} color={t.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScrollView}>
+              {editingItem?.options?.map((option, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => {
+                    if (onUpdateItemOptions && editingItem) {
+                      onUpdateItemOptions(
+                        editingItem.id,
+                        option,
+                        editingItem.selectedClassification
+                      );
+                    }
+                    setShowOptionModal(false);
+                    setEditingItem(null);
+                  }}
+                  style={[
+                    styles.modalOptionItem,
+                    {
+                      backgroundColor: editingItem?.selectedOption === option ? accentBg : t.surface,
+                      borderColor: editingItem?.selectedOption === option ? accentBorder : t.border,
+                    }
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.modalOptionText,
+                    {
+                      color: editingItem?.selectedOption === option ? accentBorder : t.text,
+                      fontWeight: editingItem?.selectedOption === option ? '600' : '400',
+                    }
+                  ]}>
+                    {option}
+                  </Text>
+                  {editingItem?.selectedOption === option && (
+                    <AppIcon name="check" size={20} color={accentBorder} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Classification Selection Modal */}
+      <Modal
+        visible={showClassificationModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowClassificationModal(false)}
+      >
+        <View style={[styles.modalOverlay, { backgroundColor: overlayBg }]}>
+          <View style={[styles.modalContent, { backgroundColor: t.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: t.text }]}>Chọn Phân loại</Text>
+              <TouchableOpacity
+                onPress={() => setShowClassificationModal(false)}
+                style={styles.modalCloseButton}
+                activeOpacity={0.7}
+              >
+                <AppIcon name="x" size={24} color={t.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScrollView}>
+              {editingItem?.classifications?.map((classification, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => {
+                    if (onUpdateItemOptions && editingItem) {
+                      onUpdateItemOptions(
+                        editingItem.id,
+                        editingItem.selectedOption,
+                        classification
+                      );
+                    }
+                    setShowClassificationModal(false);
+                    setEditingItem(null);
+                  }}
+                  style={[
+                    styles.modalOptionItem,
+                    {
+                      backgroundColor: editingItem?.selectedClassification === classification ? accentBg : t.surface,
+                      borderColor: editingItem?.selectedClassification === classification ? accentBorder : t.border,
+                    }
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.modalOptionText,
+                    {
+                      color: editingItem?.selectedClassification === classification ? accentBorder : t.text,
+                      fontWeight: editingItem?.selectedClassification === classification ? '600' : '400',
+                    }
+                  ]}>
+                    {classification}
+                  </Text>
+                  {editingItem?.selectedClassification === classification && (
+                    <AppIcon name="check" size={20} color={accentBorder} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -378,6 +546,69 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     marginBottom: 8,
+  },
+  optionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
+  optionTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  optionLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  optionValue: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+    paddingBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalScrollView: {
+    maxHeight: 400,
+  },
+  modalOptionItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    marginHorizontal: 16,
+    marginVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  modalOptionText: {
+    fontSize: 16,
   },
   itemFooter: {
     flexDirection: 'row',

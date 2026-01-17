@@ -14,6 +14,8 @@ export type ApiProduct = {
   description?: string;
   images?: string[];
   specs?: Record<string, string>;
+  options?: string[];
+  classifications?: string[];
   price: {
     originalPrice: number;
     salePrice: number;

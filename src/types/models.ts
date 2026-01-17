@@ -21,6 +21,8 @@ export interface Product {
   code?: string;
   saleCount?: number;
   datasheet?: string;
+  options?: string[];
+  classifications?: string[];
 }
 
 export interface Category {
@@ -32,6 +34,8 @@ export interface Category {
 
 export interface CartItem extends Product {
   quantity: number;
+  selectedOption?: string;
+  selectedClassification?: string;
 }
 
 export interface HomeBanner {

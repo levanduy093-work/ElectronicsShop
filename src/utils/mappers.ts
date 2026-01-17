@@ -43,5 +43,7 @@ export const mapApiProductToUi = (product: ApiProduct): Product => {
     code: product.code,
     saleCount: product.saleCount,
     datasheet: product.datasheet,
+    options: product.options,
+    classifications: product.classifications,
   };
 };

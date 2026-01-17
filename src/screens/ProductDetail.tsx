@@ -16,7 +16,7 @@ import { ProductCard } from '../components/ui/ProductCard';
 interface ProductDetailProps {
   product: Product;
   onBack: () => void;
-  onAddToCart: (product: Product, quantity: number) => boolean | void;
+  onAddToCart: (product: Product, quantity: number, selectedOption?: string, selectedClassification?: string) => boolean | void;
   isFavorite: boolean;
   onToggleFavorite: () => void;
   isLoggedIn: boolean;
@@ -65,12 +65,27 @@ export function ProductDetail({
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const productImages = product.images && product.images.length > 0 ? product.images : [product.image];
 
-  // Variant state (Mock)
-  const [selectedVariant, setSelectedVariant] = useState(0);
-  const variants = [
-    { id: 0, name: 'Tiêu chuẩn', price: product.price },
-    // Mock variants if needed, or extract from specs
-  ];
+  // Options and Classifications state
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [selectedClassification, setSelectedClassification] = useState<string | null>(null);
+  
+  // Get options and classifications from product, with fallback
+  const productOptions = product.options && product.options.length > 0 
+    ? product.options 
+    : ['Tiêu chuẩn'];
+  const productClassifications = product.classifications && product.classifications.length > 0 
+    ? product.classifications 
+    : [];
+  
+  // Initialize selected values
+  useEffect(() => {
+    if (productOptions.length > 0 && selectedOption === null) {
+      setSelectedOption(productOptions[0]);
+    }
+    if (productClassifications.length > 0 && selectedClassification === null) {
+      setSelectedClassification(productClassifications[0]);
+    }
+  }, [product.id]);
 
   const runAddToCartAnimation = (callback: () => void) => {
     animItem.setValue({ x: 0, y: 0 });
@@ -228,7 +243,7 @@ export function ProductDetail({
       setQuantity(allowedQuantity);
     }
 
-    const result = onAddToCart(product, allowedQuantity);
+    const result = onAddToCart(product, allowedQuantity, selectedOption || undefined, selectedClassification || undefined);
     if (result === false) return; 
 
     showToast(t('addedToCart'), 'success'); 
@@ -538,33 +553,65 @@ export function ProductDetail({
             </View>
           </View>
 
-          {/* Variants */}
-          <View style={styles.variantSection}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Tùy chọn</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.variantList}>
-              {variants.map((v, i) => (
-                <TouchableOpacity
-                  key={i}
-                  onPress={() => setSelectedVariant(i)}
-                  style={[
-                    styles.variantChip,
-                    {
-                      borderColor: selectedVariant === i ? theme.primary : theme.border,
-                      backgroundColor: selectedVariant === i ? (theme === ctxTheme ? '#EFF6FF' : 'rgba(37,99,235,0.2)') : theme.surface,
-                    }
-                  ]}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.variantText,
-                    { color: selectedVariant === i ? theme.primary : theme.text }
-                  ]}>
-                    {v.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+          {/* Options */}
+          {productOptions.length > 0 && (
+            <View style={styles.variantSection}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Tùy chọn</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.variantList}>
+                {productOptions.map((option, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    onPress={() => setSelectedOption(option)}
+                    style={[
+                      styles.variantChip,
+                      {
+                        borderColor: selectedOption === option ? theme.primary : theme.border,
+                        backgroundColor: selectedOption === option ? (theme === ctxTheme ? '#EFF6FF' : 'rgba(37,99,235,0.2)') : theme.surface,
+                      }
+                    ]}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[
+                      styles.variantText,
+                      { color: selectedOption === option ? theme.primary : theme.text }
+                    ]}>
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Classifications */}
+          {productClassifications.length > 0 && (
+            <View style={styles.variantSection}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Phân loại</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.variantList}>
+                {productClassifications.map((classification, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    onPress={() => setSelectedClassification(classification)}
+                    style={[
+                      styles.variantChip,
+                      {
+                        borderColor: selectedClassification === classification ? theme.primary : theme.border,
+                        backgroundColor: selectedClassification === classification ? (theme === ctxTheme ? '#EFF6FF' : 'rgba(37,99,235,0.2)') : theme.surface,
+                      }
+                    ]}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[
+                      styles.variantText,
+                      { color: selectedClassification === classification ? theme.primary : theme.text }
+                    ]}>
+                      {classification}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
           {/* Tabs */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsContainer}>
