@@ -51,6 +51,8 @@ export type ApiOrderItem = {
   shippingFee?: number;
   discount?: number;
   totalPrice: number;
+  selectedOption?: string;
+  selectedClassification?: string;
 };
 
 export type ApiOrder = {

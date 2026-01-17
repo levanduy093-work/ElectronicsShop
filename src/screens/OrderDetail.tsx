@@ -14,7 +14,7 @@ interface OrderDetailProps {
   onBack: () => void;
   order?: Order;
   theme?: Theme;
-  onReorder?: (product: Product, quantity: number) => void;
+  onReorder?: (product: Product, quantity: number, selectedOption?: string, selectedClassification?: string) => void;
   products?: Product[];
   onNavigateToCart?: () => void;
 }
@@ -81,7 +81,7 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
     setIsReordering(true);
 
     const outOfStockItems: string[] = [];
-    const availableItems: Array<{ product: Product; quantity: number }> = [];
+    const availableItems: Array<{ product: Product; quantity: number; selectedOption?: string; selectedClassification?: string }> = [];
 
     // Check stock for each item
     orderData.items.forEach(item => {
@@ -101,13 +101,18 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
         // Check if requested quantity is available
         const availableQuantity = product.stockQuantity ?? item.quantity;
         const quantityToAdd = Math.min(item.quantity, availableQuantity);
-        availableItems.push({ product, quantity: quantityToAdd });
+        availableItems.push({ 
+          product, 
+          quantity: quantityToAdd,
+          selectedOption: item.selectedOption,
+          selectedClassification: item.selectedClassification,
+        });
       }
     });
 
     // Add available items to cart
     availableItems.forEach(item => {
-      onReorder(item.product, item.quantity);
+      onReorder(item.product, item.quantity, item.selectedOption, item.selectedClassification);
     });
 
     // Show appropriate message
@@ -268,24 +273,50 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
             <Text style={[styles.cardTitle, { color: t.text }]}>{translate('product')}</Text>
           </View>
           <View style={styles.productsList}>
-            {orderData.items.map((item) => (
-              <View key={item.id} style={styles.productItem}>
-                <ImageWithFallback
-                  source={{ uri: item.image }}
-                  style={[styles.productImage, { backgroundColor: t.surface }]}
-                  resizeMode="cover"
-                />
-                <View style={styles.productInfo}>
-                  <Text style={[styles.productName, { color: t.text }]} numberOfLines={2}>
-                    {item.name}
-                  </Text>
-                  <View style={styles.productFooter}>
-                    <Text style={[styles.productQuantity, { color: t.muted }]}>x{item.quantity}</Text>
-                    <Text style={[styles.productPrice, { color: t.primary }]}>{formatPrice(item.price)}</Text>
+            {orderData.items.map((item) => {
+              const product = products.find(p => p.id === item.id);
+              const displayOptions = product?.options || [];
+              const displayClassifications = product?.classifications || [];
+              
+              return (
+                <View key={item.id} style={styles.productItem}>
+                  <ImageWithFallback
+                    source={{ uri: item.image }}
+                    style={[styles.productImage, { backgroundColor: t.surface }]}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.productInfo}>
+                    <Text style={[styles.productName, { color: t.text }]} numberOfLines={2}>
+                      {item.name}
+                    </Text>
+                    {(item.selectedOption || item.selectedClassification || displayOptions.length > 0 || displayClassifications.length > 0) && (
+                      <View style={styles.optionsContainer}>
+                        {(item.selectedOption || (displayOptions.length > 0 && !item.selectedOption)) && (
+                          <View style={[styles.optionTag, { backgroundColor: t.surface, borderColor: t.border }]}>
+                            <Text style={[styles.optionLabel, { color: t.muted }]}>Tùy chọn: </Text>
+                            <Text style={[styles.optionValue, { color: t.primary }]}>
+                              {item.selectedOption || (displayOptions.length > 0 ? displayOptions[0] : '')}
+                            </Text>
+                          </View>
+                        )}
+                        {(item.selectedClassification || (displayClassifications.length > 0 && !item.selectedClassification)) && (
+                          <View style={[styles.optionTag, { backgroundColor: t.surface, borderColor: t.border }]}>
+                            <Text style={[styles.optionLabel, { color: t.muted }]}>Phân loại: </Text>
+                            <Text style={[styles.optionValue, { color: t.primary }]}>
+                              {item.selectedClassification || (displayClassifications.length > 0 ? displayClassifications[0] : '')}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+                    <View style={styles.productFooter}>
+                      <Text style={[styles.productQuantity, { color: t.muted }]}>x{item.quantity}</Text>
+                      <Text style={[styles.productPrice, { color: t.primary }]}>{formatPrice(item.price)}</Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
 
@@ -521,6 +552,29 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  optionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  optionTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  optionLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  optionValue: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   paymentDetails: {
     gap: 8,

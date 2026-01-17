@@ -104,6 +104,8 @@ export interface OrderItem {
   price: number;
   quantity: number;
   image: string;
+  selectedOption?: string;
+  selectedClassification?: string;
 }
 
 export interface Order {

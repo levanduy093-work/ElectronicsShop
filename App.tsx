@@ -334,6 +334,8 @@ const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS, t
       price: item.price,
       quantity: item.quantity,
       image: pickImage(item.productId),
+      selectedOption: item.selectedOption,
+      selectedClassification: item.selectedClassification,
     })),
     shippingAddress: {
       name: order.shippingAddress?.name || (t ? t('receiver') : 'Receiver'),
@@ -1523,6 +1525,8 @@ function App(): React.JSX.Element {
         shippingFee: 0,
         discount: 0,
         totalPrice: item.price * item.quantity,
+        selectedOption: item.selectedOption,
+        selectedClassification: item.selectedClassification,
       })),
       subTotal: params.totals.subTotal,
       shippingFee: params.totals.shippingFee,
