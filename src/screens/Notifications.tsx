@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,6 @@ import {
   StatusBar,
   Platform,
   RefreshControl,
-  Animated,
-  PanResponder,
-  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -23,7 +20,6 @@ interface NotificationsProps {
   notifications: NotificationItem[];
   onMarkAllRead?: () => void;
   onMarkRead?: (id: string) => void;
-  onDelete?: (id: string) => void;
   refreshing?: boolean;
   onRefresh?: () => void;
 }
@@ -37,16 +33,12 @@ interface NotificationItem {
   read: boolean;
 }
 
-const SWIPE_THRESHOLD = 80;
-const DELETE_BUTTON_WIDTH = 80;
-
 export function Notifications({
   onBack,
   theme,
   notifications,
   onMarkAllRead,
   onMarkRead,
-  onDelete,
   refreshing = false,
   onRefresh,
 }: NotificationsProps) {
@@ -55,30 +47,6 @@ export function Notifications({
   const { t: translate } = useTranslation();
   const t = theme || ctxTheme || lightTheme;
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [swipedId, setSwipedId] = useState<string | null>(null);
-  const panResponders = useRef<Map<string, any>>(new Map());
-  const translateX = useRef<Map<string, Animated.Value>>(new Map());
-  const deleteButtonOpacity = useRef<Map<string, Animated.Value>>(new Map());
-
-  // Cleanup removed notifications
-  useEffect(() => {
-    const currentIds = new Set(notifications.map(n => n.id));
-    const storedIds = Array.from(translateX.current.keys());
-    
-    storedIds.forEach(id => {
-      if (!currentIds.has(id)) {
-        translateX.current.delete(id);
-        deleteButtonOpacity.current.delete(id);
-        panResponders.current.delete(id);
-        if (swipedId === id) {
-          setSwipedId(null);
-        }
-        if (expandedId === id) {
-          setExpandedId(null);
-        }
-      }
-    });
-  }, [notifications, swipedId, expandedId]);
 
   const handleMarkAllAsRead = () => {
     onMarkAllRead?.();
@@ -90,156 +58,6 @@ export function Notifications({
       onMarkRead?.(notification.id);
     }
     setExpandedId(prev => (prev === notification.id ? null : notification.id));
-  };
-
-  const getPanResponder = (id: string) => {
-    if (panResponders.current.has(id)) {
-      return panResponders.current.get(id);
-    }
-
-    if (!translateX.current.has(id)) {
-      translateX.current.set(id, new Animated.Value(0));
-    }
-    
-    if (!deleteButtonOpacity.current.has(id)) {
-      deleteButtonOpacity.current.set(id, new Animated.Value(0));
-    }
-
-    const pan = PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 10;
-      },
-      onPanResponderGrant: () => {
-        if (swipedId && swipedId !== id) {
-          // Close other swiped items
-          const otherTranslateX = translateX.current.get(swipedId);
-          const otherOpacity = deleteButtonOpacity.current.get(swipedId);
-          if (otherTranslateX && otherOpacity) {
-            Animated.parallel([
-              Animated.spring(otherTranslateX, {
-                toValue: 0,
-                useNativeDriver: true,
-                tension: 100,
-                friction: 8,
-              }),
-              Animated.timing(otherOpacity, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: true,
-              }),
-            ]).start();
-          }
-          setSwipedId(null);
-        }
-      },
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dx < 0) {
-          const currentTranslateX = translateX.current.get(id);
-          const currentOpacity = deleteButtonOpacity.current.get(id);
-          if (currentTranslateX && currentOpacity) {
-            const swipeProgress = Math.min(Math.abs(gestureState.dx) / DELETE_BUTTON_WIDTH, 1);
-            currentTranslateX.setValue(Math.max(gestureState.dx, -DELETE_BUTTON_WIDTH));
-            currentOpacity.setValue(swipeProgress);
-          }
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        const currentTranslateX = translateX.current.get(id);
-        const currentOpacity = deleteButtonOpacity.current.get(id);
-        if (!currentTranslateX || !currentOpacity) return;
-
-        if (gestureState.dx < -SWIPE_THRESHOLD) {
-          // Swipe left enough to show delete button
-          Animated.parallel([
-            Animated.spring(currentTranslateX, {
-              toValue: -DELETE_BUTTON_WIDTH,
-              useNativeDriver: true,
-              tension: 100,
-              friction: 8,
-            }),
-            Animated.timing(currentOpacity, {
-              toValue: 1,
-              duration: 200,
-              useNativeDriver: true,
-            }),
-          ]).start();
-          setSwipedId(id);
-        } else {
-          // Spring back
-          Animated.parallel([
-            Animated.spring(currentTranslateX, {
-              toValue: 0,
-              useNativeDriver: true,
-              tension: 100,
-              friction: 8,
-            }),
-            Animated.timing(currentOpacity, {
-              toValue: 0,
-              duration: 200,
-              useNativeDriver: true,
-            }),
-          ]).start();
-          setSwipedId(null);
-        }
-      },
-    });
-
-    panResponders.current.set(id, pan);
-    return pan;
-  };
-
-  const handleDelete = (id: string) => {
-    // Hide delete button immediately
-    setSwipedId(null);
-    
-    const currentTranslateX = translateX.current.get(id);
-    const currentOpacity = deleteButtonOpacity.current.get(id);
-    if (currentTranslateX && currentOpacity) {
-      // Hide delete button and slide out animation
-      Animated.parallel([
-        Animated.timing(currentOpacity, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-        Animated.timing(currentTranslateX, {
-          toValue: -Dimensions.get('window').width,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        // Delete notification after animation completes
-        onDelete?.(id);
-        translateX.current.delete(id);
-        deleteButtonOpacity.current.delete(id);
-        panResponders.current.delete(id);
-      });
-    } else {
-      // Delete immediately if no animation
-      onDelete?.(id);
-    }
-  };
-
-  const handleCloseSwipe = (id: string) => {
-    const currentTranslateX = translateX.current.get(id);
-    const currentOpacity = deleteButtonOpacity.current.get(id);
-    if (currentTranslateX && currentOpacity) {
-      Animated.parallel([
-        Animated.spring(currentTranslateX, {
-          toValue: 0,
-          useNativeDriver: true,
-          tension: 100,
-          friction: 8,
-        }),
-        Animated.timing(currentOpacity, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-      setSwipedId(null);
-    }
   };
 
   const hasUnreadNotifications = notifications.some(notification => !notification.read);
@@ -294,42 +112,10 @@ export function Notifications({
       >
         {notifications.map((item) => {
           const isExpanded = expandedId === item.id;
-          // Ensure Animated.Value exists before getting panResponder
-          if (!translateX.current.has(item.id)) {
-            translateX.current.set(item.id, new Animated.Value(0));
-          }
-          if (!deleteButtonOpacity.current.has(item.id)) {
-            deleteButtonOpacity.current.set(item.id, new Animated.Value(0));
-          }
-          const panResponder = getPanResponder(item.id);
-          const currentTranslateX = translateX.current.get(item.id)!;
-          const currentDeleteOpacity = deleteButtonOpacity.current.get(item.id)!;
           
           return (
-            <View key={item.id} style={styles.swipeContainer}>
-              {/* Delete Button Background */}
-              <Animated.View 
-                style={[
-                  styles.deleteButtonContainer, 
-                  { 
-                    backgroundColor: '#EF4444',
-                    opacity: currentDeleteOpacity,
-                  }
-                ]}
-                pointerEvents={swipedId === item.id ? 'auto' : 'none'}
-              >
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={() => handleDelete(item.id)}
-                  activeOpacity={0.8}
-                >
-                  <AppIcon name="trash" size={20} color="#FFFFFF" />
-                  <Text style={styles.deleteButtonText}>{translate('delete')}</Text>
-                </TouchableOpacity>
-              </Animated.View>
-              
-              {/* Notification Card */}
-              <Animated.View
+            <View key={item.id} style={styles.notificationCardWrapper}>
+              <View
                 style={[
                   styles.notificationCard,
                   isExpanded && styles.notificationCardExpanded,
@@ -339,22 +125,13 @@ export function Notifications({
                     borderColor: item.read && !isExpanded ? 'transparent' : t.border,
                     shadowOpacity: t === lightTheme && (!item.read || isExpanded) ? 0.08 : 0,
                     elevation: t === lightTheme && (!item.read || isExpanded) ? 3 : 0,
-                    transform: [{ translateX: currentTranslateX }],
                   }
                 ]}
-                {...panResponder.panHandlers}
               >
                 <TouchableOpacity
                   activeOpacity={0.9}
-                  onPress={() => {
-                    if (swipedId === item.id) {
-                      handleCloseSwipe(item.id);
-                    } else {
-                      handleToggleNotification(item);
-                    }
-                  }}
+                  onPress={() => handleToggleNotification(item)}
                   style={styles.cardContent}
-                  disabled={swipedId === item.id}
                 >
                   <View style={[styles.iconContainer, { backgroundColor: getBgColor(item.type) }]}>
                     {getIcon(item.type)}
@@ -369,15 +146,10 @@ export function Notifications({
                         <TouchableOpacity
                           onPress={(e) => {
                             e?.stopPropagation?.();
-                            if (swipedId === item.id) {
-                              handleCloseSwipe(item.id);
-                            } else {
-                              handleToggleNotification(item);
-                            }
+                            handleToggleNotification(item);
                           }}
                           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                           activeOpacity={0.8}
-                          disabled={swipedId === item.id}
                         >
                           <AppIcon
                             name={isExpanded ? 'chevron-up' : 'chevron-down'}
@@ -400,7 +172,7 @@ export function Notifications({
                   </View>
                   {!item.read && <View style={[styles.unreadDot, { backgroundColor: t.primary }]} />}
                 </TouchableOpacity>
-              </Animated.View>
+              </View>
             </View>
           );
         })}
@@ -454,36 +226,8 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 96,
   },
-  swipeContainer: {
+  notificationCardWrapper: {
     marginBottom: 12,
-    position: 'relative',
-    overflow: 'hidden',
-    borderRadius: 16,
-    backgroundColor: 'transparent',
-  },
-  deleteButtonContainer: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: DELETE_BUTTON_WIDTH,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-    borderTopRightRadius: 16,
-    borderBottomRightRadius: 16,
-  },
-  deleteButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    height: '100%',
-    gap: 4,
-  },
-  deleteButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
   },
   notificationCard: {
     flexDirection: 'row',

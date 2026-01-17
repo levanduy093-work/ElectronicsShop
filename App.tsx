@@ -1269,18 +1269,6 @@ function App(): React.JSX.Element {
     }
   };
 
-  const handleDeleteNotification = (id: string) => {
-    setNotifications(prev => prev.filter(item => item.id !== id));
-    // TODO: Call API to delete notification on server if endpoint exists
-    // if (authTokensRef.current?.accessToken) {
-    //   try {
-    //     await apiDeleteNotification(id, authTokensRef.current.accessToken);
-    //   } catch (error: any) {
-    //     console.warn('App.tsx - Failed to delete notification', error?.message || error);
-    //   }
-    // }
-  };
-
   const navigateToOrderDetail = (orderId: string) => {
     setSelectedOrderId(orderId);
     setCurrentScreen('order-detail');
@@ -1765,7 +1753,6 @@ function App(): React.JSX.Element {
             notifications={notifications}
             onMarkAllRead={handleMarkAllNotificationsRead}
             onMarkRead={handleMarkNotificationRead}
-            onDelete={handleDeleteNotification}
             refreshing={isRefreshingNotifications}
             onRefresh={refreshNotifications}
           />
