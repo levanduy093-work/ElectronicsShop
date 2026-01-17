@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CartItem, Voucher } from '../types';
 import { AVAILABLE_VOUCHERS } from '../constants/data';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
@@ -22,6 +23,7 @@ interface CartProps {
 export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExplore, theme, vouchers }: CartProps) {
   const { t: translate } = useTranslation();
   const { theme: ctxTheme } = useTheme();
+  const insets = useSafeAreaInsets();
   const { showToast } = useToast();
   const t = theme || ctxTheme || lightTheme;
   const voucherList = vouchers && vouchers.length > 0 ? vouchers : AVAILABLE_VOUCHERS;
@@ -205,7 +207,10 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
             activeOpacity={1}
             onPress={() => setShowVoucherList(false)}
           />
-          <View style={[styles.modalContent, { backgroundColor: t.card }]}>
+          <View style={[
+            styles.modalContent,
+            { backgroundColor: t.card, paddingBottom: 24 + insets.bottom }
+          ]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: t.text }]}>{translate('select_voucher')}</Text>
               <TouchableOpacity
@@ -216,7 +221,11 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onExpl
               </TouchableOpacity>
             </View>
             
-            <ScrollView style={styles.voucherList}>
+            <ScrollView
+              style={styles.voucherList}
+              contentContainerStyle={{ paddingBottom: 24 + insets.bottom }}
+              showsVerticalScrollIndicator={false}
+            >
               {voucherList.length > 0 ? (
                 voucherList.map((voucher) => {
                   const isEligible = subtotal >= voucher.minTotal;
@@ -542,6 +551,8 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     justifyContent: 'flex-end',
+    zIndex: 30,
+    elevation: 30,
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
