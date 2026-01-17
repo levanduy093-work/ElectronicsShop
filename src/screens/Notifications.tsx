@@ -56,6 +56,7 @@ export function Notifications({
   const [swipedId, setSwipedId] = useState<string | null>(null);
   const panResponders = useRef<Map<string, any>>(new Map());
   const translateX = useRef<Map<string, Animated.Value>>(new Map());
+  const deleteButtonOpacity = useRef<Map<string, Animated.Value>>(new Map());
 
   // Cleanup removed notifications
   useEffect(() => {
@@ -65,6 +66,7 @@ export function Notifications({
     storedIds.forEach(id => {
       if (!currentIds.has(id)) {
         translateX.current.delete(id);
+        deleteButtonOpacity.current.delete(id);
         panResponders.current.delete(id);
         if (swipedId === id) {
           setSwipedId(null);
@@ -96,6 +98,10 @@ export function Notifications({
     if (!translateX.current.has(id)) {
       translateX.current.set(id, new Animated.Value(0));
     }
+    
+    if (!deleteButtonOpacity.current.has(id)) {
+      deleteButtonOpacity.current.set(id, new Animated.Value(0));
+    }
 
     const pan = PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -106,11 +112,21 @@ export function Notifications({
         if (swipedId && swipedId !== id) {
           // Close other swiped items
           const otherTranslateX = translateX.current.get(swipedId);
-          if (otherTranslateX) {
-            Animated.spring(otherTranslateX, {
-              toValue: 0,
-              useNativeDriver: true,
-            }).start();
+          const otherOpacity = deleteButtonOpacity.current.get(swipedId);
+          if (otherTranslateX && otherOpacity) {
+            Animated.parallel([
+              Animated.spring(otherTranslateX, {
+                toValue: 0,
+                useNativeDriver: true,
+                tension: 100,
+                friction: 8,
+              }),
+              Animated.timing(otherOpacity, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+              }),
+            ]).start();
           }
           setSwipedId(null);
         }
@@ -118,28 +134,50 @@ export function Notifications({
       onPanResponderMove: (_, gestureState) => {
         if (gestureState.dx < 0) {
           const currentTranslateX = translateX.current.get(id);
-          if (currentTranslateX) {
+          const currentOpacity = deleteButtonOpacity.current.get(id);
+          if (currentTranslateX && currentOpacity) {
+            const swipeProgress = Math.min(Math.abs(gestureState.dx) / DELETE_BUTTON_WIDTH, 1);
             currentTranslateX.setValue(Math.max(gestureState.dx, -DELETE_BUTTON_WIDTH));
+            currentOpacity.setValue(swipeProgress);
           }
         }
       },
       onPanResponderRelease: (_, gestureState) => {
         const currentTranslateX = translateX.current.get(id);
-        if (!currentTranslateX) return;
+        const currentOpacity = deleteButtonOpacity.current.get(id);
+        if (!currentTranslateX || !currentOpacity) return;
 
         if (gestureState.dx < -SWIPE_THRESHOLD) {
           // Swipe left enough to show delete button
-          Animated.spring(currentTranslateX, {
-            toValue: -DELETE_BUTTON_WIDTH,
-            useNativeDriver: true,
-          }).start();
+          Animated.parallel([
+            Animated.spring(currentTranslateX, {
+              toValue: -DELETE_BUTTON_WIDTH,
+              useNativeDriver: true,
+              tension: 100,
+              friction: 8,
+            }),
+            Animated.timing(currentOpacity, {
+              toValue: 1,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+          ]).start();
           setSwipedId(id);
         } else {
           // Spring back
-          Animated.spring(currentTranslateX, {
-            toValue: 0,
-            useNativeDriver: true,
-          }).start();
+          Animated.parallel([
+            Animated.spring(currentTranslateX, {
+              toValue: 0,
+              useNativeDriver: true,
+              tension: 100,
+              friction: 8,
+            }),
+            Animated.timing(currentOpacity, {
+              toValue: 0,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+          ]).start();
           setSwipedId(null);
         }
       },
@@ -150,32 +188,54 @@ export function Notifications({
   };
 
   const handleDelete = (id: string) => {
+    // Hide delete button immediately
+    setSwipedId(null);
+    
     const currentTranslateX = translateX.current.get(id);
-    if (currentTranslateX) {
-      Animated.timing(currentTranslateX, {
-        toValue: -Dimensions.get('window').width,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => {
+    const currentOpacity = deleteButtonOpacity.current.get(id);
+    if (currentTranslateX && currentOpacity) {
+      // Hide delete button and slide out animation
+      Animated.parallel([
+        Animated.timing(currentOpacity, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(currentTranslateX, {
+          toValue: -Dimensions.get('window').width,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        // Delete notification after animation completes
         onDelete?.(id);
         translateX.current.delete(id);
+        deleteButtonOpacity.current.delete(id);
         panResponders.current.delete(id);
-        if (swipedId === id) {
-          setSwipedId(null);
-        }
       });
     } else {
+      // Delete immediately if no animation
       onDelete?.(id);
     }
   };
 
   const handleCloseSwipe = (id: string) => {
     const currentTranslateX = translateX.current.get(id);
-    if (currentTranslateX) {
-      Animated.spring(currentTranslateX, {
-        toValue: 0,
-        useNativeDriver: true,
-      }).start();
+    const currentOpacity = deleteButtonOpacity.current.get(id);
+    if (currentTranslateX && currentOpacity) {
+      Animated.parallel([
+        Animated.spring(currentTranslateX, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 100,
+          friction: 8,
+        }),
+        Animated.timing(currentOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
       setSwipedId(null);
     }
   };
@@ -236,22 +296,35 @@ export function Notifications({
           if (!translateX.current.has(item.id)) {
             translateX.current.set(item.id, new Animated.Value(0));
           }
+          if (!deleteButtonOpacity.current.has(item.id)) {
+            deleteButtonOpacity.current.set(item.id, new Animated.Value(0));
+          }
           const panResponder = getPanResponder(item.id);
           const currentTranslateX = translateX.current.get(item.id)!;
+          const currentDeleteOpacity = deleteButtonOpacity.current.get(item.id)!;
           
           return (
             <View key={item.id} style={styles.swipeContainer}>
               {/* Delete Button Background */}
-              <View style={[styles.deleteButtonContainer, { backgroundColor: '#EF4444' }]}>
+              <Animated.View 
+                style={[
+                  styles.deleteButtonContainer, 
+                  { 
+                    backgroundColor: '#EF4444',
+                    opacity: currentDeleteOpacity,
+                  }
+                ]}
+                pointerEvents={swipedId === item.id ? 'auto' : 'none'}
+              >
                 <TouchableOpacity
                   style={styles.deleteButton}
                   onPress={() => handleDelete(item.id)}
                   activeOpacity={0.8}
                 >
-                  <AppIcon name="trash-2" size={20} color="#FFFFFF" />
+                  <AppIcon name="trash" size={20} color="#FFFFFF" />
                   <Text style={styles.deleteButtonText}>Xóa</Text>
                 </TouchableOpacity>
-              </View>
+              </Animated.View>
               
               {/* Notification Card */}
               <Animated.View
@@ -279,6 +352,7 @@ export function Notifications({
                     }
                   }}
                   style={styles.cardContent}
+                  disabled={swipedId === item.id}
                 >
                   <View style={[styles.iconContainer, { backgroundColor: getBgColor(item.type) }]}>
                     {getIcon(item.type)}
@@ -301,6 +375,7 @@ export function Notifications({
                           }}
                           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                           activeOpacity={0.8}
+                          disabled={swipedId === item.id}
                         >
                           <AppIcon
                             name={isExpanded ? 'chevron-up' : 'chevron-down'}
@@ -381,6 +456,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     position: 'relative',
     overflow: 'hidden',
+    borderRadius: 16,
+    backgroundColor: 'transparent',
   },
   deleteButtonContainer: {
     position: 'absolute',
@@ -391,6 +468,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 16,
   },
   deleteButton: {
     justifyContent: 'center',
