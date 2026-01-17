@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { formatPrice } from '../utils';
@@ -64,6 +65,7 @@ const DEFAULT_ORDER: Order = {
 export function OrderDetail({ orderId, onBack, order, theme, onReorder, products = [], onNavigateToCart }: OrderDetailProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme, isDarkMode } = useTheme();
+  const { t: translate } = useTranslation();
   const t = theme || ctxTheme || lightTheme;
   const orderData = order || DEFAULT_ORDER;
   const { showToast } = useToast();
@@ -71,7 +73,7 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
 
   const handleReorder = () => {
     if (!onReorder) {
-      showToast('Chức năng mua lại chưa được kích hoạt', 'error');
+      showToast(translate('reorderNotActivated'), 'error');
       return;
     }
 
@@ -110,14 +112,19 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
 
     // Show appropriate message
     if (availableItems.length === 0) {
-      showToast('Tất cả sản phẩm trong đơn hàng đã hết', 'error');
+      showToast(translate('allProductsOutOfStock'), 'error');
     } else if (outOfStockItems.length === 0) {
-      showToast(`Đã thêm ${availableItems.length} sản phẩm vào giỏ hàng`, 'success');
+      showToast(translate('products_added_to_cart', { count: availableItems.length }), 'success');
       setTimeout(() => onNavigateToCart?.(), 500);
     } else {
+      const productsList = outOfStockItems.slice(0, 2).join(', ') + (outOfStockItems.length > 2 ? '...' : '');
       showToast(
-        `Đã thêm ${availableItems.length} sản phẩm. ${outOfStockItems.length} sản phẩm hết hàng: ${outOfStockItems.slice(0, 2).join(', ')}${outOfStockItems.length > 2 ? '...' : ''}`,
-        'warning'
+        translate('products_added_some_out_of_stock', {
+          count: availableItems.length,
+          outOfStockCount: outOfStockItems.length,
+          products: productsList,
+        }),
+        'info'
       );
       setTimeout(() => onNavigateToCart?.(), 500);
     }
@@ -163,7 +170,7 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
         <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.muted} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: t.text }]}>Chi tiết đơn hàng</Text>
+        <Text style={[styles.title, { color: t.text }]}>{translate('order_details')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -183,7 +190,7 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
           }
         ]}>
           <View style={styles.statusHeader}>
-            <Text style={[styles.orderId, { color: t.text }]}>Mã đơn: #{orderData.code || orderId}</Text>
+            <Text style={[styles.orderId, { color: t.text }]}>{translate('order_id')} #{orderData.code || orderId}</Text>
             <View style={[
               styles.statusBadge,
               {
@@ -238,7 +245,7 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
         ]}>
           <View style={styles.cardHeader}>
             <AppIcon name="map-pin" size={18} color={t.primary} />
-            <Text style={[styles.cardTitle, { color: t.text }]}>Địa chỉ nhận hàng</Text>
+            <Text style={[styles.cardTitle, { color: t.text }]}>{translate('shipping_address')}</Text>
           </View>
           <Text style={[styles.addressName, { color: t.text }]}>
             {orderData.shippingAddress.name} | {orderData.shippingAddress.phone}
@@ -258,7 +265,7 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
         ]}>
           <View style={styles.cardHeader}>
             <AppIcon name="package" size={18} color={t.primary} />
-            <Text style={[styles.cardTitle, { color: t.text }]}>Sản phẩm</Text>
+            <Text style={[styles.cardTitle, { color: t.text }]}>{translate('product')}</Text>
           </View>
           <View style={styles.productsList}>
             {orderData.items.map((item) => (
@@ -294,33 +301,33 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
         ]}>
           <View style={styles.cardHeader}>
             <AppIcon name="credit-card" size={18} color={t.primary} />
-            <Text style={[styles.cardTitle, { color: t.text }]}>Thanh toán</Text>
+            <Text style={[styles.cardTitle, { color: t.text }]}>{translate('payment')}</Text>
           </View>
 
           <View style={styles.paymentDetails}>
             <View style={styles.paymentRow}>
-              <Text style={[styles.paymentLabel, { color: t.muted }]}>Tổng tiền hàng</Text>
+              <Text style={[styles.paymentLabel, { color: t.muted }]}>{translate('subtotal')}</Text>
               <Text style={[styles.paymentValue, { color: t.text }]}>{formatPrice(orderData.payment.subtotal)}</Text>
             </View>
             <View style={styles.paymentRow}>
-              <Text style={[styles.paymentLabel, { color: t.muted }]}>Phí vận chuyển</Text>
+              <Text style={[styles.paymentLabel, { color: t.muted }]}>{translate('shipping_fee')}</Text>
               <Text style={[styles.paymentValue, { color: t.text }]}>{formatPrice(orderData.payment.shippingFee)}</Text>
             </View>
             <View style={styles.paymentRow}>
-              <Text style={[styles.paymentLabel, { color: t.muted }]}>Giảm giá</Text>
+              <Text style={[styles.paymentLabel, { color: t.muted }]}>{translate('discount')}</Text>
               <Text style={[styles.paymentValue, { color: '#10B981' }]}>
                 -{formatPrice(orderData.payment.discount)}
               </Text>
             </View>
             <View style={[styles.totalRow, { borderTopColor: t.border }]}>
-              <Text style={[styles.totalLabel, { color: t.text }]}>Thành tiền</Text>
+              <Text style={[styles.totalLabel, { color: t.text }]}>{translate('total_amount')}</Text>
               <Text style={[styles.totalValue, { color: t.primary }]}>{formatPrice(orderData.payment.total)}</Text>
             </View>
           </View>
 
           <View style={[styles.paymentMethod, { backgroundColor: t.surface }]}>
             <Text style={[styles.paymentMethodText, { color: t.muted }]}>
-              Phương thức: {orderData.payment.method}
+              {translate('payment_method')} {orderData.payment.method}
             </Text>
           </View>
         </View>
@@ -345,7 +352,7 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
           ]} 
           activeOpacity={0.7}
         >
-          <Text style={[styles.supportButtonText, { color: t.text }]}>Liên hệ hỗ trợ</Text>
+          <Text style={[styles.supportButtonText, { color: t.text }]}>{translate('contact_support')}</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[
@@ -359,7 +366,7 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
           disabled={isReordering}
         >
           <Text style={[styles.reorderButtonText, { color: isReordering ? t.muted : '#FFFFFF' }]}>
-            {isReordering ? 'Đang xử lý...' : 'Mua lại'}
+            {isReordering ? translate('processing') : translate('reorder')}
           </Text>
         </TouchableOpacity>
       </View>

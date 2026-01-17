@@ -87,10 +87,10 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
     const index = addressList.findIndex(addr => addr.id === id);
     if (index === -1) return;
 
-    Alert.alert('Xác nhận', 'Bạn có chắc chắn muốn xóa địa chỉ này?', [
-      { text: 'Hủy', style: 'cancel' },
+    Alert.alert(translate('confirmDelete'), translate('confirmDeleteAddress'), [
+      { text: translate('cancel'), style: 'cancel' },
       {
-        text: 'Xóa',
+        text: translate('delete'),
         style: 'destructive',
         onPress: async () => {
           if (accessToken) {
@@ -243,7 +243,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
         <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: t.text }]}>Sổ địa chỉ</Text>
+        <Text style={[styles.headerTitle, { color: t.text }]}>{translate('address_book')}</Text>
         <TouchableOpacity onPress={openAddForm} activeOpacity={0.7}>
           <AppIcon name="plus" size={24} color={t.primary} />
         </TouchableOpacity>
@@ -257,7 +257,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
         {isLoading && addressList.length === 0 ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={t.primary} />
-            <Text style={[styles.loadingText, { color: t.muted }]}>Đang tải địa chỉ...</Text>
+            <Text style={[styles.loadingText, { color: t.muted }]}>{translate('loading_addresses')}</Text>
           </View>
         ) : (
           addressList.map((addr) => (
@@ -277,7 +277,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
               </View>
               {addr.isDefault ? (
                 <View style={[styles.defaultBadge, { backgroundColor: t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)', borderColor: t === lightTheme ? '#93C5FD' : t.primary }]}>
-                  <Text style={[styles.defaultBadgeText, { color: t.primary }]}>Mặc định</Text>
+                  <Text style={[styles.defaultBadgeText, { color: t.primary }]}>{translate('default')}</Text>
                 </View>
               ) : (
                 <TouchableOpacity
@@ -285,7 +285,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
                   style={[styles.setDefaultButton, { borderColor: t.border }]}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.setDefaultText, { color: t.muted }]}>Đặt mặc định</Text>
+                  <Text style={[styles.setDefaultText, { color: t.muted }]}>{translate('set_as_default_address')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -295,11 +295,13 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
             <View style={styles.addressFooter}>
               <View style={[styles.typeBadge, { backgroundColor: t.surface }]}>
                 <AppIcon
-                  name={addr.type === translate('home') ? 'home' : 'briefcase'}
+                  name={addr.type === 'Nhà riêng' ? 'home' : 'briefcase'}
                   size={10}
                   color={t.muted}
                 />
-                <Text style={[styles.typeBadgeText, { color: t.muted }]}>{addr.type}</Text>
+                <Text style={[styles.typeBadgeText, { color: t.muted }]}>
+                  {addr.type === 'Nhà riêng' ? translate('home') : translate('office')}
+                </Text>
               </View>
               <View style={styles.actions}>
                 <TouchableOpacity
@@ -308,7 +310,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
                   activeOpacity={0.7}
                 >
                   <AppIcon name="edit" size={14} color={t.primary} />
-                  <Text style={[styles.actionText, { color: t.primary }]}>Sửa</Text>
+                  <Text style={[styles.actionText, { color: t.primary }]}>{translate('edit')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => handleDelete(addr.id)}
@@ -316,7 +318,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
                   activeOpacity={0.7}
                 >
                   <AppIcon name="trash" size={14} color="#EF4444" />
-                  <Text style={[styles.actionText, { color: '#EF4444' }]}>Xóa</Text>
+                  <Text style={[styles.actionText, { color: '#EF4444' }]}>{translate('delete')}</Text>
                 </TouchableOpacity>
               </View>
             </View>

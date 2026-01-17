@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../common/Icon';
 import { Theme, lightTheme, useTheme } from '../../theme';
 
@@ -16,6 +17,7 @@ interface BottomNavProps {
 export function BottomNav({ currentTab, onTabChange, cartCount = 0, theme }: BottomNavProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
+  const { t: translate } = useTranslation();
   const resolvedTheme = theme || ctxTheme;
 
   const TabButton = ({ 
@@ -80,11 +82,11 @@ export function BottomNav({ currentTab, onTabChange, cartCount = 0, theme }: Bot
       styles.container,
       { paddingBottom: Math.max(insets.bottom, 16), backgroundColor: resolvedTheme.surface, borderTopColor: resolvedTheme.border }
     ]}>
-      <TabButton tab="home" icon="home" label="Home" />
-      <TabButton tab="catalog" icon="grid" label="Danh mục" />
-      <TabButton tab="ai" icon="message-circle" label="AI Chat" isSpecial />
-      <TabButton tab="cart" icon="shopping-cart" label="Giỏ hàng" />
-      <TabButton tab="profile" icon="user" label="Cá nhân" />
+      <TabButton tab="home" icon="home" label={translate('home')} />
+      <TabButton tab="catalog" icon="grid" label={translate('categories')} />
+      <TabButton tab="ai" icon="message-circle" label={translate('ai_chat')} isSpecial />
+      <TabButton tab="cart" icon="shopping-cart" label={translate('cart')} />
+      <TabButton tab="profile" icon="user" label={translate('personal')} />
     </View>
   );
 }

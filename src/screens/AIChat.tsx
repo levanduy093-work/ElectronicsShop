@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { AiAction, AiProductCard, ChatMessage, Product } from '../types';
 import { MessageBubble } from '../components/ai/MessageBubble';
 import { TopBar } from '../components/layout/TopBar';
@@ -52,6 +53,7 @@ export function AIChat({
   const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
+  const { t: translate } = useTranslation();
 
   const setMessages = (updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
     setMessagesState((prev) => (typeof updater === 'function' ? (updater as any)(prev) : updater));
@@ -116,7 +118,7 @@ export function AIChat({
     if (!inputValue.trim()) return;
 
     if (!accessToken) {
-      showToast('Vui lòng đăng nhập để dùng trợ lý AI.', 'error');
+      showToast(translate('loginRequiredAI'), 'error');
       onRequireLogin?.();
       return;
     }
@@ -152,7 +154,7 @@ export function AIChat({
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error: any) {
       console.warn('AIChat.tsx - aiChat error', error);
-      showToast(error?.message || 'Không thể gửi yêu cầu tới AI', 'error');
+      showToast(error?.message || translate('cannotSendAIRequest'), 'error');
     } finally {
       setIsTyping(false);
       setIsSending(false);
@@ -161,7 +163,7 @@ export function AIChat({
 
   const handleAction = async (action: AiAction, sourceMessage: ChatMessage) => {
     if (!accessToken) {
-      showToast('Vui lòng đăng nhập để thực hiện hành động.', 'error');
+      showToast(translate('loginRequiredAction'), 'error');
       onRequireLogin?.();
       return;
     }
@@ -171,7 +173,7 @@ export function AIChat({
         sourceMessage.cards?.find((c) => c.productId === action.payload.productId) ||
         sourceMessage.cards?.[0];
       if (card && card.stock <= 0) {
-        showToast('Sản phẩm đã hết hàng, không thể thêm vào giỏ', 'error');
+        showToast(translate('productOutOfStockCart'), 'error');
         return;
       }
 
@@ -190,19 +192,19 @@ export function AIChat({
         if (card && onAddToCart) {
           onAddToCart(toProduct(card), action.payload.quantity || 1);
         }
-        showToast('Đã thêm sản phẩm vào giỏ', 'success');
+        showToast(translate('productAddedToCart'), 'success');
       } catch (error: any) {
         console.warn('AIChat.tsx - handleAction error', error);
-        showToast(error?.message || 'Không thể thực hiện hành động', 'error');
+        showToast(error?.message || translate('cannotPerformAction'), 'error');
       }
     }
   };
 
-  const suggestions = ['Tư vấn linh kiện Arduino', 'Scan sơ đồ mạch', 'Tìm thay thế cho chip ESP8266'];
+  const suggestions = [translate('arduinoAdvice'), translate('scanCircuit'), translate('findReplacement')];
 
   const pickAndSendImage = async () => {
     if (!accessToken) {
-      showToast('Vui lòng đăng nhập để dùng trợ lý AI.', 'error');
+      showToast(translate('loginRequiredAI'), 'error');
       onRequireLogin?.();
       return;
     }
@@ -233,10 +235,10 @@ export function AIChat({
 
       const imageUrl = (uploaded as any)?.secure_url || (uploaded as any)?.url;
       if (!imageUrl) {
-        throw new Error('Không lấy được URL ảnh sau khi tải lên');
+        throw new Error(translate('cannotGetImageUrl'));
       }
 
-      const content = inputValue.trim() || 'Phân tích giúp mình ảnh này';
+      const content = inputValue.trim() || translate('analyzeImageDefault');
       const userMessage: ChatMessage = {
         id: Date.now().toString(),
         role: 'user',
@@ -268,7 +270,7 @@ export function AIChat({
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error: any) {
       console.warn('AIChat.tsx - pickAndSendImage error', error);
-      showToast(error?.message || 'Không thể tải ảnh lên', 'error');
+      showToast(error?.message || translate('cannotUploadImage'), 'error');
     } finally {
       setIsUploading(false);
       setIsTyping(false);
@@ -279,7 +281,7 @@ export function AIChat({
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <TopBar
-        title="AI Engineer Support"
+        title={translate('ai_engineer_support')}
         showSearch={false}
         theme={theme}
         onNotificationClick={onNotificationClick}
@@ -319,7 +321,7 @@ export function AIChat({
           {isTyping && (
             <View style={styles.typingIndicator}>
               <AppIcon name="sparkles" size={12} color={theme.muted} />
-              <Text style={[styles.typingText, { color: theme.muted }]}>AI đang phân tích...</Text>
+              <Text style={[styles.typingText, { color: theme.muted }]}>{translate('ai_analyzing')}</Text>
             </View>
           )}
         </ScrollView>
@@ -379,7 +381,7 @@ export function AIChat({
             <TextInput
               value={inputValue}
               onChangeText={setInputValue}
-              placeholder="Hỏi AI hoặc tải lên hình ảnh..."
+              placeholder={translate('askAIOrUpload')}
               style={[styles.input, { color: theme.text }]}
               placeholderTextColor={theme.muted}
               multiline

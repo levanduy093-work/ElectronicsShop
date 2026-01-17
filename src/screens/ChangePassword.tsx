@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Platform, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../theme';
 import { useToast } from '../components/common/ToastProvider';
@@ -17,6 +18,7 @@ interface ChangePasswordProps {
 export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }: ChangePasswordProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
+  const { t: translate } = useTranslation();
   const { showToast } = useToast();
   const t = theme || ctxTheme || lightTheme;
 
@@ -32,20 +34,20 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
   const validate = () => {
     const nextErrors: typeof errors = {};
     if (!oldPassword) {
-      nextErrors.old = 'Vui lòng nhập mật khẩu hiện tại';
+      nextErrors.old = translate('enterCurrentPassword');
     } else if (oldPassword.length < 8) {
-      nextErrors.old = 'Mật khẩu hiện tại tối thiểu 8 ký tự';
+      nextErrors.old = translate('currentPasswordMinLength');
     }
     if (!newPassword) {
-      nextErrors.next = 'Vui lòng nhập mật khẩu mới';
+      nextErrors.next = translate('enterNewPassword');
     } else if (newPassword.length < 8) {
-      nextErrors.next = 'Mật khẩu mới tối thiểu 8 ký tự';
+      nextErrors.next = translate('newPasswordMinLength');
     }
     if (confirmPassword !== newPassword) {
-      nextErrors.confirm = 'Mật khẩu xác nhận không khớp';
+      nextErrors.confirm = translate('confirmPasswordMismatch');
     }
     if (!otp || otp.length !== 6) {
-      nextErrors.otp = 'Vui lòng nhập đủ 6 số OTP';
+      nextErrors.otp = translate('enterFullOTP');
     }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -54,27 +56,27 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
   const handleSubmit = async () => {
     if (!validate()) return;
     if (!accessToken) {
-      showToast('Vui lòng đăng nhập lại để đổi mật khẩu', 'error');
+      showToast(translate('loginRequiredChangePassword'), 'error');
       return;
     }
     setSaving(true);
     try {
       await changePassword(oldPassword, newPassword, otp, accessToken);
-      showToast('Mật khẩu đã được cập nhật', 'success');
+      showToast(translate('passwordUpdated'), 'success');
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setOtp('');
       onSuccess?.();
     } catch (error: any) {
-      showToast(error?.message || 'Đổi mật khẩu thất bại', 'error');
+      showToast(error?.message || translate('changePasswordFailed'), 'error');
     } finally {
       setSaving(false);
     }
   };
 
   const maskEmail = (text?: string) => {
-    if (!text) return 'email của bạn';
+    if (!text) return translate('yourEmail');
     const [name, domain] = text.split('@');
     if (!domain) return text;
     const maskedName = name.length <= 2 ? `${name[0] || ''}*` : `${name[0]}***${name[name.length - 1]}`;
@@ -83,24 +85,24 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
 
   const handleSendOtp = async () => {
     if (!accessToken) {
-      showToast('Vui lòng đăng nhập lại để gửi OTP', 'error');
+      showToast(translate('loginRequiredSendOTP'), 'error');
       return;
     }
     if (!oldPassword) {
-      setErrors(prev => ({ ...prev, old: 'Vui lòng nhập mật khẩu hiện tại' }));
+      setErrors(prev => ({ ...prev, old: translate('enterCurrentPassword') }));
       return;
     }
     if (oldPassword.length < 8) {
-      setErrors(prev => ({ ...prev, old: 'Mật khẩu hiện tại tối thiểu 8 ký tự' }));
+      setErrors(prev => ({ ...prev, old: translate('currentPasswordMinLength') }));
       return;
     }
     setSendingOtp(true);
     try {
       await sendChangePasswordOtp(oldPassword, accessToken);
       setOtp('');
-      showToast(`Mã OTP đã gửi tới ${maskEmail(email)}`, 'success');
+      showToast(translate('otp_sent_to') + ' ' + maskEmail(email), 'success');
     } catch (error: any) {
-      showToast(error?.message || 'Không thể gửi mã OTP', 'error');
+      showToast(error?.message || translate('otp_resend_error'), 'error');
     } finally {
       setSendingOtp(false);
     }
@@ -129,23 +131,23 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
   const renderOtpInput = () => (
     <View style={styles.inputGroup}>
       <View style={styles.otpHeader}>
-        <Text style={[styles.label, { color: t.text }]}>Xác thực OTP</Text>
+        <Text style={[styles.label, { color: t.text }]}>{translate('verify_otp')}</Text>
         <TouchableOpacity
           onPress={handleSendOtp}
           style={[styles.otpButton, { borderColor: t.primary, backgroundColor: t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)' }]}
           activeOpacity={0.8}
         >
-          <Text style={[styles.otpButtonText, { color: t.primary }]}>{sendingOtp ? 'Đang gửi...' : 'Gửi mã'}</Text>
+          <Text style={[styles.otpButtonText, { color: t.primary }]}>{sendingOtp ? translate('sending') : translate('send_code')}</Text>
         </TouchableOpacity>
       </View>
       <Text style={[styles.helper, { color: t.muted, marginTop: -4, marginBottom: 6 }]}>
-        Mã sẽ gửi tới {maskEmail(email)}.
+        {translate('otp_will_sent_to', { email: maskEmail(email) })}
       </Text>
       <View style={[styles.inputWrapper, { backgroundColor: t.surface, borderColor: errors.otp ? '#EF4444' : t.border }]}>
         <TextInput
           value={otp}
           onChangeText={setOtp}
-          placeholder="Nhập mã OTP"
+          placeholder={translate('enter_otp_code')}
           placeholderTextColor={t.muted}
           keyboardType="number-pad"
           style={[styles.input, { color: t.text }]}
@@ -173,7 +175,7 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
         <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: t.text }]}>Đổi mật khẩu</Text>
+        <Text style={[styles.title, { color: t.text }]}>{translate('change_password_title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -183,13 +185,13 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.helper, { color: t.muted }]}>
-          Để bảo vệ tài khoản, vui lòng không chia sẻ mật khẩu cho bất kỳ ai.
+          {translate('change_password_helper')}
         </Text>
 
         <View style={[styles.formCard, { backgroundColor: t.card, borderColor: t.border }]}>
-          {renderInput('Mật khẩu hiện tại', oldPassword, setOldPassword, 'old', errors.old)}
-          {renderInput('Mật khẩu mới', newPassword, setNewPassword, 'next', errors.next)}
-          {renderInput('Xác nhận mật khẩu mới', confirmPassword, setConfirmPassword, 'confirm', errors.confirm)}
+          {renderInput(translate('currentPassword'), oldPassword, setOldPassword, 'old', errors.old)}
+          {renderInput(translate('newPassword'), newPassword, setNewPassword, 'next', errors.next)}
+          {renderInput(translate('confirmNewPassword'), confirmPassword, setConfirmPassword, 'confirm', errors.confirm)}
           {renderOtpInput()}
 
           <TouchableOpacity
@@ -202,7 +204,7 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
           activeOpacity={0.8}
           disabled={saving}
         >
-          <Text style={styles.saveButtonText}>{saving ? 'Đang cập nhật...' : 'Cập nhật'}</Text>
+          <Text style={styles.saveButtonText}>{saving ? translate('updating') : translate('update')}</Text>
         </TouchableOpacity>
       </View>
       </ScrollView>

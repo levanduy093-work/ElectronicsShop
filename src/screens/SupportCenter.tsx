@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../theme';
 
@@ -12,12 +13,13 @@ interface SupportCenterProps {
 export function SupportCenter({ onBack, theme }: SupportCenterProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
+  const { t: translate } = useTranslation();
   const t = theme || ctxTheme || lightTheme;
   const faqs = [
-    { q: "Làm sao để theo dõi đơn hàng?", a: "Bạn có thể vào mục 'Đơn hàng của tôi' trong trang cá nhân, chọn đơn hàng cần xem để biết trạng thái chi tiết." },
-    { q: "Chính sách đổi trả như thế nào?", a: "Chúng tôi hỗ trợ đổi trả trong vòng 7 ngày nếu sản phẩm có lỗi từ nhà sản xuất. Vui lòng giữ nguyên bao bì và tem mác." },
-    { q: "Phí vận chuyển được tính ra sao?", a: "Phí vận chuyển được tính dựa trên khoảng cách và khối lượng đơn hàng. Miễn phí vận chuyển cho đơn hàng từ 500.000đ." },
-    { q: "Tôi có thể hủy đơn hàng không?", a: "Bạn có thể hủy đơn hàng khi trạng thái là 'Đang xử lý'. Nếu đơn hàng đã giao cho đơn vị vận chuyển, vui lòng liên hệ hotline để được hỗ trợ." },
+    { q: translate('supportQ1'), a: translate('supportA1') },
+    { q: translate('supportQ2'), a: translate('supportA2') },
+    { q: translate('supportQ3'), a: translate('supportA3') },
+    { q: translate('supportQ4'), a: translate('supportA4') },
   ];
 
   return (
@@ -31,7 +33,7 @@ export function SupportCenter({ onBack, theme }: SupportCenterProps) {
         <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: t.text }]}>Trung tâm hỗ trợ</Text>
+        <Text style={[styles.title, { color: t.text }]}>{translate('support_center')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -46,25 +48,25 @@ export function SupportCenter({ onBack, theme }: SupportCenterProps) {
             <View style={[styles.contactIcon, { backgroundColor: t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)' }]}>
               <AppIcon name="message-circle" size={20} color={t.primary} />
             </View>
-            <Text style={[styles.contactLabel, { color: t.text }]}>Chat ngay</Text>
+            <Text style={[styles.contactLabel, { color: t.text }]}>{translate('chat_now')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.contactCard, { backgroundColor: t.card, borderColor: t.border }]} activeOpacity={0.7}>
             <View style={[styles.contactIcon, { backgroundColor: t === lightTheme ? '#D1FAE5' : 'rgba(16,185,129,0.14)' }]}>
               <AppIcon name="phone" size={20} color="#10B981" />
             </View>
-            <Text style={[styles.contactLabel, { color: t.text }]}>Hotline</Text>
+            <Text style={[styles.contactLabel, { color: t.text }]}>{translate('hotline')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.contactCard, { backgroundColor: t.card, borderColor: t.border }]} activeOpacity={0.7}>
             <View style={[styles.contactIcon, { backgroundColor: t === lightTheme ? '#FED7AA' : 'rgba(249,115,22,0.14)' }]}>
               <AppIcon name="mail" size={20} color="#F97316" />
             </View>
-            <Text style={[styles.contactLabel, { color: t.text }]}>Email</Text>
+            <Text style={[styles.contactLabel, { color: t.text }]}>{translate('email')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* FAQ */}
         <View style={styles.faqSection}>
-          <Text style={[styles.faqTitle, { color: t.text }]}>Câu hỏi thường gặp</Text>
+          <Text style={[styles.faqTitle, { color: t.text }]}>{translate('frequently_asked_questions')}</Text>
           <View style={styles.faqList}>
             {faqs.map((faq, index) => (
               <FAQItem key={index} question={faq.q} answer={faq.a} theme={t} />

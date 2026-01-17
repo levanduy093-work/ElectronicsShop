@@ -1558,6 +1558,10 @@ function App(): React.JSX.Element {
     void loadVouchers(tokens.accessToken);
     void loadNotifications(tokens.accessToken, { silent: true });
     void loadAddresses(tokens.accessToken);
+    // Sync search history từ local lên API khi user đăng nhập
+    import('./src/utils/searchHistory').then(({ syncLocalToApi }) => {
+      syncLocalToApi(data.user?._id ?? null, tokens.accessToken);
+    }).catch(err => console.warn('Failed to sync search history on login', err));
 
     if (currentScreen === 'auth') {
       if (previousScreen === 'product-detail') {
@@ -1779,6 +1783,9 @@ function App(): React.JSX.Element {
             applyFilters={applyFilters}
             products={products}
             theme={theme}
+            userId={userId}
+            isLoggedIn={isLoggedIn}
+            accessToken={authTokens?.accessToken || null}
           />
         );
 

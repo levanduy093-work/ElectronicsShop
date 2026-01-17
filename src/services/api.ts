@@ -462,6 +462,29 @@ export function removeFavorite(productId: string, token: string) {
   return deleteJson<ApiProduct[]>(`/users/me/favorites/${productId}`, { token });
 }
 
+// Search History API types
+export type ApiSearchHistory = {
+  queries: string[];
+  updatedAt?: string;
+};
+
+// Search History API functions
+export function getSearchHistory(token: string): Promise<string[]> {
+  return getJson<ApiSearchHistory>('/users/me/search-history', { token }).then(
+    (response) => response?.queries || []
+  );
+}
+
+export function saveSearchHistory(queries: string[], token: string): Promise<string[]> {
+  return postJson<ApiSearchHistory>('/users/me/search-history', { queries }, { token }).then(
+    (response) => response?.queries || queries
+  );
+}
+
+export function clearSearchHistory(token: string): Promise<void> {
+  return deleteJson<void>('/users/me/search-history', { token });
+}
+
 export function getMyVouchers(token: string) {
   return getJson<ApiVoucher[]>('/vouchers/my', { token });
 }

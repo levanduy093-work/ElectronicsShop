@@ -13,6 +13,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../theme';
 
@@ -51,6 +52,7 @@ export function Notifications({
 }: NotificationsProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
+  const { t: translate } = useTranslation();
   const t = theme || ctxTheme || lightTheme;
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [swipedId, setSwipedId] = useState<string | null>(null);
@@ -271,10 +273,10 @@ export function Notifications({
         <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.muted} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: t.text }]}>Thông báo</Text>
+        <Text style={[styles.title, { color: t.text }]}>{translate('notifications')}</Text>
         {hasUnreadNotifications && (
           <TouchableOpacity onPress={handleMarkAllAsRead} activeOpacity={0.7}>
-            <Text style={[styles.markAllRead, { color: t.primary }]}>Đã đọc tất cả</Text>
+            <Text style={[styles.markAllRead, { color: t.primary }]}>{translate('mark_all_read')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -322,7 +324,7 @@ export function Notifications({
                   activeOpacity={0.8}
                 >
                   <AppIcon name="trash" size={20} color="#FFFFFF" />
-                  <Text style={styles.deleteButtonText}>Xóa</Text>
+                  <Text style={styles.deleteButtonText}>{translate('delete')}</Text>
                 </TouchableOpacity>
               </Animated.View>
               
@@ -404,7 +406,7 @@ export function Notifications({
         })}
 
         <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: t.muted }]}>Bạn đã xem hết thông báo</Text>
+          <Text style={[styles.footerText, { color: t.muted }]}>{translate('all_notifications_viewed')}</Text>
         </View>
       </ScrollView>
     </View>

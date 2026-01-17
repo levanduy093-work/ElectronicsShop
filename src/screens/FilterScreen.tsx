@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../theme';
 
@@ -20,6 +21,7 @@ interface FilterScreenProps {
 
 export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCount, theme, categories = [] }: FilterScreenProps) {
   const { theme: ctxTheme } = useTheme();
+  const { t: translate } = useTranslation();
   const t = theme || ctxTheme || lightTheme;
   const insets = useSafeAreaInsets();
   const PRICE_MIN = 0;
@@ -105,19 +107,19 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
         <TouchableOpacity onPress={onClose} style={styles.closeButton} activeOpacity={0.7}>
           <AppIcon name="close" size={24} color={t.muted} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: t.text }]}>Bộ lọc tìm kiếm</Text>
+        <Text style={[styles.headerTitle, { color: t.text }]}>{translate('search_filter')}</Text>
         <TouchableOpacity onPress={handleReset} activeOpacity={0.7}>
-          <Text style={[styles.resetText, { color: t.primary }]}>Thiết lập lại</Text>
+          <Text style={[styles.resetText, { color: t.primary }]}>{translate('reset')}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={[styles.content, { backgroundColor: t.background }]} showsVerticalScrollIndicator={false}>
         {/* Price Range */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: t.muted }]}>Khoảng giá</Text>
+          <Text style={[styles.sectionTitle, { color: t.muted }]}>{translate('price_range')}</Text>
           <View style={styles.priceContainer}>
             <View style={[styles.priceInput, { backgroundColor: t.surface, borderColor: t.border }]}>
-              <Text style={[styles.priceLabel, { color: t.muted }]}>Tối thiểu</Text>
+              <Text style={[styles.priceLabel, { color: t.muted }]}>{translate('minimum')}</Text>
               <View style={styles.priceFieldRow}>
                 <TextInput
                   value={formatNumber(priceMinInput)}
@@ -132,7 +134,7 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
             </View>
             <View style={styles.priceDivider} />
             <View style={[styles.priceInput, { backgroundColor: t.surface, borderColor: t.border }]}>
-              <Text style={[styles.priceLabel, { color: t.muted }]}>Tối đa</Text>
+              <Text style={[styles.priceLabel, { color: t.muted }]}>{translate('maximum')}</Text>
               <View style={styles.priceFieldRow}>
                 <TextInput
                   value={formatNumber(priceMaxInput)}
@@ -152,11 +154,11 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
         {categories.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionTitle, { color: t.muted }]}>Danh mục</Text>
+              <Text style={[styles.sectionTitle, { color: t.muted }]}>{translate('categories')}</Text>
               {categories.length > 6 && (
                 <TouchableOpacity onPress={() => setShowAllCategories(!showAllCategories)} activeOpacity={0.7}>
                   <Text style={[styles.sectionAction, { color: t.primary }]}>
-                    {showAllCategories ? 'Thu gọn' : 'Xem thêm'}
+                    {showAllCategories ? translate('collapse') : translate('see_more')}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -196,7 +198,7 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
 
         {/* Rating */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: t.muted }]}>Đánh giá</Text>
+          <Text style={[styles.sectionTitle, { color: t.muted }]}>{translate('ratings')}</Text>
           <View style={styles.ratingContainer}>
             {[5, 4, 3].map((star) => (
               <TouchableOpacity
@@ -221,7 +223,7 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
                       color={i < star ? "#FBBF24" : t.border}
                     />
                   ))}
-                  <Text style={[styles.ratingText, { color: t.text }]}>trở lên</Text>
+                  <Text style={[styles.ratingText, { color: t.text }]}>{translate('and_up')}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -230,9 +232,9 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
 
         {/* Other Options */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: t.muted }]}>Khác</Text>
+          <Text style={[styles.sectionTitle, { color: t.muted }]}>{translate('other')}</Text>
           <View style={styles.switchContainer}>
-            <Text style={[styles.switchLabel, { color: t.text }]}>Chỉ hiện sản phẩm còn hàng</Text>
+            <Text style={[styles.switchLabel, { color: t.text }]}>{translate('only_in_stock_products')}</Text>
             <Switch
               value={onlyInStock}
               onValueChange={setOnlyInStock}
@@ -250,7 +252,7 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
           style={[styles.applyButton, { backgroundColor: t.primary }]}
           activeOpacity={0.8}
         >
-          <Text style={styles.applyButtonText}>Áp dụng ({filteredCount} kết quả)</Text>
+          <Text style={styles.applyButtonText}>{translate('apply_with_results', { count: filteredCount })}</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>

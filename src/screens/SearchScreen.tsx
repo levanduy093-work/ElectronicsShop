@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Product } from '../types';
 import { ProductCard } from '../components/ui/ProductCard';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../theme';
+import { loadSearchHistory, saveSearchQuery, clearSearchHistory } from '../utils/searchHistory';
 
 interface SearchScreenProps {
   onBack: () => void;
@@ -21,6 +23,9 @@ interface SearchScreenProps {
   applyFilters?: (products: Product[], searchText?: string) => Product[];
   theme?: Theme;
   products?: Product[];
+  userId?: string | null;
+  isLoggedIn?: boolean;
+  accessToken?: string | null;
 }
 
 export function SearchScreen({
@@ -33,21 +38,80 @@ export function SearchScreen({
   applyFilters,
   theme,
   products = [],
+  userId = null,
+  isLoggedIn = false,
+  accessToken = null,
 }: SearchScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
+  const { t: translate } = useTranslation();
   const t = theme || ctxTheme || lightTheme;
   const [query, setQuery] = useState(initialQuery);
-  const [recentSearches, setRecentSearches] = useState(['Arduino Uno', 'ESP32', 'Mạch nạp']);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [isRecentSearchesExpanded, setIsRecentSearchesExpanded] = useState(false);
+
+  // Load search history khi component mount hoặc userId/accessToken thay đổi
+  useEffect(() => {
+    const loadHistory = async () => {
+      setIsLoadingHistory(true);
+      try {
+        const history = await loadSearchHistory(userId, accessToken || undefined);
+        setRecentSearches(history);
+      } catch (error) {
+        console.warn('Failed to load search history', error);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+    
+    loadHistory();
+  }, [userId, isLoggedIn, accessToken]);
 
   useEffect(() => {
     setQuery(initialQuery);
   }, [initialQuery]);
 
-  const updateQuery = (newQuery: string) => {
+  // Hàm để lưu query vào lịch sử (chỉ gọi khi user submit hoặc chọn từ danh sách)
+  const saveToHistory = useCallback(async (searchQuery: string) => {
+    if (!searchQuery || searchQuery.trim().length < 2) return;
+    
+    try {
+      await saveSearchQuery(searchQuery.trim(), userId, accessToken || undefined);
+      // Reload history để cập nhật UI
+      const updatedHistory = await loadSearchHistory(userId, accessToken || undefined);
+      setRecentSearches(updatedHistory);
+    } catch (error) {
+      console.warn('Failed to save search query', error);
+    }
+  }, [userId, accessToken]);
+
+  // Hàm cập nhật query (không tự động lưu vào lịch sử)
+  const updateQuery = useCallback((newQuery: string, shouldSave: boolean = false) => {
     setQuery(newQuery);
     onQueryChange?.(newQuery);
-  };
+    
+    // Chỉ lưu vào lịch sử nếu shouldSave = true (khi user chọn từ danh sách hoặc submit)
+    if (shouldSave) {
+      saveToHistory(newQuery);
+    }
+  }, [onQueryChange, saveToHistory]);
+  
+  // Xử lý khi user submit search (nhấn enter hoặc search button)
+  const handleSearchSubmit = useCallback(() => {
+    if (query && query.trim().length >= 2) {
+      saveToHistory(query);
+    }
+  }, [query, saveToHistory]);
+  
+  const handleClearHistory = useCallback(async () => {
+    try {
+      await clearSearchHistory(userId, accessToken || undefined);
+      setRecentSearches([]);
+    } catch (error) {
+      console.warn('Failed to clear search history', error);
+    }
+  }, [userId, accessToken]);
 
   // Apply filters and search
   const normalizeText = (value?: string) =>
@@ -120,11 +184,13 @@ export function SearchScreen({
           <AppIcon name="search" size={18} color={t.muted} style={styles.searchIcon} />
           <TextInput
             value={query}
-            onChangeText={updateQuery}
-            placeholder="Tìm kiếm sản phẩm, linh kiện..."
+            onChangeText={(text) => updateQuery(text, false)}
+            onSubmitEditing={handleSearchSubmit}
+            placeholder={translate('searchProductComponent')}
             style={[styles.searchInput, { color: t.text }]}
             placeholderTextColor={t.muted}
             autoFocus
+            returnKeyType="search"
           />
           {query.length > 0 && (
             <TouchableOpacity
@@ -150,7 +216,7 @@ export function SearchScreen({
       <ScrollView style={[styles.content, { backgroundColor: t.background }]} showsVerticalScrollIndicator={false}>
         {query ? (
           <View style={styles.resultsContainer}>
-            <Text style={[styles.resultsTitle, { color: t.muted }]}>Kết quả tìm kiếm ({filteredProducts.length})</Text>
+            <Text style={[styles.resultsTitle, { color: t.muted }]}>{translate('search_results', { count: filteredProducts.length })}</Text>
             {filteredProducts.length > 0 ? (
               <View style={styles.productsGrid}>
                 {filteredProducts.map(p => (
@@ -167,7 +233,7 @@ export function SearchScreen({
                 <View style={styles.emptyIcon}>
                   <AppIcon name="search" size={32} color={t.muted} />
                 </View>
-                <Text style={[styles.emptyText, { color: t.muted }]}>Không tìm thấy sản phẩm nào phù hợp.</Text>
+                <Text style={[styles.emptyText, { color: t.muted }]}>{translate('no_search_results')}</Text>
               </View>
             )}
           </View>
@@ -176,33 +242,46 @@ export function SearchScreen({
             {/* Recent Searches */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: t.text }]}>Tìm kiếm gần đây</Text>
+                <Text style={[styles.sectionTitle, { color: t.text }]}>{translate('recent_searches')}</Text>
                 {recentSearches.length > 0 && (
                   <TouchableOpacity
-                    onPress={() => setRecentSearches([])}
+                    onPress={handleClearHistory}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.clearHistoryText, { color: t.primary }]}>Xóa lịch sử</Text>
+                    <Text style={[styles.clearHistoryText, { color: t.primary }]}>{translate('clear_history')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
               {recentSearches.length > 0 ? (
-                <View style={styles.recentList}>
-                  {recentSearches.map((term, i) => (
+                <>
+                  <View style={styles.recentList}>
+                    {(isRecentSearchesExpanded ? recentSearches : recentSearches.slice(0, 5)).map((term, i) => (
+                      <TouchableOpacity
+                        key={i}
+                        onPress={() => updateQuery(term, true)}
+                        style={[styles.recentItem, { backgroundColor: t.surface, borderColor: t.border }]}
+                        activeOpacity={0.7}
+                      >
+                        <AppIcon name="clock" size={16} color={t.muted} />
+                        <Text style={[styles.recentText, { color: t.text }]}>{term}</Text>
+                        <AppIcon name="chevron-right" size={16} color={t.border} />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  {recentSearches.length > 5 && (
                     <TouchableOpacity
-                      key={i}
-                      onPress={() => updateQuery(term)}
-                      style={[styles.recentItem, { backgroundColor: t.surface, borderColor: t.border }]}
+                      onPress={() => setIsRecentSearchesExpanded(!isRecentSearchesExpanded)}
+                      style={styles.expandButton}
                       activeOpacity={0.7}
                     >
-                      <AppIcon name="clock" size={16} color={t.muted} />
-                      <Text style={[styles.recentText, { color: t.text }]}>{term}</Text>
-                      <AppIcon name="chevron-right" size={16} color={t.border} />
+                      <Text style={[styles.expandButtonText, { color: t.primary }]}>
+                        {isRecentSearchesExpanded ? translate('collapse') : translate('see_more')}
+                      </Text>
                     </TouchableOpacity>
-                  ))}
-                </View>
+                  )}
+                </>
               ) : (
-                <Text style={[styles.noHistoryText, { color: t.muted }]}>Chưa có lịch sử tìm kiếm</Text>
+                <Text style={[styles.noHistoryText, { color: t.muted }]}>{translate('no_search_history')}</Text>
               )}
             </View>
 
@@ -210,13 +289,13 @@ export function SearchScreen({
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <AppIcon name="trending-up" size={16} color={t.primary} />
-                <Text style={[styles.sectionTitle, { color: t.text }]}>Tìm kiếm phổ biến</Text>
+                <Text style={[styles.sectionTitle, { color: t.text }]}>{translate('popular_searches')}</Text>
               </View>
               <View style={styles.trendingContainer}>
                 {trendingSearches.map((tag) => (
                   <TouchableOpacity
                     key={tag}
-                    onPress={() => updateQuery(tag)}
+                    onPress={() => updateQuery(tag, true)}
                     style={[styles.trendingTag, { backgroundColor: t.surface, borderColor: t.border }]}
                     activeOpacity={0.7}
                   >
@@ -373,5 +452,14 @@ const styles = StyleSheet.create({
   trendingText: {
     fontSize: 14,
     color: '#4B5563',
+  },
+  expandButton: {
+    marginTop: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  expandButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

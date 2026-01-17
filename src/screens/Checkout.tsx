@@ -446,7 +446,9 @@ export function Checkout({
                       <AppIcon name="map-pin" size={20} color={t.primary} />
                     </View>
                     <View style={styles.addressInfo}>
-                      <Text style={[styles.addressType, { color: t.text }]}>{addr.type}</Text>
+                      <Text style={[styles.addressType, { color: t.text }]}>
+                        {addr.type === 'Nhà riêng' ? translate('home') : translate('office')}
+                      </Text>
                       <Text style={[styles.addressText, { color: t.text }]}>{addr.address}</Text>
                       <Text style={[styles.addressPhone, { color: t.muted }]}>{contactLine}</Text>
                     </View>

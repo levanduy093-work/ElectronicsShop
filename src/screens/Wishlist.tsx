@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, FlatList, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Product } from '../types';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
@@ -18,6 +19,7 @@ interface WishlistProps {
 export function Wishlist({ items, onBack, onRemove, onProductClick, theme }: WishlistProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
+  const { t: translate } = useTranslation();
   const t = theme || ctxTheme || lightTheme;
 
   return (
@@ -31,7 +33,7 @@ export function Wishlist({ items, onBack, onRemove, onProductClick, theme }: Wis
         <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: t.text }]}>Sản phẩm yêu thích ({items.length})</Text>
+        <Text style={[styles.title, { color: t.text }]}>{translate('favorite_products_count', { count: items.length })}</Text>
       </View>
 
       <ScrollView
@@ -44,9 +46,9 @@ export function Wishlist({ items, onBack, onRemove, onProductClick, theme }: Wis
             <View style={[styles.emptyIcon, { backgroundColor: t.surface }]}>
               <AppIcon name="heart" size={32} color={t.muted} />
             </View>
-            <Text style={[styles.emptyTitle, { color: t.text }]}>Danh sách trống</Text>
+            <Text style={[styles.emptyTitle, { color: t.text }]}>{translate('wishlist_empty_title')}</Text>
             <Text style={[styles.emptyText, { color: t.muted }]}>
-              Hãy thả tim các sản phẩm bạn yêu thích để lưu vào đây nhé.
+              {translate('wishlist_empty_text')}
             </Text>
           </View>
         ) : (

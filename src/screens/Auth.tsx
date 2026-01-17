@@ -249,6 +249,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
         <ScrollView 
           contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomNavHeight + 24 }]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           <TouchableOpacity
             onPress={() => {
@@ -337,6 +338,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
         <ScrollView 
           contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomNavHeight + 24 }]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           <TouchableOpacity
             onPress={() => {
@@ -367,7 +369,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
             <View style={styles.form}>
               <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: t.text }]}>{translate('email')}</Text>
-                <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
+                <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]} pointerEvents="box-none">
                   <AppIcon name="mail" size={20} color={t.muted} style={styles.inputIcon} />
                   <TextInput
                     placeholder="example@email.com"
@@ -377,6 +379,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     placeholderTextColor={t.muted}
+                    editable={true}
                   />
                 </View>
               </View>
@@ -448,7 +451,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
             <View style={styles.form}>
               <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: t.text }]}>{translate('new_password')}</Text>
-                <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
+                <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]} pointerEvents="box-none">
                   <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
                   <TextInput
                     placeholder="••••••••"
@@ -457,13 +460,14 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
                     style={[styles.input, { color: t.text }]}
                     secureTextEntry
                     placeholderTextColor={t.muted}
+                    editable={true}
                   />
                 </View>
               </View>
 
               <View style={styles.inputGroup}>
                 <Text style={[styles.label, { color: t.text }]}>{translate('confirm_password')}</Text>
-                <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
+                <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]} pointerEvents="box-none">
                   <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
                   <TextInput
                     placeholder="••••••••"
@@ -472,6 +476,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
                     style={[styles.input, { color: t.text }]}
                     secureTextEntry
                     placeholderTextColor={t.muted}
+                    editable={true}
                   />
                 </View>
               </View>
@@ -503,6 +508,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
       <ScrollView 
         contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomNavHeight + 24 }]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
           <Text style={[styles.brandTitle, { color: t.primary }]}>{translate('app_name')}</Text>
@@ -515,7 +521,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
           {isRegister && (
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: t.text }]}>{translate('full_name')}</Text>
-              <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
+              <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]} pointerEvents="box-none">
                 <AppIcon name="user" size={20} color={t.muted} style={styles.inputIcon} />
                 <TextInput
                   placeholder={translate('enter_name_placeholder')}
@@ -523,6 +529,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
                   onChangeText={setName}
                   style={[styles.input, { color: t.text }]}
                   placeholderTextColor={t.muted}
+                  editable={true}
                 />
               </View>
             </View>
@@ -530,7 +537,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: t.text }]}>{translate('email')}</Text>
-            <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
+            <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]} pointerEvents="box-none">
               <AppIcon name="mail" size={20} color={t.muted} style={styles.inputIcon} />
               <TextInput
                 placeholder="example@email.com"
@@ -540,6 +547,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 placeholderTextColor={t.muted}
+                editable={true}
               />
             </View>
           </View>
@@ -565,6 +573,7 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
                 style={[styles.input, { color: t.text }]}
                 secureTextEntry={!showPassword}
                 placeholderTextColor={t.muted}
+                editable={true}
               />
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}

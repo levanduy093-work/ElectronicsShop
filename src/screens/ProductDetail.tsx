@@ -215,12 +215,12 @@ export function ProductDetail({
 
   const handleAddToCart = () => {
     if (isOutOfStock) {
-      showToast('Sản phẩm đã hết hàng, không thể thêm vào giỏ', 'error');
+      showToast(t('productOutOfStockCart'), 'error');
       return;
     }
     const allowedQuantity = Math.min(Math.max(1, quantity), maxQuantity);
     if (allowedQuantity < 1) {
-      showToast('Sản phẩm đã hết hàng, không thể thêm vào giỏ', 'error');
+      showToast(t('productOutOfStockCart'), 'error');
       return;
     }
     if (allowedQuantity !== quantity && availableStock !== undefined) {
