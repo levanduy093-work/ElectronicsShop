@@ -25,6 +25,7 @@ import { Settings } from './src/screens/Settings';
 import { SupportCenter } from './src/screens/SupportCenter';
 import { Notifications } from './src/screens/Notifications';
 import { ChangePassword } from './src/screens/ChangePassword';
+import { LanguageSelection } from './src/screens/LanguageSelection';
 import { BottomNav } from './src/components/layout/BottomNav';
 import { TopBar } from './src/components/layout/TopBar';
 import { Product, CartItem, Order, Voucher, HomeBanner, ChatMessage } from './src/types';
@@ -67,13 +68,14 @@ import {
 import { socketService } from './src/services/socket';
 
 import './src/i18n';
+import { useTranslation } from 'react-i18next';
 
 // UNCOMMENT THIS AFTER INSTALLING @react-native-firebase/messaging AND ADDING CONFIG FILES
 import { requestUserPermission, getFcmToken, subscribeForegroundMessage, subscribeToFcmTokenRefresh, deleteFcmToken } from './src/services/fcm';
 import { useToast } from './src/components/common/ToastProvider';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
-type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'settings' | 'support' | 'wishlist' | 'change-password';
+type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'settings' | 'support' | 'wishlist' | 'change-password' | 'language-selection';
 
 const SCREEN_DEPTH: Record<Screen, number> = {
   home: 0,
@@ -94,6 +96,7 @@ const SCREEN_DEPTH: Record<Screen, number> = {
   support: 1,
   wishlist: 1,
   'change-password': 2,
+  'language-selection': 2,
 };
 
 const isTabScreen = (screen: Screen) =>
@@ -499,8 +502,6 @@ const mapApiBannerToUi = (banner: ApiBanner): HomeBanner => ({
   isActive: banner.isActive,
   order: banner.order,
 });
-
-import { useTranslation } from 'react-i18next';
 
 function App(): React.JSX.Element {
   const { t } = useTranslation();
@@ -1791,6 +1792,7 @@ function App(): React.JSX.Element {
             isDarkMode={isDarkMode}
             onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
             onChangePassword={() => setCurrentScreen('change-password')}
+            onNavigateToLanguage={() => setCurrentScreen('language-selection')}
             theme={theme}
             isPushEnabled={isPushEnabled}
             onTogglePush={() => {
@@ -1798,6 +1800,14 @@ function App(): React.JSX.Element {
               setIsPushEnabled(newValue);
               AsyncStorage.setItem(PUSH_SETTINGS_KEY, JSON.stringify(newValue)).catch(err => console.warn(err));
             }}
+          />
+        );
+
+      case 'language-selection':
+        return (
+          <LanguageSelection
+            onBack={() => setCurrentScreen('settings')}
+            isDarkMode={isDarkMode}
           />
         );
 
@@ -1839,7 +1849,7 @@ function App(): React.JSX.Element {
     }
   };
 
-  const isFullScreen = ['product-detail', 'checkout', 'order-history', 'order-detail', 'notifications', 'search', 'filter', 'address-book', 'settings', 'support', 'wishlist', 'change-password'].includes(currentScreen);
+  const isFullScreen = ['product-detail', 'checkout', 'order-history', 'order-detail', 'notifications', 'search', 'filter', 'address-book', 'settings', 'support', 'wishlist', 'change-password', 'language-selection'].includes(currentScreen);
   const showTopBar = !isFullScreen && currentScreen !== 'ai' && currentScreen !== 'profile' && currentScreen !== 'auth';
   return (
     <SafeAreaProvider>

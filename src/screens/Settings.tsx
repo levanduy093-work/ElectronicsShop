@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, StatusBar, Platform, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
@@ -10,31 +10,21 @@ interface SettingsProps {
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
   onChangePassword: () => void;
+  onNavigateToLanguage?: () => void;
   theme?: any;
   isPushEnabled?: boolean;
   onTogglePush?: () => void;
 }
 
-export function Settings({ onBack, isDarkMode, onToggleDarkMode, onChangePassword, isPushEnabled = true, onTogglePush }: SettingsProps) {
+export function Settings({ onBack, isDarkMode, onToggleDarkMode, onChangePassword, onNavigateToLanguage, isPushEnabled = true, onTogglePush }: SettingsProps) {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = isDarkMode ? darkTheme : lightTheme;
 
   const handleChangeLanguage = () => {
-    Alert.alert(
-      t('language'),
-      t('language'),
-      [
-        {
-          text: 'Tiếng Việt',
-          onPress: () => i18n.changeLanguage('vi'),
-        },
-        {
-          text: 'English',
-          onPress: () => i18n.changeLanguage('en'),
-        }
-      ]
-    );
+    if (onNavigateToLanguage) {
+      onNavigateToLanguage();
+    }
   };
 
   return (
