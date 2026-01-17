@@ -244,13 +244,13 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpda
       </ScrollView>
 
       {/* Voucher Modal */}
-      {showVoucherList && (
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity
-            style={[styles.modalBackdrop, { backgroundColor: overlayBg }]}
-            activeOpacity={1}
-            onPress={() => setShowVoucherList(false)}
-          />
+      <Modal
+        visible={showVoucherList}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowVoucherList(false)}
+      >
+        <View style={[styles.modalOverlay, { backgroundColor: overlayBg }]}>
           <View style={[
             styles.modalContent,
             { backgroundColor: t.card, paddingBottom: 24 + insets.bottom }
@@ -259,9 +259,10 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpda
               <Text style={[styles.modalTitle, { color: t.text }]}>{translate('select_voucher')}</Text>
               <TouchableOpacity
                 onPress={() => setShowVoucherList(false)}
+                style={styles.modalCloseButton}
                 activeOpacity={0.7}
               >
-                <AppIcon name="close" size={24} color={t.muted} />
+                <AppIcon name="close" size={24} color={t.text} />
               </TouchableOpacity>
             </View>
             
@@ -352,7 +353,7 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpda
             </ScrollView>
           </View>
         </View>
-      )}
+      </Modal>
 
       {/* Option Selection Modal */}
       <Modal
@@ -370,7 +371,7 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpda
                 style={styles.modalCloseButton}
                 activeOpacity={0.7}
               >
-                <AppIcon name="x" size={24} color={t.text} />
+                <AppIcon name="close" size={24} color={t.text} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalScrollView}>
@@ -432,7 +433,7 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpda
                 style={styles.modalCloseButton}
                 activeOpacity={0.7}
               >
-                <AppIcon name="x" size={24} color={t.text} />
+                <AppIcon name="close" size={24} color={t.text} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalScrollView}>

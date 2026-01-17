@@ -1335,16 +1335,37 @@ function App(): React.JSX.Element {
 
         const limit = item.stockQuantity ?? Number.POSITIVE_INFINITY;
         const desired = item.quantity + delta;
-        const clamped = Math.max(1, Math.min(desired, limit));
-        if (clamped !== desired) {
-          Alert.alert(
-            t('not_enough_stock'),
-            limit === Number.POSITIVE_INFINITY
-              ? t('min_quantity_1')
-              : t('product_only_x_left', { count: limit }),
-          );
+        
+        // If decreasing quantity (delta < 0)
+        if (delta < 0) {
+          const clamped = Math.max(1, desired);
+          if (clamped !== desired) {
+            // Only show alert if trying to go below minimum (1)
+            Alert.alert(
+              t('min_quantity_1'),
+              t('min_quantity_1'),
+            );
+          }
+          return { ...item, quantity: clamped };
         }
-        return { ...item, quantity: clamped };
+        
+        // If increasing quantity (delta > 0)
+        if (delta > 0) {
+          const clamped = Math.min(desired, limit);
+          if (clamped !== desired) {
+            // Only show stock alert when trying to exceed available stock
+            Alert.alert(
+              t('not_enough_stock'),
+              limit === Number.POSITIVE_INFINITY
+                ? t('min_quantity_1')
+                : t('product_only_x_left', { count: limit }),
+            );
+          }
+          return { ...item, quantity: clamped };
+        }
+        
+        // If delta === 0, no change
+        return item;
       }),
     );
   };
