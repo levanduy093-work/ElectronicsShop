@@ -581,7 +581,13 @@ function App(): React.JSX.Element {
         prev.map(item => {
           const updated = mapped.find(p => p.id === item.id);
           return updated
-            ? { ...item, stockQuantity: updated.stockQuantity, stock: updated.stock }
+            ? { 
+                ...item, 
+                stockQuantity: updated.stockQuantity, 
+                stock: updated.stock,
+                options: updated.options,
+                classifications: updated.classifications,
+              }
             : item;
         }),
       );
@@ -922,7 +928,25 @@ function App(): React.JSX.Element {
 
         const storedCart = await loadPersistedCart();
         if (storedCart) {
-          setCartItems(storedCart);
+          // Load products first to get options/classifications
+          const products = await loadProducts();
+          if (products) {
+            // Merge cart items with product data to restore options/classifications
+            const mergedCart = storedCart.map(cartItem => {
+              const product = products.find(p => p.id === cartItem.id);
+              if (product) {
+                return {
+                  ...cartItem,
+                  options: product.options,
+                  classifications: product.classifications,
+                };
+              }
+              return cartItem;
+            });
+            setCartItems(mergedCart);
+          } else {
+            setCartItems(storedCart);
+          }
         }
 
         const storedPush = await AsyncStorage.getItem(PUSH_SETTINGS_KEY);
