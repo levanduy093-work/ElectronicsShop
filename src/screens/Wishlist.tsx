@@ -65,6 +65,13 @@ export function Wishlist({ items, onBack, onRemove, onProductClick, theme }: Wis
                     style={styles.image}
                     resizeMode="contain"
                   />
+                  {product.stock !== 'In Stock' && (
+                    <View style={styles.stockBadge}>
+                      <Text style={styles.stockText}>
+                        {product.stock === 'Low Stock' ? translate('lowStock') : translate('out_of_stock')}
+                      </Text>
+                    </View>
+                  )}
                   <TouchableOpacity
                     onPress={(e) => {
                       e.stopPropagation();
@@ -243,5 +250,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  stockBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  stockText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '500',
   },
 });
