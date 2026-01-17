@@ -240,6 +240,8 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
         ]}>
           <View style={styles.statusHeader}>
             <Text style={[styles.orderId, { color: t.text }]}>{translate('order_id')} #{orderData.code || orderId}</Text>
+          </View>
+          <View style={styles.statusBadgeContainer}>
             {(() => {
               const statusInfo = getStatusFromTimeline(orderData);
               return (
@@ -503,14 +505,15 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   statusHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   orderId: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  statusBadgeContainer: {
+    marginBottom: 16,
+    alignSelf: 'flex-start',
   },
   statusBadge: {
     paddingHorizontal: 12,
