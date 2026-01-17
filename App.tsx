@@ -1564,18 +1564,27 @@ function App(): React.JSX.Element {
     const payload = {
       code,
       status: { ordered: new Date().toISOString() },
-      items: params.items.map(item => ({
-        productId: item.id,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        subTotal: item.price * item.quantity,
-        shippingFee: 0,
-        discount: 0,
-        totalPrice: item.price * item.quantity,
-        selectedOption: item.selectedOption,
-        selectedClassification: item.selectedClassification,
-      })),
+      items: params.items.map(item => {
+        const orderItem: any = {
+          productId: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          subTotal: item.price * item.quantity,
+          shippingFee: 0,
+          discount: 0,
+          totalPrice: item.price * item.quantity,
+        };
+        // Only include selectedOption if it has a non-empty value
+        if (item.selectedOption && item.selectedOption.trim()) {
+          orderItem.selectedOption = item.selectedOption;
+        }
+        // Only include selectedClassification if it has a non-empty value
+        if (item.selectedClassification && item.selectedClassification.trim()) {
+          orderItem.selectedClassification = item.selectedClassification;
+        }
+        return orderItem;
+      }),
       subTotal: params.totals.subTotal,
       shippingFee: params.totals.shippingFee,
       discount: params.totals.discount,
