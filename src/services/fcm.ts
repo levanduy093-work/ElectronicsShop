@@ -62,6 +62,15 @@ export function subscribeToFcmTokenRefresh(accessToken?: string) {
   });
 }
 
+export async function deleteFcmToken() {
+  try {
+    await messaging().deleteToken();
+    console.log('FCM token deleted');
+  } catch (error) {
+    console.warn('Failed to delete FCM token:', error);
+  }
+}
+
 export function subscribeForegroundMessage(handler: ForegroundHandler) {
   return messaging().onMessage(async remoteMessage => {
     handler({

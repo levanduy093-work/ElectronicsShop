@@ -11,9 +11,11 @@ interface SettingsProps {
   onToggleDarkMode: () => void;
   onChangePassword: () => void;
   theme?: any;
+  isPushEnabled?: boolean;
+  onTogglePush?: () => void;
 }
 
-export function Settings({ onBack, isDarkMode, onToggleDarkMode, onChangePassword }: SettingsProps) {
+export function Settings({ onBack, isDarkMode, onToggleDarkMode, onChangePassword, isPushEnabled = true, onTogglePush }: SettingsProps) {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = isDarkMode ? darkTheme : lightTheme;
@@ -105,8 +107,8 @@ export function Settings({ onBack, isDarkMode, onToggleDarkMode, onChangePasswor
                 <Text style={[styles.settingLabel, { color: theme.text }]}>{t('pushNotifications')}</Text>
               </View>
               <Switch
-                value={true}
-                onValueChange={() => {}}
+                value={isPushEnabled}
+                onValueChange={onTogglePush}
                 trackColor={{ false: '#E5E7EB', true: theme.primary }}
                 thumbColor={isDarkMode ? '#F9FAFB' : '#FFFFFF'}
               />

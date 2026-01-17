@@ -191,10 +191,11 @@ export function ProductDetail({
   const handleShare = async () => {
     try {
       const deepLink = `electronicsshop://product/${product.id}`;
+      const universalLink = `https://electronicsshop.app/product/${product.id}`;
       await Share.share({
-        message: `Xem sản phẩm ${product.name} trên ElectroAI!\n${deepLink}`,
+        message: `Xem sản phẩm ${product.name} trên ElectroAI!\n${universalLink}`,
         title: product.name,
-        url: deepLink,
+        url: universalLink,
       });
     } catch (error) {
       showToast('Không thể chia sẻ', 'error');

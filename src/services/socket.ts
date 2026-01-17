@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { NativeModules, Platform } from 'react-native';
+import { API_BASE_URL as ENV_API_URL, API_DEVICE_HOST, SOCKET_URL as ENV_SOCKET_URL } from '@env';
 
 const resolveHost = () => {
   const scriptURL = (NativeModules as any)?.SourceCode?.scriptURL as string | undefined;
@@ -10,12 +11,43 @@ const resolveHost = () => {
   return Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
 };
 
-// Use build-time override when provided; otherwise resolve local/network backend.
-const SOCKET_URL =
-  process.env.SOCKET_URL ||
-  process.env.API_BASE_URL ||
-  process.env.APP_API_URL ||
-  `http://${resolveHost()}:3000`;
+const cleanHost = (value?: string) => {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  try {
+    const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
+    const url = new URL(withScheme);
+    return { origin: url.origin, host: url.hostname, port: url.port };
+  } catch {
+    return undefined;
+  }
+};
+
+const isLocalHost = (url?: string) => !!url && /localhost|127\.0\.0\.1/.test(url);
+const envSocket = cleanHost(ENV_SOCKET_URL);
+const envApi = cleanHost(ENV_API_URL);
+const deviceHost = cleanHost(API_DEVICE_HOST);
+const fallbackHost = resolveHost();
+
+const pickSocketUrl = () => {
+  // 1) Explicit socket URL if not local
+  if (envSocket && !isLocalHost(envSocket.origin)) return envSocket.origin;
+
+  // 2) API URL if not local
+  if (envApi && !isLocalHost(envApi.origin)) return envApi.origin;
+
+  // 3) Device host override (default port 3000 if missing)
+  if (deviceHost) return deviceHost.port ? deviceHost.origin : `${deviceHost.origin}:3000`;
+
+  // 4) If explicit socket URL is local, fall back to resolved host
+  if (envSocket && isLocalHost(envSocket.origin)) return `http://${fallbackHost}:3000`;
+
+  // 5) Default to resolved host
+  return `http://${fallbackHost}:3000`;
+};
+
+const SOCKET_URL = pickSocketUrl();
 
 class SocketService {
   private socket: Socket | null = null;

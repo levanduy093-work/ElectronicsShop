@@ -69,7 +69,7 @@ import { socketService } from './src/services/socket';
 import './src/i18n';
 
 // UNCOMMENT THIS AFTER INSTALLING @react-native-firebase/messaging AND ADDING CONFIG FILES
-import { requestUserPermission, getFcmToken, subscribeForegroundMessage, subscribeToFcmTokenRefresh } from './src/services/fcm';
+import { requestUserPermission, getFcmToken, subscribeForegroundMessage, subscribeToFcmTokenRefresh, deleteFcmToken } from './src/services/fcm';
 import { useToast } from './src/components/common/ToastProvider';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
@@ -110,6 +110,7 @@ interface FilterState {
 
 const AUTH_STORAGE_KEY = 'electronicsshop/auth';
 const CART_STORAGE_KEY = 'electronicsshop/cart';
+const PUSH_SETTINGS_KEY = 'electronicsshop/push_settings';
 const DEFAULT_PROFILE = {
   name: "Nguyễn Văn A",
   email: "nguyenva@example.com",
@@ -531,6 +532,7 @@ function App(): React.JSX.Element {
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [notifications, setNotifications] = useState<UiNotification[]>([]);
   const [isRefreshingNotifications, setIsRefreshingNotifications] = useState(false);
+  const [isPushEnabled, setIsPushEnabled] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({
@@ -708,7 +710,11 @@ function App(): React.JSX.Element {
 
         const normalizedPath = parsed.pathname.replace(/^\/+/, '');
         const segments = normalizedPath.split('/').filter(Boolean);
-        const isProductPath = host === 'product' || segments[0] === 'product';
+        const isProductPath =
+          host === 'product' ||
+          host === 'electronicsshop.app' ||
+          host === 'www.electronicsshop.app' ||
+          segments[0] === 'product';
 
         if (isProductPath) {
           let productId =
@@ -836,6 +842,13 @@ function App(): React.JSX.Element {
       return;
     }
 
+    if (!isPushEnabled) {
+      fcmRefreshUnsubRef.current?.();
+      fcmRefreshUnsubRef.current = null;
+      deleteFcmToken().catch(err => console.warn('App.tsx - Failed to delete token', err));
+      return;
+    }
+
     let isMounted = true;
 
     requestUserPermission()
@@ -853,7 +866,7 @@ function App(): React.JSX.Element {
       fcmRefreshUnsubRef.current?.();
       fcmRefreshUnsubRef.current = null;
     };
-  }, [isLoggedIn, authTokens?.accessToken]);
+  }, [isLoggedIn, authTokens?.accessToken, isPushEnabled]);
 
   useEffect(() => {
     Linking.getInitialURL()
@@ -882,6 +895,11 @@ function App(): React.JSX.Element {
         const storedCart = await loadPersistedCart();
         if (storedCart) {
           setCartItems(storedCart);
+        }
+
+        const storedPush = await AsyncStorage.getItem(PUSH_SETTINGS_KEY);
+        if (storedPush !== null) {
+          setIsPushEnabled(JSON.parse(storedPush));
         }
       } catch (error) {
         console.warn('App.tsx - Failed to restore auth state', error);
@@ -1774,6 +1792,12 @@ function App(): React.JSX.Element {
             onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
             onChangePassword={() => setCurrentScreen('change-password')}
             theme={theme}
+            isPushEnabled={isPushEnabled}
+            onTogglePush={() => {
+              const newValue = !isPushEnabled;
+              setIsPushEnabled(newValue);
+              AsyncStorage.setItem(PUSH_SETTINGS_KEY, JSON.stringify(newValue)).catch(err => console.warn(err));
+            }}
           />
         );
 

@@ -1,5 +1,5 @@
 import { NativeModules, Platform } from 'react-native';
-import { API_BASE_URL as ENV_API_URL } from '@env';
+import { API_BASE_URL as ENV_API_URL, API_DEVICE_HOST } from '@env';
 
 export type AuthResponse = {
   user: any;
@@ -195,11 +195,39 @@ const resolveApiHost = () => {
   return Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
 };
 
-// Allow build-time override; but if env points to localhost/127/0.0.1, use device-resolvable host instead.
+const cleanHost = (value?: string) => {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  try {
+    const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
+    const url = new URL(withScheme);
+    return { origin: url.origin, host: url.hostname, port: url.port };
+  } catch {
+    return undefined;
+  }
+};
+
+// Allow build-time override; but if env points to localhost/127.0.0.1, prefer a device-resolvable host instead.
 const isLocalHost = (url?: string) => !!url && /localhost|127\.0\.0\.1/.test(url);
-const API_BASE_URL = isLocalHost(ENV_API_URL)
-  ? `http://${resolveApiHost()}:3000`
-  : (ENV_API_URL || `http://${resolveApiHost()}:3000`);
+const envHost = cleanHost(ENV_API_URL);
+const deviceHost = cleanHost(API_DEVICE_HOST);
+const fallbackHost = resolveApiHost();
+
+const pickBaseUrl = () => {
+  // 1) Use non-local env URL if provided
+  if (envHost && !isLocalHost(envHost.origin)) return envHost.origin;
+
+  // 2) If env is local or missing, but device host override is set, use it (default port 3000 if none)
+  if (deviceHost) {
+    return deviceHost.port ? deviceHost.origin : `${deviceHost.origin}:3000`;
+  }
+
+  // 3) If env is local and no override, fall back to resolved host with default port
+  return `http://${fallbackHost}:3000`;
+};
+
+const API_BASE_URL = pickBaseUrl();
 
 type RequestOptions = {
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';

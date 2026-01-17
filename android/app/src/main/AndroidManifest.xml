@@ -37,6 +37,13 @@
             <data android:scheme="electronicsshop" android:host="product" android:pathPrefix="/" />
             <data android:scheme="electronicsshop" android:host="*" android:pathPrefix="/product" />
         </intent-filter>
+        <intent-filter android:autoVerify="true">
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" android:host="electronicsshop.app" android:pathPrefix="/product" />
+            <data android:scheme="https" android:host="www.electronicsshop.app" android:pathPrefix="/product" />
+        </intent-filter>
       </activity>
       <meta-data
         android:name="com.google.firebase.messaging.default_notification_channel_id"
