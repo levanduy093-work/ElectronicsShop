@@ -115,6 +115,7 @@ const CategoryPill = ({
       <Text
         style={[styles.categoryName, { color: resolvedTheme.text }]}
         numberOfLines={2}
+        adjustsFontSizeToFit={false}
       >
         {item.name}
       </Text>
@@ -534,7 +535,7 @@ const styles = StyleSheet.create({
   },
   categoryItem: {
     alignItems: 'center',
-    minWidth: 72,
+    width: 80,
     gap: 8,
   },
   categoryIcon: {
@@ -550,6 +551,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#4B5563',
     textAlign: 'center',
+    width: '100%',
+    flexWrap: 'wrap',
   },
   aiCard: {
     borderRadius: 16,

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../common/Icon';
 import { AddressFormValues, AddressType } from '../../types';
 import { Theme, lightTheme, useTheme } from '../../theme';
@@ -15,20 +16,20 @@ interface AddressFormProps {
   theme?: Theme;
 }
 
-const EMPTY_FORM: AddressFormValues = {
+const getEmptyForm = (t: (key: string) => string): AddressFormValues => ({
   name: '',
   phone: '',
   detailedAddress: '',
   ward: '',
   district: '',
   city: '',
-  type: 'Nhà riêng',
+  type: t('home') as AddressType,
   isDefault: false,
-};
+});
 
 export function AddressForm({
-  title = 'Thêm địa chỉ mới',
-  submitLabel = 'Lưu địa chỉ',
+  title,
+  submitLabel,
   onCancel,
   onSubmit,
   initialValues,
@@ -37,9 +38,12 @@ export function AddressForm({
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
   const { showToast } = useToast();
+  const { t: translate } = useTranslation();
   const t = theme || ctxTheme || lightTheme;
+  const defaultTitle = translate('addNewAddress');
+  const defaultSubmitLabel = translate('saveAddress');
 
-  const mergedInitial = useMemo(() => ({ ...EMPTY_FORM, ...initialValues }), [initialValues]);
+  const mergedInitial = useMemo(() => ({ ...getEmptyForm(translate), ...initialValues }), [initialValues, translate]);
   const [formData, setFormData] = useState<AddressFormValues>(mergedInitial);
 
   useEffect(() => {
@@ -48,7 +52,7 @@ export function AddressForm({
 
   const handleSave = () => {
     if (!formData.name || !formData.phone || !formData.detailedAddress) {
-      showToast('Vui lòng điền đầy đủ họ tên, số điện thoại và địa chỉ cụ thể', 'error');
+      showToast(translate('fillFullInfo'), 'error');
       return;
     }
     onSubmit(formData);
@@ -91,7 +95,7 @@ export function AddressForm({
           <AppIcon name="arrow-left" size={24} color={t.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: t.text }]}>
-          {title}
+          {title || defaultTitle}
         </Text>
         <View style={{ width: 24 }} />
       </View>
@@ -99,78 +103,78 @@ export function AddressForm({
       <ScrollView style={styles.formContent} contentContainerStyle={{ paddingBottom: 96 }} showsVerticalScrollIndicator={false}>
         <View style={[styles.formCard, { backgroundColor: t.card }]}>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: t.text }]}>Họ và tên</Text>
+            <Text style={[styles.label, { color: t.text }]}>{translate('full_name_label')}</Text>
             <TextInput
               value={formData.name}
               onChangeText={text => setFormData({ ...formData, name: text })}
               style={[styles.input, { backgroundColor: t.surface, borderColor: t.border, color: t.text }]}
-              placeholder="Nhập họ tên"
+              placeholder={translate('enter_name_placeholder')}
               placeholderTextColor={t.muted}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: t.text }]}>Số điện thoại</Text>
+            <Text style={[styles.label, { color: t.text }]}>{translate('phone_number_label')}</Text>
             <TextInput
               value={formData.phone}
               onChangeText={text => setFormData({ ...formData, phone: text })}
               style={[styles.input, { backgroundColor: t.surface, borderColor: t.border, color: t.text }]}
-              placeholder="Nhập số điện thoại"
+              placeholder={translate('enterPhone')}
               keyboardType="phone-pad"
               placeholderTextColor={t.muted}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: t.text }]}>Tỉnh / Thành phố</Text>
+            <Text style={[styles.label, { color: t.text }]}>{translate('province_city_label')}</Text>
             <TextInput
               value={formData.city}
               onChangeText={text => setFormData({ ...formData, city: text })}
               style={[styles.input, { backgroundColor: t.surface, borderColor: t.border, color: t.text }]}
-              placeholder="Nhập Tỉnh/Thành phố"
+              placeholder={translate('enterCity')}
               placeholderTextColor={t.muted}
             />
           </View>
 
           <View style={styles.row}>
             <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-              <Text style={[styles.label, { color: t.text }]}>Quận / Huyện</Text>
+              <Text style={[styles.label, { color: t.text }]}>{translate('district_label')}</Text>
               <TextInput
                 value={formData.district}
                 onChangeText={text => setFormData({ ...formData, district: text })}
                 style={[styles.input, { backgroundColor: t.surface, borderColor: t.border, color: t.text }]}
-                placeholder="Quận/Huyện"
+                placeholder={translate('enterDistrict')}
                 placeholderTextColor={t.muted}
               />
             </View>
             <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-              <Text style={[styles.label, { color: t.text }]}>Phường / Xã</Text>
+              <Text style={[styles.label, { color: t.text }]}>{translate('ward_label')}</Text>
               <TextInput
                 value={formData.ward}
                 onChangeText={text => setFormData({ ...formData, ward: text })}
                 style={[styles.input, { backgroundColor: t.surface, borderColor: t.border, color: t.text }]}
-                placeholder="Phường/Xã"
+                placeholder={translate('enterWard')}
                 placeholderTextColor={t.muted}
               />
             </View>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: t.text }]}>Địa chỉ cụ thể</Text>
+            <Text style={[styles.label, { color: t.text }]}>{translate('detailed_address_label')}</Text>
             <TextInput
               value={formData.detailedAddress}
               onChangeText={text => setFormData({ ...formData, detailedAddress: text })}
               style={[styles.input, { backgroundColor: t.surface, borderColor: t.border, color: t.text }]}
-              placeholder="Số nhà, tên đường..."
+              placeholder={translate('enterAddress')}
               placeholderTextColor={t.muted}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: t.text }]}>Loại địa chỉ</Text>
+            <Text style={[styles.label, { color: t.text }]}>{translate('address_type_label')}</Text>
             <View style={styles.typeContainer}>
-              {renderTypeButton('Nhà riêng', 'Nhà riêng', 'home')}
-              {renderTypeButton('Văn phòng', 'Văn phòng', 'briefcase')}
+              {renderTypeButton(translate('home') as AddressType, translate('home'), 'home')}
+              {renderTypeButton(translate('office') as AddressType, translate('office'), 'briefcase')}
             </View>
           </View>
 
@@ -187,7 +191,7 @@ export function AddressForm({
             ]}>
               {formData.isDefault && <AppIcon name="check" size={14} color="#FFFFFF" />}
             </View>
-            <Text style={[styles.checkboxLabel, { color: t.text }]}>Đặt làm địa chỉ mặc định</Text>
+            <Text style={[styles.checkboxLabel, { color: t.text }]}>{translate('set_as_default_address')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -196,7 +200,7 @@ export function AddressForm({
           style={[styles.saveButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
           activeOpacity={0.8}
         >
-          <Text style={styles.saveButtonText}>{submitLabel}</Text>
+          <Text style={styles.saveButtonText}>{submitLabel || defaultSubmitLabel}</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Share, useWindowDimensions, Modal, TextInput, Image, Animated, Easing, KeyboardAvoidingView, Platform, FlatList } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Product } from '../types';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
@@ -116,6 +117,7 @@ export function ProductDetail({
   const { theme: ctxTheme, isDarkMode } = useTheme();
   const theme = injectedTheme || ctxTheme;
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const isOutOfStock =
     product.stock === 'Out of Stock' ||
     (product.stockQuantity !== undefined && product.stockQuantity <= 0);
@@ -198,13 +200,13 @@ export function ProductDetail({
         url: universalLink,
       });
     } catch (error) {
-      showToast('Không thể chia sẻ', 'error');
+      showToast(t('cannotShare'), 'error');
     }
   };
 
   const handleHeartClick = () => {
     if (!isLoggedIn) {
-      showToast('Vui lòng đăng nhập để thêm vào danh sách yêu thích', 'info');
+      showToast(t('loginRequiredFavorite'), 'info');
       onRequireLogin();
       return;
     }
@@ -222,14 +224,14 @@ export function ProductDetail({
       return;
     }
     if (allowedQuantity !== quantity && availableStock !== undefined) {
-      showToast(`Chỉ còn ${availableStock} sản phẩm trong kho`, 'info');
+      showToast(t('stockLeft', { count: availableStock }), 'info');
       setQuantity(allowedQuantity);
     }
 
     const result = onAddToCart(product, allowedQuantity);
     if (result === false) return; 
 
-    showToast('Đã thêm vào giỏ hàng', 'success'); 
+    showToast(t('addedToCart'), 'success'); 
     runAddToCartAnimation(() => {});
   };
 
@@ -241,7 +243,7 @@ export function ProductDetail({
 
   const handleWriteReview = () => {
     if (!isLoggedIn) {
-      showToast('Vui lòng đăng nhập để viết đánh giá', 'info');
+      showToast(t('loginRequiredReview'), 'info');
       onRequireLogin();
       return;
     }
@@ -260,7 +262,7 @@ export function ProductDetail({
   const handleSubmitReview = () => {
     const content = reviewContent.trim();
     if (!content) {
-      showToast('Vui lòng nhập nội dung đánh giá', 'error');
+      showToast(t('enterReviewContent'), 'error');
       return;
     }
 
@@ -275,7 +277,7 @@ export function ProductDetail({
       _id: tempId,
       productId: product.id,
       userId: currentUserId || 'me',
-      userName: currentUserName || 'Bạn',
+      userName: currentUserName || t('you'),
       rating: reviewRating,
       comment: content,
       images: imagesToUpload,
@@ -294,7 +296,7 @@ export function ProductDetail({
     resetReviewForm();
     setActiveTab('reviews');
     setExpandedReviews({});
-    showToast('Đã gửi đánh giá', 'success');
+    showToast(t('reviewSent'), 'success');
 
     const doSubmit = async () => {
       try {
@@ -320,7 +322,7 @@ export function ProductDetail({
         fetchReviews();
       } catch (error: any) {
         setReviews(prev => prev.filter(r => r._id !== tempId));
-        showToast(error?.message || 'Không thể gửi đánh giá', 'error');
+        showToast(error?.message || t('cannotSendReview'), 'error');
       }
     };
 
@@ -490,7 +492,7 @@ export function ProductDetail({
           {product.stock !== 'In Stock' && (
             <View style={styles.stockBadge}>
               <Text style={styles.stockText}>
-                {product.stock === 'Low Stock' ? 'Sắp hết' : 'Hết hàng'}
+                {product.stock === 'Low Stock' ? t('lowStock') : t('out_of_stock')}
               </Text>
             </View>
           )}
@@ -515,7 +517,7 @@ export function ProductDetail({
                 <Text style={[styles.ratingText, { color: theme.text }]}>{derivedAverageRating.toFixed(1)}</Text>
               </View>
               <Text style={styles.separator}>|</Text>
-              <Text style={[styles.reviewsText, { color: theme.muted }]}>{derivedReviewCount} đánh giá</Text>
+              <Text style={[styles.reviewsText, { color: theme.muted }]}>{derivedReviewCount} {t('reviews')}</Text>
               <Text style={styles.separator}>|</Text>
               <Text
                 style={[
@@ -525,13 +527,13 @@ export function ProductDetail({
               >
                 {availableStock !== undefined
                   ? availableStock > 0
-                    ? `Còn ${availableStock} sản phẩm`
-                    : 'Hết hàng'
+                    ? t('stockLeft', { count: availableStock })
+                    : t('out_of_stock')
                   : product.stock === 'Low Stock'
-                    ? 'Sắp hết hàng'
+                    ? t('lowStock')
                     : product.stock === 'Out of Stock'
-                      ? 'Hết hàng'
-                      : 'Còn hàng'}
+                      ? t('out_of_stock')
+                      : t('inStock')}
               </Text>
             </View>
           </View>
@@ -656,7 +658,7 @@ export function ProductDetail({
                         />
                       ))}
                     </View>
-                    <Text style={[styles.ratingCount, { color: theme.muted }]}>{derivedReviewCount} đánh giá</Text>
+                    <Text style={[styles.ratingCount, { color: theme.muted }]}>{derivedReviewCount} {t('reviews')}</Text>
                   </View>
                   <View style={styles.ratingBars}>
                     {[5, 4, 3, 2, 1].map((star) => (
@@ -689,17 +691,17 @@ export function ProductDetail({
                 >
                   <AppIcon name="edit" size={18} color={theme.primary} />
                   <Text style={[styles.writeReviewText, { color: theme.primary }]}>
-                    {reviews.find(r => r.userId === currentUserId) ? 'Chỉnh sửa đánh giá' : 'Viết đánh giá của bạn'}
+                    {reviews.find(r => r.userId === currentUserId) ? t('editReview') : t('writeReview')}
                   </Text>
                 </TouchableOpacity>
 
                 {reviewsLoading && (
-                  <Text style={[styles.reviewsText, { color: theme.muted, paddingVertical: 8 }]}>Đang tải đánh giá...</Text>
+                  <Text style={[styles.reviewsText, { color: theme.muted, paddingVertical: 8 }]}>{t('loading_reviews')}</Text>
                 )}
 
                 {reviewsFetched && reviews.length === 0 && !reviewsLoading && (
                   <Text style={[styles.reviewsText, { color: theme.muted, paddingVertical: 8 }]}>
-                    Chưa có đánh giá nào. Hãy là người đầu tiên!
+                    {t('no_reviews_yet')}
                   </Text>
                 )}
 
@@ -851,7 +853,7 @@ export function ProductDetail({
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <View style={[styles.modalCard, { backgroundColor: theme.surface }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Viết đánh giá</Text>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>{t('writeReview')}</Text>
 
             <View style={styles.ratingSelector}>
               {[1, 2, 3, 4, 5].map((star) => (

@@ -12,6 +12,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Product } from '../types';
 import { CATEGORIES } from '../constants/data';
 import { extractCategoriesFromProducts } from '../utils/product';
@@ -55,6 +56,7 @@ export function Catalog({
   initialScrollOffset,
   onScrollPositionChange,
 }: CatalogProps) {
+  const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState<string>(controlledCategory ?? initialCategory ?? 'All');
   const [searchQuery, setSearchQuery] = useState(controlledSearchQuery ?? '');
   const listRef = useRef<FlatList<Product>>(null);
@@ -163,7 +165,7 @@ export function Catalog({
         ]}>
           <AppIcon name="search" size={18} color={theme.muted} style={styles.searchIcon} />
           <TextInput
-            placeholder="Tìm kiếm linh kiện..."
+            placeholder={t('searchComponents')}
             value={searchQuery}
             onChangeText={(text) => {
               setSearchQuery(text);
@@ -217,7 +219,7 @@ export function Catalog({
                   styles.categoryTabText,
                   { color: isActive ? theme.surface : theme.muted }
                 ]}>
-                  {cat.name === 'All' ? 'Tất cả' : cat.name}
+                  {cat.name === 'All' ? t('all') : cat.name}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -227,7 +229,7 @@ export function Catalog({
 
       {/* Product Grid */}
       <View style={styles.productsContainer}>
-        <Text style={[styles.productsCount, { color: theme.muted }]}>{filteredProducts.length} sản phẩm</Text>
+        <Text style={[styles.productsCount, { color: theme.muted }]}>{t('products_count', { count: filteredProducts.length })}</Text>
         {filteredProducts.length > 0 ? (
           <FlatList
             ref={listRef}
@@ -252,8 +254,8 @@ export function Catalog({
             <View style={styles.emptyIcon}>
               <AppIcon name="search" size={32} color="#9CA3AF" />
             </View>
-            <Text style={styles.emptyText}>Không tìm thấy sản phẩm</Text>
-            <Text style={styles.emptySubtext}>Thử tìm kiếm với từ khóa khác</Text>
+            <Text style={styles.emptyText}>{t('product_not_found')}</Text>
+            <Text style={styles.emptySubtext}>{t('try_different_keywords')}</Text>
           </View>
         )}
       </View>

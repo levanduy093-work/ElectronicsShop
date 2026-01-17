@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../theme';
 import { Order } from '../types';
@@ -16,6 +17,7 @@ interface OrderHistoryProps {
 export function OrderHistory({ onBack, onViewDetail, orders = [], theme }: OrderHistoryProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme, isDarkMode } = useTheme();
+  const { t: translate } = useTranslation();
   const t = theme || ctxTheme || lightTheme;
 
   // Debug: log số lượng orders
@@ -44,10 +46,10 @@ export function OrderHistory({ onBack, onViewDetail, orders = [], theme }: Order
 
   const getStatusText = (status: string) => {
     switch(status) {
-      case 'processing': return 'Đang xử lý';
-      case 'shipping': return 'Đang giao';
-      case 'completed': return 'Hoàn thành';
-      case 'cancelled': return 'Đã hủy';
+      case 'processing': return translate('order_status_processing');
+      case 'shipping': return translate('order_status_shipping');
+      case 'completed': return translate('order_status_completed');
+      case 'cancelled': return translate('order_status_cancelled');
       default: return status;
     }
   };
@@ -70,7 +72,7 @@ export function OrderHistory({ onBack, onViewDetail, orders = [], theme }: Order
         <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.muted} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: t.text }]}>Đơn hàng của tôi</Text>
+        <Text style={[styles.title, { color: t.text }]}>{translate('my_orders')}</Text>
         <View style={styles.placeholder} />
       </View>
       <ScrollView 
@@ -83,8 +85,8 @@ export function OrderHistory({ onBack, onViewDetail, orders = [], theme }: Order
             <View style={[styles.emptyIcon, { backgroundColor: t.surface }]}>
               <AppIcon name="package" size={32} color={t.muted} />
             </View>
-            <Text style={[styles.emptyText, { color: t.text }]}>Chưa có đơn hàng nào</Text>
-            <Text style={[styles.emptySubtext, { color: t.muted }]}>Các đơn hàng của bạn sẽ hiển thị ở đây</Text>
+            <Text style={[styles.emptyText, { color: t.text }]}>{translate('no_orders_yet')}</Text>
+            <Text style={[styles.emptySubtext, { color: t.muted }]}>{translate('orders_will_appear_here')}</Text>
           </View>
         ) : (
           orders.map((order) => (
@@ -112,14 +114,14 @@ export function OrderHistory({ onBack, onViewDetail, orders = [], theme }: Order
                 ))}
                 {order.items.length > 2 && (
                   <Text style={[styles.moreItemsText, { color: t.muted }]}>
-                    + {order.items.length - 2} sản phẩm khác
+                    {translate('more_products', { count: order.items.length - 2 })}
                   </Text>
                 )}
               </View>
               
               <View style={[styles.orderFooter, { borderTopColor: t.border }]}>
                 <View>
-                  <Text style={[styles.orderTotalLabel, { color: t.muted }]}>Tổng cộng:</Text>
+                  <Text style={[styles.orderTotalLabel, { color: t.muted }]}>{translate('total')}:</Text>
                   <Text style={[styles.orderTotal, { color: t.primary }]}>{formatPrice(order.payment.total)}</Text>
                 </View>
                 <TouchableOpacity
@@ -127,7 +129,7 @@ export function OrderHistory({ onBack, onViewDetail, orders = [], theme }: Order
                   style={[styles.viewDetailButton, { backgroundColor: t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)', borderColor: t.primary }]}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.viewDetailText, { color: t.primary }]}>Xem chi tiết</Text>
+                  <Text style={[styles.viewDetailText, { color: t.primary }]}>{translate('view_details')}</Text>
                   <AppIcon name="chevron-right" size={16} color={t.primary} />
                 </TouchableOpacity>
               </View>

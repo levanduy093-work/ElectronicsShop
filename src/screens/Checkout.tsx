@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, StatusBar, Platform, Linking, AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
 import { Address, AddressFormValues } from '../types';
 import { DEFAULT_ADDRESSES } from '../constants/defaults';
@@ -50,6 +51,7 @@ export function Checkout({
   onCheckPaymentStatus = async () => 'pending',
 }: CheckoutProps) {
   const { theme: ctxTheme, isDarkMode } = useTheme();
+  const { t: translate } = useTranslation();
   const t = theme || ctxTheme || lightTheme;
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
@@ -66,8 +68,8 @@ export function Checkout({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const shippingOptions = [
-    { name: "Nhanh (24h)", price: 30000, desc: "Nhận hàng vào ngày mai" },
-    { name: "Tiêu chuẩn (2-3 ngày)", price: 15000, desc: "Nhận hàng T5, 20/01" },
+    { name: translate('fastShipping'), price: 30000, desc: translate('fastShippingDesc') },
+    { name: translate('standardShipping'), price: 15000, desc: translate('standardShippingDesc') },
   ];
   const subTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shippingFee = shippingOptions[selectedShipping]?.price ?? 30000;
@@ -78,13 +80,13 @@ export function Checkout({
     {
       name: 'vnpay',
       label: 'VNPAY',
-      desc: 'Thanh toán qua QR cổng VNPAY.',
+      desc: translate('vnpayDesc'),
       icon: null,
     },
     {
       name: 'cod',
-      label: 'Thanh toán khi nhận hàng (COD)',
-      desc: 'Trả tiền mặt khi nhận hàng, không cần ví hay thẻ.',
+      label: translate('codLabel'),
+      desc: translate('codDesc'),
       icon: null,
       iconName: 'cash',
     },
@@ -115,9 +117,9 @@ export function Checkout({
   }, [addressList, selectedAddressId]);
 
   const steps = [
-    { id: 'address', title: 'Địa chỉ', icon: 'map-pin' },
-    { id: 'shipping', title: 'Vận chuyển', icon: 'truck' },
-    { id: 'payment', title: 'Thanh toán', icon: 'credit-card' },
+    { id: 'address', title: translate('address'), icon: 'map-pin' },
+    { id: 'shipping', title: translate('shipping'), icon: 'truck' },
+    { id: 'payment', title: translate('payment'), icon: 'credit-card' },
   ];
 
   const [orderId, setOrderId] = useState<string>('');
@@ -143,7 +145,7 @@ export function Checkout({
     if (step === 'payment') {
       const selectedAddress = addressList.find(a => a.id === selectedAddressId);
       if (!selectedAddress) {
-        showToast('Vui lòng chọn địa chỉ giao hàng', 'error');
+        showToast(translate('selectShippingAddress'), 'error');
         return;
       }
       const fallbackCode = `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
@@ -173,13 +175,13 @@ export function Checkout({
           setPendingPayment({ url: created.paymentUrl, code: newId, amount: total, id: created?.id || created?.code });
           setStep('waiting');
           Linking.openURL(created.paymentUrl).catch(() => {
-            showToast('Không thể mở cổng VNPAY', 'error');
+            showToast(translate('cannotOpenVnpay'), 'error');
           });
           return;
         }
         setStep('success');
       } catch (error: any) {
-        showToast(error?.message || 'Không thể đặt hàng', 'error');
+        showToast(error?.message || translate('cannotPlaceOrder'), 'error');
       } finally {
         setIsSubmitting(false);
       }
@@ -218,7 +220,7 @@ export function Checkout({
       }
       setIsAddingAddress(false);
     } catch (error: any) {
-      showToast(error?.message || 'Không thể lưu địa chỉ', 'error');
+      showToast(error?.message || translate('cannotSaveAddress'), 'error');
     } finally {
       setIsSavingAddress(false);
     }
@@ -237,12 +239,12 @@ export function Checkout({
         });
         setStep('success');
       } else if (status === 'failed') {
-        showToast('Thanh toán không thành công', 'error');
+        showToast(translate('payment_failed'), 'error');
       } else {
-        showToast('Thanh toán đang xử lý, vui lòng thử lại sau', 'info');
+        showToast(translate('paymentProcessing'), 'info');
       }
     } catch (error: any) {
-      showToast(error?.message || 'Không thể kiểm tra trạng thái thanh toán', 'error');
+      showToast(error?.message || translate('cannotCheckPaymentStatus'), 'error');
     } finally {
       setCheckingPayment(false);
     }
@@ -263,7 +265,7 @@ export function Checkout({
         theme={t}
         onCancel={() => setIsAddingAddress(false)}
         onSubmit={handleSaveAddress}
-        initialValues={{ isDefault: addressList.length === 0, type: 'Nhà riêng' }}
+        initialValues={{ isDefault: addressList.length === 0, type: translate('home') as AddressType }}
         title="Thêm địa chỉ mới"
       />
     );
@@ -285,7 +287,7 @@ export function Checkout({
             onPress={() => {
               if (!pendingPayment.url) return;
               Linking.openURL(pendingPayment.url).catch(() => {
-                showToast('Không thể mở cổng VNPAY', 'error');
+                showToast(translate('cannotOpenVnpay'), 'error');
               });
             }}
             style={[styles.waitingButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
@@ -369,7 +371,7 @@ export function Checkout({
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: t.text }]}>Thanh toán</Text>
+        <Text style={[styles.headerTitle, { color: t.text }]}>{translate('payment')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -501,7 +503,7 @@ export function Checkout({
 
         {step === 'payment' && (
       <View style={styles.stepContent}>
-        <Text style={[styles.stepTitle, { color: t.muted }]}>Thanh toán</Text>
+        <Text style={[styles.stepTitle, { color: t.muted }]}>{translate('payment')}</Text>
 
         {paymentOptions.map((opt, i) => (
               <TouchableOpacity
@@ -557,7 +559,7 @@ export function Checkout({
                 <Text style={[styles.summaryValue, { color: t.text }]}>{formatPrice(shippingFee)}</Text>
               </View>
               <View style={styles.totalRow}>
-                <Text style={[styles.totalLabel, { color: t.text }]}>Thanh toán</Text>
+                <Text style={[styles.totalLabel, { color: t.text }]}>{translate('payment')}</Text>
                 <Text style={[styles.totalValue, { color: t.primary }]}>{formatPrice(total)}</Text>
               </View>
             </View>
@@ -581,7 +583,7 @@ export function Checkout({
           disabled={isSubmitting || placingOrder}
         >
           <Text style={styles.nextButtonText}>
-            {step === 'payment' ? `Thanh toán ${formatPrice(total)}` : 'Tiếp tục'}
+            {step === 'payment' ? translate('payAmount', { amount: formatPrice(total) }) : translate('continue')}
           </Text>
           {step !== 'payment' && <AppIcon name="chevron-right" size={20} color="#FFFFFF" />}
         </TouchableOpacity>

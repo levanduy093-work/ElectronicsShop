@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, StatusBar, Platform, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../theme';
 import { Address, AddressFormValues } from '../types';
@@ -20,6 +21,7 @@ interface AddressBookProps {
 export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, accessToken }: AddressBookProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
+  const { t: translate } = useTranslation();
   const t = theme || ctxTheme || lightTheme;
   const [localAddresses, setLocalAddresses] = useState<Address[]>(addresses ?? DEFAULT_ADDRESSES);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,7 +52,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
         onUpdateAddresses(fetchedAddresses);
       }
     } catch (error: any) {
-      Alert.alert('Lỗi', error.message || 'Không thể tải danh sách địa chỉ');
+      Alert.alert(translate('error'), error.message || translate('cannotLoadAddresses'));
     } finally {
       setIsLoading(false);
     }
@@ -69,7 +71,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
           onUpdateAddresses(updatedAddresses);
         }
       } catch (error: any) {
-        Alert.alert('Lỗi', error.message || 'Không thể đặt địa chỉ mặc định');
+        Alert.alert(translate('error'), error.message || translate('cannotSetDefaultAddress'));
       } finally {
         setIsLoading(false);
       }
@@ -100,7 +102,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
                 onUpdateAddresses(updatedAddresses);
               }
             } catch (error: any) {
-              Alert.alert('Lỗi', error.message || 'Không thể xóa địa chỉ');
+              Alert.alert(translate('error'), error.message || translate('cannotDeleteAddress'));
             } finally {
               setIsLoading(false);
             }
@@ -122,7 +124,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
       ward: '',
       district: '',
       city: '',
-      type: 'Nhà riêng',
+      type: translate('home') as AddressType,
       isDefault: addressList.length === 0,
     });
     setIsFormOpen(true);
@@ -162,7 +164,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
         }
         setIsFormOpen(false);
       } catch (error: any) {
-        Alert.alert('Lỗi', error.message || 'Không thể cập nhật địa chỉ');
+        Alert.alert(translate('error'), error.message || translate('cannotUpdateAddress'));
       } finally {
         setIsLoading(false);
       }
@@ -180,7 +182,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
         }
         setIsFormOpen(false);
       } catch (error: any) {
-        Alert.alert('Lỗi', error.message || 'Không thể thêm địa chỉ');
+        Alert.alert(translate('error'), error.message || translate('cannotAddAddress'));
       } finally {
         setIsLoading(false);
       }
@@ -225,7 +227,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
         onCancel={() => setIsFormOpen(false)}
         onSubmit={handleSave}
         initialValues={formInitialValues}
-        title={editingId ? 'Sửa địa chỉ' : 'Thêm địa chỉ mới'}
+        title={editingId ? translate('editAddress') : translate('addNewAddress')}
       />
     );
   }
@@ -293,7 +295,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
             <View style={styles.addressFooter}>
               <View style={[styles.typeBadge, { backgroundColor: t.surface }]}>
                 <AppIcon
-                  name={addr.type === 'Nhà riêng' ? 'home' : 'briefcase'}
+                  name={addr.type === translate('home') ? 'home' : 'briefcase'}
                   size={10}
                   color={t.muted}
                 />
@@ -328,7 +330,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
           activeOpacity={0.7}
         >
           <AppIcon name="plus" size={20} color={t.muted} />
-          <Text style={[styles.addButtonText, { color: t.text }]}>Thêm địa chỉ mới</Text>
+          <Text style={[styles.addButtonText, { color: t.text }]}>{translate('addNewAddress')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

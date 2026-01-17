@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Modal, SafeAreaView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { AiAction, AiProductCard, ChatMessage } from '../../types';
 import { AppIcon } from '../common/Icon';
 import { useTheme, lightTheme } from '../../theme';
@@ -13,6 +14,7 @@ interface MessageBubbleProps {
 export function MessageBubble({ message, onAction, onSelectCard }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const isDark = theme !== lightTheme;
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -35,13 +37,13 @@ export function MessageBubble({ message, onAction, onSelectCard }: MessageBubble
           ) : null}
         </View>
         <Text style={[styles.productMeta, { color: theme.muted }]} numberOfLines={1}>
-          {card.category || 'Sản phẩm'}
+          {card.category || (t ? t('product') : 'Product')}
         </Text>
         <View style={styles.productFooter}>
           <View>
             <Text style={[styles.productPrice, { color: theme.primary }]}>{card.price.toLocaleString('vi-VN')}đ</Text>
             <Text style={[styles.productStock, { color: card.stock > 0 ? '#16A34A' : '#DC2626' }]}>
-              {card.stock > 0 ? `Còn ${card.stock}` : 'Hết hàng'}
+              {card.stock > 0 ? t('stockLeft', { count: card.stock }) : t('out_of_stock')}
             </Text>
           </View>
           <View style={styles.productActions}>

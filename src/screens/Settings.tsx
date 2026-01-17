@@ -77,7 +77,7 @@ export function Settings({ onBack, isDarkMode, onToggleDarkMode, onChangePasswor
               </View>
               <View style={styles.settingRight}>
                 <Text style={[styles.settingValue, { color: theme.muted }]}>
-                   {i18n.language === 'en' ? 'English' : 'Tiếng Việt'}
+                   {i18n.language === 'en' ? t('english') : t('vietnamese')}
                 </Text>
                 <AppIcon name="chevron-right" size={18} color={theme.muted} />
               </View>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Product } from '../../types';
 import { ImageWithFallback } from '../common/ImageWithFallback';
 import { AppIcon } from '../common/Icon';
@@ -18,6 +19,7 @@ const { width } = Dimensions.get('window');
 const cardWidth = (width - 48) / 2; // 2 columns with padding
 
 export function ProductCard({ product, style, onPress, onAdd, theme = lightTheme }: ProductCardProps) {
+  const { t } = useTranslation();
   const hasReviews = (product.reviews ?? 0) > 0 && (product.rating ?? 0) > 0;
   const displayRating = hasReviews ? Number(product.rating).toFixed(1) : '0';
   const displayReviewCount = hasReviews ? product.reviews : 0;
@@ -41,7 +43,7 @@ export function ProductCard({ product, style, onPress, onAdd, theme = lightTheme
         {product.stock !== 'In Stock' && (
           <View style={styles.stockBadge}>
             <Text style={styles.stockText}>
-              {product.stock === 'Low Stock' ? 'Sắp hết' : 'Hết hàng'}
+              {product.stock === 'Low Stock' ? t('lowStock') : t('out_of_stock')}
             </Text>
           </View>
         )}

@@ -222,11 +222,14 @@ async function loadPersistedCart(): Promise<CartItem[] | null> {
   }
 }
 
-const ORDER_STATUS_TEXT: Record<Order['status'], string> = {
-  processing: 'Đang xử lý',
-  shipping: 'Đang giao',
-  completed: 'Hoàn thành',
-  cancelled: 'Đã hủy',
+const getOrderStatusText = (status: Order['status'], t: (key: string) => string): string => {
+  const statusMap: Record<Order['status'], string> = {
+    processing: t('order_status_processing'),
+    shipping: t('order_status_shipping'),
+    completed: t('order_status_completed'),
+    cancelled: t('order_status_cancelled'),
+  };
+  return statusMap[status];
 };
 
 const formatDateTime = (value?: string | Date | null) => {
@@ -241,18 +244,28 @@ const formatDateTime = (value?: string | Date | null) => {
   return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
 };
 
-const formatRelativeTime = (value?: string | Date | null) => {
+const formatRelativeTime = (value?: string | Date | null, t?: (key: string, options?: any) => string) => {
   if (!value) return '';
   const date = typeof value === 'string' ? new Date(value) : value;
   if (Number.isNaN(date.getTime())) return '';
   const diffMs = Date.now() - date.getTime();
   const diffMinutes = Math.floor(diffMs / 60000);
-  if (diffMinutes < 1) return 'Vừa xong';
-  if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+  if (typeof t !== 'function') {
+    // Fallback if translation not available
+    if (diffMinutes < 1) return 'Just now';
+    if (diffMinutes < 60) return `${diffMinutes} minutes ago`;
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return formatDateTime(date);
+  }
+  if (diffMinutes < 1) return t('time_just_now');
+  if (diffMinutes < 60) return t('time_minutes_ago', { count: diffMinutes });
   const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours} giờ trước`;
+  if (diffHours < 24) return t('time_hours_ago', { count: diffHours });
   const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays} ngày trước`;
+  if (diffDays < 7) return t('time_days_ago', { count: diffDays });
   return formatDateTime(date);
 };
 
@@ -266,7 +279,7 @@ type UiNotification = {
   sendAt?: string;
 };
 
-const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS): Order => {
+const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS, t?: (key: string) => string): Order => {
   const created = order.status?.ordered || order.createdAt || new Date().toISOString();
   const hasShipped = Boolean(order.status?.shipped);
   const hasPackaged = Boolean(order.status?.packaged);
@@ -286,22 +299,23 @@ const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS): 
     order.shippingAddress?.city,
   ]
     .filter(Boolean)
-    .join(', ') || 'Chưa có địa chỉ';
+    .join(', ') || (t ? t('address_none') : 'No address');
 
   const pickImage = (productId: string) =>
     productLookup.find(p => p.id === productId)?.image || productLookup[0]?.image || '';
 
+  const getTitle = (key: string) => t ? t(key) : key;
   const timeline = [
-    { time: formatDateTime(created), title: 'Đặt hàng thành công', active: Boolean(created) },
-    { time: formatDateTime(order.status?.confirmed), title: 'Đã xác nhận đơn hàng', active: hasConfirmed },
-    { time: formatDateTime(order.status?.packaged), title: 'Đang đóng gói', active: hasPackaged },
-    { time: formatDateTime(order.status?.shipped), title: 'Đang giao hàng', active: hasShipped },
+    { time: formatDateTime(created), title: getTitle('order_placed_success'), active: Boolean(created) },
+    { time: formatDateTime(order.status?.confirmed), title: getTitle('order_confirmed'), active: hasConfirmed },
+    { time: formatDateTime(order.status?.packaged), title: getTitle('order_packing'), active: hasPackaged },
+    { time: formatDateTime(order.status?.shipped), title: getTitle('order_shipping'), active: hasShipped },
   ];
 
   if (!isCancelled) {
     timeline.push({
       time: isCompleted ? formatDateTime(order.status?.shipped) : '',
-      title: 'Giao hàng thành công',
+      title: getTitle('order_delivery_success'),
       active: isCompleted,
     });
   }
@@ -312,7 +326,7 @@ const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS): 
     date: formatDateTime(created),
     createdAt: typeof created === 'string' ? created : new Date(created).toISOString(),
     status,
-    statusText: ORDER_STATUS_TEXT[status],
+    statusText: t ? getOrderStatusText(status, t) : status,
     items: order.items.map(item => ({
       id: item.productId,
       name: item.name,
@@ -321,7 +335,7 @@ const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS): 
       image: pickImage(item.productId),
     })),
     shippingAddress: {
-      name: order.shippingAddress?.name || 'Người nhận',
+      name: order.shippingAddress?.name || (t ? t('receiver') : 'Receiver'),
       phone: order.shippingAddress?.phone || '',
       address: addressString,
     },
@@ -338,14 +352,15 @@ const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS): 
 
 const ForegroundNotificationHandler = () => {
   const { showToast } = useToast();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const unsubscribe = subscribeForegroundMessage(({ title, body }) => {
-      const text = title && body ? `${title}: ${body}` : title || body || 'Bạn có thông báo mới';
+      const text = title && body ? `${title}: ${body}` : title || body || t('notification_new');
       showToast(text, 'info', 3500);
     });
     return () => unsubscribe?.();
-  }, [showToast]);
+  }, [showToast, t]);
 
   return null;
 };
@@ -358,13 +373,13 @@ const computeCartTotals = (items: CartItem[]) => {
   return { subTotal, totalItem, shippingFee, totalPrice };
 };
 
-const mapApiCartToUi = (cart: ApiCart, productsLookup: Product[]): CartItem[] => {
+const mapApiCartToUi = (cart: ApiCart, productsLookup: Product[], t?: (key: string) => string): CartItem[] => {
   return (cart.items || []).map(item => {
     const found = productsLookup.find(p => p.id === item.productId);
     const priceFromProduct = found?.salePrice ?? found?.price ?? found?.originalPrice ?? item.price;
     return {
       id: item.productId,
-      name: found?.name || item.name || 'Sản phẩm',
+      name: found?.name || item.name || (t ? t('product') : 'Product'),
       price: priceFromProduct || 0,
       originalPrice: found?.originalPrice,
       salePrice: found?.salePrice,
@@ -417,7 +432,7 @@ const mergeCartItems = (localItems: CartItem[], remoteItems: CartItem[]) => {
   return Array.from(map.values());
 };
 
-const mapApiNotificationToUi = (item: ApiNotification): UiNotification => {
+const mapApiNotificationToUi = (item: ApiNotification, t?: (key: string, options?: any) => string): UiNotification => {
   const fallbackDate = item.deliveredAt || item.readAt || item.updatedAt || new Date().toISOString();
   const sendAt = item.sendAt || item.createdAt || fallbackDate;
   return {
@@ -425,7 +440,7 @@ const mapApiNotificationToUi = (item: ApiNotification): UiNotification => {
     type: item.type || 'system',
     title: item.title || '',
     message: item.body || '',
-    time: formatRelativeTime(sendAt),
+    time: formatRelativeTime(sendAt, t),
     read: Boolean(item.isRead),
     sendAt: sendAt || undefined,
   };
@@ -609,7 +624,7 @@ function App(): React.JSX.Element {
     try {
       const result = await apiGetOrders(token);
       const mapped = result
-        .map(o => mapApiOrderToUi(o, productsRef.current))
+        .map(o => mapApiOrderToUi(o, productsRef.current, t))
         .sort((a, b) => {
           const dateA = new Date(a.createdAt || a.date).getTime();
           const dateB = new Date(b.createdAt || b.date).getTime();
@@ -645,8 +660,10 @@ function App(): React.JSX.Element {
   };
 
   const syncNotificationsFromApi = (items: ApiNotification[]) => {
-    const mapped = (items || [])
-      .map(mapApiNotificationToUi)
+    const translate = typeof t === 'function' ? t : undefined;
+    const list = Array.isArray(items) ? items : [];
+    const mapped = list
+      .map(item => mapApiNotificationToUi(item, translate))
       .filter(item => item.id)
       .sort((a, b) => {
         const timeA = a.sendAt ? new Date(a.sendAt).getTime() : 0;
@@ -676,7 +693,7 @@ function App(): React.JSX.Element {
     if (!token) return;
     try {
       const result = await getOrderById(orderId, token);
-      const mapped = mapApiOrderToUi(result, productsRef.current);
+      const mapped = mapApiOrderToUi(result, productsRef.current, t);
       setOrders(prev => {
         const exists = prev.some(o => o.id === mapped.id);
         const updated = exists ? prev.map(o => (o.id === mapped.id ? mapped : o)) : [mapped, ...prev];
@@ -703,10 +720,10 @@ function App(): React.JSX.Element {
           const status = parsed.searchParams.get('status') || '';
           const success = status === 'paid';
           Alert.alert(
-            'Thanh toán',
+            t('payment_title'),
             success
-              ? `Đơn hàng ${order ? `#${order} ` : ''}đã thanh toán thành công`
-              : 'Thanh toán không thành công',
+              ? t('payment_success', { order: order ? `#${order} ` : '' })
+              : t('payment_failed'),
           );
           void loadOrders();
           return;
@@ -741,7 +758,7 @@ function App(): React.JSX.Element {
               setCurrentTab('home');
               setCurrentScreen('product-detail');
             } else {
-              Alert.alert('Không tìm thấy sản phẩm', 'Liên kết sản phẩm không hợp lệ hoặc đã bị xóa.');
+              Alert.alert(t('product_not_found'), t('product_link_invalid'));
             }
           };
 
@@ -932,7 +949,7 @@ function App(): React.JSX.Element {
           return;
         }
         cartIdRef.current = cart._id || null;
-        const mapped = mapApiCartToUi(cart, productsRef.current);
+        const mapped = mapApiCartToUi(cart, productsRef.current, t);
         setCartItems(prev => mergeCartItems(prev, mapped));
       })
       .catch(err => console.warn('App.tsx - Failed to fetch cart', err));
@@ -1188,7 +1205,7 @@ function App(): React.JSX.Element {
     }
 
     if (banner.ctaLink) {
-      Linking.openURL(banner.ctaLink).catch(() => Alert.alert('Không mở được liên kết', 'Vui lòng thử lại sau.'));
+      Linking.openURL(banner.ctaLink).catch(() => Alert.alert(t('link_error'), t('try_again')));
       return;
     }
 
@@ -1256,7 +1273,7 @@ function App(): React.JSX.Element {
     const available = product.stockQuantity;
     const isOutOfStock = product.stock === 'Out of Stock' || (available !== undefined && available <= 0);
     if (isOutOfStock) {
-      Alert.alert('Hết hàng', `${product.name} hiện không còn hàng.`);
+      Alert.alert(t('out_of_stock'), t('product_out_of_stock', { name: product.name }));
       return false;
     }
 
@@ -1270,7 +1287,7 @@ function App(): React.JSX.Element {
         const desired = existing.quantity + safeQuantity;
         const clamped = Math.min(desired, limit);
         if (clamped < desired) {
-          Alert.alert('Không đủ hàng', `Chỉ còn ${clamped} sản phẩm ${product.name} trong kho.`);
+          Alert.alert(t('not_enough_stock'), t('only_x_left', { count: clamped, name: product.name }));
           return prev; // Không thay đổi gì
         }
         success = true;
@@ -1281,7 +1298,7 @@ function App(): React.JSX.Element {
 
       const initialQty = Math.min(safeQuantity, limit);
       if (initialQty < safeQuantity) {
-        Alert.alert('Không đủ hàng', `Chỉ còn ${initialQty} sản phẩm ${product.name} trong kho.`);
+        Alert.alert(t('not_enough_stock'), t('only_x_left', { count: initialQty, name: product.name }));
         return prev; // Không thay đổi gì
       }
       success = true;
@@ -1300,10 +1317,10 @@ function App(): React.JSX.Element {
         const clamped = Math.max(1, Math.min(desired, limit));
         if (clamped !== desired) {
           Alert.alert(
-            'Không đủ hàng',
+            t('not_enough_stock'),
             limit === Number.POSITIVE_INFINITY
-              ? 'Không thể giảm dưới 1 sản phẩm.'
-              : `Sản phẩm chỉ còn ${limit} cái.`,
+              ? t('min_quantity_1')
+              : t('product_only_x_left', { count: limit }),
           );
         }
         return { ...item, quantity: clamped };
@@ -1353,7 +1370,7 @@ function App(): React.JSX.Element {
     shippingAddress?: Address;
   }) => {
     if (!authTokensRef.current?.accessToken) {
-      throw new Error('Bạn cần đăng nhập để đặt hàng');
+      throw new Error(t('login_required_order'));
     }
 
     const code = `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
@@ -1369,10 +1386,10 @@ function App(): React.JSX.Element {
     for (const item of params.items) {
       const available = stockMap.get(item.id);
       if (available !== undefined && available < item.quantity) {
-        throw new Error(`Sản phẩm ${item.name} chỉ còn ${available} cái trong kho.`);
+        throw new Error(t('only_x_left', { count: available, name: item.name }));
       }
       if (!/^[a-f0-9]{24}$/i.test(item.id)) {
-        throw new Error(`ID sản phẩm ${item.name} không hợp lệ.`);
+        throw new Error(t('product_invalid_id', { name: item.name }));
       }
     }
 
@@ -1411,13 +1428,13 @@ function App(): React.JSX.Element {
     try {
       if (isVnpay) {
         const payment = await createVnpayPayment(payload, authTokensRef.current.accessToken);
-        const uiOrder = mapApiOrderToUi(payment.order, productsRef.current);
+        const uiOrder = mapApiOrderToUi(payment.order, productsRef.current, t);
         setOrders(prev => [uiOrder, ...prev]);
         return { ...uiOrder, paymentUrl: payment.paymentUrl };
       }
 
       const created = await apiCreateOrder(payload, authTokensRef.current.accessToken);
-      const uiOrder = mapApiOrderToUi(created, productsRef.current);
+      const uiOrder = mapApiOrderToUi(created, productsRef.current, t);
       setOrders(prev => [uiOrder, ...prev]);
       void loadProducts();
       return uiOrder;

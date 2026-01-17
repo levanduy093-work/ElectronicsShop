@@ -60,6 +60,8 @@ export function Profile({
   const { t: translate } = useTranslation();
   const [showVouchers, setShowVouchers] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showFullImageModal, setShowFullImageModal] = useState(false);
+  const [fullImageUri, setFullImageUri] = useState<string>('');
   const [editingName, setEditingName] = useState(userProfile.name);
   const [editingAvatar, setEditingAvatar] = useState(userProfile.avatar);
   const [avatarFile, setAvatarFile] = useState<UploadImageFile | null>(null);
@@ -174,6 +176,13 @@ export function Profile({
     setAvatarFile(null);
   };
 
+  const handleViewFullImage = (imageUri: string) => {
+    if (imageUri) {
+      setFullImageUri(imageUri);
+      setShowFullImageModal(true);
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: t.background }]}>
       <StatusBar
@@ -202,12 +211,13 @@ export function Profile({
             elevation: t === lightTheme ? 2 : 0,
           }
         ]}>
-        <TouchableOpacity
-          onPress={handleEditProfile}
-          style={styles.avatarWrapper}
-          activeOpacity={0.8}
-        >
-          <View style={[styles.avatarContainer, { borderColor: t.primary }]}>
+        <View style={styles.avatarWrapper}>
+          <TouchableOpacity
+            onPress={() => userProfile.avatar && handleViewFullImage(userProfile.avatar)}
+            style={styles.avatarContainer}
+            activeOpacity={userProfile.avatar ? 0.8 : 1}
+            disabled={!userProfile.avatar}
+          >
             {userProfile.avatar ? (
               <ImageWithFallback
                 source={{ uri: userProfile.avatar }}
@@ -218,11 +228,15 @@ export function Profile({
                 <AppIcon name="user" size={32} color={t.muted} />
               </View>
             )}
-          </View>
-          <View style={[styles.editAvatarBadge, { backgroundColor: t.primary }]}>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleEditProfile}
+            style={[styles.editAvatarBadge, { backgroundColor: t.primary }]}
+            activeOpacity={0.8}
+          >
             <AppIcon name="camera" size={14} color="#FFFFFF" />
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
         <View style={styles.profileInfo}>
           <View style={styles.nameRow}>
             <Text style={[styles.profileName, { color: t.text }]}>{userProfile.name}</Text>
@@ -422,7 +436,12 @@ export function Profile({
                   <>
                     <View style={styles.avatarPreviewContainer}>
                       {editingAvatar ? (
-                        <Image source={{ uri: editingAvatar }} style={[styles.avatarPreview, { borderColor: t.border }]} />
+                        <TouchableOpacity
+                          onPress={() => handleViewFullImage(editingAvatar)}
+                          activeOpacity={0.8}
+                        >
+                          <Image source={{ uri: editingAvatar }} style={[styles.avatarPreview, { borderColor: t.border }]} />
+                        </TouchableOpacity>
                       ) : (
                         <View style={[styles.avatarPreviewPlaceholder, { backgroundColor: t.surface, borderColor: t.border }]}>
                           <AppIcon name="user" size={32} color={t.muted} />
@@ -509,6 +528,38 @@ export function Profile({
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Full Image View Modal */}
+      <Modal
+        visible={showFullImageModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFullImageModal(false)}
+      >
+        <View style={styles.fullImageModalOverlay}>
+          <TouchableOpacity
+            style={styles.fullImageModalBackdrop}
+            activeOpacity={1}
+            onPress={() => setShowFullImageModal(false)}
+          />
+          <View style={styles.fullImageModalContent}>
+            <TouchableOpacity
+              onPress={() => setShowFullImageModal(false)}
+              style={[styles.fullImageCloseButton, { top: Math.max(insets.top + 20, 44) }]}
+              activeOpacity={0.7}
+            >
+              <AppIcon name="close" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
+            {fullImageUri ? (
+              <Image
+                source={{ uri: fullImageUri }}
+                style={styles.fullImage}
+                resizeMode="contain"
+              />
+            ) : null}
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -938,5 +989,36 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
+  },
+  fullImageModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImageModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  fullImageModalContent: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  fullImageCloseButton: {
+    position: 'absolute',
+    right: 20,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImage: {
+    width: '100%',
+    height: '100%',
   },
 });
