@@ -1303,6 +1303,8 @@ function App(): React.JSX.Element {
   };
 
   const navigateToOrderHistory = () => {
+    // Refresh orders when navigating back to ensure status is up to date
+    void loadOrders();
     setCurrentScreen('order-history');
   };
 

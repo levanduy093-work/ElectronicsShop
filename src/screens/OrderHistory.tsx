@@ -26,34 +26,55 @@ export function OrderHistory({ onBack, onViewDetail, orders = [], theme, onRefre
   console.log('OrderHistory - orders count:', orders.length);
   console.log('OrderHistory - orders:', orders.map(o => ({ id: o.id, status: o.status })));
 
-  const getStatusColor = (status: string) => {
-    switch(status) {
-      case 'processing': return t === lightTheme ? '#F59E0B' : '#FBBF24';
-      case 'shipping': return t.primary;
-      case 'completed': return '#10B981';
-      case 'cancelled': return '#EF4444';
-      default: return t.muted;
+  // Get the latest active status from timeline
+  const getStatusFromTimeline = (order: Order) => {
+    if (order.status === 'cancelled') {
+      return {
+        text: translate('order_status_cancelled'),
+        color: '#EF4444',
+        bgColor: t === lightTheme ? '#FEE2E2' : 'rgba(239,68,68,0.16)',
+      };
     }
-  };
-
-  const getStatusBgColor = (status: string) => {
-    switch(status) {
-      case 'processing': return t === lightTheme ? '#FEF3C7' : 'rgba(251,191,36,0.16)';
-      case 'shipping': return t === lightTheme ? '#DBEAFE' : 'rgba(37,99,235,0.16)';
-      case 'completed': return t === lightTheme ? '#D1FAE5' : 'rgba(16,185,129,0.16)';
-      case 'cancelled': return t === lightTheme ? '#FEE2E2' : 'rgba(239,68,68,0.16)';
-      default: return t.surface;
+    
+    // Find the last active step in timeline
+    const activeSteps = order.timeline.filter(item => item.active);
+    if (activeSteps.length === 0) {
+      return {
+        text: translate('order_placed_success'),
+        color: t === lightTheme ? '#F59E0B' : '#FBBF24',
+        bgColor: t === lightTheme ? '#FEF3C7' : 'rgba(251,191,36,0.16)',
+      };
     }
-  };
-
-  const getStatusText = (status: string) => {
-    switch(status) {
-      case 'processing': return translate('order_status_processing');
-      case 'shipping': return translate('order_status_shipping');
-      case 'completed': return translate('order_status_completed');
-      case 'cancelled': return translate('order_status_cancelled');
-      default: return status;
+    
+    const lastActiveStep = activeSteps[activeSteps.length - 1];
+    const statusTitle = lastActiveStep.title;
+    
+    // Determine color based on status title
+    let color = t.primary;
+    let bgColor = t === lightTheme ? '#DBEAFE' : 'rgba(37,99,235,0.16)';
+    
+    if (statusTitle === translate('order_placed_success')) {
+      color = t === lightTheme ? '#F59E0B' : '#FBBF24';
+      bgColor = t === lightTheme ? '#FEF3C7' : 'rgba(251,191,36,0.16)';
+    } else if (statusTitle === translate('order_confirmed')) {
+      color = t === lightTheme ? '#F59E0B' : '#FBBF24';
+      bgColor = t === lightTheme ? '#FEF3C7' : 'rgba(251,191,36,0.16)';
+    } else if (statusTitle === translate('order_packing')) {
+      color = t === lightTheme ? '#F59E0B' : '#FBBF24';
+      bgColor = t === lightTheme ? '#FEF3C7' : 'rgba(251,191,36,0.16)';
+    } else if (statusTitle === translate('order_shipping')) {
+      color = t.primary;
+      bgColor = t === lightTheme ? '#DBEAFE' : 'rgba(37,99,235,0.16)';
+    } else if (statusTitle === translate('order_delivery_success')) {
+      color = '#10B981';
+      bgColor = t === lightTheme ? '#D1FAE5' : 'rgba(16,185,129,0.16)';
     }
+    
+    return {
+      text: statusTitle,
+      color,
+      bgColor,
+    };
   };
 
   return (
@@ -110,11 +131,16 @@ export function OrderHistory({ onBack, onViewDetail, orders = [], theme, onRefre
                   <Text style={[styles.orderId, { color: t.muted }]}>#{order.code}</Text>
                   <Text style={[styles.orderDate, { color: t.muted }]}>{order.date}</Text>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusBgColor(order.status) }]}>
-                  <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>
-                    {getStatusText(order.status)}
-                  </Text>
-                </View>
+                {(() => {
+                  const statusInfo = getStatusFromTimeline(order);
+                  return (
+                    <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
+                      <Text style={[styles.statusText, { color: statusInfo.color }]}>
+                        {statusInfo.text}
+                      </Text>
+                    </View>
+                  );
+                })()}
               </View>
               
               <View style={[styles.orderItems, { borderTopColor: t.border }]}>
