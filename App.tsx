@@ -542,6 +542,7 @@ function App(): React.JSX.Element {
   const [wishlist, setWishlist] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [isRefreshingOrders, setIsRefreshingOrders] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authTokens, setAuthTokens] = useState<{ accessToken: string; refreshToken: string } | null>(null);
   const [isRestoringAuth, setIsRestoringAuth] = useState(true);
@@ -632,10 +633,12 @@ function App(): React.JSX.Element {
     }
   };
 
-  const loadOrders = useCallback(async (tokenOverride?: string) => {
+  const loadOrders = useCallback(async (tokenOverride?: string, options?: { silent?: boolean }) => {
     const token = tokenOverride || authTokensRef.current?.accessToken;
     if (!token) return;
 
+    const showSpinner = !options?.silent;
+    if (showSpinner) setIsRefreshingOrders(true);
     try {
       const result = await apiGetOrders(token);
       const mapped = result
@@ -648,8 +651,10 @@ function App(): React.JSX.Element {
       setOrders(mapped);
     } catch (error: any) {
       console.warn('App.tsx - Failed to load orders', error?.message || error);
+    } finally {
+      if (showSpinner) setIsRefreshingOrders(false);
     }
-  }, []);
+  }, [t]);
 
   const loadVouchers = async (tokenOverride?: string) => {
     const token = tokenOverride || authTokensRef.current?.accessToken;
@@ -1028,6 +1033,28 @@ function App(): React.JSX.Element {
         void loadNotifications(undefined, { silent: true });
       }
 
+      if (payload?.collection === 'orders' && authTokensRef.current?.accessToken) {
+        const op = payload.operationType;
+        const doc = payload.fullDocument;
+        if (op === 'update' || op === 'replace') {
+          // Update order status when order is updated
+          if (doc && userId && `${doc.userId}` === `${userId}`) {
+            const mapped = mapApiOrderToUi(doc, productsRef.current, t);
+            setOrders(prev => {
+              const exists = prev.some(o => o.id === mapped.id);
+              const updated = exists 
+                ? prev.map(o => (o.id === mapped.id ? mapped : o))
+                : [mapped, ...prev];
+              return updated.sort((a, b) => {
+                const dateA = new Date(a.createdAt || a.date).getTime();
+                const dateB = new Date(b.createdAt || b.date).getTime();
+                return dateB - dateA;
+              });
+            });
+          }
+        }
+      }
+
       if (payload?.collection === 'products') {
         const op = payload.operationType;
         const doc = payload.fullDocument;
@@ -1088,6 +1115,25 @@ function App(): React.JSX.Element {
       void fetchOrderDetail(selectedOrderId);
     }
   }, [selectedOrderId, orders]);
+
+  // Auto-refresh orders every 60 seconds when user is logged in
+  useEffect(() => {
+    if (!isLoggedIn || !authTokensRef.current?.accessToken) return;
+    
+    const interval = setInterval(() => {
+      void loadOrders(undefined, { silent: true });
+    }, 60000); // Refresh every 60 seconds
+
+    return () => clearInterval(interval);
+  }, [isLoggedIn, authTokens?.accessToken, loadOrders]);
+
+  const refreshOrders = () => {
+    void loadOrders();
+  };
+
+  const refreshOrderDetail = async (orderId: string) => {
+    await fetchOrderDetail(orderId);
+  };
 
   const handleUpdateProfile = async (
     data: Partial<typeof userProfile> & { avatarFile?: UploadImageFile },
@@ -1845,7 +1891,14 @@ function App(): React.JSX.Element {
 
       case 'order-history':
         console.log('App.tsx - Rendering OrderHistory with orders count:', orders.length);
-        return <OrderHistory onBack={() => handleTabChange('profile')} onViewDetail={navigateToOrderDetail} orders={orders} theme={theme} />;
+        return <OrderHistory 
+          onBack={() => handleTabChange('profile')} 
+          onViewDetail={navigateToOrderDetail} 
+          orders={orders} 
+          theme={theme}
+          onRefresh={refreshOrders}
+          refreshing={isRefreshingOrders}
+        />;
 
       case 'order-detail':
         return selectedOrderId ? (
@@ -1857,6 +1910,7 @@ function App(): React.JSX.Element {
             onReorder={handleAddToCart}
             products={products}
             onNavigateToCart={() => handleTabChange('cart')}
+            onRefreshOrder={refreshOrderDetail}
           />
         ) : null;
 

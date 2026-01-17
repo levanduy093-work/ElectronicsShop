@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
@@ -12,9 +12,11 @@ interface OrderHistoryProps {
   onViewDetail?: (orderId: string) => void;
   orders?: Order[];
   theme?: Theme;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
-export function OrderHistory({ onBack, onViewDetail, orders = [], theme }: OrderHistoryProps) {
+export function OrderHistory({ onBack, onViewDetail, orders = [], theme, onRefresh, refreshing = false }: OrderHistoryProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme, isDarkMode } = useTheme();
   const { t: translate } = useTranslation();
@@ -79,6 +81,15 @@ export function OrderHistory({ onBack, onViewDetail, orders = [], theme }: Order
         style={styles.content}
         contentContainerStyle={[styles.contentContainer, { backgroundColor: t.background }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={t.primary}
+            />
+          ) : undefined
+        }
       >
         {orders.length === 0 ? (
           <View style={styles.emptyContainer}>

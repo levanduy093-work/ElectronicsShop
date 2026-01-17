@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +17,7 @@ interface OrderDetailProps {
   onReorder?: (product: Product, quantity: number, selectedOption?: string, selectedClassification?: string) => void;
   products?: Product[];
   onNavigateToCart?: () => void;
+  onRefreshOrder?: (orderId: string) => void;
 }
 
 const DEFAULT_ORDER: Order = {
@@ -62,7 +63,7 @@ const DEFAULT_ORDER: Order = {
   ],
 };
 
-export function OrderDetail({ orderId, onBack, order, theme, onReorder, products = [], onNavigateToCart }: OrderDetailProps) {
+export function OrderDetail({ orderId, onBack, order, theme, onReorder, products = [], onNavigateToCart, onRefreshOrder }: OrderDetailProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme, isDarkMode } = useTheme();
   const { t: translate } = useTranslation();
@@ -70,6 +71,18 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
   const orderData = order || DEFAULT_ORDER;
   const { showToast } = useToast();
   const [isReordering, setIsReordering] = useState(false);
+
+  // Auto-refresh order when component mounts or orderId changes
+  useEffect(() => {
+    if (onRefreshOrder && orderId) {
+      onRefreshOrder(orderId);
+      // Set up polling to refresh order every 30 seconds
+      const interval = setInterval(() => {
+        onRefreshOrder(orderId);
+      }, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [orderId, onRefreshOrder]);
 
   const handleReorder = () => {
     if (!onReorder) {
