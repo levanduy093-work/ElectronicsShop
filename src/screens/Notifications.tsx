@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,9 @@ import {
   StatusBar,
   Platform,
   RefreshControl,
+  Animated,
+  PanResponder,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../components/common/Icon';
@@ -19,6 +22,7 @@ interface NotificationsProps {
   notifications: NotificationItem[];
   onMarkAllRead?: () => void;
   onMarkRead?: (id: string) => void;
+  onDelete?: (id: string) => void;
   refreshing?: boolean;
   onRefresh?: () => void;
 }
@@ -32,12 +36,16 @@ interface NotificationItem {
   read: boolean;
 }
 
+const SWIPE_THRESHOLD = 80;
+const DELETE_BUTTON_WIDTH = 80;
+
 export function Notifications({
   onBack,
   theme,
   notifications,
   onMarkAllRead,
   onMarkRead,
+  onDelete,
   refreshing = false,
   onRefresh,
 }: NotificationsProps) {
@@ -45,6 +53,28 @@ export function Notifications({
   const { theme: ctxTheme } = useTheme();
   const t = theme || ctxTheme || lightTheme;
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [swipedId, setSwipedId] = useState<string | null>(null);
+  const panResponders = useRef<Map<string, any>>(new Map());
+  const translateX = useRef<Map<string, Animated.Value>>(new Map());
+
+  // Cleanup removed notifications
+  useEffect(() => {
+    const currentIds = new Set(notifications.map(n => n.id));
+    const storedIds = Array.from(translateX.current.keys());
+    
+    storedIds.forEach(id => {
+      if (!currentIds.has(id)) {
+        translateX.current.delete(id);
+        panResponders.current.delete(id);
+        if (swipedId === id) {
+          setSwipedId(null);
+        }
+        if (expandedId === id) {
+          setExpandedId(null);
+        }
+      }
+    });
+  }, [notifications, swipedId, expandedId]);
 
   const handleMarkAllAsRead = () => {
     onMarkAllRead?.();
@@ -56,6 +86,98 @@ export function Notifications({
       onMarkRead?.(notification.id);
     }
     setExpandedId(prev => (prev === notification.id ? null : notification.id));
+  };
+
+  const getPanResponder = (id: string) => {
+    if (panResponders.current.has(id)) {
+      return panResponders.current.get(id);
+    }
+
+    if (!translateX.current.has(id)) {
+      translateX.current.set(id, new Animated.Value(0));
+    }
+
+    const pan = PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 10;
+      },
+      onPanResponderGrant: () => {
+        if (swipedId && swipedId !== id) {
+          // Close other swiped items
+          const otherTranslateX = translateX.current.get(swipedId);
+          if (otherTranslateX) {
+            Animated.spring(otherTranslateX, {
+              toValue: 0,
+              useNativeDriver: true,
+            }).start();
+          }
+          setSwipedId(null);
+        }
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dx < 0) {
+          const currentTranslateX = translateX.current.get(id);
+          if (currentTranslateX) {
+            currentTranslateX.setValue(Math.max(gestureState.dx, -DELETE_BUTTON_WIDTH));
+          }
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const currentTranslateX = translateX.current.get(id);
+        if (!currentTranslateX) return;
+
+        if (gestureState.dx < -SWIPE_THRESHOLD) {
+          // Swipe left enough to show delete button
+          Animated.spring(currentTranslateX, {
+            toValue: -DELETE_BUTTON_WIDTH,
+            useNativeDriver: true,
+          }).start();
+          setSwipedId(id);
+        } else {
+          // Spring back
+          Animated.spring(currentTranslateX, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+          setSwipedId(null);
+        }
+      },
+    });
+
+    panResponders.current.set(id, pan);
+    return pan;
+  };
+
+  const handleDelete = (id: string) => {
+    const currentTranslateX = translateX.current.get(id);
+    if (currentTranslateX) {
+      Animated.timing(currentTranslateX, {
+        toValue: -Dimensions.get('window').width,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        onDelete?.(id);
+        translateX.current.delete(id);
+        panResponders.current.delete(id);
+        if (swipedId === id) {
+          setSwipedId(null);
+        }
+      });
+    } else {
+      onDelete?.(id);
+    }
+  };
+
+  const handleCloseSwipe = (id: string) => {
+    const currentTranslateX = translateX.current.get(id);
+    if (currentTranslateX) {
+      Animated.spring(currentTranslateX, {
+        toValue: 0,
+        useNativeDriver: true,
+      }).start();
+      setSwipedId(null);
+    }
   };
 
   const hasUnreadNotifications = notifications.some(notification => !notification.read);
@@ -110,57 +232,99 @@ export function Notifications({
       >
         {notifications.map((item) => {
           const isExpanded = expandedId === item.id;
+          // Ensure Animated.Value exists before getting panResponder
+          if (!translateX.current.has(item.id)) {
+            translateX.current.set(item.id, new Animated.Value(0));
+          }
+          const panResponder = getPanResponder(item.id);
+          const currentTranslateX = translateX.current.get(item.id)!;
+          
           return (
-            <TouchableOpacity
-              key={item.id}
-              activeOpacity={0.9}
-              onPress={() => handleToggleNotification(item)}
-              style={[
-                styles.notificationCard,
-                isExpanded && styles.notificationCardExpanded,
-                item.read && !isExpanded && styles.notificationCardRead,
-                { backgroundColor: item.read && !isExpanded ? t.surface : t.card, borderColor: item.read && !isExpanded ? 'transparent' : t.border, shadowOpacity: t === lightTheme && (!item.read || isExpanded) ? 0.08 : 0, elevation: t === lightTheme && (!item.read || isExpanded) ? 3 : 0 }
-              ]}
-            >
-              <View style={[styles.iconContainer, { backgroundColor: getBgColor(item.type) }]}>
-                {getIcon(item.type)}
-              </View>
-              <View style={styles.notificationContent}>
-                <View style={styles.notificationHeader}>
-                  <Text style={[styles.notificationTitle, { color: isExpanded ? t.text : item.read ? t.muted : t.text }]}>
-                    {item.title}
-                  </Text>
-                  <View style={styles.headerMeta}>
-                    <Text style={[styles.notificationTime, { color: t.muted }]}>{item.time}</Text>
-                    <TouchableOpacity
-                      onPress={(e) => {
-                        e?.stopPropagation?.();
-                        handleToggleNotification(item);
-                      }}
-                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                      activeOpacity={0.8}
-                    >
-                      <AppIcon
-                        name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                        size={18}
-                        color={t.muted}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                <Text
-                  style={[
-                    styles.notificationMessage,
-                    { color: isExpanded ? t.text : t.muted },
-                    isExpanded && styles.notificationMessageExpanded,
-                  ]}
-                  numberOfLines={isExpanded ? undefined : 2}
+            <View key={item.id} style={styles.swipeContainer}>
+              {/* Delete Button Background */}
+              <View style={[styles.deleteButtonContainer, { backgroundColor: '#EF4444' }]}>
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => handleDelete(item.id)}
+                  activeOpacity={0.8}
                 >
-                  {item.message}
-                </Text>
+                  <AppIcon name="trash-2" size={20} color="#FFFFFF" />
+                  <Text style={styles.deleteButtonText}>Xóa</Text>
+                </TouchableOpacity>
               </View>
-              {!item.read && <View style={[styles.unreadDot, { backgroundColor: t.primary }]} />}
-            </TouchableOpacity>
+              
+              {/* Notification Card */}
+              <Animated.View
+                style={[
+                  styles.notificationCard,
+                  isExpanded && styles.notificationCardExpanded,
+                  item.read && !isExpanded && styles.notificationCardRead,
+                  {
+                    backgroundColor: item.read && !isExpanded ? t.surface : t.card,
+                    borderColor: item.read && !isExpanded ? 'transparent' : t.border,
+                    shadowOpacity: t === lightTheme && (!item.read || isExpanded) ? 0.08 : 0,
+                    elevation: t === lightTheme && (!item.read || isExpanded) ? 3 : 0,
+                    transform: [{ translateX: currentTranslateX }],
+                  }
+                ]}
+                {...panResponder.panHandlers}
+              >
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={() => {
+                    if (swipedId === item.id) {
+                      handleCloseSwipe(item.id);
+                    } else {
+                      handleToggleNotification(item);
+                    }
+                  }}
+                  style={styles.cardContent}
+                >
+                  <View style={[styles.iconContainer, { backgroundColor: getBgColor(item.type) }]}>
+                    {getIcon(item.type)}
+                  </View>
+                  <View style={styles.notificationContent}>
+                    <View style={styles.notificationHeader}>
+                      <Text style={[styles.notificationTitle, { color: isExpanded ? t.text : item.read ? t.muted : t.text }]}>
+                        {item.title}
+                      </Text>
+                      <View style={styles.headerMeta}>
+                        <Text style={[styles.notificationTime, { color: t.muted }]}>{item.time}</Text>
+                        <TouchableOpacity
+                          onPress={(e) => {
+                            e?.stopPropagation?.();
+                            if (swipedId === item.id) {
+                              handleCloseSwipe(item.id);
+                            } else {
+                              handleToggleNotification(item);
+                            }
+                          }}
+                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                          activeOpacity={0.8}
+                        >
+                          <AppIcon
+                            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                            size={18}
+                            color={t.muted}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                    <Text
+                      style={[
+                        styles.notificationMessage,
+                        { color: isExpanded ? t.text : t.muted },
+                        isExpanded && styles.notificationMessageExpanded,
+                      ]}
+                      numberOfLines={isExpanded ? undefined : 2}
+                    >
+                      {item.message}
+                    </Text>
+                  </View>
+                  {!item.read && <View style={[styles.unreadDot, { backgroundColor: t.primary }]} />}
+                </TouchableOpacity>
+              </Animated.View>
+            </View>
           );
         })}
 
@@ -213,11 +377,37 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 96,
   },
+  swipeContainer: {
+    marginBottom: 12,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  deleteButtonContainer: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: DELETE_BUTTON_WIDTH,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  deleteButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    height: '100%',
+    gap: 4,
+  },
+  deleteButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
   notificationCard: {
     flexDirection: 'row',
     gap: 16,
     padding: 16,
-    marginBottom: 12,
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
@@ -227,6 +417,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
+    zIndex: 2,
+  },
+  cardContent: {
+    flexDirection: 'row',
+    gap: 16,
+    flex: 1,
   },
   notificationCardExpanded: {
     borderColor: '#E5E7EB',

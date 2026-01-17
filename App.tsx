@@ -3,7 +3,7 @@
  * React Native version converted from Figma design
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Linking, StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -29,7 +29,7 @@ import { LanguageSelection } from './src/screens/LanguageSelection';
 import { BottomNav } from './src/components/layout/BottomNav';
 import { TopBar } from './src/components/layout/TopBar';
 import { Product, CartItem, Order, Voucher, HomeBanner, ChatMessage } from './src/types';
-import { PRODUCTS } from './src/constants/data';
+import { PRODUCTS, CATEGORIES } from './src/constants/data';
 import { Address } from './src/types';
 import { DEFAULT_ADDRESSES } from './src/constants/defaults';
 import { darkTheme, lightTheme, ThemeProvider } from './src/theme';
@@ -69,6 +69,7 @@ import { socketService } from './src/services/socket';
 
 import './src/i18n';
 import { useTranslation } from 'react-i18next';
+import { extractCategoriesFromProducts } from './src/utils/product';
 
 // UNCOMMENT THIS AFTER INSTALLING @react-native-firebase/messaging AND ADDING CONFIG FILES
 import { requestUserPermission, getFcmToken, subscribeForegroundMessage, subscribeToFcmTokenRefresh, deleteFcmToken } from './src/services/fcm';
@@ -563,6 +564,10 @@ function App(): React.JSX.Element {
   const homeScrollOffsetRef = useRef(0);
   const [catalogSearch, setCatalogSearch] = useState('');
   const catalogScrollOffsetRef = useRef(0);
+  const availableCategories = useMemo(() => {
+    const base = (CATEGORIES.length ? CATEGORIES : extractCategoriesFromProducts(products)).map(c => c.name);
+    return Array.from(new Set(base.filter(Boolean)));
+  }, [products]);
 
   const loadProducts = async () => {
     try {
@@ -1264,6 +1269,18 @@ function App(): React.JSX.Element {
     }
   };
 
+  const handleDeleteNotification = (id: string) => {
+    setNotifications(prev => prev.filter(item => item.id !== id));
+    // TODO: Call API to delete notification on server if endpoint exists
+    // if (authTokensRef.current?.accessToken) {
+    //   try {
+    //     await apiDeleteNotification(id, authTokensRef.current.accessToken);
+    //   } catch (error: any) {
+    //     console.warn('App.tsx - Failed to delete notification', error?.message || error);
+    //   }
+    // }
+  };
+
   const navigateToOrderDetail = (orderId: string) => {
     setSelectedOrderId(orderId);
     setCurrentScreen('order-detail');
@@ -1744,6 +1761,7 @@ function App(): React.JSX.Element {
             notifications={notifications}
             onMarkAllRead={handleMarkAllNotificationsRead}
             onMarkRead={handleMarkNotificationRead}
+            onDelete={handleDeleteNotification}
             refreshing={isRefreshingNotifications}
             onRefresh={refreshNotifications}
           />
@@ -1805,6 +1823,7 @@ function App(): React.JSX.Element {
               }).length;
             }}
             theme={theme}
+            categories={availableCategories}
           />
         );
 

@@ -11,12 +11,14 @@ interface FilterScreenProps {
     priceRange: [number, number];
     rating: number | null;
     onlyInStock: boolean;
+    categories: string[];
   };
   getFilteredCount?: (filters: any) => number;
   theme?: Theme;
+  categories?: string[];
 }
 
-export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCount, theme }: FilterScreenProps) {
+export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCount, theme, categories = [] }: FilterScreenProps) {
   const { theme: ctxTheme } = useTheme();
   const t = theme || ctxTheme || lightTheme;
   const insets = useSafeAreaInsets();
@@ -30,6 +32,8 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
   );
   const [rating, setRating] = useState<number | null>(currentFilters?.rating || null);
   const [onlyInStock, setOnlyInStock] = useState(currentFilters?.onlyInStock || false);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(currentFilters?.categories || []);
+  const [showAllCategories, setShowAllCategories] = useState(false);
   const [filteredCount, setFilteredCount] = useState(12);
   
   // Calculate filtered count whenever filters change
@@ -45,10 +49,11 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
         priceRange: [finalMin, finalMax],
         rating,
         onlyInStock,
+        categories: selectedCategories,
       });
       setFilteredCount(count);
     }
-  }, [priceMinInput, priceMaxInput, rating, onlyInStock, getFilteredCount]);
+  }, [priceMinInput, priceMaxInput, rating, onlyInStock, selectedCategories, getFilteredCount]);
 
 
   const handleApply = () => {
@@ -62,6 +67,7 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
       priceRange: [finalMin, finalMax],
       rating,
       onlyInStock,
+      categories: selectedCategories,
     });
     onClose();
   };
@@ -71,11 +77,14 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
     setPriceMaxInput(PRICE_MAX.toString());
     setRating(null);
     setOnlyInStock(false);
+    setSelectedCategories([]);
+    setShowAllCategories(false);
     // Apply reset filters immediately
     onApply({
       priceRange: [PRICE_MIN, PRICE_MAX],
       rating: null,
       onlyInStock: false,
+      categories: [],
     });
   };
 
@@ -138,6 +147,52 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
             </View>
           </View>
         </View>
+
+        {/* Categories */}
+        {categories.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={[styles.sectionTitle, { color: t.muted }]}>Danh mục</Text>
+              {categories.length > 6 && (
+                <TouchableOpacity onPress={() => setShowAllCategories(!showAllCategories)} activeOpacity={0.7}>
+                  <Text style={[styles.sectionAction, { color: t.primary }]}>
+                    {showAllCategories ? 'Thu gọn' : 'Xem thêm'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <View style={styles.categoryChips}>
+              {(showAllCategories ? categories : categories.slice(0, 6)).map((cat) => {
+                const isSelected = selectedCategories.includes(cat);
+                return (
+                  <TouchableOpacity
+                    key={cat}
+                    onPress={() => {
+                      setSelectedCategories(prev =>
+                        prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+                      );
+                    }}
+                    style={[
+                      styles.categoryChip,
+                      {
+                        backgroundColor: isSelected ? t.primary : t.surface,
+                        borderColor: isSelected ? t.primary : t.border,
+                      },
+                    ]}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[
+                      styles.categoryChipText,
+                      { color: isSelected ? '#FFFFFF' : t.text }
+                    ]}>
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
         {/* Rating */}
         <View style={styles.section}>
@@ -236,6 +291,15 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 32,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sectionAction: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
   sectionTitle: {
     fontSize: 12,
     fontWeight: 'bold',
@@ -281,6 +345,22 @@ const styles = StyleSheet.create({
     width: 16,
     height: 2,
     backgroundColor: '#D1D5DB',
+  },
+  categoryChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  categoryChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  categoryChipText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   ratingContainer: {
     gap: 8,
