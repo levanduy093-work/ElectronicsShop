@@ -546,6 +546,8 @@ function App(): React.JSX.Element {
   const [userProfile, setUserProfile] = useState(DEFAULT_PROFILE);
   const [userId, setUserId] = useState<string | null>(null);
   const homeScrollOffsetRef = useRef(0);
+  const [catalogSearch, setCatalogSearch] = useState('');
+  const catalogScrollOffsetRef = useRef(0);
 
   const loadProducts = async () => {
     try {
@@ -1564,6 +1566,14 @@ function App(): React.JSX.Element {
             theme={theme}
             products={products}
             initialCategory={selectedCategory}
+            activeCategory={selectedCategory}
+            onActiveCategoryChange={setSelectedCategory}
+            searchQuery={catalogSearch}
+            onSearchQueryChange={setCatalogSearch}
+            initialScrollOffset={catalogScrollOffsetRef.current}
+            onScrollPositionChange={(offset) => {
+              catalogScrollOffsetRef.current = offset;
+            }}
           />
         );
       case 'ai':

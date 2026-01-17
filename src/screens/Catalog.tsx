@@ -1,5 +1,17 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+} from 'react-native';
 import { Product } from '../types';
 import { CATEGORIES } from '../constants/data';
 import { extractCategoriesFromProducts } from '../utils/product';
@@ -20,11 +32,33 @@ interface CatalogProps {
   theme?: Theme;
   products?: Product[];
   initialCategory?: string;
+  activeCategory?: string;
+  onActiveCategoryChange?: (category: string) => void;
+  searchQuery?: string;
+  onSearchQueryChange?: (query: string) => void;
+  initialScrollOffset?: number;
+  onScrollPositionChange?: (offset: number) => void;
 }
 
-export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, theme = lightTheme, products = [], initialCategory = 'All' }: CatalogProps) {
-  const [activeCategory, setActiveCategory] = useState<string>(initialCategory || 'All');
-  const [searchQuery, setSearchQuery] = useState('');
+export function Catalog({
+  onProductClick,
+  onFilterClick,
+  filters,
+  applyFilters,
+  theme = lightTheme,
+  products = [],
+  initialCategory = 'All',
+  activeCategory: controlledCategory,
+  onActiveCategoryChange,
+  searchQuery: controlledSearchQuery,
+  onSearchQueryChange,
+  initialScrollOffset,
+  onScrollPositionChange,
+}: CatalogProps) {
+  const [activeCategory, setActiveCategory] = useState<string>(controlledCategory ?? initialCategory ?? 'All');
+  const [searchQuery, setSearchQuery] = useState(controlledSearchQuery ?? '');
+  const listRef = useRef<FlatList<Product>>(null);
+  const hasRestoredScroll = useRef(false);
 
   const normalizeCategory = (value?: string) => {
     const key = (value || '').trim().toLowerCase();
@@ -65,7 +99,7 @@ export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, 
   
   // Apply search filter first (if any)
   if (searchQuery) {
-    filteredProducts = filteredProducts.filter(p => 
+    filteredProducts = filteredProducts.filter(p =>
       p.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }
@@ -88,9 +122,33 @@ export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, 
     icon: c.icon || 'package-variant',
   }))];
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (controlledCategory !== undefined) {
+      setActiveCategory(controlledCategory);
+      return;
+    }
     setActiveCategory(initialCategory || 'All');
-  }, [initialCategory]);
+  }, [controlledCategory, initialCategory]);
+
+  useEffect(() => {
+    if (controlledSearchQuery !== undefined) {
+      setSearchQuery(controlledSearchQuery);
+    }
+  }, [controlledSearchQuery]);
+
+  useEffect(() => {
+    if (hasRestoredScroll.current) return;
+    if (initialScrollOffset !== undefined && listRef.current) {
+      requestAnimationFrame(() => {
+        listRef.current?.scrollToOffset({ offset: initialScrollOffset, animated: false });
+      });
+      hasRestoredScroll.current = true;
+    }
+  }, [initialScrollOffset, filteredProducts.length]);
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    onScrollPositionChange?.(event.nativeEvent.contentOffset.y);
+  };
 
   return (
     <KeyboardAvoidingView 
@@ -107,7 +165,10 @@ export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, 
           <TextInput
             placeholder="Tìm kiếm linh kiện..."
             value={searchQuery}
-            onChangeText={setSearchQuery}
+            onChangeText={(text) => {
+              setSearchQuery(text);
+              onSearchQueryChange?.(text);
+            }}
             style={[styles.searchInput, { color: theme.text }]}
             placeholderTextColor={theme.muted}
           />
@@ -133,7 +194,10 @@ export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, 
           return (
             <TouchableOpacity
               key={cat.name}
-              onPress={() => setActiveCategory(cat.name)}
+              onPress={() => {
+                setActiveCategory(cat.name);
+                onActiveCategoryChange?.(cat.name);
+              }}
               style={[
                 styles.categoryTab,
                 {
@@ -166,6 +230,7 @@ export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, 
         <Text style={[styles.productsCount, { color: theme.muted }]}>{filteredProducts.length} sản phẩm</Text>
         {filteredProducts.length > 0 ? (
           <FlatList
+            ref={listRef}
             data={filteredProducts}
             numColumns={2}
             keyExtractor={(item) => item.id}
@@ -179,6 +244,8 @@ export function Catalog({ onProductClick, onFilterClick, filters, applyFilters, 
             contentContainerStyle={styles.productsGrid}
             columnWrapperStyle={styles.productsRow}
             showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
           />
         ) : (
           <View style={styles.emptyContainer}>
