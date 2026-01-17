@@ -545,6 +545,7 @@ function App(): React.JSX.Element {
   const [aiMessages, setAiMessages] = useState<ChatMessage[]>([]);
   const [userProfile, setUserProfile] = useState(DEFAULT_PROFILE);
   const [userId, setUserId] = useState<string | null>(null);
+  const homeScrollOffsetRef = useRef(0);
 
   const loadProducts = async () => {
     try {
@@ -1156,6 +1157,10 @@ function App(): React.JSX.Element {
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const theme = isDarkMode ? darkTheme : lightTheme;
 
+  const handleHomeScrollPosition = useCallback((offset: number) => {
+    homeScrollOffsetRef.current = offset;
+  }, []);
+
   const handleTabChange = (tab: NavTab) => {
     setCurrentTab(tab);
     setCurrentScreen(tab);
@@ -1545,6 +1550,8 @@ function App(): React.JSX.Element {
             onBannerPress={handleBannerPress}
             onSelectCategory={handleSelectCategory}
             onRefreshProducts={() => { void loadProducts(); }}
+            initialScrollOffset={homeScrollOffsetRef.current}
+            onScrollPositionChange={handleHomeScrollPosition}
           />
         );
       case 'catalog':
@@ -1841,9 +1848,12 @@ function App(): React.JSX.Element {
           <Home
             onNavigate={(tab) => handleTabChange(tab as NavTab)}
             onProductClick={navigateToProduct}
+            theme={theme}
             products={products}
             banners={banners}
             onBannerPress={handleBannerPress}
+            initialScrollOffset={homeScrollOffsetRef.current}
+            onScrollPositionChange={handleHomeScrollPosition}
           />
         );
     }

@@ -1,5 +1,18 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Alert, FlatList, ViewToken, Animated } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+  Alert,
+  FlatList,
+  ViewToken,
+  Animated,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { HomeBanner, Product, Category } from '../types';
 import { CATEGORIES } from '../constants/data';
@@ -118,6 +131,8 @@ interface HomeProps {
   onBannerPress?: (banner: HomeBanner) => void;
   onSelectCategory?: (category: string) => void;
   onRefreshProducts?: () => void;
+  initialScrollOffset?: number;
+  onScrollPositionChange?: (offset: number) => void;
 }
 
 const { width } = Dimensions.get('window');
@@ -131,6 +146,8 @@ export function Home({
   onBannerPress,
   onSelectCategory,
   onRefreshProducts,
+  initialScrollOffset,
+  onScrollPositionChange,
 }: HomeProps) {
   const { t } = useTranslation();
   const { theme: ctxTheme } = useTheme();
@@ -138,6 +155,8 @@ export function Home({
   const [visibleCount, setVisibleCount] = React.useState(10);
   const [currentBannerIndex, setCurrentBannerIndex] = React.useState(0);
   const bannerListRef = React.useRef<FlatList<HomeBanner>>(null);
+  const scrollViewRef = React.useRef<ScrollView>(null);
+  const hasRestoredScroll = React.useRef(false);
   const scrollX = React.useRef(new Animated.Value(0)).current;
   const viewabilityConfig = React.useRef({ viewAreaCoveragePercentThreshold: 60 }).current;
   const onViewableItemsChanged = React.useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -231,11 +250,28 @@ export function Home({
   // Extract categories from products if CATEGORIES is empty
   const displayCategories = CATEGORIES.length > 0 ? CATEGORIES : extractCategoriesFromProducts(products);
 
+  React.useEffect(() => {
+    if (hasRestoredScroll.current) return;
+    if (scrollViewRef.current && initialScrollOffset !== undefined) {
+      requestAnimationFrame(() => {
+        scrollViewRef.current?.scrollTo({ y: initialScrollOffset, animated: false });
+      });
+      hasRestoredScroll.current = true;
+    }
+  }, [initialScrollOffset]);
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    onScrollPositionChange?.(event.nativeEvent.contentOffset.y);
+  };
+
   return (
     <ScrollView 
+      ref={scrollViewRef}
       style={[styles.container, { backgroundColor: resolvedTheme.background }]}
       contentContainerStyle={[styles.contentContainer, { backgroundColor: resolvedTheme.background }]}
       showsVerticalScrollIndicator={false}
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
     >
       {/* Banner Slider */}
       <View style={styles.bannerSection}>
