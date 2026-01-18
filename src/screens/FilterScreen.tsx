@@ -109,7 +109,7 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: t.text }]}>{translate('search_filter')}</Text>
         <TouchableOpacity onPress={handleReset} activeOpacity={0.7}>
-          <Text style={[styles.resetText, { color: t.primary }]}>{translate('reset')}</Text>
+          <Text style={[styles.resetText, { color: t.primary }]}>{translate('clear_all') || translate('reset')}</Text>
         </TouchableOpacity>
       </View>
 

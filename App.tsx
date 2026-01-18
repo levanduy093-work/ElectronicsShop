@@ -555,6 +555,7 @@ function App(): React.JSX.Element {
   const [currentTab, setCurrentTab] = useState<NavTab>('home');
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [previousScreen, setPreviousScreen] = useState<Screen>('home');
+  const [previousTab, setPreviousTab] = useState<NavTab>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
@@ -609,13 +610,12 @@ function App(): React.JSX.Element {
   const openAuthScreen = useCallback(
     (mode: 'login' | 'register' = 'login', previous?: Screen) => {
       setAuthMode(mode);
-      if (previous) {
-        setPreviousScreen(previous);
-      }
+      setPreviousTab(currentTab);
+      setPreviousScreen(previous ?? currentScreen);
       setCurrentTab('profile');
       setCurrentScreen('auth');
     },
-    [],
+    [currentScreen, currentTab],
   );
 
   const markOnboardingSeen = useCallback(async () => {
@@ -1586,6 +1586,12 @@ function App(): React.JSX.Element {
   };
 
   const handleAddToCart = (product: Product, quantity: number, selectedOption?: string, selectedClassification?: string) => {
+    if (!authTokensRef.current?.accessToken) {
+      showToast(t('loginRequiredCart'), 'info');
+      openAuthScreen('login', currentScreen);
+      return false;
+    }
+
     const available = product.stockQuantity;
     const isOutOfStock = product.stock === 'Out of Stock' || (available !== undefined && available <= 0);
     if (isOutOfStock) {
@@ -1735,9 +1741,73 @@ function App(): React.JSX.Element {
     });
   };
 
+  const refreshCartStock = async () => {
+    const latestProducts = (await loadProducts()) || productsRef.current;
+    if (!latestProducts || latestProducts.length === 0) return;
+
+    let removedCount = 0;
+    let adjustedCount = 0;
+
+    setCartItems(prev => {
+      const next: CartItem[] = [];
+      prev.forEach(item => {
+        const updated = latestProducts.find(p => p.id === item.id);
+        if (!updated) {
+          next.push(item);
+          return;
+        }
+
+        const availableQty = updated.stockQuantity;
+        const clampedQty =
+          availableQty === undefined ? item.quantity : Math.min(item.quantity, Math.max(0, availableQty));
+        const isOut = updated.stock === 'Out of Stock' || clampedQty <= 0;
+
+        if (isOut) {
+          removedCount += 1;
+          return;
+        }
+
+        if (clampedQty < item.quantity) {
+          adjustedCount += 1;
+        }
+
+        next.push({
+          ...item,
+          quantity: Math.max(1, clampedQty),
+          stock: updated.stock,
+          stockQuantity: updated.stockQuantity,
+          options: updated.options,
+          classifications: updated.classifications,
+          price: updated.price,
+          image: updated.image,
+          name: updated.name,
+          description: updated.description,
+          category: updated.category,
+        });
+      });
+
+      return next;
+    });
+
+    if (removedCount || adjustedCount) {
+      showToast(
+        t('cart_stock_refreshed', { removed: removedCount, adjusted: adjustedCount }),
+        'info',
+      );
+    }
+  };
+
   useEffect(() => {
     void persistCartState(cartItems);
   }, [cartItems]);
+
+  useEffect(() => {
+    if (currentScreen === 'cart') {
+      void refreshCartStock();
+    }
+    // We intentionally avoid adding refreshCartStock to deps to prevent reloading on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentScreen]);
 
   useEffect(() => {
     if (!authTokensRef.current?.accessToken) return;
@@ -1880,6 +1950,7 @@ function App(): React.JSX.Element {
 
   const handleToggleWishlistAsync = async (product: Product) => {
     if (!authTokensRef.current?.accessToken) {
+      showToast(t('loginRequiredFavorite'), 'info');
       openAuthScreen('login', 'product-detail');
       return;
     }
@@ -1958,11 +2029,10 @@ function App(): React.JSX.Element {
     }).catch(err => console.warn('Failed to sync search history on login', err));
 
     if (currentScreen === 'auth') {
-      if (previousScreen === 'product-detail') {
-        setCurrentScreen('product-detail');
-      } else {
-        handleTabChange('profile');
-      }
+      const restoreScreen = previousScreen || 'profile';
+      const restoreTab = isTabScreen(restoreScreen) ? restoreScreen as NavTab : previousTab;
+      setCurrentTab(restoreTab);
+      setCurrentScreen(restoreScreen);
     }
   };
 

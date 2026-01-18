@@ -254,21 +254,20 @@ export function SearchScreen({
               </View>
               {recentSearches.length > 0 ? (
                 <>
-                  <View style={styles.recentList}>
-                    {(isRecentSearchesExpanded ? recentSearches : recentSearches.slice(0, 5)).map((term, i) => (
+                  <View style={styles.recentChipsContainer}>
+                    {(isRecentSearchesExpanded ? recentSearches : recentSearches.slice(0, 10)).map((term, i) => (
                       <TouchableOpacity
                         key={i}
                         onPress={() => updateQuery(term, true)}
-                        style={[styles.recentItem, { backgroundColor: t.surface, borderColor: t.border }]}
+                        style={[styles.recentChip, { backgroundColor: t.surface, borderColor: t.border }]}
                         activeOpacity={0.7}
                       >
-                        <AppIcon name="clock" size={16} color={t.muted} />
-                        <Text style={[styles.recentText, { color: t.text }]}>{term}</Text>
-                        <AppIcon name="chevron-right" size={16} color={t.border} />
+                        <AppIcon name="clock" size={14} color={t.muted} />
+                        <Text style={[styles.recentChipText, { color: t.text }]}>{term}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
-                  {recentSearches.length > 5 && (
+                  {recentSearches.length > 10 && (
                     <TouchableOpacity
                       onPress={() => setIsRecentSearchesExpanded(!isRecentSearchesExpanded)}
                       style={styles.expandButton}
@@ -414,20 +413,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9CA3AF',
   },
-  recentList: {
-    gap: 4,
+  recentChipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  recentItem: {
+  recentChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    gap: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 6,
   },
-  recentText: {
-    flex: 1,
-    fontSize: 14,
+  recentChipText: {
+    fontSize: 13,
     color: '#4B5563',
   },
   noHistoryText: {
