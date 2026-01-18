@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, StatusBar, Platform, Linking, AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -128,6 +128,8 @@ export function Checkout({
     amount: 0,
   });
   const [checkingPayment, setCheckingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [pollCount, setPollCount] = useState(0);
   const [successInfo, setSuccessInfo] = useState<{ code?: string; amount: number; payment?: string }>({
     amount: 0,
   });
@@ -226,9 +228,10 @@ export function Checkout({
     }
   };
 
-  const handleCheckPayment = async () => {
+  const handleCheckPayment = useCallback(async () => {
     if (!pendingPayment.id || !onCheckPaymentStatus) return;
     setCheckingPayment(true);
+    setPaymentError(null);
     try {
       const status = await onCheckPaymentStatus(pendingPayment.id);
       if (status === 'paid') {
@@ -239,17 +242,60 @@ export function Checkout({
         });
         setStep('success');
       } else if (status === 'failed') {
+        setPaymentError('failed');
         showToast(translate('payment_failed'), 'error');
       } else {
-        showToast(translate('paymentProcessing'), 'info');
+        // Still pending
+        setPollCount(prev => {
+          const next = prev + 1;
+          if (next >= 10) {
+            // Consider timeout after 10 polls (approximately 50 seconds if polling every 5s)
+            setPaymentError('timeout');
+          } else {
+            showToast(translate('paymentProcessing'), 'info');
+          }
+          return next;
+        });
       }
     } catch (error: any) {
+      setPaymentError('error');
       showToast(error?.message || translate('cannotCheckPaymentStatus'), 'error');
     } finally {
       setCheckingPayment(false);
     }
-  };
+  }, [pendingPayment.id, onCheckPaymentStatus, translate, showToast]);
 
+  // Poll payment status automatically when in waiting step
+  useEffect(() => {
+    if (step !== 'waiting' || !pendingPayment.id || !onCheckPaymentStatus) return;
+    
+    // Reset poll count when entering waiting step
+    setPollCount(0);
+    setPaymentError(null);
+    
+    // Initial check after 3 seconds
+    const initialTimeout = setTimeout(() => {
+      void handleCheckPayment();
+    }, 3000);
+    
+    // Poll every 5 seconds, max 10 times
+    let pollAttempts = 0;
+    const interval = setInterval(() => {
+      pollAttempts++;
+      if (pollAttempts < 10) {
+        void handleCheckPayment();
+      } else {
+        clearInterval(interval);
+      }
+    }, 5000);
+    
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(interval);
+    };
+  }, [step, pendingPayment.id, handleCheckPayment, onCheckPaymentStatus]);
+
+  // Check payment when app comes back to foreground
   useEffect(() => {
     const sub = AppState.addEventListener('change', state => {
       if (state === 'active' && step === 'waiting' && pendingPayment.id) {
@@ -272,20 +318,51 @@ export function Checkout({
   }
 
   if (step === 'waiting') {
+    const isError = paymentError !== null;
+    const isFailed = paymentError === 'failed';
+    const isTimeout = paymentError === 'timeout';
+    
     return (
       <View style={[styles.waitingContainer, { backgroundColor: t.background }]}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={t.background} />
         <View style={[styles.waitingCard, { backgroundColor: t.card, shadowColor: t.text }]}>
-          <View style={[styles.waitingIcon, { backgroundColor: t === lightTheme ? '#DBEAFE' : 'rgba(59,130,246,0.16)' }]}>
-            <AppIcon name="clock" size={32} color={t.primary} />
+          <View style={[
+            styles.waitingIcon, 
+            { 
+              backgroundColor: isError 
+                ? (t === lightTheme ? '#FEE2E2' : 'rgba(239,68,68,0.16)')
+                : (t === lightTheme ? '#DBEAFE' : 'rgba(59,130,246,0.16)')
+            }
+          ]}>
+            <AppIcon 
+              name={isError ? "alert-circle" : "clock"} 
+              size={32} 
+              color={isError ? '#EF4444' : t.primary} 
+            />
           </View>
-          <Text style={[styles.waitingTitle, { color: t.text }]}>Đang chờ thanh toán</Text>
+          <Text style={[styles.waitingTitle, { color: t.text }]}>
+            {isError ? translate('paymentErrorTitle') : translate('waitingForPayment')}
+          </Text>
           <Text style={[styles.waitingSub, { color: t.muted }]}>
             Đơn hàng {pendingPayment.code ? `#${pendingPayment.code}` : ''} • {formatPrice(pendingPayment.amount)}
           </Text>
+          
+          {isError && (
+            <View style={[styles.errorBox, { backgroundColor: t === lightTheme ? '#FEF2F2' : 'rgba(239,68,68,0.1)', borderColor: t === lightTheme ? '#FECACA' : 'rgba(239,68,68,0.3)' }]}>
+              <Text style={[styles.errorTitle, { color: '#DC2626' }]}>
+                {isFailed ? translate('paymentFailedTitle') : translate('paymentTimeoutTitle')}
+              </Text>
+              <Text style={[styles.errorText, { color: t.muted }]}>
+                {isFailed ? translate('paymentFailedInstructions') : translate('paymentTimeoutInstructions')}
+              </Text>
+            </View>
+          )}
+          
           <TouchableOpacity
             onPress={() => {
               if (!pendingPayment.url) return;
+              setPaymentError(null);
+              setPollCount(0);
               Linking.openURL(pendingPayment.url).catch(() => {
                 showToast(translate('cannotOpenVnpay'), 'error');
               });
@@ -293,11 +370,17 @@ export function Checkout({
             style={[styles.waitingButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
             activeOpacity={0.85}
           >
-            <Text style={styles.waitingButtonText}>Mở lại cổng VNPAY</Text>
+            <Text style={styles.waitingButtonText}>
+              {isError ? translate('tryPaymentAgain') : translate('openVnpayGateway')}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
-              if (!checkingPayment) void handleCheckPayment();
+              if (!checkingPayment) {
+                setPaymentError(null);
+                setPollCount(0);
+                void handleCheckPayment();
+              }
             }}
             style={[
               styles.waitingSecondary,
@@ -309,17 +392,19 @@ export function Checkout({
           >
             <AppIcon name="check-circle" size={16} color={t.muted} />
             <Text style={[styles.waitingSecondaryText, { color: t.muted }]}>
-              {checkingPayment ? 'Đang kiểm tra...' : 'Tôi đã thanh toán'}
+              {checkingPayment ? translate('checkingPayment') : translate('iHavePaid')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
               setStep('payment');
               setPendingPayment({ url: '', amount: 0 });
+              setPaymentError(null);
+              setPollCount(0);
             }}
             style={[styles.waitingTertiary, { color: t.muted }]}
           >
-            <Text style={[styles.waitingTertiaryText, { color: t.muted }]}>Chọn phương thức khác</Text>
+            <Text style={[styles.waitingTertiaryText, { color: t.muted }]}>{translate('chooseOtherMethod')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -955,6 +1040,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     textDecorationLine: 'underline',
+  },
+  errorBox: {
+    width: '100%',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  errorTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  errorText: {
+    fontSize: 12,
+    lineHeight: 16,
   },
   successContainer: {
     flex: 1,

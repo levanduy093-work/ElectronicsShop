@@ -135,6 +135,7 @@ const AUTH_STORAGE_KEY = 'electronicsshop/auth';
 const CART_STORAGE_KEY = 'electronicsshop/cart';
 const PUSH_SETTINGS_KEY = 'electronicsshop/push_settings';
 const ONBOARDING_STORAGE_KEY = 'electronicsshop/onboarding_seen';
+const THEME_MODE_STORAGE_KEY = 'electronicsshop/theme_mode';
 const DEFAULT_PROFILE = {
   name: "Nguyễn Văn A",
   email: "nguyenva@example.com",
@@ -348,6 +349,7 @@ const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS, t
     createdAt: typeof created === 'string' ? created : new Date(created).toISOString(),
     status,
     statusText: t ? getOrderStatusText(status, t) : status,
+    paymentStatus: order.paymentStatus,
     items: order.items.map(item => ({
       id: item.productId,
       name: item.name,
@@ -546,8 +548,10 @@ const mapApiBannerToUi = (banner: ApiBanner): HomeBanner => ({
 function App(): React.JSX.Element {
   const { t } = useTranslation();
   const { showToast } = useToast();
-  const systemDarkMode = useColorScheme() === 'dark';
-  const [isDarkMode, setIsDarkMode] = useState(systemDarkMode);
+  const systemColorScheme = useColorScheme();
+  const systemDarkMode = systemColorScheme === 'dark';
+  const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>('system');
+  const isDarkMode = themeMode === 'system' ? systemDarkMode : themeMode === 'dark';
   const [currentTab, setCurrentTab] = useState<NavTab>('home');
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [previousScreen, setPreviousScreen] = useState<Screen>('home');
@@ -1022,6 +1026,11 @@ function App(): React.JSX.Element {
   }, [isLoggedIn, authTokens?.accessToken, isPushEnabled]);
 
   // Handler to enable push notifications (requests permission when user toggles on)
+  const handleThemeModeChange = useCallback(async (mode: 'light' | 'dark' | 'system') => {
+    setThemeMode(mode);
+    await persistThemeMode(mode);
+  }, []);
+
   const handleTogglePush = useCallback(async () => {
     const newValue = !isPushEnabled;
     setIsPushEnabled(newValue);
@@ -1119,6 +1128,11 @@ function App(): React.JSX.Element {
           } else {
             setCartItems(storedCart);
           }
+        }
+
+        const storedThemeMode = await loadPersistedThemeMode();
+        if (storedThemeMode) {
+          setThemeMode(storedThemeMode);
         }
 
         const storedPush = await AsyncStorage.getItem(PUSH_SETTINGS_KEY);
@@ -2148,6 +2162,59 @@ function App(): React.JSX.Element {
             products={products}
             onNavigateToCart={() => handleTabChange('cart')}
             onRefreshOrder={refreshOrderDetail}
+            onPayAgain={async (orderId: string) => {
+              if (!authTokensRef.current?.accessToken) {
+                throw new Error(t('login_required_order'));
+              }
+              try {
+                // Get order details
+                const existingOrder = await getOrderById(orderId, authTokensRef.current.accessToken);
+                if (!existingOrder) {
+                  throw new Error(t('order_not_found'));
+                }
+                
+                // Create new payment URL with existing order data
+                const payload = {
+                  code: existingOrder.code || `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
+                  status: { ordered: existingOrder.status?.ordered || new Date().toISOString() },
+                  items: existingOrder.items.map(item => ({
+                    productId: item.productId,
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price,
+                    subTotal: item.subTotal || item.price * item.quantity,
+                    shippingFee: item.shippingFee || 0,
+                    discount: item.discount || 0,
+                    totalPrice: item.totalPrice || item.price * item.quantity,
+                    selectedOption: item.selectedOption,
+                    selectedClassification: item.selectedClassification,
+                  })),
+                  subTotal: existingOrder.subTotal,
+                  shippingFee: existingOrder.shippingFee,
+                  discount: existingOrder.discount,
+                  totalPrice: existingOrder.totalPrice,
+                  payment: existingOrder.payment || 'vnpay',
+                  paymentStatus: 'pending',
+                  shippingAddress: existingOrder.shippingAddress ? {
+                    name: existingOrder.shippingAddress.name,
+                    phone: existingOrder.shippingAddress.phone,
+                    city: existingOrder.shippingAddress.city,
+                    district: existingOrder.shippingAddress.district,
+                    ward: existingOrder.shippingAddress.ward,
+                    street: existingOrder.shippingAddress.street,
+                  } : undefined,
+                };
+                
+                const payment = await createVnpayPayment(payload, authTokensRef.current.accessToken);
+                const uiOrder = mapApiOrderToUi(payment.order, productsRef.current, t);
+                setOrders(prev => [uiOrder, ...prev]);
+                return { paymentUrl: payment.paymentUrl };
+              } catch (error: any) {
+                console.warn('App.tsx - Failed to create payment URL for order', error?.message || error);
+                throw error;
+              }
+            }}
+            accessToken={authTokens?.accessToken}
           />
         ) : null;
 
@@ -2245,8 +2312,8 @@ function App(): React.JSX.Element {
         return (
           <Settings
             onBack={() => handleTabChange('profile')}
-            isDarkMode={isDarkMode}
-            onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+            themeMode={themeMode}
+            onThemeModeChange={handleThemeModeChange}
             onChangePassword={() => setCurrentScreen('change-password')}
             onNavigateToLanguage={() => setCurrentScreen('language-selection')}
             theme={theme}

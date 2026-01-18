@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, StatusBar, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, StatusBar, Platform, useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
@@ -7,8 +7,8 @@ import { darkTheme, lightTheme } from '../theme';
 
 interface SettingsProps {
   onBack: () => void;
-  isDarkMode: boolean;
-  onToggleDarkMode: () => void;
+  themeMode: 'light' | 'dark' | 'system';
+  onThemeModeChange: (mode: 'light' | 'dark' | 'system') => void;
   onChangePassword: () => void;
   onNavigateToLanguage?: () => void;
   theme?: any;
@@ -19,8 +19,8 @@ interface SettingsProps {
 
 export function Settings({
   onBack,
-  isDarkMode,
-  onToggleDarkMode,
+  themeMode,
+  onThemeModeChange,
   onChangePassword,
   onNavigateToLanguage,
   isPushEnabled = true,
@@ -29,12 +29,23 @@ export function Settings({
 }: SettingsProps) {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
+  const systemColorScheme = useColorScheme();
+  const isDarkMode = themeMode === 'system' 
+    ? (systemColorScheme === 'dark')
+    : themeMode === 'dark';
   const theme = isDarkMode ? darkTheme : lightTheme;
+  const [showThemeSelector, setShowThemeSelector] = React.useState(false);
 
   const handleChangeLanguage = () => {
     if (onNavigateToLanguage) {
       onNavigateToLanguage();
     }
+  };
+
+  const getThemeModeLabel = () => {
+    if (themeMode === 'light') return t('light') || 'Sáng';
+    if (themeMode === 'dark') return t('dark') || 'Tối';
+    return t('system') || 'Theo hệ thống';
   };
 
   return (
@@ -60,21 +71,80 @@ export function Settings({
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.muted }]}>{t('general')}</Text>
           <View style={[styles.sectionCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            {/* Dark Mode */}
-            <View style={styles.settingItem}>
+            {/* Theme Mode */}
+            <TouchableOpacity 
+              style={styles.settingItem} 
+              activeOpacity={0.7}
+              onPress={() => setShowThemeSelector(!showThemeSelector)}
+            >
               <View style={styles.settingLeft}>
                 <View style={[styles.settingIcon, { backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }]}>
                   <AppIcon name="moon" size={18} color={theme.muted} />
                 </View>
                 <Text style={[styles.settingLabel, { color: theme.text }]}>{t('darkMode')}</Text>
               </View>
-              <Switch
-                value={isDarkMode}
-                onValueChange={onToggleDarkMode}
-                trackColor={{ false: '#E5E7EB', true: theme.primary }}
-                thumbColor={isDarkMode ? '#F9FAFB' : '#FFFFFF'}
-              />
-            </View>
+              <View style={styles.settingRight}>
+                <Text style={[styles.settingValue, { color: theme.muted }]}>
+                  {getThemeModeLabel()}
+                </Text>
+                <AppIcon name={showThemeSelector ? 'chevron-up' : 'chevron-down'} size={18} color={theme.muted} />
+              </View>
+            </TouchableOpacity>
+
+            {showThemeSelector && (
+              <View style={[styles.themeSelector, { backgroundColor: theme.background }]}>
+                <TouchableOpacity
+                  style={[
+                    styles.themeOption,
+                    themeMode === 'light' && { backgroundColor: theme === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)' }
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    onThemeModeChange('light');
+                    setShowThemeSelector(false);
+                  }}
+                >
+                  <Text style={[styles.themeOptionText, { color: themeMode === 'light' ? theme.primary : theme.text }]}>
+                    {t('light') || 'Sáng'}
+                  </Text>
+                  {themeMode === 'light' && <AppIcon name="check" size={18} color={theme.primary} />}
+                </TouchableOpacity>
+                <View style={[styles.divider, { backgroundColor: theme.border }]} />
+                <TouchableOpacity
+                  style={[
+                    styles.themeOption,
+                    themeMode === 'dark' && { backgroundColor: theme === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)' }
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    onThemeModeChange('dark');
+                    setShowThemeSelector(false);
+                  }}
+                >
+                  <Text style={[styles.themeOptionText, { color: themeMode === 'dark' ? theme.primary : theme.text }]}>
+                    {t('dark') || 'Tối'}
+                  </Text>
+                  {themeMode === 'dark' && <AppIcon name="check" size={18} color={theme.primary} />}
+                </TouchableOpacity>
+                <View style={[styles.divider, { backgroundColor: theme.border }]} />
+                <TouchableOpacity
+                  style={[
+                    styles.themeOption,
+                    themeMode === 'system' && { backgroundColor: theme === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)' }
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    onThemeModeChange('system');
+                    setShowThemeSelector(false);
+                  }}
+                >
+                  <Text style={[styles.themeOptionText, { color: themeMode === 'system' ? theme.primary : theme.text }]}>
+                    {t('system') || 'Theo hệ thống'}
+                  </Text>
+                  {themeMode === 'system' && <AppIcon name="check" size={18} color={theme.primary} />}
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* Language */}
             <View style={styles.divider} />
@@ -273,5 +343,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
     color: '#6B7280',
+  },
+  themeSelector: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  themeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  themeOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

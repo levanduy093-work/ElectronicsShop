@@ -115,6 +115,7 @@ export interface Order {
   createdAt?: string;
   status: 'processing' | 'shipping' | 'completed' | 'cancelled';
   statusText: string;
+  paymentStatus?: string; // 'paid' | 'pending' | 'failed'
   items: OrderItem[];
   shippingAddress: {
     name: string;

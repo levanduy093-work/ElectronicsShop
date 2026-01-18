@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
@@ -18,6 +18,8 @@ interface OrderDetailProps {
   products?: Product[];
   onNavigateToCart?: () => void;
   onRefreshOrder?: (orderId: string) => void;
+  onPayAgain?: (orderId: string) => Promise<{ paymentUrl?: string } | void>;
+  accessToken?: string | null;
 }
 
 const DEFAULT_ORDER: Order = {
@@ -63,7 +65,7 @@ const DEFAULT_ORDER: Order = {
   ],
 };
 
-export function OrderDetail({ orderId, onBack, order, theme, onReorder, products = [], onNavigateToCart, onRefreshOrder }: OrderDetailProps) {
+export function OrderDetail({ orderId, onBack, order, theme, onReorder, products = [], onNavigateToCart, onRefreshOrder, onPayAgain, accessToken }: OrderDetailProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme, isDarkMode } = useTheme();
   const { t: translate } = useTranslation();
@@ -71,6 +73,10 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
   const orderData = order || DEFAULT_ORDER;
   const { showToast } = useToast();
   const [isReordering, setIsReordering] = useState(false);
+  const [isPayingAgain, setIsPayingAgain] = useState(false);
+  
+  const isPendingPayment = orderData.paymentStatus === 'pending' || orderData.paymentStatus === 'failed';
+  const isVnpayOrder = orderData.payment?.method?.toLowerCase().includes('vnpay');
 
   // Auto-refresh order when component mounts or orderId changes
   useEffect(() => {
@@ -83,6 +89,31 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
       return () => clearInterval(interval);
     }
   }, [orderId, onRefreshOrder]);
+
+  const handlePayAgain = async () => {
+    if (!onPayAgain || !accessToken) {
+      showToast(translate('payAgainNotAvailable'), 'error');
+      return;
+    }
+
+    if (isPayingAgain) return;
+    setIsPayingAgain(true);
+
+    try {
+      const result = await onPayAgain(orderData.id);
+      if (result?.paymentUrl) {
+        Linking.openURL(result.paymentUrl).catch(() => {
+          showToast(translate('cannotOpenVnpay'), 'error');
+        });
+      } else {
+        showToast(translate('cannotCreatePaymentUrl'), 'error');
+      }
+    } catch (error: any) {
+      showToast(error?.message || translate('cannotCreatePaymentUrl'), 'error');
+    } finally {
+      setIsPayingAgain(false);
+    }
+  };
 
   const handleReorder = () => {
     if (!onReorder) {
@@ -436,21 +467,39 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
         >
           <Text style={[styles.supportButtonText, { color: t.text }]}>{translate('contact_support')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[
-            styles.reorderButton,
-            {
-              backgroundColor: isReordering ? t.border : t.primary,
-            }
-          ]} 
-          activeOpacity={0.8}
-          onPress={handleReorder}
-          disabled={isReordering}
-        >
-          <Text style={[styles.reorderButtonText, { color: isReordering ? t.muted : '#FFFFFF' }]}>
-            {isReordering ? translate('processing') : translate('reorder')}
-          </Text>
-        </TouchableOpacity>
+        {isPendingPayment && isVnpayOrder && onPayAgain ? (
+          <TouchableOpacity 
+            style={[
+              styles.reorderButton,
+              {
+                backgroundColor: isPayingAgain ? t.border : t.primary,
+              }
+            ]} 
+            activeOpacity={0.8}
+            onPress={handlePayAgain}
+            disabled={isPayingAgain}
+          >
+            <Text style={[styles.reorderButtonText, { color: isPayingAgain ? t.muted : '#FFFFFF' }]}>
+              {isPayingAgain ? translate('processing') : translate('payAgain')}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity 
+            style={[
+              styles.reorderButton,
+              {
+                backgroundColor: isReordering ? t.border : t.primary,
+              }
+            ]} 
+            activeOpacity={0.8}
+            onPress={handleReorder}
+            disabled={isReordering}
+          >
+            <Text style={[styles.reorderButtonText, { color: isReordering ? t.muted : '#FFFFFF' }]}>
+              {isReordering ? translate('processing') : translate('reorder')}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
