@@ -26,6 +26,7 @@ import { SupportCenter } from './src/screens/SupportCenter';
 import { Notifications } from './src/screens/Notifications';
 import { ChangePassword } from './src/screens/ChangePassword';
 import { LanguageSelection } from './src/screens/LanguageSelection';
+import { Onboarding } from './src/screens/Onboarding';
 import { BottomNav } from './src/components/layout/BottomNav';
 import { TopBar } from './src/components/layout/TopBar';
 import { Product, CartItem, Order, Voucher, HomeBanner, ChatMessage } from './src/types';
@@ -76,7 +77,23 @@ import { requestUserPermission, getFcmToken, subscribeForegroundMessage, subscri
 import { useToast } from './src/components/common/ToastProvider';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
-type Screen = NavTab | 'product-detail' | 'checkout' | 'order-history' | 'order-detail' | 'auth' | 'notifications' | 'search' | 'filter' | 'address-book' | 'settings' | 'support' | 'wishlist' | 'change-password' | 'language-selection';
+type Screen =
+  | NavTab
+  | 'onboarding'
+  | 'product-detail'
+  | 'checkout'
+  | 'order-history'
+  | 'order-detail'
+  | 'auth'
+  | 'notifications'
+  | 'search'
+  | 'filter'
+  | 'address-book'
+  | 'settings'
+  | 'support'
+  | 'wishlist'
+  | 'change-password'
+  | 'language-selection';
 
 const SCREEN_DEPTH: Record<Screen, number> = {
   home: 0,
@@ -84,6 +101,7 @@ const SCREEN_DEPTH: Record<Screen, number> = {
   ai: 0,
   cart: 0,
   profile: 0,
+  onboarding: 0,
   'product-detail': 1,
   checkout: 2,
   'order-history': 1,
@@ -115,6 +133,7 @@ interface FilterState {
 const AUTH_STORAGE_KEY = 'electronicsshop/auth';
 const CART_STORAGE_KEY = 'electronicsshop/cart';
 const PUSH_SETTINGS_KEY = 'electronicsshop/push_settings';
+const ONBOARDING_STORAGE_KEY = 'electronicsshop/onboarding_seen';
 const DEFAULT_PROFILE = {
   name: "Nguyễn Văn A",
   email: "nguyenva@example.com",
@@ -555,6 +574,7 @@ function App(): React.JSX.Element {
   const [notifications, setNotifications] = useState<UiNotification[]>([]);
   const [isRefreshingNotifications, setIsRefreshingNotifications] = useState(false);
   const [isPushEnabled, setIsPushEnabled] = useState(true);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({
@@ -573,6 +593,16 @@ function App(): React.JSX.Element {
     const base = (CATEGORIES.length ? CATEGORIES : extractCategoriesFromProducts(products)).map(c => c.name);
     return Array.from(new Set(base.filter(Boolean)));
   }, [products]);
+
+  const markOnboardingSeen = useCallback(async () => {
+    try {
+      await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+    } catch (error) {
+      console.warn('App.tsx - Failed to persist onboarding state', error);
+    } finally {
+      setHasSeenOnboarding(true);
+    }
+  }, []);
 
   const loadProducts = async () => {
     try {
@@ -919,7 +949,12 @@ function App(): React.JSX.Element {
 
   useEffect(() => {
     const restoreAuth = async () => {
+      let restoredLoggedIn = false;
       try {
+        const storedOnboarding = await AsyncStorage.getItem(ONBOARDING_STORAGE_KEY);
+        const onboardingSeen = storedOnboarding === 'true';
+        setHasSeenOnboarding(onboardingSeen);
+
         const stored = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
         if (stored) {
           const parsed = JSON.parse(stored);
@@ -930,6 +965,7 @@ function App(): React.JSX.Element {
             await loadVouchers(parsed.tokens.accessToken);
             await loadNotifications(parsed.tokens.accessToken, { silent: true });
             await loadAddresses(parsed.tokens.accessToken);
+            restoredLoggedIn = true;
           }
         }
 
@@ -960,6 +996,11 @@ function App(): React.JSX.Element {
         if (storedPush !== null) {
           setIsPushEnabled(JSON.parse(storedPush));
         }
+
+        if (!onboardingSeen && !restoredLoggedIn) {
+          setCurrentTab('home');
+          setCurrentScreen('onboarding');
+        }
       } catch (error) {
         console.warn('App.tsx - Failed to restore auth state', error);
       } finally {
@@ -969,6 +1010,14 @@ function App(): React.JSX.Element {
 
     restoreAuth();
   }, [syncAuthTokens]);
+
+  useEffect(() => {
+    if (isRestoringAuth) return;
+    if (!hasSeenOnboarding && !isLoggedIn) {
+      setCurrentTab('home');
+      setCurrentScreen('onboarding');
+    }
+  }, [hasSeenOnboarding, isLoggedIn, isRestoringAuth]);
 
   useEffect(() => {
     if (!isLoggedIn || !authTokens?.accessToken) {
@@ -1273,6 +1322,19 @@ function App(): React.JSX.Element {
     setSelectedProduct(product);
     setCurrentScreen('product-detail');
   };
+
+  const handleOnboardingComplete = useCallback(async () => {
+    await markOnboardingSeen();
+    setCurrentTab('home');
+    setCurrentScreen('home');
+  }, [markOnboardingSeen]);
+
+  const handleOnboardingLogin = useCallback(async () => {
+    await markOnboardingSeen();
+    setPreviousScreen('home');
+    setCurrentTab('profile');
+    setCurrentScreen('auth');
+  }, [markOnboardingSeen]);
 
   const handleBannerPress = (banner: HomeBanner) => {
     if (banner.ctaProductId) {
@@ -1713,6 +1775,7 @@ function App(): React.JSX.Element {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
     };
+    void markOnboardingSeen();
     setAddresses([]); // reset stale addresses from previous session
     syncAuthTokens(tokens, data.user, data.user?._id ?? null);
     void loadOrders(tokens.accessToken);
@@ -1741,6 +1804,14 @@ function App(): React.JSX.Element {
 
   const renderScreen = (screen: Screen) => {
     switch (screen) {
+      case 'onboarding':
+        return (
+          <Onboarding
+            onDone={handleOnboardingComplete}
+            onSkipToAuth={handleOnboardingLogin}
+            onSkipToHome={handleOnboardingComplete}
+          />
+        );
       case 'home':
         return (
           <Home
@@ -2082,8 +2153,8 @@ function App(): React.JSX.Element {
     }
   };
 
-  const isFullScreen = ['product-detail', 'checkout', 'order-history', 'order-detail', 'notifications', 'search', 'filter', 'address-book', 'settings', 'support', 'wishlist', 'change-password', 'language-selection'].includes(currentScreen);
-  const showTopBar = !isFullScreen && currentScreen !== 'ai' && currentScreen !== 'profile' && currentScreen !== 'auth';
+  const isFullScreen = ['onboarding', 'product-detail', 'checkout', 'order-history', 'order-detail', 'notifications', 'search', 'filter', 'address-book', 'settings', 'support', 'wishlist', 'change-password', 'language-selection'].includes(currentScreen);
+  const showTopBar = !isFullScreen && currentScreen !== 'ai' && currentScreen !== 'profile' && currentScreen !== 'auth' && currentScreen !== 'onboarding';
   return (
     <SafeAreaProvider>
       <ThemeProvider value={{ theme, isDarkMode }}>
