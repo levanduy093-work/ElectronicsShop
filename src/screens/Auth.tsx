@@ -11,15 +11,16 @@ interface AuthProps {
   onBack: () => void;
   onLoginSuccess: (data: AuthResponse) => void;
   theme?: Theme;
+  initialMode?: 'login' | 'register';
 }
 
-export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
+export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: AuthProps) {
   const { t: translate } = useTranslation();
   const { theme: ctxTheme } = useTheme();
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   const t = theme || ctxTheme || lightTheme;
-  const [isRegister, setIsRegister] = useState(false);
+  const [isRegister, setIsRegister] = useState(initialMode === 'register');
   const [showPassword, setShowPassword] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetStep, setResetStep] = useState<'email' | 'otp' | 'password'>('email');
@@ -39,6 +40,10 @@ export function Auth({ onBack, onLoginSuccess, theme }: AuthProps) {
     name: string;
   } | null>(null);
   const codeInputRefs = useRef<(TextInput | null)[]>([]);
+
+  React.useEffect(() => {
+    setIsRegister(initialMode === 'register');
+  }, [initialMode]);
   
   // BottomNav height: 80px + safe area bottom
   const bottomNavHeight = 80 + Math.max(insets.bottom, 16);

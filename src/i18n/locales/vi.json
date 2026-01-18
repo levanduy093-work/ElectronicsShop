@@ -350,7 +350,20 @@
   "onboarding_delivery_stat": "Có giao nhanh nội thành",
   "onboarding_delivery_highlight": "Đóng gói chống tĩnh điện",
   "onboarding_skip": "Bỏ qua",
-  "onboarding_login": "Đăng nhập",
-  "onboarding_start": "Bắt đầu khám phá",
-  "onboarding_next": "Tiếp tục"
+  "onboarding_login": "Đăng nhập / Đăng ký",
+  "onboarding_start": "Tiếp tục không cần tài khoản",
+  "onboarding_next": "Tiếp tục",
+  "onboarding_sign_up": "Đăng ký",
+  "onboarding_continue_as_guest": "Tiếp tục không cần tài khoản",
+  "onboarding_continue_as_guest_desc": "Khám phá ngay; đăng nhập sau để đồng bộ yêu thích và thanh toán nhanh hơn",
+  "onboarding_guest_hint": "Bạn có thể xem thử không cần tài khoản, hoặc đăng nhập sau để đồng bộ và thanh toán.",
+  "reset_onboarding": "Xem lại Onboarding",
+  "reset_onboarding_desc": "Hiện lại màn giới thiệu ở lần mở tiếp",
+  "reset_onboarding_success": "Đã đặt lại, onboarding sẽ hiện ở lần mở app sau",
+  "push_notifications_description": "Nhận thông báo về đơn hàng, khuyến mãi và cập nhật sản phẩm",
+  "push_notification_enabled": "Đã bật thông báo đẩy",
+  "push_notification_disabled": "Đã tắt thông báo đẩy",
+  "push_notification_permission_denied": "Quyền thông báo bị từ chối. Vui lòng bật trong Cài đặt hệ thống",
+  "push_notification_error": "Không thể bật thông báo đẩy",
+  "push_notification_will_enable_after_login": "Thông báo đẩy sẽ được bật sau khi đăng nhập"
 }

@@ -14,9 +14,19 @@ interface SettingsProps {
   theme?: any;
   isPushEnabled?: boolean;
   onTogglePush?: () => void;
+  onResetOnboarding?: () => void;
 }
 
-export function Settings({ onBack, isDarkMode, onToggleDarkMode, onChangePassword, onNavigateToLanguage, isPushEnabled = true, onTogglePush }: SettingsProps) {
+export function Settings({
+  onBack,
+  isDarkMode,
+  onToggleDarkMode,
+  onChangePassword,
+  onNavigateToLanguage,
+  isPushEnabled = true,
+  onTogglePush,
+  onResetOnboarding,
+}: SettingsProps) {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = isDarkMode ? darkTheme : lightTheme;
@@ -82,6 +92,28 @@ export function Settings({ onBack, isDarkMode, onToggleDarkMode, onChangePasswor
                 <AppIcon name="chevron-right" size={18} color={theme.muted} />
               </View>
             </TouchableOpacity>
+
+            {/* Divider */}
+            <View style={styles.divider} />
+
+            {/* Reset Onboarding */}
+            <TouchableOpacity
+              style={styles.settingItem}
+              activeOpacity={0.7}
+              onPress={onResetOnboarding}
+              disabled={!onResetOnboarding}
+            >
+              <View style={styles.settingLeft}>
+                <View style={[styles.settingIcon, { backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }]}>
+                  <AppIcon name="refresh" size={18} color={theme.muted} />
+                </View>
+                <View>
+                  <Text style={[styles.settingLabel, { color: theme.text }]}>{t('reset_onboarding')}</Text>
+                  <Text style={[styles.settingSubtle, { color: theme.muted }]}>{t('reset_onboarding_desc')}</Text>
+                </View>
+              </View>
+              <AppIcon name="chevron-right" size={18} color={theme.muted} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -94,7 +126,12 @@ export function Settings({ onBack, isDarkMode, onToggleDarkMode, onChangePasswor
                 <View style={[styles.settingIcon, { backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }]}>
                   <AppIcon name="bell" size={18} color={theme.muted} />
                 </View>
-                <Text style={[styles.settingLabel, { color: theme.text }]}>{t('pushNotifications')}</Text>
+                <View style={styles.settingLabelContainer}>
+                  <Text style={[styles.settingLabel, { color: theme.text }]}>{t('pushNotifications')}</Text>
+                  <Text style={[styles.settingSubtle, { color: theme.muted }]}>
+                    {t('push_notifications_description')}
+                  </Text>
+                </View>
               </View>
               <Switch
                 value={isPushEnabled}
@@ -196,6 +233,9 @@ const styles = StyleSheet.create({
     gap: 12,
     flex: 1,
   },
+  settingLabelContainer: {
+    flex: 1,
+  },
   settingIcon: {
     width: 36,
     height: 36,
@@ -208,6 +248,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#111827',
+  },
+  settingSubtle: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
   },
   settingRight: {
     flexDirection: 'row',
@@ -223,5 +268,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     marginLeft: 16,
     marginRight: 16,
+  },
+  settingSubtle: {
+    fontSize: 12,
+    marginTop: 2,
+    color: '#6B7280',
   },
 });

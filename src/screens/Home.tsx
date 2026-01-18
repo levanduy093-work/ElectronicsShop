@@ -134,6 +134,9 @@ interface HomeProps {
   onRefreshProducts?: () => void;
   initialScrollOffset?: number;
   onScrollPositionChange?: (offset: number) => void;
+  isLoading?: boolean;
+  error?: string | null;
+  isOffline?: boolean;
 }
 
 const { width } = Dimensions.get('window');
@@ -149,6 +152,9 @@ export function Home({
   onRefreshProducts,
   initialScrollOffset,
   onScrollPositionChange,
+  isLoading = false,
+  error = null,
+  isOffline = false,
 }: HomeProps) {
   const { t } = useTranslation();
   const { theme: ctxTheme } = useTheme();
@@ -386,27 +392,81 @@ export function Home({
       {/* Featured Products */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: resolvedTheme.text }]}>{t('featured_products')}</Text>
-        <View style={styles.productsGrid}>
-          {featuredProducts.map((p) => (
-            <ProductCard
-              key={p.id}
-              product={p}
-              theme={resolvedTheme}
-              onPress={() => onProductClick?.(p)}
-            />
-          ))}
-        </View>
-        {products.length > visibleCount && (
-          <TouchableOpacity
-            onPress={() => setVisibleCount(prev => Math.min(prev + 10, products.length))}
-            style={[styles.loadMoreButton, { borderColor: resolvedTheme.primary }]}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.loadMoreText, { color: resolvedTheme.primary }]}>
-              {t('view_more_products', { count: Math.max(products.length - visibleCount, 0) })}
+        
+        {/* Error State */}
+        {error && products.length === 0 && !isLoading && (
+          <View style={styles.emptyStateContainer}>
+            <AppIcon name="alert-circle-outline" size={64} color={resolvedTheme.muted} />
+            <Text style={[styles.emptyStateTitle, { color: resolvedTheme.text }]}>
+              {isOffline ? 'Không có kết nối mạng' : 'Không thể tải sản phẩm'}
             </Text>
-            <AppIcon name="chevron-down" size={16} color={resolvedTheme.primary} />
-          </TouchableOpacity>
+            <Text style={[styles.emptyStateMessage, { color: resolvedTheme.muted }]}>
+              {isOffline 
+                ? 'Vui lòng kiểm tra kết nối internet của bạn và thử lại.' 
+                : error || 'Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại.'}
+            </Text>
+            {onRefreshProducts && (
+              <TouchableOpacity
+                onPress={() => onRefreshProducts()}
+                style={[styles.retryButton, { backgroundColor: resolvedTheme.primary }]}
+                activeOpacity={0.8}
+              >
+                <AppIcon name="refresh" size={20} color="#FFFFFF" />
+                <Text style={styles.retryButtonText}>Thử lại</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Empty State */}
+        {!error && products.length === 0 && !isLoading && (
+          <View style={styles.emptyStateContainer}>
+            <AppIcon name="package-variant" size={64} color={resolvedTheme.muted} />
+            <Text style={[styles.emptyStateTitle, { color: resolvedTheme.text }]}>
+              Chưa có sản phẩm
+            </Text>
+            <Text style={[styles.emptyStateMessage, { color: resolvedTheme.muted }]}>
+              Hiện tại chưa có sản phẩm nào. Vui lòng thử lại sau.
+            </Text>
+            {onRefreshProducts && (
+              <TouchableOpacity
+                onPress={() => onRefreshProducts()}
+                style={[styles.retryButton, { backgroundColor: resolvedTheme.primary }]}
+                activeOpacity={0.8}
+              >
+                <AppIcon name="refresh" size={20} color="#FFFFFF" />
+                <Text style={styles.retryButtonText}>Tải lại</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Products Grid */}
+        {products.length > 0 && (
+          <>
+            <View style={styles.productsGrid}>
+              {featuredProducts.map((p) => (
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  theme={resolvedTheme}
+                  onPress={() => onProductClick?.(p)}
+                />
+              ))}
+            </View>
+            {products.length > visibleCount && (
+              <TouchableOpacity
+                onPress={() => setVisibleCount(prev => Math.min(prev + 10, products.length))}
+                style={[styles.loadMoreButton, { borderColor: resolvedTheme.primary }]}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.loadMoreText, { color: resolvedTheme.primary }]}>
+                  {t('view_more_products', { count: Math.max(products.length - visibleCount, 0) })}
+                </Text>
+                <AppIcon name="chevron-down" size={16} color={resolvedTheme.primary} />
+              </TouchableOpacity>
+            )}
+          </>
         )}
       </View>
     </ScrollView>
@@ -642,5 +702,37 @@ const styles = StyleSheet.create({
   emptyCategoriesText: {
     fontSize: 14,
     color: '#6B7280',
+  },
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 32,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyStateMessage: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

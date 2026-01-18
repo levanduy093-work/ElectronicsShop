@@ -350,7 +350,20 @@
   "onboarding_delivery_stat": "Same-day options in city",
   "onboarding_delivery_highlight": "Protected packaging",
   "onboarding_skip": "Skip",
-  "onboarding_login": "Log in",
-  "onboarding_start": "Start exploring",
-  "onboarding_next": "Next"
+  "onboarding_login": "Log in / Sign up",
+  "onboarding_start": "Continue as guest",
+  "onboarding_next": "Next",
+  "onboarding_sign_up": "Sign up",
+  "onboarding_continue_as_guest": "Continue without an account",
+  "onboarding_continue_as_guest_desc": "Explore products now; log in later to sync favorites and checkout faster",
+  "onboarding_guest_hint": "You can explore without an account, or log in later for syncing & checkout.",
+  "reset_onboarding": "Reset onboarding",
+  "reset_onboarding_desc": "Show intro again next time",
+  "reset_onboarding_success": "Onboarding reset. Intro will show on next launch",
+  "push_notifications_description": "Receive notifications about orders, promotions and product updates",
+  "push_notification_enabled": "Push notifications enabled",
+  "push_notification_disabled": "Push notifications disabled",
+  "push_notification_permission_denied": "Notification permission denied. Please enable in System Settings",
+  "push_notification_error": "Failed to enable push notifications",
+  "push_notification_will_enable_after_login": "Push notifications will be enabled after login"
 }

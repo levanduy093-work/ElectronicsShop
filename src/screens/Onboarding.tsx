@@ -20,6 +20,7 @@ type OnboardingProps = {
   onDone: () => void;
   onSkipToAuth: () => void;
   onSkipToHome: () => void;
+  onSignUp?: () => void;
 };
 
 type Slide = {
@@ -34,7 +35,7 @@ type Slide = {
   highlight: string;
 };
 
-export function Onboarding({ onDone, onSkipToAuth, onSkipToHome }: OnboardingProps) {
+export function Onboarding({ onDone, onSkipToAuth, onSkipToHome, onSignUp }: OnboardingProps) {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -100,7 +101,7 @@ export function Onboarding({ onDone, onSkipToAuth, onSkipToHome }: OnboardingPro
           <View style={[styles.badge, { backgroundColor: item.accentMuted }]}>
             <Text style={styles.badgeText}>{item.badge}</Text>
           </View>
-          <Pressable onPress={onSkipToHome} hitSlop={12}>
+          <Pressable onPress={onSkipToHome} hitSlop={14} accessibilityRole="button">
             <Text style={[styles.skipText, { color: theme.muted }]}>{t('onboarding_skip')}</Text>
           </Pressable>
         </View>
@@ -188,7 +189,7 @@ export function Onboarding({ onDone, onSkipToAuth, onSkipToHome }: OnboardingPro
                   opacity: progress[index],
                   width: progress[index].interpolate({
                     inputRange: [0.32, 1],
-                    outputRange: [8, 26],
+                    outputRange: [12, 32],
                     extrapolate: 'clamp',
                   }),
                 },
@@ -197,24 +198,63 @@ export function Onboarding({ onDone, onSkipToAuth, onSkipToHome }: OnboardingPro
           ))}
         </View>
 
-        <View style={styles.actions}>
-          <Pressable
-            onPress={onSkipToAuth}
-            style={[styles.secondaryBtn, { borderColor: theme.border }]}
-            android_ripple={{ color: theme.border }}
-          >
-            <Text style={[styles.secondaryText, { color: theme.text }]}>{t('onboarding_login')}</Text>
-          </Pressable>
-          <Pressable
-            onPress={handleNext}
-            style={[styles.primaryBtn, { backgroundColor: slides[activeIndex]?.accent || theme.primary }]}
-            android_ripple={{ color: '#ffffff20' }}
-          >
-            <Text style={styles.primaryText}>
-              {activeIndex === slides.length - 1 ? t('onboarding_start') : t('onboarding_next')}
-            </Text>
-          </Pressable>
-        </View>
+        {activeIndex === slides.length - 1 ? (
+          <View style={styles.finalActions}>
+            <View style={styles.primaryActions}>
+              <Pressable
+                onPress={onSignUp || onSkipToAuth}
+                style={[styles.signUpBtn, { backgroundColor: slides[activeIndex]?.accent || theme.primary }]}
+                android_ripple={{ color: '#ffffff20' }}
+                hitSlop={10}
+                accessibilityRole="button"
+              >
+                <Text style={styles.signUpText}>{t('onboarding_sign_up')}</Text>
+              </Pressable>
+              <Pressable
+                onPress={onSkipToAuth}
+                style={[styles.loginBtn, { borderColor: theme.border }]}
+                android_ripple={{ color: theme.border }}
+                hitSlop={10}
+                accessibilityRole="button"
+              >
+                <Text style={[styles.loginText, { color: theme.text }]}>{t('onboarding_login')}</Text>
+              </Pressable>
+            </View>
+            <Pressable
+              onPress={onSkipToHome}
+              style={[styles.guestBanner, { backgroundColor: theme.surface, borderColor: theme.border }]}
+              android_ripple={{ color: theme.border + '20' }}
+              hitSlop={10}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.guestText, { color: theme.muted }]}>{t('onboarding_continue_as_guest')}</Text>
+              <Text style={[styles.guestDesc, { color: theme.muted }]}>
+                {t('onboarding_continue_as_guest_desc')}
+              </Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.actions}>
+            <Pressable
+              onPress={onSkipToAuth}
+              style={[styles.secondaryBtn, { borderColor: theme.border }]}
+              android_ripple={{ color: theme.border }}
+              hitSlop={10}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.secondaryText, { color: theme.text }]}>{t('onboarding_login')}</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleNext}
+              style={[styles.primaryBtn, { backgroundColor: slides[activeIndex]?.accent || theme.primary }]}
+              android_ripple={{ color: '#ffffff20' }}
+              hitSlop={10}
+              accessibilityRole="button"
+            >
+              <Text style={styles.primaryText}>{t('onboarding_next')}</Text>
+            </Pressable>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -367,7 +407,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   dot: {
-    height: 8,
+    height: 10,
     borderRadius: 999,
   },
   actions: {
@@ -398,5 +438,54 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 15,
+  },
+  finalActions: {
+    gap: 12,
+  },
+  primaryActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  signUpBtn: {
+    flex: 1.2,
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  signUpText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  loginBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loginText: {
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  guestBanner: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestText: {
+    fontWeight: '600',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  guestDesc: {
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 16,
   },
 });

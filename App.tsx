@@ -6,7 +6,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Linking, StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Home } from './src/screens/Home';
 import { Catalog } from './src/screens/Catalog';
 import { AIChat } from './src/screens/AIChat';
@@ -34,7 +33,7 @@ import { PRODUCTS, CATEGORIES } from './src/constants/data';
 import { Address } from './src/types';
 import { DEFAULT_ADDRESSES } from './src/constants/defaults';
 import { darkTheme, lightTheme, ThemeProvider } from './src/theme';
-import { ToastProvider } from './src/components/common/ToastProvider';
+import { useToast } from './src/components/common/ToastProvider';
 import {
   ApiNotification,
   ApiOrder,
@@ -71,10 +70,12 @@ import { socketService } from './src/services/socket';
 import './src/i18n';
 import { useTranslation } from 'react-i18next';
 import { extractCategoriesFromProducts } from './src/utils/product';
+import { useNetworkStatus } from './src/utils/network';
+import { cacheBanners, getCachedBanners, cacheProducts, getCachedProducts } from './src/utils/cache';
+import { OfflineBanner } from './src/components/common/OfflineBanner';
 
 // UNCOMMENT THIS AFTER INSTALLING @react-native-firebase/messaging AND ADDING CONFIG FILES
 import { requestUserPermission, getFcmToken, subscribeForegroundMessage, subscribeToFcmTokenRefresh, deleteFcmToken } from './src/services/fcm';
-import { useToast } from './src/components/common/ToastProvider';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 type Screen =
@@ -544,6 +545,7 @@ const mapApiBannerToUi = (banner: ApiBanner): HomeBanner => ({
 
 function App(): React.JSX.Element {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const systemDarkMode = useColorScheme() === 'dark';
   const [isDarkMode, setIsDarkMode] = useState(systemDarkMode);
   const [currentTab, setCurrentTab] = useState<NavTab>('home');
@@ -565,6 +567,7 @@ function App(): React.JSX.Element {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authTokens, setAuthTokens] = useState<{ accessToken: string; refreshToken: string } | null>(null);
   const [isRestoringAuth, setIsRestoringAuth] = useState(true);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const authTokensRef = useRef<{ accessToken: string; refreshToken: string } | null>(null);
   const cartIdRef = useRef<string | null>(null);
   const cartSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -575,6 +578,11 @@ function App(): React.JSX.Element {
   const [isRefreshingNotifications, setIsRefreshingNotifications] = useState(false);
   const [isPushEnabled, setIsPushEnabled] = useState(true);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
+  const networkStatus = useNetworkStatus();
+  const [productsError, setProductsError] = useState<string | null>(null);
+  const [bannersError, setBannersError] = useState<string | null>(null);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [isLoadingBanners, setIsLoadingBanners] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({
@@ -594,6 +602,18 @@ function App(): React.JSX.Element {
     return Array.from(new Set(base.filter(Boolean)));
   }, [products]);
 
+  const openAuthScreen = useCallback(
+    (mode: 'login' | 'register' = 'login', previous?: Screen) => {
+      setAuthMode(mode);
+      if (previous) {
+        setPreviousScreen(previous);
+      }
+      setCurrentTab('profile');
+      setCurrentScreen('auth');
+    },
+    [],
+  );
+
   const markOnboardingSeen = useCallback(async () => {
     try {
       await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
@@ -604,12 +624,35 @@ function App(): React.JSX.Element {
     }
   }, []);
 
-  const loadProducts = async () => {
+  const loadProducts = async (options?: { useCache?: boolean }) => {
+    setIsLoadingProducts(true);
+    setProductsError(null);
+    
+    // Try to load from cache if offline or if useCache is true
+    const isOffline = !networkStatus.isConnected;
+    if (isOffline || options?.useCache) {
+      const cached = await getCachedProducts();
+      if (cached && cached.length > 0) {
+        const mapped = cached.map(mapApiProductToUi);
+        setProducts(mapped);
+        productsRef.current = mapped;
+        setIsLoadingProducts(false);
+        if (isOffline) {
+          setProductsError('Đang hiển thị dữ liệu đã lưu. Kết nối mạng đã bị ngắt.');
+        }
+        return mapped;
+      }
+    }
+
     try {
       const result = await getProducts();
       const mapped = result.map(mapApiProductToUi);
       setProducts(mapped);
       productsRef.current = mapped;
+      
+      // Cache the products
+      await cacheProducts(result);
+      
       setCartItems(prev =>
         prev.map(item => {
           const updated = mapped.find(p => p.id === item.id);
@@ -624,10 +667,25 @@ function App(): React.JSX.Element {
             : item;
         }),
       );
+      setProductsError(null);
       return mapped;
     } catch (error: any) {
-      console.warn('App.tsx - Failed to load products', error?.message || error);
+      const errorMessage = error?.message || 'Không thể tải sản phẩm';
+      console.warn('App.tsx - Failed to load products', errorMessage);
+      
+      // Try cache on error
+      const cached = await getCachedProducts();
+      if (cached && cached.length > 0) {
+        const mapped = cached.map(mapApiProductToUi);
+        setProducts(mapped);
+        productsRef.current = mapped;
+        setProductsError('Đang hiển thị dữ liệu đã lưu. ' + errorMessage);
+      } else {
+        setProductsError(errorMessage);
+      }
       return undefined;
+    } finally {
+      setIsLoadingProducts(false);
     }
   };
 
@@ -642,12 +700,47 @@ function App(): React.JSX.Element {
     };
   }, []);
 
-  const loadBanners = async () => {
+  const loadBanners = async (options?: { useCache?: boolean }) => {
+    setIsLoadingBanners(true);
+    setBannersError(null);
+    
+    // Try to load from cache if offline or if useCache is true
+    const isOffline = !networkStatus.isConnected;
+    if (isOffline || options?.useCache) {
+      const cached = await getCachedBanners();
+      if (cached && cached.length > 0) {
+        setBanners(cached.map(mapApiBannerToUi));
+        setIsLoadingBanners(false);
+        if (isOffline) {
+          setBannersError('Đang hiển thị dữ liệu đã lưu. Kết nối mạng đã bị ngắt.');
+        }
+        return;
+      }
+    }
+
     try {
       const result = await getPublicBanners();
-      setBanners(result.map(mapApiBannerToUi));
+      const mapped = result.map(mapApiBannerToUi);
+      setBanners(mapped);
+      
+      // Cache the banners
+      await cacheBanners(result);
+      
+      setBannersError(null);
     } catch (error: any) {
-      console.warn('App.tsx - Failed to load banners', error?.message || error);
+      const errorMessage = error?.message || 'Không thể tải banner';
+      console.warn('App.tsx - Failed to load banners', errorMessage);
+      
+      // Try cache on error
+      const cached = await getCachedBanners();
+      if (cached && cached.length > 0) {
+        setBanners(cached.map(mapApiBannerToUi));
+        setBannersError('Đang hiển thị dữ liệu đã lưu. ' + errorMessage);
+      } else {
+        setBannersError(errorMessage);
+      }
+    } finally {
+      setIsLoadingBanners(false);
     }
   };
 
@@ -906,38 +999,74 @@ function App(): React.JSX.Element {
     });
   }, [handleAuthFailure, syncAuthTokens]);
 
+  // Handle FCM token refresh only (don't request permission automatically)
   useEffect(() => {
-    if (!isLoggedIn || !authTokens?.accessToken) {
+    if (!isLoggedIn || !authTokens?.accessToken || !isPushEnabled) {
       fcmRefreshUnsubRef.current?.();
       fcmRefreshUnsubRef.current = null;
+      if (!isPushEnabled) {
+        deleteFcmToken().catch(err => console.warn('App.tsx - Failed to delete token', err));
+      }
       return;
     }
 
-    if (!isPushEnabled) {
-      fcmRefreshUnsubRef.current?.();
-      fcmRefreshUnsubRef.current = null;
-      deleteFcmToken().catch(err => console.warn('App.tsx - Failed to delete token', err));
-      return;
-    }
-
-    let isMounted = true;
-
-    requestUserPermission()
-      .then(enabled => {
-        if (!enabled || !isMounted) return;
-        return getFcmToken(authTokens.accessToken);
-      })
-      .catch(err => console.warn('App.tsx - FCM permission/token error', err));
-
+    // Only subscribe to token refresh if push is already enabled
+    // Don't request permission here - that will be done when user toggles in Settings
     fcmRefreshUnsubRef.current?.();
     fcmRefreshUnsubRef.current = subscribeToFcmTokenRefresh(authTokens.accessToken);
 
     return () => {
-      isMounted = false;
       fcmRefreshUnsubRef.current?.();
       fcmRefreshUnsubRef.current = null;
     };
   }, [isLoggedIn, authTokens?.accessToken, isPushEnabled]);
+
+  // Handler to enable push notifications (requests permission when user toggles on)
+  const handleTogglePush = useCallback(async () => {
+    const newValue = !isPushEnabled;
+    setIsPushEnabled(newValue);
+    
+    try {
+      await AsyncStorage.setItem(PUSH_SETTINGS_KEY, JSON.stringify(newValue));
+    } catch (err) {
+      console.warn('App.tsx - Failed to save push settings', err);
+    }
+
+    if (newValue) {
+      // User wants to enable push - request permission now
+      if (isLoggedIn && authTokens?.accessToken) {
+        try {
+          const hasPermission = await requestUserPermission();
+          if (hasPermission) {
+            await getFcmToken(authTokens.accessToken);
+            showToast(t('push_notification_enabled'), 'success');
+          } else {
+            // Permission denied - revert toggle
+            setIsPushEnabled(false);
+            await AsyncStorage.setItem(PUSH_SETTINGS_KEY, JSON.stringify(false));
+            showToast(t('push_notification_permission_denied'), 'error');
+          }
+        } catch (err) {
+          console.warn('App.tsx - Failed to enable push notifications', err);
+          // Revert toggle on error
+          setIsPushEnabled(false);
+          await AsyncStorage.setItem(PUSH_SETTINGS_KEY, JSON.stringify(false));
+          showToast(t('push_notification_error'), 'error');
+        }
+      } else {
+        // Not logged in - just save preference for later
+        showToast(t('push_notification_will_enable_after_login'), 'info');
+      }
+    } else {
+      // User wants to disable push - delete token
+      try {
+        await deleteFcmToken();
+        showToast(t('push_notification_disabled'), 'success');
+      } catch (err) {
+        console.warn('App.tsx - Failed to disable push notifications', err);
+      }
+    }
+  }, [isPushEnabled, isLoggedIn, authTokens?.accessToken, showToast, t]);
 
   useEffect(() => {
     Linking.getInitialURL()
@@ -1043,9 +1172,24 @@ function App(): React.JSX.Element {
   }, [isLoggedIn, authTokens?.accessToken, products]);
 
   useEffect(() => {
-    void loadProducts();
-    void loadBanners();
+    // Load cache first for faster initial render
+    void loadProducts({ useCache: true });
+    void loadBanners({ useCache: true });
+    
+    // Then load fresh data from API if online
+    if (networkStatus.isConnected) {
+      void loadProducts();
+      void loadBanners();
+    }
   }, []);
+
+  // Reload when network comes back online
+  useEffect(() => {
+    if (networkStatus.isConnected) {
+      void loadProducts();
+      void loadBanners();
+    }
+  }, [networkStatus.isConnected]);
 
   useEffect(() => {
     socketService.connect();
@@ -1331,10 +1475,28 @@ function App(): React.JSX.Element {
 
   const handleOnboardingLogin = useCallback(async () => {
     await markOnboardingSeen();
-    setPreviousScreen('home');
-    setCurrentTab('profile');
-    setCurrentScreen('auth');
-  }, [markOnboardingSeen]);
+    openAuthScreen('login', 'home');
+  }, [markOnboardingSeen, openAuthScreen]);
+
+  const handleOnboardingSignUp = useCallback(async () => {
+    await markOnboardingSeen();
+    openAuthScreen('register', 'home');
+  }, [markOnboardingSeen, openAuthScreen]);
+
+  const handleResetOnboarding = useCallback(async () => {
+    try {
+      await AsyncStorage.removeItem(ONBOARDING_STORAGE_KEY);
+      setHasSeenOnboarding(false);
+      showToast(t('reset_onboarding_success'), 'success');
+      if (!isLoggedIn) {
+        setCurrentTab('home');
+        setCurrentScreen('onboarding');
+      }
+    } catch (error) {
+      console.warn('App.tsx - Failed to reset onboarding', error);
+      showToast(t('update_failed'), 'error');
+    }
+  }, [isLoggedIn, showToast, t]);
 
   const handleBannerPress = (banner: HomeBanner) => {
     if (banner.ctaProductId) {
@@ -1357,8 +1519,7 @@ function App(): React.JSX.Element {
 
   const navigateToCheckout = () => {
     if (!isLoggedIn) {
-      setCurrentTab('profile');
-      setCurrentScreen('auth');
+      openAuthScreen('login', currentScreen);
     } else {
       setCurrentScreen('checkout');
     }
@@ -1372,9 +1533,7 @@ function App(): React.JSX.Element {
 
   const openNotifications = () => {
     if (!authTokensRef.current?.accessToken) {
-      setPreviousScreen(currentScreen);
-      setCurrentTab('profile');
-      setCurrentScreen('auth');
+      openAuthScreen('login', currentScreen);
       return;
     }
     void loadNotifications(undefined, { silent: false });
@@ -1694,9 +1853,7 @@ function App(): React.JSX.Element {
 
   const handleRemoveFavorite = async (productId: string) => {
     if (!authTokensRef.current?.accessToken) {
-      setPreviousScreen(currentScreen);
-      setCurrentTab('profile');
-      setCurrentScreen('auth');
+      openAuthScreen('login', currentScreen);
       return;
     }
     try {
@@ -1709,9 +1866,7 @@ function App(): React.JSX.Element {
 
   const handleToggleWishlistAsync = async (product: Product) => {
     if (!authTokensRef.current?.accessToken) {
-      setPreviousScreen(currentScreen);
-      setCurrentTab('profile');
-      setCurrentScreen('auth');
+      openAuthScreen('login', 'product-detail');
       return;
     }
 
@@ -1810,6 +1965,7 @@ function App(): React.JSX.Element {
             onDone={handleOnboardingComplete}
             onSkipToAuth={handleOnboardingLogin}
             onSkipToHome={handleOnboardingComplete}
+            onSignUp={handleOnboardingSignUp}
           />
         );
       case 'home':
@@ -1825,6 +1981,9 @@ function App(): React.JSX.Element {
             onRefreshProducts={() => { void loadProducts(); }}
             initialScrollOffset={homeScrollOffsetRef.current}
             onScrollPositionChange={handleHomeScrollPosition}
+            isLoading={isLoadingProducts}
+            error={productsError}
+            isOffline={!networkStatus.isConnected}
           />
         );
       case 'catalog':
@@ -1857,9 +2016,7 @@ function App(): React.JSX.Element {
             onMessagesChange={setAiMessages}
             onAddToCart={handleAddToCart}
             onRequireLogin={() => {
-              setPreviousScreen('ai');
-              setCurrentTab('profile');
-              setCurrentScreen('auth');
+              openAuthScreen('login', 'ai');
             }}
             onOpenProduct={(productId) => {
               const target = products.find((p) => p.id === productId);
@@ -1883,7 +2040,7 @@ function App(): React.JSX.Element {
           />
         );
       case 'profile':
-        if (!isLoggedIn) return <Auth onBack={() => handleTabChange('home')} onLoginSuccess={handleLoginSuccess} theme={theme} />;
+        if (!isLoggedIn) return <Auth onBack={() => handleTabChange('home')} onLoginSuccess={handleLoginSuccess} theme={theme} initialMode={authMode} />;
         return (
           <Profile
             onNavigateToOrders={navigateToOrderHistory}
@@ -1910,9 +2067,7 @@ function App(): React.JSX.Element {
             onToggleFavorite={() => handleToggleWishlistAsync(selectedProduct)}
             isLoggedIn={isLoggedIn}
             onRequireLogin={() => {
-              setPreviousScreen('product-detail');
-              setCurrentTab('profile');
-              setCurrentScreen('auth');
+              openAuthScreen('login', 'product-detail');
             }}
             accessToken={authTokens?.accessToken}
             theme={theme}
@@ -1997,7 +2152,7 @@ function App(): React.JSX.Element {
         ) : null;
 
       case 'auth':
-        return <Auth onBack={() => handleTabChange(currentTab)} onLoginSuccess={handleLoginSuccess} theme={theme} />;
+        return <Auth onBack={() => handleTabChange(currentTab)} onLoginSuccess={handleLoginSuccess} theme={theme} initialMode={authMode} />;
 
       case 'notifications':
         return (
@@ -2096,11 +2251,8 @@ function App(): React.JSX.Element {
             onNavigateToLanguage={() => setCurrentScreen('language-selection')}
             theme={theme}
             isPushEnabled={isPushEnabled}
-            onTogglePush={() => {
-              const newValue = !isPushEnabled;
-              setIsPushEnabled(newValue);
-              AsyncStorage.setItem(PUSH_SETTINGS_KEY, JSON.stringify(newValue)).catch(err => console.warn(err));
-            }}
+            onTogglePush={handleTogglePush}
+            onResetOnboarding={handleResetOnboarding}
           />
         );
 
@@ -2156,44 +2308,41 @@ function App(): React.JSX.Element {
   const isFullScreen = ['onboarding', 'product-detail', 'checkout', 'order-history', 'order-detail', 'notifications', 'search', 'filter', 'address-book', 'settings', 'support', 'wishlist', 'change-password', 'language-selection'].includes(currentScreen);
   const showTopBar = !isFullScreen && currentScreen !== 'ai' && currentScreen !== 'profile' && currentScreen !== 'auth' && currentScreen !== 'onboarding';
   return (
-    <SafeAreaProvider>
-      <ThemeProvider value={{ theme, isDarkMode }}>
-        <ToastProvider>
-          <ForegroundNotificationHandler />
-          <StatusBar 
-            barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
-            backgroundColor={theme.surface}
-            translucent={true}
-          />
-          <View style={[styles.container, { backgroundColor: theme.background }]}>
-          {showTopBar && (
-            <TopBar
-              title={currentScreen === 'cart' ? t('cart_title') : t('app_name')}
-              showSearch={currentScreen === 'home'}
-              onSearchClick={() => setCurrentScreen('search')}
-              onFilterClick={openFilter}
-              onNotificationClick={openNotifications}
-              hasUnread={hasUnreadNotifications}
-              theme={theme}
-            />
-          )}
+    <ThemeProvider value={{ theme, isDarkMode }}>
+      <ForegroundNotificationHandler />
+      <OfflineBanner visible={!networkStatus.isConnected} />
+      <StatusBar 
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
+        backgroundColor={theme.surface}
+        translucent={true}
+      />
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {showTopBar && (
+        <TopBar
+          title={currentScreen === 'cart' ? t('cart_title') : t('app_name')}
+          showSearch={currentScreen === 'home'}
+          onSearchClick={() => setCurrentScreen('search')}
+          onFilterClick={openFilter}
+          onNotificationClick={openNotifications}
+          hasUnread={hasUnreadNotifications}
+          theme={theme}
+        />
+      )}
 
-          <View style={[styles.content, { backgroundColor: theme.background }]}>
-            {renderScreen(currentScreen)}
-          </View>
+      <View style={[styles.content, { backgroundColor: theme.background }]}>
+        {renderScreen(currentScreen)}
+      </View>
 
-          {!isFullScreen && (
-            <BottomNav
-              currentTab={currentTab}
-              onTabChange={handleTabChange}
-              cartCount={cartCount}
-              theme={theme}
-            />
-          )}
-        </View>
-        </ToastProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+      {!isFullScreen && (
+        <BottomNav
+          currentTab={currentTab}
+          onTabChange={handleTabChange}
+          cartCount={cartCount}
+          theme={theme}
+        />
+      )}
+    </View>
+    </ThemeProvider>
   );
 }
 

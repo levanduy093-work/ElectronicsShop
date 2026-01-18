@@ -1,5 +1,6 @@
 import { NativeModules, Platform } from 'react-native';
 import { API_BASE_URL as ENV_API_URL, API_DEVICE_HOST } from '@env';
+import { getCurrentNetworkStatus } from '../utils/network';
 
 export type AuthResponse = {
   user: any;
@@ -287,6 +288,14 @@ async function requestJson<TResponse>(
 ): Promise<TResponse> {
   const url = `${API_BASE_URL}${path}`;
 
+  // Check network status before making request
+  const networkStatus = getCurrentNetworkStatus();
+  if (!networkStatus.isConnected) {
+    const errorMessage = 'Không có kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn.';
+    console.warn(`API request failed (offline): ${path} - ${errorMessage}`);
+    throw new Error(errorMessage);
+  }
+
   let response;
   try {
     response = await fetch(url, {
@@ -298,7 +307,15 @@ async function requestJson<TResponse>(
       ...(options.body ? { body: JSON.stringify(options.body) } : {}),
     });
   } catch (error: any) {
-    throw new Error(error?.message || 'Không thể kết nối tới máy chủ');
+    const networkStatusAfterError = getCurrentNetworkStatus();
+    if (!networkStatusAfterError.isConnected) {
+      const errorMessage = 'Không có kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn.';
+      console.warn(`API request failed (offline): ${path} - ${errorMessage}`);
+      throw new Error(errorMessage);
+    }
+    const errorMsg = error?.message || 'Không thể kết nối tới máy chủ';
+    console.warn(`API request failed (network error): ${path} - ${errorMsg}`);
+    throw new Error(errorMsg);
   }
 
   let data: any = null;
@@ -327,6 +344,7 @@ async function requestJson<TResponse>(
       (Array.isArray(data?.message) && data?.message[0]) ||
       data?.message ||
       fallbackMessage;
+    console.warn(`API request failed (${response.status}): ${path} - ${message}`);
     throw new Error(message);
   }
 
