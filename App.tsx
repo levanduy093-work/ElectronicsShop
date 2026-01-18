@@ -73,6 +73,7 @@ import { extractCategoriesFromProducts } from './src/utils/product';
 import { useNetworkStatus } from './src/utils/network';
 import { cacheBanners, getCachedBanners, cacheProducts, getCachedProducts } from './src/utils/cache';
 import { OfflineBanner } from './src/components/common/OfflineBanner';
+import { APP_LINK_DOMAIN as ENV_APP_LINK_DOMAIN, APP_LINK_SCHEME as ENV_APP_LINK_SCHEME } from '@env';
 
 // UNCOMMENT THIS AFTER INSTALLING @react-native-firebase/messaging AND ADDING CONFIG FILES
 import { requestUserPermission, getFcmToken, subscribeForegroundMessage, subscribeToFcmTokenRefresh, deleteFcmToken } from './src/services/fcm';
@@ -122,8 +123,6 @@ const SCREEN_DEPTH: Record<Screen, number> = {
 const isTabScreen = (screen: Screen) =>
   screen === 'home' || screen === 'catalog' || screen === 'ai' || screen === 'cart' || screen === 'profile';
 
-const getScreenDepth = (screen: Screen) => SCREEN_DEPTH[screen] ?? 1;
-
 interface FilterState {
   priceRange: [number, number];
   categories: string[];
@@ -141,6 +140,8 @@ const DEFAULT_PROFILE = {
   email: "nguyenva@example.com",
   avatar: "",
 };
+const APP_LINK_HOST = (ENV_APP_LINK_DOMAIN || 'electronicsshop.app').replace(/^https?:\/\//, '');
+const APP_LINK_SCHEME = ENV_APP_LINK_SCHEME || 'electronicsshop';
 
 const CATEGORY_ALIASES: Record<string, string> = {
   'vi dieu khien': 'Vi điều khiển',
@@ -240,6 +241,25 @@ async function loadPersistedCart(): Promise<CartItem[] | null> {
     return JSON.parse(stored) as CartItem[];
   } catch (error) {
     console.warn('App.tsx - Failed to load cart', error);
+    return null;
+  }
+}
+
+async function persistThemeMode(mode: 'light' | 'dark' | 'system') {
+  try {
+    await AsyncStorage.setItem(THEME_MODE_STORAGE_KEY, mode);
+  } catch (error) {
+    console.warn('App.tsx - Failed to persist theme mode', error);
+  }
+}
+
+async function loadPersistedThemeMode(): Promise<'light' | 'dark' | 'system' | null> {
+  try {
+    const stored = await AsyncStorage.getItem(THEME_MODE_STORAGE_KEY);
+    if (!stored) return null;
+    return stored as 'light' | 'dark' | 'system';
+  } catch (error) {
+    console.warn('App.tsx - Failed to load theme mode', error);
     return null;
   }
 }
@@ -585,9 +605,9 @@ function App(): React.JSX.Element {
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
   const networkStatus = useNetworkStatus();
   const [productsError, setProductsError] = useState<string | null>(null);
-  const [bannersError, setBannersError] = useState<string | null>(null);
+  const [_bannersError, setBannersError] = useState<string | null>(null);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
-  const [isLoadingBanners, setIsLoadingBanners] = useState(false);
+  const [_isLoadingBanners, setIsLoadingBanners] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({
@@ -696,13 +716,15 @@ function App(): React.JSX.Element {
   useEffect(() => {
     socketService.connect();
     const handleProductUpdate = () => {
-      void loadProducts();
+      loadProducts().catch(err => {
+        console.warn('App.tsx - Failed to load products after socket update', err);
+      });
     };
     socketService.on('product_updated', handleProductUpdate);
     return () => {
       socketService.off('product_updated');
     };
-  }, []);
+  }, [loadProducts]);
 
   const loadBanners = async (options?: { useCache?: boolean }) => {
     setIsLoadingBanners(true);
@@ -872,7 +894,9 @@ function App(): React.JSX.Element {
               ? t('payment_success', { order: order ? `#${order} ` : '' })
               : t('payment_failed'),
           );
-          void loadOrders();
+          loadOrders().catch(err => {
+            console.warn('App.tsx - Failed to load orders after deep link', err);
+          });
           return;
         }
 
@@ -913,14 +937,19 @@ function App(): React.JSX.Element {
           if (existing) {
             openProduct(productId);
           } else {
-            void loadProducts().then(res => openProduct(productId, res));
+            loadProducts()
+              .then(res => openProduct(productId, res))
+              .catch(err => {
+                console.warn('App.tsx - Failed to load products for deep link', err);
+              });
           }
         }
       } catch (error) {
         console.warn('App.tsx - Failed to handle deep link', error);
       }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
-    [loadOrders],
+    [loadOrders, t],
   );
 
   const syncAuthTokens = useCallback((
@@ -940,7 +969,7 @@ function App(): React.JSX.Element {
         ...(user?.email ? { email: user.email } : {}),
         ...(user?.avatar ? { avatar: user.avatar } : {}),
       };
-      void persistAuthState(tokens, nextProfile, nextUserId);
+      persistAuthState(tokens, nextProfile, nextUserId).catch(() => {});
       return nextProfile;
     });
   }, [userId]);
@@ -980,7 +1009,8 @@ function App(): React.JSX.Element {
       .catch(err => {
         console.warn('App.tsx - Failed to load related products', err);
       });
-  }, [selectedProduct?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProduct?.id, products]);
 
   useEffect(() => {
     if (!selectedProduct) return;
@@ -1110,11 +1140,11 @@ function App(): React.JSX.Element {
         const storedCart = await loadPersistedCart();
         if (storedCart) {
           // Load products first to get options/classifications
-          const products = await loadProducts();
-          if (products) {
+          const loadedProducts = await loadProducts();
+          if (loadedProducts) {
             // Merge cart items with product data to restore options/classifications
             const mergedCart = storedCart.map(cartItem => {
-              const product = products.find(p => p.id === cartItem.id);
+              const product = loadedProducts.find(p => p.id === cartItem.id);
               if (product) {
                 return {
                   ...cartItem,
@@ -1187,22 +1217,24 @@ function App(): React.JSX.Element {
 
   useEffect(() => {
     // Load cache first for faster initial render
-    void loadProducts({ useCache: true });
-    void loadBanners({ useCache: true });
+    loadProducts({ useCache: true }).catch(() => {});
+    loadBanners({ useCache: true }).catch(() => {});
     
     // Then load fresh data from API if online
     if (networkStatus.isConnected) {
-      void loadProducts();
-      void loadBanners();
+      loadProducts().catch(() => {});
+      loadBanners().catch(() => {});
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Reload when network comes back online
   useEffect(() => {
     if (networkStatus.isConnected) {
-      void loadProducts();
-      void loadBanners();
+      loadProducts().catch(() => {});
+      loadBanners().catch(() => {});
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [networkStatus.isConnected]);
 
   useEffect(() => {
@@ -1217,13 +1249,13 @@ function App(): React.JSX.Element {
             ...(doc.email ? { email: doc.email } : {}),
             ...(doc.avatar ? { avatar: doc.avatar } : {}),
           };
-          void persistAuthState(authTokensRef.current as any, next, userId);
+          persistAuthState(authTokensRef.current as any, next, userId).catch(() => {});
           return next;
         });
       }
 
       if (payload?.collection === 'vouchers' && authTokensRef.current?.accessToken) {
-        void loadVouchers();
+        loadVouchers().catch(() => {});
       }
 
       // Lắng nghe thay đổi notification state theo user (Mongo change stream)
@@ -1232,12 +1264,12 @@ function App(): React.JSX.Element {
         userId &&
         `${payload.fullDocument?.user_id || payload.fullDocument?.userId}` === `${userId}`
       ) {
-        void loadNotifications(undefined, { silent: true });
+        loadNotifications(undefined, { silent: true }).catch(() => {});
       }
 
       if (payload?.collection === 'notifications' && authTokensRef.current?.accessToken) {
         // Khi có broadcast mới, refresh danh sách người dùng hiện tại
-        void loadNotifications(undefined, { silent: true });
+        loadNotifications(undefined, { silent: true }).catch(() => {});
       }
 
       if (payload?.collection === 'orders' && authTokensRef.current?.accessToken) {
@@ -1284,7 +1316,7 @@ function App(): React.JSX.Element {
           });
           setSelectedProduct(prev => (prev && prev.id === mapped.id ? mapped : prev));
         } else {
-          void loadProducts(); // fallback
+          loadProducts().catch(() => {}); // fallback
         }
       }
     };
@@ -1297,17 +1329,17 @@ function App(): React.JSX.Element {
   useEffect(() => {
     if (isRestoringAuth) return;
     if (isLoggedIn && authTokens) {
-      void persistAuthState(authTokens, userProfile, userId);
+      persistAuthState(authTokens, userProfile, userId).catch(() => {});
     }
   }, [authTokens, isLoggedIn, userProfile, isRestoringAuth, userId]);
 
   useEffect(() => {
     if (isLoggedIn && authTokens?.accessToken) {
-      void loadOrders();
-      void loadFavorites();
-      void loadVouchers();
-      void loadNotifications(undefined, { silent: true });
-      void loadAddresses();
+      loadOrders().catch(() => {});
+      loadFavorites().catch(() => {});
+      loadVouchers().catch(() => {});
+      loadNotifications(undefined, { silent: true }).catch(() => {});
+      loadAddresses().catch(() => {});
     } else if (!isLoggedIn) {
       setOrders([]);
       setWishlist([]);
@@ -1315,12 +1347,14 @@ function App(): React.JSX.Element {
       setNotifications([]);
       setAddresses(DEFAULT_ADDRESSES);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, authTokens?.accessToken]);
 
   useEffect(() => {
     if (selectedOrderId && !orders.find(o => o.id === selectedOrderId)) {
-      void fetchOrderDetail(selectedOrderId);
+      fetchOrderDetail(selectedOrderId).catch(() => {});
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrderId, orders]);
 
   // Auto-refresh orders every 60 seconds when user is logged in
@@ -1328,14 +1362,14 @@ function App(): React.JSX.Element {
     if (!isLoggedIn || !authTokensRef.current?.accessToken) return;
     
     const interval = setInterval(() => {
-      void loadOrders(undefined, { silent: true });
+      loadOrders(undefined, { silent: true }).catch(() => {});
     }, 60000); // Refresh every 60 seconds
 
     return () => clearInterval(interval);
   }, [isLoggedIn, authTokens?.accessToken, loadOrders]);
 
   const refreshOrders = () => {
-    void loadOrders();
+    loadOrders().catch(() => {});
   };
 
   const refreshOrderDetail = async (orderId: string) => {
@@ -1356,7 +1390,7 @@ function App(): React.JSX.Element {
       };
       setUserProfile(optimisticProfile);
       if (authTokensRef.current) {
-        void persistAuthState(authTokensRef.current as any, optimisticProfile, userId);
+        persistAuthState(authTokensRef.current as any, optimisticProfile, userId).catch(() => {});
       }
 
       const accessToken = authTokensRef.current?.accessToken;
@@ -1393,7 +1427,7 @@ function App(): React.JSX.Element {
           setUserProfile(prev => {
             const next = { ...prev, ...updatedUser };
             if (authTokensRef.current) {
-              void persistAuthState(authTokensRef.current as any, next, userId);
+              persistAuthState(authTokensRef.current as any, next, userId).catch(() => {});
             }
             return next;
           });
@@ -1402,7 +1436,7 @@ function App(): React.JSX.Element {
         }
       };
 
-      void syncProfile();
+      syncProfile().catch(() => {});
       return true;
     } catch (error: any) {
       console.warn('App.tsx - Failed to update profile', error?.message || error);
@@ -1541,7 +1575,7 @@ function App(): React.JSX.Element {
 
   const navigateToOrderHistory = () => {
     // Refresh orders when navigating back to ensure status is up to date
-    void loadOrders();
+    loadOrders().catch(() => {});
     setCurrentScreen('order-history');
   };
 
@@ -1550,12 +1584,12 @@ function App(): React.JSX.Element {
       openAuthScreen('login', currentScreen);
       return;
     }
-    void loadNotifications(undefined, { silent: false });
+    loadNotifications(undefined, { silent: false }).catch(() => {});
     setCurrentScreen('notifications');
   };
 
   const refreshNotifications = () => {
-    void loadNotifications(undefined, { silent: false });
+    loadNotifications(undefined, { silent: false }).catch(() => {});
   };
 
   const handleMarkNotificationRead = async (id: string) => {
@@ -1566,7 +1600,7 @@ function App(): React.JSX.Element {
       syncNotificationsFromApi(result);
     } catch (error: any) {
       console.warn('App.tsx - Failed to mark notification read', error?.message || error);
-      void loadNotifications(undefined, { silent: true });
+      loadNotifications(undefined, { silent: true }).catch(() => {});
     }
   };
 
@@ -1920,7 +1954,7 @@ function App(): React.JSX.Element {
       const created = await apiCreateOrder(payload, authTokensRef.current.accessToken);
       const uiOrder = mapApiOrderToUi(created, productsRef.current, t);
       setOrders(prev => [uiOrder, ...prev]);
-      void loadProducts();
+      loadProducts().catch(() => {});
       return uiOrder;
     } catch (error: any) {
       console.warn('App.tsx - Failed to create order', error?.message || error);
@@ -2015,14 +2049,14 @@ function App(): React.JSX.Element {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
     };
-    void markOnboardingSeen();
+    markOnboardingSeen().catch(() => {});
     setAddresses([]); // reset stale addresses from previous session
     syncAuthTokens(tokens, data.user, data.user?._id ?? null);
-    void loadOrders(tokens.accessToken);
-    void loadFavorites(tokens.accessToken);
-    void loadVouchers(tokens.accessToken);
-    void loadNotifications(tokens.accessToken, { silent: true });
-    void loadAddresses(tokens.accessToken);
+    loadOrders(tokens.accessToken).catch(() => {});
+    loadFavorites(tokens.accessToken).catch(() => {});
+    loadVouchers(tokens.accessToken).catch(() => {});
+    loadNotifications(tokens.accessToken, { silent: true }).catch(() => {});
+    loadAddresses(tokens.accessToken).catch(() => {});
     // Sync search history từ local lên API khi user đăng nhập
     import('./src/utils/searchHistory').then(({ syncLocalToApi }) => {
       syncLocalToApi(data.user?._id ?? null, tokens.accessToken);
@@ -2062,7 +2096,7 @@ function App(): React.JSX.Element {
             banners={banners}
             onBannerPress={handleBannerPress}
             onSelectCategory={handleSelectCategory}
-            onRefreshProducts={() => { void loadProducts(); }}
+            onRefreshProducts={() => { loadProducts().catch(() => {}); }}
             initialScrollOffset={homeScrollOffsetRef.current}
             onScrollPositionChange={handleHomeScrollPosition}
             isLoading={isLoadingProducts}
@@ -2200,7 +2234,7 @@ function App(): React.JSX.Element {
             onSuccess={() => {
               setCartItems([]);
               handleTabChange('home');
-              void loadOrders();
+              loadOrders().catch(() => {});
             }}
             cartItems={cartItems}
         theme={theme}

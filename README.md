@@ -325,12 +325,23 @@ Tests được viết bằng Jest và React Test Renderer. File test mẫu có s
 - **Hermes Engine**: Có thể có script phase được thêm bởi hermes-engine. Kiểm tra trước khi build.
 
 ### Development
-- Ứng dụng sử dụng dữ liệu mock, chưa tích hợp backend API thực tế
+- Ứng dụng đã được tích hợp đầy đủ với backend API (NestJS + MongoDB)
+- Tất cả các tính năng chính đã được kết nối với backend:
+  - Authentication với JWT (access token + refresh token)
+  - OTP verification cho đăng ký và reset password
+  - CRUD đầy đủ cho Products, Orders, Carts, Users, Reviews
+  - AI Chat integration với Gemini API
+  - Payment gateway (VNPay)
+  - Image upload với Cloudinary
+  - Firebase Cloud Messaging (FCM) cho notifications
+  - Socket.io cho real-time features
 - Để triển khai production, cần:
-  - Tích hợp với backend API
-  - Cấu hình authentication thực tế
-  - Kết nối với payment gateway
-  - Tích hợp với AI service cho tính năng chat và scan sơ đồ
+  - Cấu hình environment variables đầy đủ
+  - Setup MongoDB database
+  - Cấu hình Cloudinary cho image storage
+  - Cấu hình VNPay cho payment gateway
+  - Cấu hình Firebase cho push notifications
+  - Cấu hình Gemini API cho AI features
 
 ## 📝 Scripts có sẵn
 

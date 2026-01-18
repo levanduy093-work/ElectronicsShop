@@ -155,6 +155,7 @@
   "inStock": "In Stock",
   "standard": "Standard",
   "cannotShare": "Cannot share",
+  "openInAppFallback": "If the web link does not open the app, tap: {{link}}",
   "loginRequiredFavorite": "Please login to add to favorites",
   "loginRequiredCart": "Please login to add items to cart",
   "productOutOfStockCart": "Product is out of stock, cannot add to cart",

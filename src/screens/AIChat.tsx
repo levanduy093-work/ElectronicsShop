@@ -200,8 +200,6 @@ export function AIChat({
     }
   };
 
-  const suggestions = [translate('arduinoAdvice'), translate('scanCircuit'), translate('findReplacement')];
-
   const pickAndSendImage = async () => {
     if (!accessToken) {
       showToast(translate('loginRequiredAI'), 'error');
@@ -336,26 +334,6 @@ export function AIChat({
             },
           ]}
         >
-          {messages.length < 3 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.suggestionsContainer}
-              contentContainerStyle={styles.suggestionsContent}
-            >
-              {suggestions.map((suggestion) => (
-                <TouchableOpacity
-                  key={suggestion}
-                  onPress={() => setInputValue(suggestion)}
-                  style={[styles.suggestionChip, { backgroundColor: theme.background, borderColor: theme.border }]}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.suggestionText, { color: theme.text }]}>{suggestion}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
-
           <View
             style={[
               styles.inputWrapper,
@@ -445,27 +423,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
-  },
-  suggestionsContainer: {
-    marginBottom: 8,
-  },
-  suggestionsContent: {
-    gap: 8,
-    paddingRight: 16,
-  },
-  suggestionChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 16,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  suggestionText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#4B5563',
   },
   inputWrapper: {
     flexDirection: 'row',

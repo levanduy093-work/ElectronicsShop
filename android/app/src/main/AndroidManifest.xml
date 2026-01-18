@@ -45,6 +45,7 @@
             <category android:name="android.intent.category.BROWSABLE" />
             <data android:scheme="https" android:host="electronicsshop.app" android:pathPrefix="/product" />
             <data android:scheme="https" android:host="www.electronicsshop.app" android:pathPrefix="/product" />
+            <data android:scheme="https" android:host="*" android:pathPrefix="/product" />
         </intent-filter>
       </activity>
       <meta-data

@@ -12,6 +12,7 @@ import { useToast } from '../components/common/ToastProvider';
 import { ApiReview, createReview, getReviews, uploadImage, UploadImageFile } from '../services/api';
 import { socketService } from '../services/socket';
 import { ProductCard } from '../components/ui/ProductCard';
+import { APP_LINK_DOMAIN as ENV_APP_LINK_DOMAIN, APP_LINK_SCHEME as ENV_APP_LINK_SCHEME } from '@env';
 
 interface ProductDetailProps {
   product: Product;
@@ -160,6 +161,14 @@ export function ProductDetail({
       ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
       : 0
     : product.rating || product.averageRating || 0;
+  const appLinkHost = (ENV_APP_LINK_DOMAIN || 'electronicsshop.app').replace(/^https?:\/\//, '');
+  const appLinkScheme = ENV_APP_LINK_SCHEME || 'electronicsshop';
+
+  const buildShareLinks = () => {
+    const universalLink = appLinkHost ? `https://${appLinkHost}/product/${product.id}` : '';
+    const deepLink = `${appLinkScheme}://product/${product.id}`;
+    return { universalLink, deepLink };
+  };
 
   const fetchReviews = async () => {
     setReviewsLoading(true);
@@ -207,12 +216,16 @@ export function ProductDetail({
 
   const handleShare = async () => {
     try {
-      const deepLink = `electronicsshop://product/${product.id}`;
-      const universalLink = `https://electronicsshop.app/product/${product.id}`;
+      const { universalLink, deepLink } = buildShareLinks();
+      const shareLink = universalLink || deepLink;
+      const fallback =
+        universalLink && deepLink
+          ? `\n${t('openInAppFallback', { link: deepLink })}`
+          : '';
       await Share.share({
-        message: `Xem sản phẩm ${product.name} trên ElectroAI!\n${universalLink}`,
+        message: `Xem sản phẩm ${product.name} trên ElectroAI!\n${shareLink}${fallback}`,
         title: product.name,
-        url: universalLink,
+        url: shareLink,
       });
     } catch (error) {
       showToast(t('cannotShare'), 'error');
