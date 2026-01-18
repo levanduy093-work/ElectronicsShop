@@ -2516,17 +2516,16 @@ function App(): React.JSX.Element {
         translucent={true}
       />
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {showTopBar && (
-        <TopBar
-          title={currentScreen === 'cart' ? t('cart_title') : t('app_name')}
-          showSearch={currentScreen === 'home'}
-          onSearchClick={() => setCurrentScreen('search')}
-          onFilterClick={openFilter}
-          onNotificationClick={openNotifications}
-          hasUnread={hasUnreadNotifications}
-          theme={theme}
-        />
-      )}
+      <TopBar
+        title={currentScreen === 'cart' ? t('cart_title') : t('app_name')}
+        showSearch={currentScreen === 'home'}
+        onSearchClick={() => setCurrentScreen('search')}
+        onFilterClick={openFilter}
+        onNotificationClick={openNotifications}
+        hasUnread={hasUnreadNotifications}
+        theme={theme}
+        visible={showTopBar}
+      />
 
       <View style={[styles.content, { backgroundColor: theme.background }]}>
         {renderScreen(currentScreen)}

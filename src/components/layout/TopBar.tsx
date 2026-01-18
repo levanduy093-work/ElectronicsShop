@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../common/Icon';
@@ -13,9 +13,10 @@ interface TopBarProps {
   onNewChat?: () => void;
   theme?: Theme;
   hasUnread?: boolean;
+  visible?: boolean;
 }
 
-export function TopBar({ 
+function TopBarComponent({ 
   title = "ElectroAI", 
   showSearch = true, 
   onSearchClick, 
@@ -24,6 +25,7 @@ export function TopBar({
   onNewChat,
   theme = lightTheme,
   hasUnread = false,
+  visible = true,
 }: TopBarProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
@@ -33,7 +35,13 @@ export function TopBar({
   return (
     <View style={[
       styles.container, 
-      { paddingTop: topPadding, backgroundColor: resolvedTheme.surface, borderBottomColor: resolvedTheme.border }
+      { 
+        paddingTop: visible ? topPadding : 0,
+        backgroundColor: resolvedTheme.surface, 
+        borderBottomColor: resolvedTheme.border,
+        opacity: visible ? 1 : 0,
+        height: visible ? undefined : 0,
+      }
     ]}>
       <View style={styles.content}>
         <View style={styles.leftSection}>
@@ -41,6 +49,9 @@ export function TopBar({
             source={require('../../assets/images/logo.png')}
             style={styles.logoImage}
             resizeMode="contain"
+            fadeDuration={0}
+            defaultSource={require('../../assets/images/logo.png')}
+            onLoadEnd={() => {}}
           />
           <Text style={[styles.title, { color: resolvedTheme.text }]}>{title}</Text>
         </View>
@@ -86,6 +97,8 @@ export function TopBar({
     </View>
   );
 }
+
+export const TopBar = memo(TopBarComponent);
 
 const styles = StyleSheet.create({
   container: {
