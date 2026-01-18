@@ -8,6 +8,3 @@ export const PRODUCTS: Product[] = [];
 
 // Vouchers should be fetched from API
 export const AVAILABLE_VOUCHERS: Voucher[] = [];
-
-// Chat messages should start empty and be populated from API
-export const MOCK_CHATS: ChatMessage[] = [];

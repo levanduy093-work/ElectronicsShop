@@ -28,9 +28,8 @@ import { LanguageSelection } from './src/screens/LanguageSelection';
 import { Onboarding } from './src/screens/Onboarding';
 import { BottomNav } from './src/components/layout/BottomNav';
 import { TopBar } from './src/components/layout/TopBar';
-import { Product, CartItem, Order, Voucher, HomeBanner, ChatMessage } from './src/types';
+import { Product, CartItem, Order, Voucher, HomeBanner, ChatMessage, Address } from './src/types';
 import { PRODUCTS, CATEGORIES } from './src/constants/data';
-import { Address } from './src/types';
 import { DEFAULT_ADDRESSES } from './src/constants/defaults';
 import { darkTheme, lightTheme, ThemeProvider } from './src/theme';
 import { useToast } from './src/components/common/ToastProvider';
@@ -97,6 +96,8 @@ type Screen =
   | 'change-password'
   | 'language-selection';
 
+// Screen depth mapping (kept for future navigation tracking)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const SCREEN_DEPTH: Record<Screen, number> = {
   home: 0,
   catalog: 0,
@@ -140,7 +141,10 @@ const DEFAULT_PROFILE = {
   email: "nguyenva@example.com",
   avatar: "",
 };
+// App link configuration (for future deep linking enhancements)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const APP_LINK_HOST = (ENV_APP_LINK_DOMAIN || 'electronicsshop.app').replace(/^https?:\/\//, '');
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const APP_LINK_SCHEME = ENV_APP_LINK_SCHEME || 'electronicsshop';
 
 const CATEGORY_ALIASES: Record<string, string> = {
@@ -606,9 +610,12 @@ function App(): React.JSX.Element {
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
   const networkStatus = useNetworkStatus();
   const [productsError, setProductsError] = useState<string | null>(null);
-  const [_bannersError, setBannersError] = useState<string | null>(null);
+  // Banners error and loading state (used in loadBanners function)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [bannersError, setBannersError] = useState<string | null>(null);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
-  const [_isLoadingBanners, setIsLoadingBanners] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [isLoadingBanners, setIsLoadingBanners] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({
@@ -1447,9 +1454,8 @@ function App(): React.JSX.Element {
   };
 
   // Filter function to apply filters to products
-  const applyFilters = (products: Product[], searchText?: string): Product[] => {
-    return products.filter(product => {
-      const normalizedSearch = normalizeText(searchText);
+  const applyFilters = (productsList: Product[], searchText?: string): Product[] => {
+    return productsList.filter(product => {
       // Price range filter
       if (product.price < filters.priceRange[0] || product.price > filters.priceRange[1]) {
         return false;
