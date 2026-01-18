@@ -599,6 +599,7 @@ function App(): React.JSX.Element {
   const fcmRefreshUnsubRef = useRef<(() => void) | null>(null);
   const hasFetchedCartRef = useRef(false);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
   const [notifications, setNotifications] = useState<UiNotification[]>([]);
   const [isRefreshingNotifications, setIsRefreshingNotifications] = useState(false);
   const [isPushEnabled, setIsPushEnabled] = useState(true);
@@ -1565,10 +1566,11 @@ function App(): React.JSX.Element {
     }
   };
 
-  const navigateToCheckout = () => {
+  const navigateToCheckout = (voucher: Voucher | null) => {
     if (!isLoggedIn) {
       openAuthScreen('login', currentScreen);
     } else {
+      setAppliedVoucher(voucher);
       setCurrentScreen('checkout');
     }
   };
@@ -1667,12 +1669,28 @@ function App(): React.JSX.Element {
         return prev; // Không thay đổi gì
       }
       success = true;
-      return [...prev, { 
+      // Normalize options: only include if valid non-empty string
+      const normalizeOption = (opt?: string) => {
+        if (!opt || typeof opt !== 'string' || !opt.trim()) return undefined;
+        return opt.trim();
+      };
+      
+      const newItem: CartItem = {
         ...product, 
         quantity: Math.max(1, initialQty),
-        selectedOption: selectedOption,
-        selectedClassification: selectedClassification,
-      }];
+      };
+      
+      const normalizedOption = normalizeOption(selectedOption);
+      const normalizedClassification = normalizeOption(selectedClassification);
+      
+      if (normalizedOption) {
+        newItem.selectedOption = normalizedOption;
+      }
+      if (normalizedClassification) {
+        newItem.selectedClassification = normalizedClassification;
+      }
+      
+      return [...prev, newItem];
     });
     return success;
   };
@@ -1730,8 +1748,13 @@ function App(): React.JSX.Element {
       if (itemIndex === -1) return prev;
 
       const currentItem = prev[itemIndex];
-      const newOption = selectedOption || currentItem.selectedOption;
-      const newClassification = selectedClassification || currentItem.selectedClassification;
+      // Normalize options: only use if valid non-empty string, otherwise undefined
+      const normalizeOption = (opt?: string) => {
+        if (!opt || typeof opt !== 'string' || !opt.trim()) return undefined;
+        return opt.trim();
+      };
+      const newOption = selectedOption !== undefined ? normalizeOption(selectedOption) : normalizeOption(currentItem.selectedOption);
+      const newClassification = selectedClassification !== undefined ? normalizeOption(selectedClassification) : normalizeOption(currentItem.selectedClassification);
 
       // Create unique key for the new combination
       const newItemKey = `${currentItem.id}-${newOption || 'default'}-${newClassification || 'default'}`;
@@ -1914,13 +1937,15 @@ function App(): React.JSX.Element {
           discount: 0,
           totalPrice: item.price * item.quantity,
         };
-        // Only include selectedOption if it has a non-empty value
-        if (item.selectedOption && item.selectedOption.trim()) {
-          orderItem.selectedOption = item.selectedOption;
+        // Only include selectedOption if it has a non-empty value (strictly check)
+        const hasSelectedOption = item.selectedOption && typeof item.selectedOption === 'string' && item.selectedOption.trim().length > 0;
+        if (hasSelectedOption) {
+          orderItem.selectedOption = item.selectedOption.trim();
         }
-        // Only include selectedClassification if it has a non-empty value
-        if (item.selectedClassification && item.selectedClassification.trim()) {
-          orderItem.selectedClassification = item.selectedClassification;
+        // Only include selectedClassification if it has a non-empty value (strictly check)
+        const hasSelectedClassification = item.selectedClassification && typeof item.selectedClassification === 'string' && item.selectedClassification.trim().length > 0;
+        if (hasSelectedClassification) {
+          orderItem.selectedClassification = item.selectedClassification.trim();
         }
         return orderItem;
       }),
@@ -2155,6 +2180,8 @@ function App(): React.JSX.Element {
             onCheckout={navigateToCheckout}
             theme={theme}
             vouchers={vouchers}
+            appliedVoucher={appliedVoucher}
+            onVoucherChange={setAppliedVoucher}
           />
         );
       case 'profile':
@@ -2241,6 +2268,7 @@ function App(): React.JSX.Element {
         addresses={addresses}
         onUpdateAddresses={setAddresses}
         accessToken={authTokens?.accessToken}
+        voucher={appliedVoucher}
       />
         );
 

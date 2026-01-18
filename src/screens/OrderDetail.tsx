@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform, Linking, Modal, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import Clipboard from '@react-native-clipboard/clipboard';
 import { AppIcon } from '../components/common/Icon';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { formatPrice } from '../utils';
@@ -74,6 +75,8 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
   const { showToast } = useToast();
   const [isReordering, setIsReordering] = useState(false);
   const [isPayingAgain, setIsPayingAgain] = useState(false);
+  const [supportModalVisible, setSupportModalVisible] = useState(false);
+  const [supportModalAnimation] = useState(new Animated.Value(0));
   
   const isPendingPayment = orderData.paymentStatus === 'pending' || orderData.paymentStatus === 'failed';
   const isVnpayOrder = orderData.payment?.method?.toLowerCase().includes('vnpay');
@@ -89,6 +92,32 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
       return () => clearInterval(interval);
     }
   }, [orderId, onRefreshOrder]);
+
+  const openSupportModal = () => {
+    setSupportModalVisible(true);
+    Animated.spring(supportModalAnimation, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 65,
+      friction: 11,
+    }).start();
+  };
+
+  const closeSupportModal = () => {
+    Animated.timing(supportModalAnimation, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setSupportModalVisible(false);
+    });
+  };
+
+  const handleCopyPhone = () => {
+    const phoneNumber = '0123456789';
+    Clipboard.setString(phoneNumber);
+    showToast('Đã sao chép số điện thoại', 'success');
+  };
 
   const handlePayAgain = async () => {
     if (!onPayAgain || !accessToken) {
@@ -464,6 +493,7 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
             }
           ]} 
           activeOpacity={0.7}
+          onPress={openSupportModal}
         >
           <Text style={[styles.supportButtonText, { color: t.text }]}>{translate('contact_support')}</Text>
         </TouchableOpacity>
@@ -501,6 +531,68 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Support Modal */}
+      <Modal
+        visible={supportModalVisible}
+        transparent
+        animationType="none"
+        onRequestClose={closeSupportModal}
+      >
+        <View style={styles.modalContainer}>
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={closeSupportModal}
+          />
+          <Animated.View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: t.card,
+                transform: [
+                  {
+                    scale: supportModalAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.9, 1],
+                    }),
+                  },
+                  {
+                    translateY: supportModalAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [50, 0],
+                    }),
+                  },
+                ],
+                opacity: supportModalAnimation,
+              },
+            ]}
+          >
+            <View style={[styles.modalIconContainer, { backgroundColor: t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)' }]}>
+              <AppIcon name="message-circle" size={32} color={t.primary} />
+            </View>
+            <Text style={[styles.modalTitle, { color: t.text }]}>{translate('chat_now')}</Text>
+            <Text style={[styles.modalMessage, { color: t.muted }]}>Số điện thoại Zalo</Text>
+            <View style={[styles.modalValueContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
+              <Text style={[styles.modalValue, { color: t.text }]}>0123456789</Text>
+              <TouchableOpacity
+                style={[styles.copyButton, { backgroundColor: t.primary }]}
+                onPress={handleCopyPhone}
+                activeOpacity={0.8}
+              >
+                <AppIcon name="content-copy" size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={[styles.modalButtonPrimary, { backgroundColor: t.primary }]}
+              onPress={closeSupportModal}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.modalButtonPrimaryText}>Đóng</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -743,6 +835,91 @@ const styles = StyleSheet.create({
   reorderButtonText: {
     fontSize: 14,
     fontWeight: '500',
+    color: '#FFFFFF',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '85%',
+    maxWidth: 400,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  modalValueContainer: {
+    width: '100%',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  modalValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
+  },
+  copyButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  modalButtonPrimary: {
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  modalButtonPrimaryText: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#FFFFFF',
   },
 });

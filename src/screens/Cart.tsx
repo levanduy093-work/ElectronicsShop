@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Modal } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,7 +11,7 @@ import { Theme, lightTheme, useTheme } from '../theme';
 import { useToast } from '../components/common/ToastProvider';
 
 interface CartProps {
-  onCheckout?: () => void;
+  onCheckout?: (voucher: Voucher | null) => void;
   items: CartItem[];
   onUpdateQuantity: (id: string, delta: number) => void;
   onRemoveItem: (id: string) => void;
@@ -19,18 +19,28 @@ interface CartProps {
   onExplore?: () => void;
   theme?: Theme;
   vouchers?: Voucher[];
+  appliedVoucher?: Voucher | null;
+  onVoucherChange?: (voucher: Voucher | null) => void;
 }
 
-export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpdateItemOptions, onExplore, theme, vouchers }: CartProps) {
+export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpdateItemOptions, onExplore, theme, vouchers, appliedVoucher: externalAppliedVoucher, onVoucherChange }: CartProps) {
   const { t: translate } = useTranslation();
   const { theme: ctxTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
   const t = theme || ctxTheme || lightTheme;
   const voucherList = vouchers && vouchers.length > 0 ? vouchers : AVAILABLE_VOUCHERS;
-  const [voucherCode, setVoucherCode] = useState('');
+  const [voucherCode, setVoucherCode] = useState(externalAppliedVoucher?.code || '');
   const [showVoucherList, setShowVoucherList] = useState(false);
-  const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
+  const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(externalAppliedVoucher || null);
+  
+  // Sync with external voucher when it changes
+  useEffect(() => {
+    if (externalAppliedVoucher !== appliedVoucher) {
+      setAppliedVoucher(externalAppliedVoucher || null);
+      setVoucherCode(externalAppliedVoucher?.code || '');
+    }
+  }, [externalAppliedVoucher]);
   const [showOptionModal, setShowOptionModal] = useState(false);
   const [showClassificationModal, setShowClassificationModal] = useState(false);
   const [editingItem, setEditingItem] = useState<CartItem | null>(null);
@@ -65,6 +75,7 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpda
         setAppliedVoucher(voucher);
         setVoucherCode(voucher.code);
         setShowVoucherList(false);
+        onVoucherChange?.(voucher);
         showToast(translate('voucher_success'), 'success');
       } else {
         showToast(translate('voucher_min_order', { amount: voucher.minTotal.toLocaleString('vi-VN') }), 'error');
@@ -72,6 +83,12 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpda
     } else {
       showToast(translate('voucher_invalid'), 'error');
     }
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherCode('');
+    onVoucherChange?.(null);
   };
 
   if (items.length === 0) {
@@ -233,7 +250,7 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpda
           </View>
           
           <TouchableOpacity
-            onPress={onCheckout}
+            onPress={() => onCheckout?.(appliedVoucher)}
             style={[styles.checkoutButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
             activeOpacity={0.8}
           >

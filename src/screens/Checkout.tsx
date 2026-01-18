@@ -7,7 +7,7 @@ import { Address, AddressFormValues } from '../types';
 import { DEFAULT_ADDRESSES } from '../constants/defaults';
 import { buildFullAddress } from '../utils/address';
 import { AddressForm } from '../components/address/AddressForm';
-import { CartItem } from '../types';
+import { CartItem, Voucher } from '../types';
 import { formatPrice } from '../utils';
 import { Theme, lightTheme, useTheme } from '../theme';
 import { useToast } from '../components/common/ToastProvider';
@@ -33,6 +33,7 @@ interface CheckoutProps {
   addresses?: Address[];
   onUpdateAddresses?: React.Dispatch<React.SetStateAction<Address[]>>;
   accessToken?: string | null;
+  voucher?: Voucher | null;
 }
 
 type Step = 'address' | 'shipping' | 'payment' | 'waiting' | 'success';
@@ -48,6 +49,7 @@ export function Checkout({
   addresses,
   onUpdateAddresses,
   accessToken,
+  voucher,
   onCheckPaymentStatus = async () => 'pending',
 }: CheckoutProps) {
   const { theme: ctxTheme, isDarkMode } = useTheme();
@@ -73,7 +75,24 @@ export function Checkout({
   ];
   const subTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shippingFee = shippingOptions[selectedShipping]?.price ?? 30000;
-  const discount = 0;
+  
+  // Calculate discount from voucher
+  let discountAmount = 0;
+  if (voucher) {
+    const voucherType = voucher.type || 'fixed';
+    if (voucherType === 'shipping') {
+      discountAmount = Math.min(voucher.discountPrice, shippingFee);
+    } else if (voucherType === 'percentage') {
+      const rate = Number(voucher.discountRate ?? 0);
+      const rawDiscount = Math.max(0, subTotal * (rate / 100));
+      const cap = voucher.maxDiscountPrice ?? Number.POSITIVE_INFINITY;
+      discountAmount = Math.min(rawDiscount, cap);
+    } else {
+      discountAmount = voucher.discountPrice;
+    }
+  }
+  
+  const discount = discountAmount;
   const total = subTotal + shippingFee - discount;
   const accentBg = t === lightTheme ? 'rgba(37,99,235,0.08)' : 'rgba(255,255,255,0.06)';
   const paymentOptions = [
@@ -645,6 +664,17 @@ export function Checkout({
                 <Text style={[styles.summaryLabel, { color: t.muted }]}>Phí vận chuyển</Text>
                 <Text style={[styles.summaryValue, { color: t.text }]}>{formatPrice(shippingFee)}</Text>
               </View>
+              
+              {voucher && discount > 0 && (
+                <View style={styles.summaryRow}>
+                  <View style={styles.discountRow}>
+                    <AppIcon name="ticket" size={14} color="#10B981" />
+                    <Text style={[styles.discountLabel, { color: t.text }]}>{translate('voucher_discount')}</Text>
+                  </View>
+                  <Text style={[styles.discountValue, { color: '#10B981' }]}>-{formatPrice(discount)}</Text>
+                </View>
+              )}
+              
               <View style={styles.totalRow}>
                 <Text style={[styles.totalLabel, { color: t.text }]}>{translate('payment')}</Text>
                 <Text style={[styles.totalValue, { color: t.primary }]}>{formatPrice(total)}</Text>
@@ -927,6 +957,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#111827',
+  },
+  discountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  discountLabel: {
+    fontSize: 14,
+    color: '#10B981',
+  },
+  discountValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#10B981',
   },
   totalRow: {
     flexDirection: 'row',
