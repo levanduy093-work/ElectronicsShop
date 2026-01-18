@@ -469,7 +469,11 @@ export function getProductById(id: string) {
 }
 
 export function getRelatedProducts(id: string) {
-  return getJson<ApiProduct[]>(`/products/${id}/related`);
+  return getJson<ApiProduct[]>(`/products/${id}/related`).catch(err => {
+    // If backend doesn't support related endpoint or product not found, fail soft
+    console.warn('getRelatedProducts fallback:', err?.message || err);
+    return [];
+  });
 }
 
 export function getFavorites(token: string) {
