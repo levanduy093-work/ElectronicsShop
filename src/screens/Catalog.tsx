@@ -139,7 +139,6 @@ export function Catalog({
   }, [controlledSearchQuery]);
 
   useEffect(() => {
-    if (hasRestoredScroll.current) return;
     if (initialScrollOffset !== undefined && listRef.current) {
       requestAnimationFrame(() => {
         listRef.current?.scrollToOffset({ offset: initialScrollOffset, animated: false });

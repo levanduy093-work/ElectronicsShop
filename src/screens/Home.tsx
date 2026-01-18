@@ -137,6 +137,8 @@ interface HomeProps {
   isLoading?: boolean;
   error?: string | null;
   isOffline?: boolean;
+  initialVisibleCount?: number;
+  onVisibleCountChange?: (value: number) => void;
 }
 
 const { width } = Dimensions.get('window');
@@ -155,11 +157,13 @@ export function Home({
   isLoading = false,
   error = null,
   isOffline = false,
+  initialVisibleCount = 10,
+  onVisibleCountChange,
 }: HomeProps) {
   const { t } = useTranslation();
   const { theme: ctxTheme } = useTheme();
   const resolvedTheme = theme || ctxTheme || lightTheme;
-  const [visibleCount, setVisibleCount] = React.useState(10);
+  const [visibleCount, setVisibleCount] = React.useState(initialVisibleCount || 10);
   const [currentBannerIndex, setCurrentBannerIndex] = React.useState(0);
   const bannerListRef = React.useRef<FlatList<HomeBanner>>(null);
   const scrollViewRef = React.useRef<ScrollView>(null);
@@ -177,8 +181,15 @@ export function Home({
   );
 
   React.useEffect(() => {
-    setVisibleCount(10);
-  }, [products]);
+    if (initialVisibleCount !== undefined && initialVisibleCount !== visibleCount) {
+      setVisibleCount(initialVisibleCount);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialVisibleCount]);
+
+  React.useEffect(() => {
+    onVisibleCountChange?.(visibleCount);
+  }, [visibleCount, onVisibleCountChange]);
 
   const visibleProducts = (products.length ? products : []).slice(0, visibleCount);
   const featuredProducts = visibleProducts;
@@ -258,7 +269,6 @@ export function Home({
   const displayCategories = CATEGORIES.length > 0 ? CATEGORIES : extractCategoriesFromProducts(products);
 
   React.useEffect(() => {
-    if (hasRestoredScroll.current) return;
     if (scrollViewRef.current && initialScrollOffset !== undefined) {
       requestAnimationFrame(() => {
         scrollViewRef.current?.scrollTo({ y: initialScrollOffset, animated: false });
@@ -279,6 +289,7 @@ export function Home({
       showsVerticalScrollIndicator={false}
       onScroll={handleScroll}
       scrollEventThrottle={16}
+      contentOffset={{ x: 0, y: initialScrollOffset || 0 }}
     >
       {/* Banner Slider */}
       <View style={styles.bannerSection}>

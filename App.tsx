@@ -617,6 +617,7 @@ function App(): React.JSX.Element {
     rating: null,
     onlyInStock: false,
   });
+  const [homeVisibleCount, setHomeVisibleCount] = useState(10);
   const [aiMessages, setAiMessages] = useState<ChatMessage[]>([]);
   const [userProfile, setUserProfile] = useState(DEFAULT_PROFILE);
   const [userId, setUserId] = useState<string | null>(null);
@@ -2123,6 +2124,8 @@ function App(): React.JSX.Element {
             onSelectCategory={handleSelectCategory}
             onRefreshProducts={() => { loadProducts().catch(() => {}); }}
             initialScrollOffset={homeScrollOffsetRef.current}
+            initialVisibleCount={homeVisibleCount}
+            onVisibleCountChange={setHomeVisibleCount}
             onScrollPositionChange={handleHomeScrollPosition}
             isLoading={isLoadingProducts}
             error={productsError}

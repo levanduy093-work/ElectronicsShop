@@ -261,31 +261,48 @@ npm run ios
 - Tự động phát hiện chế độ tối/sáng của hệ thống khi khởi động
 - Có thể chuyển đổi thủ công trong Settings
 
-## 📦 Dữ liệu Mock
+## 📦 Dữ liệu
 
-Ứng dụng sử dụng dữ liệu mock trong `src/lib/data.ts` và `src/lib/address.ts`:
+Ứng dụng load dữ liệu từ backend API. Các constants trong `src/constants/data.ts` và `src/constants/defaults.ts` 
+chỉ là fallback values (empty arrays) khi API chưa load dữ liệu.
 
-### Sản phẩm (PRODUCTS)
-- **Arduino Uno R3 ATmega328P**: 150,000₫ (giảm từ 180,000₫)
-- **Module ESP32-WROOM-32**: 110,000₫
-- **Cảm biến siêu âm HC-SR04**: 25,000₫
-- **Mỏ hàn điều chỉnh nhiệt độ 60W**: 180,000₫ (giảm từ 220,000₫)
-- **Raspberry Pi 4 Model B 4GB**: 1,450,000₫
+### Cấu trúc dữ liệu
 
-### Danh mục (CATEGORIES)
-6 danh mục chính: Vi điều khiển, Cảm biến, Nguồn & Pin, Dây & Cáp, Dụng cụ, IC số
+#### Products (Sản phẩm)
+- **Endpoint:** `GET /products` hoặc `GET /products/:id`
+- **Fallback:** `PRODUCTS` constant (empty array `[]`)
+- **Mô tả:** Load từ backend API khi app khởi động hoặc khi cần refresh
 
-### Mã giảm giá (AVAILABLE_VOUCHERS)
-- **FREESHIP**: Miễn phí vận chuyển cho đơn từ 0đ
-- **ELECTRO50**: Giảm 50k cho đơn từ 500k
-- **HELLO2024**: Giảm 20k cho thành viên mới
-- **SUPERDEAL**: Giảm 100k cho đơn từ 2 triệu
+#### Categories (Danh mục)
+- **Endpoint:** Extract từ products hoặc load từ API
+- **Fallback:** `CATEGORIES` constant (empty array `[]`)
+- **Mô tả:** Có thể được extract từ danh sách products hoặc load trực tiếp từ API
 
-### Địa chỉ mẫu (DEFAULT_ADDRESSES)
-- 2 địa chỉ mẫu (Nhà riêng và Văn phòng) tại TP. Hồ Chí Minh
+#### Vouchers (Mã giảm giá)
+- **Endpoint:** `GET /vouchers` hoặc `GET /vouchers/user/:userId`
+- **Fallback:** `AVAILABLE_VOUCHERS` constant (empty array `[]`)
+- **Mô tả:** Load từ backend API khi user xem giỏ hàng hoặc checkout
 
-### Đơn hàng mẫu
-- 4 đơn hàng với các trạng thái khác nhau: Đang xử lý, Đang giao, Hoàn thành
+#### Addresses (Địa chỉ)
+- **Endpoint:** Load từ user profile `GET /users/me`
+- **Fallback:** `DEFAULT_ADDRESSES` constant (empty array `[]`)
+- **Mô tả:** Load từ user profile, có thể thêm/sửa/xóa địa chỉ
+
+#### Orders (Đơn hàng)
+- **Endpoint:** `GET /orders` (cho user hiện tại) hoặc `GET /orders/:id`
+- **Fallback:** Không có (sử dụng empty array khi chưa load)
+- **Mô tả:** Load từ backend API khi user xem lịch sử đơn hàng
+
+### Testing với API
+
+Để test ứng dụng, bạn cần:
+1. Khởi động backend API (xem hướng dẫn trong `electronics-backend/README.md`)
+2. Cấu hình API endpoint trong `.env` file:
+   ```
+   API_URL=http://localhost:3000
+   ```
+3. Chạy ứng dụng và đảm bảo backend API đang hoạt động
+4. Dữ liệu sẽ được load từ API thay vì từ mock data
 
 ## 🔄 State Management
 
