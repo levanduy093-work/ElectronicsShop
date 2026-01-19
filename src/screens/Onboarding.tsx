@@ -234,19 +234,10 @@ export function Onboarding({ onDone, onSkipToAuth, onSkipToHome, onSignUp }: Onb
             </Pressable>
           </View>
         ) : (
-          <View style={styles.actions}>
-            <Pressable
-              onPress={onSkipToAuth}
-              style={[styles.secondaryBtn, { borderColor: theme.border }]}
-              android_ripple={{ color: theme.border }}
-              hitSlop={10}
-              accessibilityRole="button"
-            >
-              <Text style={[styles.secondaryText, { color: theme.text }]}>{t('onboarding_login')}</Text>
-            </Pressable>
+          <View style={styles.singleAction}>
             <Pressable
               onPress={handleNext}
-              style={[styles.primaryBtn, { backgroundColor: slides[activeIndex]?.accent || theme.primary }]}
+              style={[styles.primaryBtnFull, { backgroundColor: slides[activeIndex]?.accent || theme.primary }]}
               android_ripple={{ color: '#ffffff20' }}
               hitSlop={10}
               accessibilityRole="button"
@@ -410,25 +401,11 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 999,
   },
-  actions: {
-    flexDirection: 'row',
-    gap: 12,
+  singleAction: {
     marginTop: 8,
   },
-  secondaryBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryText: {
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  primaryBtn: {
-    flex: 1.2,
+  primaryBtnFull: {
+    width: '100%',
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
@@ -444,10 +421,11 @@ const styles = StyleSheet.create({
   },
   primaryActions: {
     flexDirection: 'row',
+    alignItems: 'stretch',
     gap: 12,
   },
   signUpBtn: {
-    flex: 1.2,
+    flex: 1,
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
