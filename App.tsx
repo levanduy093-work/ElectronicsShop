@@ -601,6 +601,7 @@ function App(): React.JSX.Element {
   const cartIdRef = useRef<string | null>(null);
   const cartSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fcmRefreshUnsubRef = useRef<(() => void) | null>(null);
+  const hasRegisteredFcmRef = useRef(false);
   const hasFetchedCartRef = useRef(false);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
@@ -662,7 +663,7 @@ function App(): React.JSX.Element {
     setProductsError(null);
     
     // Try to load from cache if offline or if useCache is true
-    const isOffline = !networkStatus.isConnected;
+    const isOffline = networkStatus.isConnected === false;
     if (isOffline || options?.useCache) {
       const cached = await getCachedProducts();
       if (cached && cached.length > 0) {
@@ -740,7 +741,7 @@ function App(): React.JSX.Element {
     setBannersError(null);
     
     // Try to load from cache if offline or if useCache is true
-    const isOffline = !networkStatus.isConnected;
+    const isOffline = networkStatus.isConnected === false;
     if (isOffline || options?.useCache) {
       const cached = await getCachedBanners();
       if (cached && cached.length > 0) {
@@ -1049,6 +1050,7 @@ function App(): React.JSX.Element {
       fcmRefreshUnsubRef.current = null;
       if (!isPushEnabled) {
         deleteFcmToken().catch(err => console.warn('App.tsx - Failed to delete token', err));
+        hasRegisteredFcmRef.current = false;
       }
       return;
     }
@@ -1063,6 +1065,41 @@ function App(): React.JSX.Element {
       fcmRefreshUnsubRef.current = null;
     };
   }, [isLoggedIn, authTokens?.accessToken, isPushEnabled]);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      hasRegisteredFcmRef.current = false;
+    }
+  }, [isLoggedIn]);
+
+  // Ensure token is registered once user is logged in with push enabled (even if toggle was already on)
+  useEffect(() => {
+    if (!isPushEnabled || !isLoggedIn || !authTokens?.accessToken) return;
+    if (hasRegisteredFcmRef.current) return;
+
+    let cancelled = false;
+    const register = async () => {
+      try {
+        const granted = await requestUserPermission();
+        if (!granted) {
+          showToast(t('push_notification_permission_denied'), 'error');
+          return;
+        }
+        if (cancelled) return;
+        await getFcmToken(authTokens.accessToken);
+        if (!cancelled) {
+          hasRegisteredFcmRef.current = true;
+        }
+      } catch (err) {
+        console.warn('App.tsx - Failed to register FCM token after login', err);
+      }
+    };
+
+    register();
+    return () => {
+      cancelled = true;
+    };
+  }, [isPushEnabled, isLoggedIn, authTokens?.accessToken, showToast, t]);
 
   // Handler to enable push notifications (requests permission when user toggles on)
   const handleThemeModeChange = useCallback(async (mode: 'light' | 'dark' | 'system') => {
@@ -2135,7 +2172,7 @@ function App(): React.JSX.Element {
             onScrollPositionChange={handleHomeScrollPosition}
             isLoading={isLoadingProducts}
             error={productsError}
-            isOffline={!networkStatus.isConnected}
+            isOffline={networkStatus.isConnected === false}
           />
         );
       case 'catalog':
@@ -2518,7 +2555,7 @@ function App(): React.JSX.Element {
   return (
     <ThemeProvider value={{ theme, isDarkMode }}>
       <ForegroundNotificationHandler />
-      <OfflineBanner visible={!networkStatus.isConnected} />
+      <OfflineBanner visible={networkStatus.isConnected === false} />
       <StatusBar 
         barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
         backgroundColor={theme.surface}

@@ -2,13 +2,14 @@ import NetInfo from '@react-native-community/netinfo';
 import { useState, useEffect } from 'react';
 
 export type NetworkStatus = {
-  isConnected: boolean;
+  // null = chưa xác định (tránh hiển thị offline khi app vừa mở)
+  isConnected: boolean | null;
   isInternetReachable: boolean | null;
   type: string | null;
 };
 
 let currentStatus: NetworkStatus = {
-  isConnected: false,
+  isConnected: null,
   isInternetReachable: null,
   type: null,
 };
@@ -24,7 +25,7 @@ function initializeNetworkStatus() {
   initializationPromise = NetInfo.fetch()
     .then(state => {
       currentStatus = {
-        isConnected: state.isConnected ?? false,
+        isConnected: state.isConnected ?? null,
         isInternetReachable: state.isInternetReachable ?? null,
         type: state.type ?? null,
       };
@@ -52,7 +53,7 @@ export function useNetworkStatus(): NetworkStatus {
     NetInfo.fetch()
       .then(state => {
         const newStatus = {
-          isConnected: state.isConnected ?? false,
+          isConnected: state.isConnected ?? null,
           isInternetReachable: state.isInternetReachable ?? null,
           type: state.type ?? null,
         };
@@ -66,7 +67,7 @@ export function useNetworkStatus(): NetworkStatus {
     // Listen to changes
     const unsubscribe = NetInfo.addEventListener(state => {
       const newStatus = {
-        isConnected: state.isConnected ?? false,
+        isConnected: state.isConnected ?? null,
         isInternetReachable: state.isInternetReachable ?? null,
         type: state.type ?? null,
       };

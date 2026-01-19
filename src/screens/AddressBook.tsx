@@ -25,7 +25,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
   const { t: translate } = useTranslation();
   const t = theme || ctxTheme || lightTheme;
   const networkStatus = useNetworkStatus();
-  const isOffline = !networkStatus.isConnected;
+  const isOffline = networkStatus.isConnected === false;
   const [localAddresses, setLocalAddresses] = useState<Address[]>(addresses ?? DEFAULT_ADDRESSES);
   const [isLoading, setIsLoading] = useState(false);
   const addressList = addresses ?? localAddresses;
@@ -46,7 +46,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
 
   const ensureOnline = () => {
     const status = getCurrentNetworkStatus();
-    if (!status.isConnected) {
+    if (status.isConnected === false) {
       Alert.alert(translate('no_internet'), translate('please_check_connection'));
       return false;
     }

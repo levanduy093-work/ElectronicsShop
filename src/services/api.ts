@@ -290,7 +290,7 @@ async function requestJson<TResponse>(
 
   // Check network status before making request
   const networkStatus = getCurrentNetworkStatus();
-  if (!networkStatus.isConnected) {
+  if (networkStatus.isConnected === false) {
     const errorMessage = 'Không có kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn.';
     console.warn(`API request failed (offline): ${path} - ${errorMessage}`);
     throw new Error(errorMessage);
@@ -308,7 +308,7 @@ async function requestJson<TResponse>(
     });
   } catch (error: any) {
     const networkStatusAfterError = getCurrentNetworkStatus();
-    if (!networkStatusAfterError.isConnected) {
+    if (networkStatusAfterError.isConnected === false) {
       const errorMessage = 'Không có kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn.';
       console.warn(`API request failed (offline): ${path} - ${errorMessage}`);
       throw new Error(errorMessage);
