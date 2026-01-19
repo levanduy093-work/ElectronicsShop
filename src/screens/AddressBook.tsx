@@ -8,6 +8,7 @@ import { Address, AddressFormValues } from '../types';
 import { DEFAULT_ADDRESSES } from '../constants/defaults';
 import { buildFullAddress } from '../utils/address';
 import { AddressForm } from '../components/address/AddressForm';
+import { getCurrentNetworkStatus, useNetworkStatus } from '../utils/network';
 import { getAddresses, addAddress, updateAddress, deleteAddress, setDefaultAddress, FrontendAddress } from '../services/api';
 
 interface AddressBookProps {
@@ -23,6 +24,8 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
   const { theme: ctxTheme } = useTheme();
   const { t: translate } = useTranslation();
   const t = theme || ctxTheme || lightTheme;
+  const networkStatus = useNetworkStatus();
+  const isOffline = !networkStatus.isConnected;
   const [localAddresses, setLocalAddresses] = useState<Address[]>(addresses ?? DEFAULT_ADDRESSES);
   const [isLoading, setIsLoading] = useState(false);
   const addressList = addresses ?? localAddresses;
@@ -41,8 +44,18 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
     }
   }, [accessToken]);
 
+  const ensureOnline = () => {
+    const status = getCurrentNetworkStatus();
+    if (!status.isConnected) {
+      Alert.alert(translate('no_internet'), translate('please_check_connection'));
+      return false;
+    }
+    return true;
+  };
+
   const loadAddresses = async () => {
     if (!accessToken) return;
+    if (!ensureOnline()) return;
     
     setIsLoading(true);
     try {
@@ -63,6 +76,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
     if (index === -1) return;
 
     if (accessToken) {
+      if (!ensureOnline()) return;
       try {
         setIsLoading(true);
         const updatedAddresses = await setDefaultAddress(index, accessToken);
@@ -94,6 +108,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
         style: 'destructive',
         onPress: async () => {
           if (accessToken) {
+            if (!ensureOnline()) return;
             try {
               setIsLoading(true);
               const updatedAddresses = await deleteAddress(index, accessToken);
@@ -151,6 +166,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
     const fullAddress = buildFullAddress(data);
 
     if (accessToken && editingIndex !== null) {
+      if (!ensureOnline()) return;
       // Update existing address via API
       try {
         setIsLoading(true);
@@ -169,6 +185,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
         setIsLoading(false);
       }
     } else if (accessToken && editingId === null) {
+      if (!ensureOnline()) return;
       // Add new address via API
       try {
         setIsLoading(true);
@@ -248,6 +265,15 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
           <AppIcon name="plus" size={24} color={t.primary} />
         </TouchableOpacity>
       </View>
+
+      {isOffline && (
+        <View style={[styles.offlineBanner, { backgroundColor: t.surface, borderColor: t.border }]}>
+          <AppIcon name="wifi-off" size={14} color={t.muted} />
+          <Text style={[styles.offlineText, { color: t.muted }]}>
+            {translate('no_internet')}
+          </Text>
+        </View>
+      )}
 
       <ScrollView
         style={styles.content}
@@ -381,6 +407,18 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 16,
     paddingBottom: 96,
+  },
+  offlineBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  offlineText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   addressCard: {
     backgroundColor: '#FFFFFF',

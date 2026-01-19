@@ -313,8 +313,12 @@ async function requestJson<TResponse>(
       console.warn(`API request failed (offline): ${path} - ${errorMessage}`);
       throw new Error(errorMessage);
     }
-    const errorMsg = error?.message || 'Không thể kết nối tới máy chủ';
-    console.warn(`API request failed (network error): ${path} - ${errorMsg}`);
+    const errorMsg =
+      (typeof i18n?.t === 'function' && i18n.t('cannotConnectServer')) ||
+      'Không thể kết nối tới máy chủ';
+    console.warn(
+      `API request failed (network error): ${path} - ${error?.message || errorMsg}`,
+    );
     throw new Error(errorMsg);
   }
 
@@ -337,9 +341,18 @@ async function requestJson<TResponse>(
       }
     }
 
-    const fallbackMessage = response.status === 401
-      ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
-      : 'Đã xảy ra lỗi. Vui lòng thử lại.';
+    const fallbackMessage =
+      response.status === 401
+        ? (typeof i18n?.t === 'function'
+            ? i18n.t('sessionExpired')
+            : 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.')
+        : response.status >= 500
+          ? (typeof i18n?.t === 'function'
+              ? i18n.t('serverUnavailable')
+              : 'Máy chủ đang gặp sự cố. Vui lòng thử lại sau.')
+          : (typeof i18n?.t === 'function'
+              ? i18n.t('errorOccurred')
+              : 'Đã xảy ra lỗi. Vui lòng thử lại.');
     const message =
       (Array.isArray(data?.message) && data?.message[0]) ||
       data?.message ||
