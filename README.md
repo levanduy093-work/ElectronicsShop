@@ -36,9 +36,19 @@ ElectroAI là một ứng dụng di động React Native được thiết kế �
 
 ### ⚙️ Cài đặt & Hỗ trợ
 - **Chế độ tối/Sáng**: Chuyển đổi giữa dark mode và light mode
-- **Thông báo**: Xem các thông báo từ hệ thống
+- **Đa ngôn ngữ**: Hỗ trợ Tiếng Việt và English với i18next
+- **Thông báo**: Xem các thông báo từ hệ thống với Firebase Cloud Messaging
 - **Trung tâm hỗ trợ**: Liên hệ và nhận hỗ trợ từ đội ngũ
 - **Đổi mật khẩu**: Thay đổi mật khẩu tài khoản
+- **Onboarding**: Màn hình hướng dẫn cho người dùng mới
+
+### 🌐 Tính năng Nâng cao
+- **Offline Support**: Cache dữ liệu để sử dụng khi không có internet
+- **Search History**: Lưu lịch sử tìm kiếm và đồng bộ với backend
+- **Real-time Updates**: Socket.io cho cập nhật thời gian thực
+- **Image Upload**: Upload ảnh đại diện và hình ảnh sản phẩm với Cloudinary
+- **Push Notifications**: Nhận thông báo đẩy với Firebase Cloud Messaging
+- **Deep Linking**: Hỗ trợ deep links để điều hướng trực tiếp đến sản phẩm/đơn hàng
 
 ## 🏗️ Kiến trúc dự án
 
@@ -47,51 +57,124 @@ ElectroAI là một ứng dụng di động React Native được thiết kế �
 ```
 ElectronicsShop/
 ├── src/
+│   ├── assets/              # Tài nguyên tĩnh
+│   │   └── images/          # Hình ảnh (logo, icons)
 │   ├── components/          # Các component tái sử dụng
 │   │   ├── address/         # Form quản lý địa chỉ
-│   │   │   └── AddressForm.tsx
+│   │   │   ├── AddressForm.tsx
+│   │   │   ├── AddressItem.tsx
+│   │   │   ├── LocationFields.tsx
+│   │   │   └── LocationSelectModal.tsx
 │   │   ├── ai/              # Component AI chat
 │   │   │   └── MessageBubble.tsx
+│   │   ├── auth/            # Component xác thực
+│   │   │   ├── AuthForm.tsx
+│   │   │   ├── ForgotPasswordView.tsx
+│   │   │   └── VerifyEmailView.tsx
+│   │   ├── cart/            # Component giỏ hàng
+│   │   │   ├── CartEmptyState.tsx
+│   │   │   ├── CartItemRow.tsx
+│   │   │   ├── CartOptionModal.tsx
+│   │   │   ├── CartSummary.tsx
+│   │   │   └── CartVoucherModal.tsx
+│   │   ├── checkout/        # Component thanh toán
+│   │   │   ├── AddressSection.tsx
+│   │   │   ├── CheckoutSuccessView.tsx
+│   │   │   ├── OrderSummary.tsx
+│   │   │   ├── PaymentMethodSection.tsx
+│   │   │   └── PaymentWaitingView.tsx
 │   │   ├── common/          # Component chung
 │   │   │   ├── Icon.tsx              # Icon wrapper cho react-native-vector-icons
 │   │   │   ├── ImageWithFallback.tsx # Image component với fallback
+│   │   │   ├── OfflineBanner.tsx     # Banner hiển thị khi offline
 │   │   │   ├── Toast.tsx              # Toast notification component
 │   │   │   └── ToastProvider.tsx     # Toast context provider
+│   │   ├── home/            # Component trang chủ
+│   │   │   ├── AIRecommendationsCard.tsx
+│   │   │   ├── CategorySection.tsx
+│   │   │   ├── FeaturedProductsSection.tsx
+│   │   │   └── HomeBannerSection.tsx
 │   │   ├── layout/          # Layout components
 │   │   │   ├── TopBar.tsx    # Top navigation bar với search và filter
 │   │   │   └── BottomNav.tsx # Bottom navigation với 5 tabs
+│   │   ├── order/           # Component đơn hàng
+│   │   │   ├── OrderActions.tsx
+│   │   │   ├── OrderAddress.tsx
+│   │   │   ├── OrderPaymentInfo.tsx
+│   │   │   ├── OrderProductList.tsx
+│   │   │   ├── OrderSupportModal.tsx
+│   │   │   └── OrderTimeline.tsx
+│   │   ├── profile/        # Component hồ sơ
+│   │   │   ├── EditProfileModal.tsx
+│   │   │   ├── ProfileHeader.tsx
+│   │   │   ├── ProfileMenu.tsx
+│   │   │   ├── ProfileStats.tsx
+│   │   │   └── VoucherListModal.tsx
+│   │   ├── support/         # Component hỗ trợ
+│   │   │   ├── ContactOptions.tsx
+│   │   │   ├── FAQList.tsx
+│   │   │   └── SupportModal.tsx
 │   │   └── ui/              # UI components
 │   │       └── ProductCard.tsx # Card hiển thị sản phẩm
-│   ├── lib/                 # Utilities và data
-│   │   ├── address.ts       # Types và utilities cho địa chỉ
-│   │   ├── data.ts          # Dữ liệu mock (sản phẩm, danh mục, vouchers, orders)
-│   │   ├── theme.ts         # Theme system (dark/light mode) với Context API
-│   │   └── utils.ts         # Utility functions (formatPrice, cn)
+│   ├── constants/           # Constants và dữ liệu mặc định
+│   │   ├── data.ts          # Dữ liệu mock (fallback)
+│   │   ├── defaults.ts     # Giá trị mặc định
+│   │   └── locations.json  # Dữ liệu địa điểm Việt Nam
+│   ├── i18n/                # Internationalization
+│   │   ├── index.ts         # Cấu hình i18next
+│   │   └── locales/         # File ngôn ngữ
+│   │       ├── en.json      # English translations
+│   │       └── vi.json      # Tiếng Việt translations
+│   ├── services/            # Services và API
+│   │   ├── api.ts           # API client và endpoints
+│   │   ├── fcm.ts           # Firebase Cloud Messaging
+│   │   ├── locations.ts     # Service địa điểm
+│   │   └── socket.ts        # Socket.io client
+│   ├── theme/               # Theme system
+│   │   └── index.ts         # Theme configuration
+│   ├── types/               # TypeScript types
+│   │   ├── env.d.ts         # Environment variables types
+│   │   ├── index.ts         # Main types
+│   │   ├── json.d.ts        # JSON module types
+│   │   └── models.ts        # Data models
+│   ├── utils/               # Utility functions
+│   │   ├── address.ts       # Address utilities
+│   │   ├── cache.ts         # Cache management
+│   │   ├── index.ts         # Utility exports
+│   │   ├── mappers.ts       # Data mappers
+│   │   ├── network.ts       # Network status utilities
+│   │   ├── permissions.ts   # Permission utilities
+│   │   ├── product.ts       # Product utilities
+│   │   └── searchHistory.ts # Search history management
 │   └── screens/             # Các màn hình chính
-│       ├── Home.tsx         # Trang chủ
-│       ├── Catalog.tsx      # Danh mục sản phẩm
-│       ├── ProductDetail.tsx # Chi tiết sản phẩm
-│       ├── Cart.tsx         # Giỏ hàng
-│       ├── Checkout.tsx     # Thanh toán
-│       ├── AIChat.tsx       # Chat với AI
-│       ├── Profile.tsx       # Hồ sơ người dùng
-│       ├── OrderHistory.tsx # Lịch sử đơn hàng
-│       ├── OrderDetail.tsx  # Chi tiết đơn hàng
-│       ├── Wishlist.tsx     # Danh sách yêu thích
-│       ├── AddressBook.tsx  # Sổ địa chỉ
-│       ├── PaymentMethods.tsx # Phương thức thanh toán
-│       ├── Settings.tsx     # Cài đặt
-│       ├── SearchScreen.tsx # Tìm kiếm
-│       ├── FilterScreen.tsx # Lọc sản phẩm
-│       ├── Auth.tsx         # Đăng nhập/Đăng ký
-│       ├── Notifications.tsx # Thông báo
-│       ├── SupportCenter.tsx # Trung tâm hỗ trợ
-│       └── ChangePassword.tsx # Đổi mật khẩu
+│       ├── AddressBook.tsx
+│       ├── AIChat.tsx
+│       ├── Auth.tsx
+│       ├── Cart.tsx
+│       ├── Catalog.tsx
+│       ├── ChangePassword.tsx
+│       ├── Checkout.tsx
+│       ├── FilterScreen.tsx
+│       ├── Home.tsx
+│       ├── LanguageSelection.tsx
+│       ├── Notifications.tsx
+│       ├── Onboarding.tsx
+│       ├── OrderDetail.tsx
+│       ├── OrderHistory.tsx
+│       ├── PaymentMethods.tsx
+│       ├── ProductDetail.tsx
+│       ├── Profile.tsx
+│       ├── SearchScreen.tsx
+│       ├── Settings.tsx
+│       ├── SupportCenter.tsx
+│       └── Wishlist.tsx
 ├── android/                 # Native Android code
 ├── ios/                     # Native iOS code
 ├── App.tsx                  # Entry point của ứng dụng
 ├── package.json             # Dependencies và scripts
-└── ElectroAI_App_Development/ # Web version (React + Vite)
+├── babel.config.js          # Babel configuration
+├── tsconfig.json            # TypeScript configuration
+└── .env.example            # Environment variables template
 ```
 
 ### Luồng điều hướng
@@ -113,11 +196,20 @@ ElectronicsShop/
 - **Node.js**: >= 20
 
 ### Dependencies chính
-- **react-native-safe-area-context** (^5.5.2): Quản lý safe area cho các thiết bị
-- **react-native-vector-icons** (^10.3.0): Icons (MaterialCommunityIcons)
-- **react-native-svg** (^15.15.1): Render SVG graphics
-- **react-native-image-picker** (^8.2.1): Chọn và upload hình ảnh
+- **@react-native-async-storage/async-storage** (^2.2.0): Local storage cho cache và user preferences
+- **@react-native-community/netinfo** (^11.4.1): Kiểm tra trạng thái mạng
 - **@react-native-community/slider** (^5.1.1): Slider component cho filter giá
+- **@react-native-firebase/app** (^23.8.2): Firebase SDK
+- **@react-native-firebase/messaging** (^23.8.2): Firebase Cloud Messaging cho push notifications
+- **@react-native-clipboard/clipboard** (^1.16.3): Clipboard utilities
+- **react-native-image-picker** (^8.2.1): Chọn và upload hình ảnh
+- **react-native-safe-area-context** (^5.5.2): Quản lý safe area cho các thiết bị
+- **react-native-svg** (^15.15.1): Render SVG graphics
+- **react-native-vector-icons** (^10.3.0): Icons (MaterialCommunityIcons)
+- **i18next** (^25.7.4): Internationalization framework
+- **react-i18next** (^16.5.3): React bindings cho i18next
+- **socket.io-client** (^4.8.3): WebSocket client cho real-time features
+- **react-native-dotenv** (^3.4.11): Environment variables support
 
 ### Development Tools
 - **@react-native-community/cli** (20.0.0): React Native CLI
@@ -293,16 +385,36 @@ chỉ là fallback values (empty arrays) khi API chưa load dữ liệu.
 - **Fallback:** Không có (sử dụng empty array khi chưa load)
 - **Mô tả:** Load từ backend API khi user xem lịch sử đơn hàng
 
+### Cấu hình Environment Variables
+
+Tạo file `.env` từ `.env.example` và cấu hình các biến sau:
+
+```env
+# API Configuration
+API_BASE_URL=http://localhost:3000
+API_DEVICE_HOST=10.0.2.2  # Android emulator: 10.0.2.2, iOS simulator: localhost
+
+# Socket.io Configuration (optional, defaults to API_BASE_URL)
+SOCKET_URL=http://localhost:3000
+
+# Deep Linking (optional)
+APP_LINK_SCHEME=electronicshop
+APP_LINK_DOMAIN=electronicshop.app
+```
+
+**Lưu ý:**
+- Đối với Android emulator, sử dụng `10.0.2.2` thay vì `localhost`
+- Đối với iOS simulator, sử dụng `localhost` hoặc IP máy tính của bạn
+- Đối với thiết bị thật, sử dụng IP máy tính trên cùng mạng LAN
+
 ### Testing với API
 
 Để test ứng dụng, bạn cần:
 1. Khởi động backend API (xem hướng dẫn trong `electronics-backend/README.md`)
-2. Cấu hình API endpoint trong `.env` file:
-   ```
-   API_URL=http://localhost:3000
-   ```
+2. Tạo file `.env` và cấu hình các biến môi trường như trên
 3. Chạy ứng dụng và đảm bảo backend API đang hoạt động
 4. Dữ liệu sẽ được load từ API thay vì từ mock data
+5. Ứng dụng sẽ tự động cache dữ liệu để sử dụng khi offline
 
 ## 🔄 State Management
 
@@ -342,23 +454,48 @@ Tests được viết bằng Jest và React Test Renderer. File test mẫu có s
 - **Hermes Engine**: Có thể có script phase được thêm bởi hermes-engine. Kiểm tra trước khi build.
 
 ### Development
-- Ứng dụng đã được tích hợp đầy đủ với backend API (NestJS + MongoDB)
-- Tất cả các tính năng chính đã được kết nối với backend:
-  - Authentication với JWT (access token + refresh token)
-  - OTP verification cho đăng ký và reset password
-  - CRUD đầy đủ cho Products, Orders, Carts, Users, Reviews
-  - AI Chat integration với Gemini API
-  - Payment gateway (VNPay)
-  - Image upload với Cloudinary
-  - Firebase Cloud Messaging (FCM) cho notifications
-  - Socket.io cho real-time features
-- Để triển khai production, cần:
-  - Cấu hình environment variables đầy đủ
-  - Setup MongoDB database
-  - Cấu hình Cloudinary cho image storage
-  - Cấu hình VNPay cho payment gateway
-  - Cấu hình Firebase cho push notifications
-  - Cấu hình Gemini API cho AI features
+
+#### Backend Integration
+Ứng dụng đã được tích hợp đầy đủ với backend API (NestJS + MongoDB):
+- **Authentication**: JWT với access token và refresh token
+- **OTP Verification**: Xác thực email và reset password
+- **CRUD Operations**: Products, Orders, Carts, Users, Reviews, Addresses, Vouchers
+- **AI Chat**: Tích hợp với Gemini API
+- **Payment**: VNPay gateway cho thanh toán online
+- **Image Upload**: Cloudinary cho lưu trữ hình ảnh
+- **Push Notifications**: Firebase Cloud Messaging
+- **Real-time**: Socket.io cho cập nhật thời gian thực
+
+#### Production Deployment Checklist
+Để triển khai production, cần:
+
+1. **Environment Variables**
+   - Cấu hình đầy đủ các biến trong `.env`
+   - Sử dụng production API URLs
+   - Cấu hình Firebase credentials
+
+2. **Backend Setup**
+   - Deploy NestJS backend lên server
+   - Setup MongoDB database
+   - Cấu hình CORS và security headers
+
+3. **Third-party Services**
+   - Cloudinary: Cấu hình cloud storage cho images
+   - VNPay: Setup payment gateway credentials
+   - Firebase: Cấu hình FCM cho push notifications
+   - Gemini API: Cấu hình API key cho AI features
+
+4. **Mobile App Build**
+   - Android: Tạo release keystore và cấu hình signing
+   - iOS: Setup App Store Connect và certificates
+   - Cấu hình deep linking cho production domain
+   - Test push notifications trên thiết bị thật
+
+5. **Security**
+   - Review và harden API endpoints
+   - Implement rate limiting
+   - Setup SSL/TLS certificates
+   - Review và fix security vulnerabilities
 
 ## 📝 Scripts có sẵn
 
@@ -367,6 +504,34 @@ Tests được viết bằng Jest và React Test Renderer. File test mẫu có s
 - `npm run ios`: Chạy ứng dụng trên iOS (hoặc `react-native run-ios`)
 - `npm run lint`: Kiểm tra code với ESLint
 - `npm test`: Chạy tests với Jest
+
+### Debugging Tips
+
+#### Android
+```bash
+# Xem logs
+adb logcat *:S ReactNative:V ReactNativeJS:V
+
+# Reload app
+adb shell input keyevent 82  # Mở dev menu
+# Hoặc nhấn R+R trên keyboard khi Metro bundler đang chạy
+```
+
+#### iOS
+```bash
+# Xem logs trong Xcode Console
+# Hoặc sử dụng:
+npx react-native log-ios
+
+# Reload app
+# Nhấn Cmd+R trong simulator
+```
+
+#### Metro Bundler
+```bash
+# Clear cache và restart
+npm start -- --reset-cache
+```
 
 ## 🔍 Tính năng Tìm kiếm & Lọc
 
@@ -421,13 +586,39 @@ Tests được viết bằng Jest và React Test Renderer. File test mẫu có s
 
 ## 🎯 Utilities & Helpers
 
-### Format Functions (`src/lib/utils.ts`)
+### Format Functions (`src/utils/index.ts`)
 - `formatPrice(price: number)`: Format giá tiền theo định dạng Việt Nam (ví dụ: 150000 → "150.000₫")
 - `cn(...classes)`: Utility để combine class names (tương tự clsx)
 
-### Address Utilities (`src/lib/address.ts`)
+### Address Utilities (`src/utils/address.ts`)
 - `buildFullAddress()`: Xây dựng địa chỉ đầy đủ từ các thành phần
 - Types: `Address`, `AddressFormValues`, `AddressType`
+
+### Cache Management (`src/utils/cache.ts`)
+- `cacheBanners(banners)`: Cache danh sách banners (24 giờ)
+- `getCachedBanners()`: Lấy banners từ cache
+- `cacheProducts(products)`: Cache danh sách sản phẩm (24 giờ)
+- `getCachedProducts()`: Lấy sản phẩm từ cache
+- `clearCache()`: Xóa toàn bộ cache
+
+### Network Utilities (`src/utils/network.ts`)
+- `useNetworkStatus()`: Hook để theo dõi trạng thái mạng
+- `getCurrentNetworkStatus()`: Lấy trạng thái mạng hiện tại
+- Tự động phát hiện khi mất kết nối và hiển thị offline banner
+
+### Search History (`src/utils/searchHistory.ts`)
+- Lưu lịch sử tìm kiếm local với AsyncStorage
+- Đồng bộ với backend API khi user đăng nhập
+- Tự động migrate lịch sử từ guest sang user khi đăng nhập
+- Giới hạn tối đa 20 mục trong lịch sử
+
+### Product Utilities (`src/utils/product.ts`)
+- `extractCategoriesFromProducts()`: Trích xuất danh mục từ danh sách sản phẩm
+- Các hàm helper để xử lý và filter sản phẩm
+
+### Data Mappers (`src/utils/mappers.ts`)
+- Chuyển đổi dữ liệu từ API format sang app format
+- Map các object từ backend sang frontend models
 
 ## 📱 Native Platform Support
 
@@ -441,6 +632,73 @@ Tests được viết bằng Jest và React Test Renderer. File test mẫu có s
 - Build tool: Xcode với CocoaPods
 - Pods: 84 dependencies từ Podfile, 83 pods được cài đặt
 - Hermes Engine: Được sử dụng cho JavaScript engine
+
+## 🌐 Internationalization (i18n)
+
+Ứng dụng hỗ trợ đa ngôn ngữ với i18next:
+
+### Ngôn ngữ được hỗ trợ
+- **Tiếng Việt** (vi) - Mặc định
+- **English** (en)
+
+### Cấu hình
+- File ngôn ngữ được lưu trong `src/i18n/locales/`
+- Ngôn ngữ được lưu trong AsyncStorage và tự động load khi app khởi động
+- Có thể thay đổi ngôn ngữ trong Settings → Language Selection
+
+### Sử dụng trong code
+```typescript
+import { useTranslation } from 'react-i18next';
+
+function MyComponent() {
+  const { t } = useTranslation();
+  return <Text>{t('welcome')}</Text>;
+}
+```
+
+## 📡 Real-time Features
+
+### Socket.io Integration
+- Kết nối tự động khi app khởi động
+- Hỗ trợ cả polling và websocket transports
+- Tự động fallback khi websocket không khả dụng
+- Sử dụng cho:
+  - Real-time order updates
+  - Live notifications
+  - Chat với AI (nếu backend hỗ trợ)
+
+### Firebase Cloud Messaging (FCM)
+- Push notifications cho Android và iOS
+- Tự động đăng ký token khi user đăng nhập
+- Xử lý notifications khi app đang mở hoặc đóng
+- Deep linking từ notifications
+
+## 💾 Offline Support
+
+Ứng dụng hỗ trợ offline mode với các tính năng:
+
+### Cache Strategy
+- **Banners**: Cache 24 giờ, tự động refresh khi online
+- **Products**: Cache 24 giờ, có thể xem khi offline
+- **Search History**: Lưu local, sync khi online
+
+### Offline Indicators
+- Hiển thị banner khi mất kết nối
+- Tự động retry khi kết nối được khôi phục
+- Sử dụng cached data khi không có internet
+
+## 🔗 Deep Linking
+
+Ứng dụng hỗ trợ deep linking để:
+- Mở trực tiếp đến sản phẩm cụ thể
+- Điều hướng đến đơn hàng từ notifications
+- Chia sẻ link sản phẩm với người dùng khác
+
+Cấu hình trong `.env`:
+```env
+APP_LINK_SCHEME=electronicshop
+APP_LINK_DOMAIN=electronicshop.app
+```
 
 ## 🌐 Web Version (Optional)
 
@@ -466,8 +724,75 @@ Private project - All rights reserved
 
 Dự án này được phát triển như một phần của khóa học Mobile Development.
 
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### Metro Bundler không khởi động
+```bash
+# Clear cache và restart
+npm start -- --reset-cache
+# Hoặc
+watchman watch-del-all  # Nếu có cài watchman
+```
+
+#### iOS Build Errors
+```bash
+# Clean và reinstall pods
+cd ios
+rm -rf Pods Podfile.lock
+pod install
+cd ..
+```
+
+#### Android Build Errors
+```bash
+# Clean gradle cache
+cd android
+./gradlew clean
+cd ..
+```
+
+#### Network Connection Issues
+- **Android Emulator**: Đảm bảo sử dụng `10.0.2.2` thay vì `localhost` trong `.env`
+- **iOS Simulator**: Sử dụng `localhost` hoặc IP máy tính của bạn
+- **Physical Device**: Sử dụng IP máy tính trên cùng mạng LAN
+
+#### Module Not Found Errors
+```bash
+# Reinstall node_modules
+rm -rf node_modules
+npm install
+```
+
+#### TypeScript Errors
+```bash
+# Restart TypeScript server trong IDE
+# Hoặc check tsconfig.json configuration
+```
+
+### Performance Tips
+
+1. **Enable Hermes**: Đã được enable mặc định trong React Native 0.83+
+2. **Image Optimization**: Sử dụng `ImageWithFallback` component để optimize images
+3. **Cache Management**: Cache được tự động quản lý, có thể clear cache trong Settings nếu cần
+4. **Network Requests**: Sử dụng cache để giảm số lượng API calls
+
+## 📚 Tài liệu tham khảo
+
+- [React Native Documentation](https://reactnative.dev/docs/getting-started)
+- [i18next Documentation](https://www.i18next.com/)
+- [Socket.io Client Documentation](https://socket.io/docs/v4/client-api/)
+- [Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging)
+- [React Native Firebase](https://rnfirebase.io/)
+
 ## 📞 Liên hệ
 
 Để biết thêm thông tin về dự án, vui lòng liên hệ qua Support Center trong ứng dụng.
 
+## 📄 License
+
+Private project - All rights reserved
+
 ---
+*Last updated: 2024*
