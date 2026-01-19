@@ -471,5 +471,3 @@ Dự án này được phát triển như một phần của khóa học Mobile 
 Để biết thêm thông tin về dự án, vui lòng liên hệ qua Support Center trong ứng dụng.
 
 ---
-
-**Lưu ý**: Đây là một ứng dụng demo với dữ liệu mock. Để triển khai production, cần tích hợp với backend API thực tế.
