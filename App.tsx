@@ -4,7 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Linking, StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Home } from './src/screens/Home';
 import { Catalog } from './src/screens/Catalog';
@@ -1225,7 +1225,7 @@ function App(): React.JSX.Element {
           setIsPushEnabled(JSON.parse(storedPush));
         }
 
-        if (!onboardingSeen && !restoredLoggedIn) {
+        if (!onboardingSeen) {
           setCurrentTab('home');
           setCurrentScreen('onboarding');
         }
@@ -1241,11 +1241,11 @@ function App(): React.JSX.Element {
 
   useEffect(() => {
     if (isRestoringAuth) return;
-    if (!hasSeenOnboarding && !isLoggedIn) {
+    if (!hasSeenOnboarding) {
       setCurrentTab('home');
       setCurrentScreen('onboarding');
     }
-  }, [hasSeenOnboarding, isLoggedIn, isRestoringAuth]);
+  }, [hasSeenOnboarding, isRestoringAuth]);
 
   useEffect(() => {
     if (!isLoggedIn || !authTokens?.accessToken) {
@@ -1590,15 +1590,13 @@ function App(): React.JSX.Element {
       await AsyncStorage.removeItem(ONBOARDING_STORAGE_KEY);
       setHasSeenOnboarding(false);
       showToast(t('reset_onboarding_success'), 'success');
-      if (!isLoggedIn) {
-        setCurrentTab('home');
-        setCurrentScreen('onboarding');
-      }
+      setCurrentTab('home');
+      setCurrentScreen('onboarding');
     } catch (error) {
       console.warn('App.tsx - Failed to reset onboarding', error);
       showToast(t('update_failed'), 'error');
     }
-  }, [isLoggedIn, showToast, t]);
+  }, [showToast, t]);
 
   const handleBannerPress = (banner: HomeBanner) => {
     if (banner.ctaProductId) {
@@ -2583,6 +2581,22 @@ function App(): React.JSX.Element {
 
   const isFullScreen = ['onboarding', 'product-detail', 'checkout', 'order-history', 'order-detail', 'notifications', 'search', 'filter', 'address-book', 'settings', 'support', 'wishlist', 'change-password', 'language-selection'].includes(currentScreen);
   const showTopBar = !isFullScreen && currentScreen !== 'ai' && currentScreen !== 'profile' && currentScreen !== 'auth' && currentScreen !== 'onboarding';
+
+  if (isRestoringAuth) {
+    return (
+      <ThemeProvider value={{ theme, isDarkMode }}>
+        <StatusBar
+          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+          backgroundColor={theme.surface}
+          translucent={true}
+        />
+        <View style={[styles.container, { alignItems: 'center', justifyContent: 'center', backgroundColor: theme.background }]}>
+          <ActivityIndicator size="large" color={theme.primary} />
+        </View>
+      </ThemeProvider>
+    );
+  }
+
   return (
     <ThemeProvider value={{ theme, isDarkMode }}>
       <ForegroundNotificationHandler />
