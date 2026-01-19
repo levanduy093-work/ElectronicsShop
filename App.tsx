@@ -1173,6 +1173,7 @@ function App(): React.JSX.Element {
   useEffect(() => {
     const restoreAuth = async () => {
       let restoredLoggedIn = false;
+      let tokenForBackground: string | null = null;
       try {
         const storedOnboarding = await AsyncStorage.getItem(ONBOARDING_STORAGE_KEY);
         const onboardingSeen = storedOnboarding === 'true';
@@ -1183,11 +1184,7 @@ function App(): React.JSX.Element {
           const parsed = JSON.parse(stored);
           if (parsed?.tokens?.accessToken && parsed?.tokens?.refreshToken) {
             syncAuthTokens(parsed.tokens, parsed.profile, parsed.userId ?? null);
-            await loadOrders(parsed.tokens.accessToken);
-            await loadFavorites(parsed.tokens.accessToken);
-            await loadVouchers(parsed.tokens.accessToken);
-            await loadNotifications(parsed.tokens.accessToken, { silent: true });
-            await loadAddresses(parsed.tokens.accessToken);
+            tokenForBackground = parsed.tokens.accessToken;
             restoredLoggedIn = true;
           }
         }
@@ -1233,6 +1230,14 @@ function App(): React.JSX.Element {
         console.warn('App.tsx - Failed to restore auth state', error);
       } finally {
         setIsRestoringAuth(false);
+      }
+
+      if (tokenForBackground) {
+        loadOrders(tokenForBackground, { silent: true }).catch(() => {});
+        loadFavorites(tokenForBackground).catch(() => {});
+        loadVouchers(tokenForBackground).catch(() => {});
+        loadNotifications(tokenForBackground, { silent: true }).catch(() => {});
+        loadAddresses(tokenForBackground).catch(() => {});
       }
     };
 
