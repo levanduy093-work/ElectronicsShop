@@ -3,7 +3,9 @@ import {
   deleteToken as deleteFcmTokenModular,
   getMessaging,
   getToken as getFcmTokenModular,
+  getInitialNotification as getInitialNotificationModular,
   onMessage as onMessageModular,
+  onNotificationOpenedApp as onNotificationOpenedAppModular,
   onTokenRefresh as onTokenRefreshModular,
   isDeviceRegisteredForRemoteMessages,
   registerDeviceForRemoteMessages,
@@ -12,11 +14,13 @@ import {
 import { PermissionsAndroid, Platform } from 'react-native';
 import { updateFcmToken } from './api';
 
-type ForegroundHandler = (payload: {
+type NotificationPayload = {
   title?: string | null;
   body?: string | null;
   data?: Record<string, unknown>;
-}) => void;
+};
+
+type NotificationHandler = (payload: NotificationPayload) => void;
 
 export async function requestUserPermission() {
   const messaging = getMessaging();
@@ -99,7 +103,7 @@ export async function deleteFcmToken() {
   }
 }
 
-export function subscribeForegroundMessage(handler: ForegroundHandler) {
+export function subscribeForegroundMessage(handler: NotificationHandler) {
   const messaging = getMessaging();
   return onMessageModular(messaging, async remoteMessage => {
     handler({
@@ -108,4 +112,31 @@ export function subscribeForegroundMessage(handler: ForegroundHandler) {
       data: remoteMessage.data,
     });
   });
+}
+
+export function subscribeNotificationOpened(handler: NotificationHandler) {
+  const messaging = getMessaging();
+  return onNotificationOpenedAppModular(messaging, remoteMessage => {
+    handler({
+      title: remoteMessage.notification?.title,
+      body: remoteMessage.notification?.body,
+      data: remoteMessage.data,
+    });
+  });
+}
+
+export async function getInitialNotificationOpen(): Promise<NotificationPayload | null> {
+  try {
+    const messaging = getMessaging();
+    const initial = await getInitialNotificationModular(messaging);
+    if (!initial) return null;
+    return {
+      title: initial.notification?.title,
+      body: initial.notification?.body,
+      data: initial.data,
+    };
+  } catch (error) {
+    console.warn('Failed to read initial notification', error);
+    return null;
+  }
 }

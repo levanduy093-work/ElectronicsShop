@@ -75,7 +75,15 @@ import { OfflineBanner } from './src/components/common/OfflineBanner';
 import { APP_LINK_DOMAIN as ENV_APP_LINK_DOMAIN, APP_LINK_SCHEME as ENV_APP_LINK_SCHEME } from '@env';
 
 // UNCOMMENT THIS AFTER INSTALLING @react-native-firebase/messaging AND ADDING CONFIG FILES
-import { requestUserPermission, getFcmToken, subscribeForegroundMessage, subscribeToFcmTokenRefresh, deleteFcmToken } from './src/services/fcm';
+import {
+  requestUserPermission,
+  getFcmToken,
+  subscribeForegroundMessage,
+  subscribeNotificationOpened,
+  subscribeToFcmTokenRefresh,
+  deleteFcmToken,
+  getInitialNotificationOpen,
+} from './src/services/fcm';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 type Screen =
@@ -603,6 +611,7 @@ function App(): React.JSX.Element {
   const fcmRefreshUnsubRef = useRef<(() => void) | null>(null);
   const hasRegisteredFcmRef = useRef(false);
   const hasFetchedCartRef = useRef(false);
+  const openNotificationsRef = useRef<() => void>(() => {});
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
   const [notifications, setNotifications] = useState<UiNotification[]>([]);
@@ -838,7 +847,7 @@ function App(): React.JSX.Element {
     }
   };
 
-  const syncNotificationsFromApi = (items: ApiNotification[]) => {
+  const syncNotificationsFromApi = useCallback((items: ApiNotification[]) => {
     const translate = typeof t === 'function' ? t : undefined;
     const list = Array.isArray(items) ? items : [];
     const mapped = list
@@ -850,9 +859,9 @@ function App(): React.JSX.Element {
         return timeB - timeA;
       });
     setNotifications(mapped);
-  };
+  }, [t]);
 
-  const loadNotifications = async (tokenOverride?: string, options?: { silent?: boolean }) => {
+  const loadNotifications = useCallback(async (tokenOverride?: string, options?: { silent?: boolean }) => {
     const token = tokenOverride || authTokensRef.current?.accessToken;
     if (!token) return;
     const showSpinner = !options?.silent;
@@ -865,7 +874,7 @@ function App(): React.JSX.Element {
     } finally {
       if (showSpinner) setIsRefreshingNotifications(false);
     }
-  };
+  }, [syncNotificationsFromApi]);
 
   const fetchOrderDetail = async (orderId: string) => {
     const token = authTokensRef.current?.accessToken;
@@ -1625,14 +1634,36 @@ function App(): React.JSX.Element {
     setCurrentScreen('order-history');
   };
 
-  const openNotifications = () => {
+  const openNotifications = useCallback(() => {
     if (!authTokensRef.current?.accessToken) {
       openAuthScreen('login', currentScreen);
       return;
     }
     loadNotifications(undefined, { silent: false }).catch(() => {});
     setCurrentScreen('notifications');
-  };
+  }, [currentScreen, loadNotifications, openAuthScreen]);
+
+  useEffect(() => {
+    openNotificationsRef.current = openNotifications;
+  }, [openNotifications]);
+
+  useEffect(() => {
+    const handleOpenFromSystemTray = () => {
+      openNotificationsRef.current();
+    };
+
+    const unsubscribe = subscribeNotificationOpened(() => {
+      handleOpenFromSystemTray();
+    });
+
+    getInitialNotificationOpen().then(message => {
+      if (message) {
+        handleOpenFromSystemTray();
+      }
+    });
+
+    return () => unsubscribe?.();
+  }, []);
 
   const refreshNotifications = () => {
     loadNotifications(undefined, { silent: false }).catch(() => {});
