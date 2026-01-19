@@ -1,11 +1,13 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../theme';
 import { useToast } from '../components/common/ToastProvider';
-import { AuthResponse, login, resetPassword, sendRegisterOtp, sendResetOtp, verifyRegisterOtp, verifyResetOtp } from '../services/api';
+import { AuthResponse, login, sendRegisterOtp } from '../services/api';
+import { VerifyEmailView } from '../components/auth/VerifyEmailView';
+import { ForgotPasswordView } from '../components/auth/ForgotPasswordView';
+import { AuthForm } from '../components/auth/AuthForm';
 
 interface AuthProps {
   onBack: () => void;
@@ -20,32 +22,26 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   const t = theme || ctxTheme || lightTheme;
+
   const [isRegister, setIsRegister] = useState(initialMode === 'register');
-  const [showPassword, setShowPassword] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [resetStep, setResetStep] = useState<'email' | 'otp' | 'password'>('email');
-  const [resetEmailSent, setResetEmailSent] = useState(false);
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
-  const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [resetToken, setResetToken] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingRegister, setPendingRegister] = useState<{
     email: string;
     password: string;
     name: string;
   } | null>(null);
-  const codeInputRefs = useRef<(TextInput | null)[]>([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setIsRegister(initialMode === 'register');
   }, [initialMode]);
-  
-  // BottomNav height: 80px + safe area bottom
+
   const bottomNavHeight = 80 + Math.max(insets.bottom, 16);
 
   const handleSubmit = async () => {
@@ -57,6 +53,7 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
       showToast(translate('password_min_length'), 'error');
       return;
     }
+
     if (isRegister) {
       if (!name) {
         showToast(translate('enter_name'), 'error');
@@ -70,7 +67,6 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
           password,
           name: name.trim(),
         });
-        setVerificationCode(['', '', '', '', '', '']);
         setIsVerifyingEmail(true);
         showToast(translate('otp_sent'), 'success');
       } catch (error: any) {
@@ -92,416 +88,35 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
     }
   };
 
-  const handleVerificationCodeChange = (index: number, value: string) => {
-    // Xử lý paste nhiều ký tự
-    if (value.length > 1) {
-      const digits = value.replace(/[^0-9]/g, '').slice(0, 6);
-      const newCode = ['', '', '', '', '', ''];
-      digits.split('').forEach((digit, i) => {
-        if (i < 6) newCode[i] = digit;
-      });
-      setVerificationCode(newCode);
-      
-      // Focus vào ô cuối cùng đã nhập
-      const lastIndex = Math.min(digits.length - 1, 5);
-      if (codeInputRefs.current[lastIndex]) {
-        codeInputRefs.current[lastIndex]?.focus();
-      }
-      return;
-    }
-    
-    const newCode = [...verificationCode];
-    newCode[index] = value.replace(/[^0-9]/g, ''); // Chỉ cho phép số
-    
-    setVerificationCode(newCode);
-    
-    // Tự động chuyển sang ô tiếp theo
-    if (value && index < 5 && codeInputRefs.current[index + 1]) {
-      codeInputRefs.current[index + 1]?.focus();
-    }
+  const handleRegisterSuccess = (result: AuthResponse) => {
+    setIsVerifyingEmail(false);
+    setIsRegister(false);
+    setPendingRegister(null);
+    onLoginSuccess(result);
   };
 
-  const handleVerifyCode = async () => {
-    const code = verificationCode.join('');
-    if (code.length !== 6) {
-      showToast(translate('enter_full_otp'), 'error');
-      return;
-    }
-
-    if (!pendingRegister) {
-      showToast(translate('reenter_register_info'), 'error');
-      setIsVerifyingEmail(false);
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const result = await verifyRegisterOtp(
-        pendingRegister.email,
-        code,
-      );
-      showToast(translate('register_success'), 'success');
-      setIsVerifyingEmail(false);
-      setIsRegister(false);
-      setPendingRegister(null);
-      setVerificationCode(['', '', '', '', '', '']);
-      onLoginSuccess(result);
-    } catch (error: any) {
-      showToast(error?.message || translate('otp_invalid'), 'error');
-      setVerificationCode(['', '', '', '', '', '']);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleResendCode = async () => {
-    if (!pendingRegister) {
-      showToast(translate('reenter_register_info'), 'error');
-      setIsVerifyingEmail(false);
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      await sendRegisterOtp(
-        pendingRegister.name,
-        pendingRegister.email,
-        pendingRegister.password,
-      );
-      showToast(translate('otp_resent'), 'success');
-    } catch (error: any) {
-      showToast(error?.message || translate('otp_resend_error'), 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleResetPassword = async () => {
-    if (!email) {
-      showToast(translate('enter_email'), 'error');
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      await sendResetOtp(email.trim().toLowerCase());
-      setResetEmailSent(true);
-      setResetStep('otp');
-      showToast(translate('otp_sent'), 'success');
-    } catch (error: any) {
-      showToast(error?.message || translate('otp_send_error'), 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleVerifyResetOtp = async () => {
-    const code = verificationCode.join('');
-    if (code.length !== 6) {
-      showToast(translate('enter_full_otp'), 'error');
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      const result = await verifyResetOtp(email.trim().toLowerCase(), code);
-      setResetToken(result.resetToken);
-      setResetStep('password');
-      setVerificationCode(['', '', '', '', '', '']);
-      showToast(translate('otp_valid'), 'success');
-    } catch (error: any) {
-      showToast(error?.message || translate('otp_invalid'), 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleSubmitNewPassword = async () => {
-    if (newPassword.length < 8) {
-      showToast(translate('password_min_length'), 'error');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      showToast(translate('password_mismatch'), 'error');
-      return;
-    }
-    if (!resetToken) {
-      showToast(translate('verify_otp_first'), 'error');
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      await resetPassword(email.trim().toLowerCase(), resetToken, newPassword);
-      showToast(translate('change_password_success'), 'success');
-      setIsForgotPassword(false);
-      setResetStep('email');
-      setResetEmailSent(false);
-      setVerificationCode(['', '', '', '', '', '']);
-      setResetToken('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setPassword('');
-    } catch (error: any) {
-      showToast(error?.message || translate('change_password_failed'), 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  if (isVerifyingEmail) {
+  if (isVerifyingEmail && pendingRegister) {
     return (
-      <KeyboardAvoidingView
-        style={[styles.container, { backgroundColor: t.background }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView 
-          contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomNavHeight + 24 }]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <TouchableOpacity
-            onPress={() => {
-              setIsVerifyingEmail(false);
-              setVerificationCode(['', '', '', '', '', '']);
-            }}
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <AppIcon name="arrow-left" size={24} color={t.muted} />
-          </TouchableOpacity>
-
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: t.text }]}>{translate('verify_email')}</Text>
-            <Text style={[styles.subtitle, { color: t.muted }]}>
-              {translate('otp_sent_to')}{'\n'}
-              <Text style={[styles.emailHighlight, { color: t.primary }]}>{pendingRegister?.email || email}</Text>
-            </Text>
-          </View>
-
-          <View style={styles.verificationContainer}>
-            <Text style={[styles.verificationLabel, { color: t.text }]}>{translate('enter_otp')}</Text>
-            <View style={styles.codeInputContainer}>
-              {verificationCode.map((digit, index) => (
-                <TextInput
-                  key={index}
-                  ref={(ref) => {
-                    codeInputRefs.current[index] = ref;
-                  }}
-                  style={[
-                    styles.codeInput,
-                    {
-                      backgroundColor: t.surface,
-                      borderColor: t.border,
-                      color: t.text,
-                    },
-                  ]}
-                  value={digit}
-                  onChangeText={(value) => handleVerificationCodeChange(index, value)}
-                  onKeyPress={({ nativeEvent }) => {
-                    if (nativeEvent.key === 'Backspace' && !digit && index > 0) {
-                      codeInputRefs.current[index - 1]?.focus();
-                    }
-                  }}
-                  keyboardType="number-pad"
-                  maxLength={1}
-                  selectTextOnFocus
-                  textAlign="center"
-                />
-              ))}
-            </View>
-
-            <TouchableOpacity
-              onPress={handleResendCode}
-              style={[styles.resendButton, isSubmitting && { opacity: 0.6 }]}
-              activeOpacity={0.7}
-              disabled={isSubmitting}
-            >
-              <Text style={[styles.resendText, { color: t.primary }]}>{translate('resend_code')}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleVerifyCode}
-              style={[
-                styles.primaryButton,
-                { backgroundColor: t.primary, shadowColor: t.primary },
-                isSubmitting && { opacity: 0.9 },
-              ]}
-              activeOpacity={0.8}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.primaryButtonText}>{isSubmitting ? translate('processing') : translate('confirm')}</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      <VerifyEmailView
+        email={pendingRegister.email}
+        name={pendingRegister.name}
+        password={pendingRegister.password}
+        onBack={() => {
+          setIsVerifyingEmail(false);
+          setPendingRegister(null);
+        }}
+        onSuccess={handleRegisterSuccess}
+        theme={t}
+      />
     );
   }
 
   if (isForgotPassword) {
     return (
-      <KeyboardAvoidingView
-        style={[styles.container, { backgroundColor: t.background }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView 
-          contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomNavHeight + 24 }]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <TouchableOpacity
-            onPress={() => {
-              setIsForgotPassword(false);
-              setResetEmailSent(false);
-              setResetStep('email');
-              setVerificationCode(['', '', '', '', '', '']);
-              setResetToken('');
-              setNewPassword('');
-              setConfirmPassword('');
-            }}
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <AppIcon name="arrow-left" size={24} color={t.muted} />
-          </TouchableOpacity>
-
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: t.text }]}>{translate('forgot_password_title')}</Text>
-            <Text style={[styles.subtitle, { color: t.muted }]}>
-              {resetStep === 'email' && translate('forgot_password_subtitle_email')}
-              {resetStep === 'otp' && translate('forgot_password_subtitle_otp')}
-              {resetStep === 'password' && translate('forgot_password_subtitle_password')}
-            </Text>
-          </View>
-
-          {resetStep === 'email' && (
-            <View style={styles.form}>
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: t.text }]}>{translate('email')}</Text>
-                <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]} pointerEvents="box-none">
-                  <AppIcon name="mail" size={20} color={t.muted} style={styles.inputIcon} />
-                  <TextInput
-                    placeholder="example@email.com"
-                    value={email}
-                    onChangeText={setEmail}
-                    style={[styles.input, { color: t.text }]}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    placeholderTextColor={t.muted}
-                    editable={true}
-                  />
-                </View>
-              </View>
-
-              <TouchableOpacity
-                onPress={handleResetPassword}
-                style={[
-                  styles.primaryButton,
-                  { backgroundColor: t.primary, shadowColor: t.primary },
-                  isSubmitting && { opacity: 0.9 },
-                ]}
-                activeOpacity={0.8}
-                disabled={isSubmitting}
-              >
-                <Text style={styles.primaryButtonText}>{isSubmitting ? translate('sending') : translate('send_otp')}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {resetStep === 'otp' && (
-            <View style={styles.verificationContainer}>
-              <Text style={[styles.verificationLabel, { color: t.text }]}>{translate('enter_otp')}</Text>
-              <View style={styles.codeInputContainer}>
-                {verificationCode.map((digit, index) => (
-                  <TextInput
-                    key={index}
-                    ref={(ref) => {
-                      codeInputRefs.current[index] = ref;
-                    }}
-                    style={[
-                      styles.codeInput,
-                      {
-                        backgroundColor: t.surface,
-                        borderColor: t.border,
-                        color: t.text,
-                      },
-                    ]}
-                    value={digit}
-                    onChangeText={(value) => handleVerificationCodeChange(index, value)}
-                    onKeyPress={({ nativeEvent }) => {
-                      if (nativeEvent.key === 'Backspace' && !digit && index > 0) {
-                        codeInputRefs.current[index - 1]?.focus();
-                      }
-                    }}
-                    keyboardType="number-pad"
-                    maxLength={1}
-                    selectTextOnFocus
-                    textAlign="center"
-                  />
-                ))}
-              </View>
-
-              <TouchableOpacity
-                onPress={handleVerifyResetOtp}
-                style={[
-                  styles.primaryButton,
-                  { backgroundColor: t.primary, shadowColor: t.primary },
-                  isSubmitting && { opacity: 0.9 },
-                ]}
-                activeOpacity={0.8}
-                disabled={isSubmitting}
-              >
-                <Text style={styles.primaryButtonText}>{isSubmitting ? translate('checking') : translate('verify_code')}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {resetStep === 'password' && (
-            <View style={styles.form}>
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: t.text }]}>{translate('new_password')}</Text>
-                <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]} pointerEvents="box-none">
-                  <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
-                  <TextInput
-                    placeholder="••••••••"
-                    value={newPassword}
-                    onChangeText={setNewPassword}
-                    style={[styles.input, { color: t.text }]}
-                    secureTextEntry
-                    placeholderTextColor={t.muted}
-                    editable={true}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: t.text }]}>{translate('confirm_password')}</Text>
-                <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]} pointerEvents="box-none">
-                  <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
-                  <TextInput
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    style={[styles.input, { color: t.text }]}
-                    secureTextEntry
-                    placeholderTextColor={t.muted}
-                    editable={true}
-                  />
-                </View>
-              </View>
-
-              <TouchableOpacity
-                onPress={handleSubmitNewPassword}
-                style={[
-                  styles.primaryButton,
-                  { backgroundColor: t.primary, shadowColor: t.primary },
-                  isSubmitting && { opacity: 0.9 },
-                ]}
-                activeOpacity={0.8}
-                disabled={isSubmitting}
-              >
-                <Text style={styles.primaryButtonText}>{isSubmitting ? translate('changing') : translate('change_password_btn')}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
+      <ForgotPasswordView
+        onBack={() => setIsForgotPassword(false)}
+        theme={t}
+      />
     );
   }
 
@@ -510,130 +125,30 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
       style={[styles.container, { backgroundColor: t.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomNavHeight + 24 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <Text style={[styles.brandTitle, { color: t.primary }]}>{translate('app_name')}</Text>
-          <Text style={[styles.subtitle, { color: t.muted }]}>
-            {isRegister ? translate('create_account') : translate('welcome_back')}
-          </Text>
-        </View>
-
-        <View style={styles.form}>
-          {isRegister && (
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: t.text }]}>{translate('full_name')}</Text>
-              <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]} pointerEvents="box-none">
-                <AppIcon name="user" size={20} color={t.muted} style={styles.inputIcon} />
-                <TextInput
-                  placeholder={translate('enter_name_placeholder')}
-                  value={name}
-                  onChangeText={setName}
-                  style={[styles.input, { color: t.text }]}
-                  placeholderTextColor={t.muted}
-                  editable={true}
-                />
-              </View>
-            </View>
-          )}
-
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: t.text }]}>{translate('email')}</Text>
-            <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]} pointerEvents="box-none">
-              <AppIcon name="mail" size={20} color={t.muted} style={styles.inputIcon} />
-              <TextInput
-                placeholder="example@email.com"
-                value={email}
-                onChangeText={setEmail}
-                style={[styles.input, { color: t.text }]}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                placeholderTextColor={t.muted}
-                editable={true}
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <View style={styles.labelRow}>
-              <Text style={[styles.label, { color: t.text }]}>{translate('password')}</Text>
-              {!isRegister && (
-                <TouchableOpacity
-                  onPress={() => setIsForgotPassword(true)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.forgotPassword, { color: t.primary }]}>{translate('forgot_password_link')}</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-            <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
-              <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
-              <TextInput
-                placeholder="••••••••"
-                value={password}
-                onChangeText={setPassword}
-                style={[styles.input, { color: t.text }]}
-                secureTextEntry={!showPassword}
-                placeholderTextColor={t.muted}
-                editable={true}
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeButton}
-                activeOpacity={0.7}
-              >
-                <AppIcon 
-                  name={showPassword ? "eye-off" : "eye"} 
-                  size={20} 
-                  color={t.muted} 
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            onPress={handleSubmit}
-            style={[
-              styles.primaryButton,
-              { backgroundColor: t.primary },
-              isSubmitting && { opacity: 0.9 },
-            ]}
-            activeOpacity={0.8}
-            disabled={isSubmitting}
-          >
-            <Text style={styles.primaryButtonText}>
-              {isSubmitting ? translate('processing') : isRegister ? translate('register') : translate('login')}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: t.muted }]}>
-            {isRegister ? translate('already_have_account') : translate('not_have_account')}
-          </Text>
-          <TouchableOpacity
-            onPress={() => {
-              setIsRegister(!isRegister);
-              setIsForgotPassword(false);
-              setIsVerifyingEmail(false);
-              setPendingRegister(null);
-              setVerificationCode(['', '', '', '', '', '']);
-              setResetStep('email');
-              setResetEmailSent(false);
-              setResetToken('');
-              setNewPassword('');
-              setConfirmPassword('');
-            }}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.footerLink, { color: t.primary }]}>
-              {isRegister ? translate('login') : translate('register_now')}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <AuthForm
+          isRegister={isRegister}
+          email={email}
+          setEmail={setEmail}
+          password={password}
+          setPassword={setPassword}
+          name={name}
+          setName={setName}
+          onSubmit={handleSubmit}
+          onForgotPassword={() => setIsForgotPassword(true)}
+          onToggleMode={() => {
+            setIsRegister(!isRegister);
+            setEmail('');
+            setPassword('');
+            setName('');
+          }}
+          isSubmitting={isSubmitting}
+          theme={t}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -642,181 +157,9 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   contentContainer: {
     padding: 24,
     paddingTop: 64,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    padding: 8,
-    marginBottom: 24,
-  },
-  header: {
-    marginBottom: 32,
-  },
-  brandTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#2563EB',
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#2563EB',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  form: {
-    gap: 16,
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-  },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  forgotPassword: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#2563EB',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 12,
-    height: 48,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 14,
-    color: '#111827',
-  },
-  eyeButton: {
-    padding: 4,
-  },
-  primaryButton: {
-    backgroundColor: '#2563EB',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  primaryButtonLarge: {
-    paddingVertical: 16,
-    paddingHorizontal: 28,
-    minWidth: 220,
-    alignSelf: 'center',
-    borderRadius: 16,
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
-  },
-  footerText: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  footerLink: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#2563EB',
-  },
-  successContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  successIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#D1FAE5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  successTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  successText: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginBottom: 32,
-    maxWidth: 300,
-  },
-  emailHighlight: {
-    fontWeight: '600',
-    color: '#2563EB',
-  },
-  verificationContainer: {
-    gap: 24,
-    marginTop: 16,
-  },
-  verificationLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    textAlign: 'center',
-  },
-  codeInputContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  codeInput: {
-    width: 48,
-    height: 56,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
-    backgroundColor: '#FFFFFF',
-  },
-  resendButton: {
-    alignSelf: 'center',
-    paddingVertical: 8,
-  },
-  resendText: {
-    fontSize: 14,
-    color: '#2563EB',
-    fontWeight: '500',
   },
 });

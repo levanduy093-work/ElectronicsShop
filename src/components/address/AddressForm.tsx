@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Modal, FlatList, ActivityIndicator } from 'react-native';
+import { Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../common/Icon';
 import { AddressFormValues, AddressType } from '../../types';
 import { Theme, lightTheme, useTheme } from '../../theme';
 import { useToast } from '../common/ToastProvider';
-import { getDistricts, getProvinces, getWards, LocationOption } from '../../services/locations';
+import { LocationFields } from './LocationFields';
 
 interface AddressFormProps {
   title?: string;
@@ -28,90 +28,6 @@ const getEmptyForm = (t: (key: string) => string): AddressFormValues => ({
   isDefault: false,
 });
 
-interface LocationSelectModalProps {
-  visible: boolean;
-  title: string;
-  options: LocationOption[];
-  onClose: () => void;
-  onSelect: (option: LocationOption) => void;
-  theme: Theme;
-  loading?: boolean;
-}
-
-function LocationSelectModal({
-  visible,
-  title,
-  options,
-  onClose,
-  onSelect,
-  theme,
-  loading,
-}: LocationSelectModalProps) {
-  const { t } = useTranslation();
-  const [query, setQuery] = useState('');
-
-  useEffect(() => {
-    if (visible) setQuery('');
-  }, [visible]);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return options;
-    return options.filter(opt => opt.name.toLowerCase().includes(q));
-  }, [options, query]);
-
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={[styles.modalCard, { backgroundColor: theme.card }]}>
-          <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>{title}</Text>
-            <TouchableOpacity onPress={onClose} style={styles.modalClose} activeOpacity={0.7}>
-              <AppIcon name="close" size={20} color={theme.text} />
-            </TouchableOpacity>
-          </View>
-          <View style={[styles.inputGroup, { marginBottom: 12 }]}>
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder={t('search')}
-              placeholderTextColor={theme.muted}
-              style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
-            />
-          </View>
-          {loading ? (
-            <View style={styles.modalLoading}>
-              <ActivityIndicator color={theme.primary} />
-              <Text style={[styles.loadingText, { color: theme.muted }]}>{t('loading')}</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={filtered}
-              keyExtractor={(item) => `${item.code}`}
-              keyboardShouldPersistTaps="handled"
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  onPress={() => {
-                    onSelect(item);
-                    onClose();
-                  }}
-                  style={[styles.optionRow, { borderColor: theme.border }]}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.optionText, { color: theme.text }]}>{item.name}</Text>
-                </TouchableOpacity>
-              )}
-              ListEmptyComponent={
-                <Text style={[styles.emptyText, { color: theme.muted }]}>{t('no_results')}</Text>
-              }
-            />
-          )}
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
 export function AddressForm({
   title,
   submitLabel,
@@ -130,79 +46,10 @@ export function AddressForm({
 
   const mergedInitial = useMemo(() => ({ ...getEmptyForm(translate), ...initialValues }), [initialValues, translate]);
   const [formData, setFormData] = useState<AddressFormValues>(mergedInitial);
-  const [provinces, setProvinces] = useState<LocationOption[]>([]);
-  const [districts, setDistricts] = useState<LocationOption[]>([]);
-  const [wards, setWards] = useState<LocationOption[]>([]);
-  const [provinceLoading, setProvinceLoading] = useState(false);
-  const [districtLoading, setDistrictLoading] = useState(false);
-  const [wardLoading, setWardLoading] = useState(false);
-  const [provinceModal, setProvinceModal] = useState(false);
-  const [districtModal, setDistrictModal] = useState(false);
-  const [wardModal, setWardModal] = useState(false);
-  const [selectedProvinceCode, setSelectedProvinceCode] = useState<number | null>(null);
-  const [selectedDistrictCode, setSelectedDistrictCode] = useState<number | null>(null);
-
-  const loadProvinces = async () => {
-    setProvinceLoading(true);
-    try {
-      const data = await getProvinces();
-      setProvinces(data);
-    } catch (error: any) {
-      showToast(translate('cannotLoadProvinces'), 'error');
-    } finally {
-      setProvinceLoading(false);
-    }
-  };
-
-  const loadDistricts = async (provinceCode: number) => {
-    setDistrictLoading(true);
-    try {
-      const data = await getDistricts(provinceCode);
-      setDistricts(data);
-    } catch (error: any) {
-      showToast(translate('cannotLoadDistricts'), 'error');
-    } finally {
-      setDistrictLoading(false);
-    }
-  };
-
-  const loadWards = async (districtCode: number) => {
-    setWardLoading(true);
-    try {
-      const data = await getWards(districtCode);
-      setWards(data);
-    } catch (error: any) {
-      showToast(translate('cannotLoadWards'), 'error');
-    } finally {
-      setWardLoading(false);
-    }
-  };
 
   useEffect(() => {
     setFormData(mergedInitial);
   }, [mergedInitial]);
-
-  useEffect(() => {
-    loadProvinces();
-  }, []);
-
-  useEffect(() => {
-    if (!formData.city || provinces.length === 0) return;
-    const matched = provinces.find(p => p.name === formData.city);
-    if (matched && matched.code !== selectedProvinceCode) {
-      setSelectedProvinceCode(matched.code);
-      void loadDistricts(matched.code);
-    }
-  }, [formData.city, provinces]);
-
-  useEffect(() => {
-    if (!formData.district || districts.length === 0) return;
-    const matched = districts.find(d => d.name === formData.district);
-    if (matched && matched.code !== selectedDistrictCode) {
-      setSelectedDistrictCode(matched.code);
-      void loadWards(matched.code);
-    }
-  }, [formData.district, districts]);
 
   const handleSave = () => {
     if (!formData.name || !formData.phone || !formData.detailedAddress) {
@@ -211,69 +58,6 @@ export function AddressForm({
     }
     onSubmit(formData);
   };
-
-  const handleSelectProvince = (option: LocationOption) => {
-    setSelectedProvinceCode(option.code);
-    setSelectedDistrictCode(null);
-    setDistricts([]);
-    setWards([]);
-    setFormData(prev => ({
-      ...prev,
-      city: option.name,
-      district: '',
-      ward: '',
-    }));
-    void loadDistricts(option.code);
-  };
-
-  const handleSelectDistrict = (option: LocationOption) => {
-    if (!selectedProvinceCode) {
-      showToast(translate('selectProvinceFirst'), 'info');
-      return;
-    }
-    setSelectedDistrictCode(option.code);
-    setWards([]);
-    setFormData(prev => ({
-      ...prev,
-      district: option.name,
-      ward: '',
-    }));
-    void loadWards(option.code);
-  };
-
-  const handleSelectWard = (option: LocationOption) => {
-    if (!selectedDistrictCode) {
-      showToast(translate('selectDistrictFirst'), 'info');
-      return;
-    }
-    setFormData(prev => ({
-      ...prev,
-      ward: option.name,
-    }));
-  };
-
-  const renderSelect = (label: string, value: string, placeholder: string, onPress: () => void, loading?: boolean) => (
-    <View style={styles.inputGroup}>
-      <Text style={[styles.label, { color: t.text }]}>{label}</Text>
-      <TouchableOpacity
-        onPress={onPress}
-        style={[styles.selectBox, { borderColor: t.border, backgroundColor: t.surface }]}
-        activeOpacity={0.7}
-      >
-        <Text style={[
-          styles.selectText,
-          { color: value ? t.text : t.muted },
-        ]}>
-          {value || placeholder}
-        </Text>
-        {loading ? (
-          <ActivityIndicator size="small" color={t.primary} />
-        ) : (
-          <AppIcon name="chevron-down" size={16} color={t.muted} />
-        )}
-      </TouchableOpacity>
-    </View>
-  );
 
   const renderTypeButton = (type: AddressType, label: string, icon: string) => (
     <TouchableOpacity
@@ -298,12 +82,12 @@ export function AddressForm({
   );
 
   return (
-    <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: t.background }]} 
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: t.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar 
-        barStyle={t === lightTheme ? 'dark-content' : 'light-content'} 
+      <StatusBar
+        barStyle={t === lightTheme ? 'dark-content' : 'light-content'}
         backgroundColor="transparent"
         translucent={true}
       />
@@ -342,57 +126,15 @@ export function AddressForm({
             />
           </View>
 
-          {renderSelect(
-            translate('province_city_label'),
-            formData.city,
-            translate('enterCity'),
-            () => {
-              if (!provinces.length && !provinceLoading) {
-                void loadProvinces();
-              }
-              setProvinceModal(true);
-            },
-            provinceLoading,
-          )}
-
-          <View style={styles.row}>
-            <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-              {renderSelect(
-                translate('district_label'),
-                formData.district,
-                translate('enterDistrict'),
-                () => {
-                  if (!selectedProvinceCode) {
-                    showToast(translate('selectProvinceFirst'), 'info');
-                    return;
-                  }
-                  setDistrictModal(true);
-                  if (!districts.length && !districtLoading) {
-                    void loadDistricts(selectedProvinceCode);
-                  }
-                },
-                districtLoading,
-              )}
-            </View>
-            <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-              {renderSelect(
-                translate('ward_label'),
-                formData.ward,
-                translate('enterWard'),
-                () => {
-                  if (!selectedDistrictCode) {
-                    showToast(translate('selectDistrictFirst'), 'info');
-                    return;
-                  }
-                  setWardModal(true);
-                  if (!wards.length && !wardLoading) {
-                    void loadWards(selectedDistrictCode);
-                  }
-                },
-                wardLoading,
-              )}
-            </View>
-          </View>
+          <LocationFields
+            city={formData.city}
+            district={formData.district}
+            ward={formData.ward}
+            onCityChange={(city) => setFormData(prev => ({ ...prev, city }))}
+            onDistrictChange={(district) => setFormData(prev => ({ ...prev, district }))}
+            onWardChange={(ward) => setFormData(prev => ({ ...prev, ward }))}
+            theme={t}
+          />
 
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: t.text }]}>{translate('detailed_address_label')}</Text>
@@ -438,34 +180,6 @@ export function AddressForm({
           <Text style={styles.saveButtonText}>{submitLabel || defaultSubmitLabel}</Text>
         </TouchableOpacity>
       </ScrollView>
-
-      <LocationSelectModal
-        visible={provinceModal}
-        title={translate('selectProvince')}
-        options={provinces}
-        onClose={() => setProvinceModal(false)}
-        onSelect={handleSelectProvince}
-        theme={t}
-        loading={provinceLoading}
-      />
-      <LocationSelectModal
-        visible={districtModal}
-        title={translate('selectDistrict')}
-        options={districts}
-        onClose={() => setDistrictModal(false)}
-        onSelect={handleSelectDistrict}
-        theme={t}
-        loading={districtLoading}
-      />
-      <LocationSelectModal
-        visible={wardModal}
-        title={translate('selectWard')}
-        options={wards}
-        onClose={() => setWardModal(false)}
-        onSelect={handleSelectWard}
-        theme={t}
-        loading={wardLoading}
-      />
     </KeyboardAvoidingView>
   );
 }
@@ -520,9 +234,6 @@ const styles = StyleSheet.create({
   inputGroup: {
     gap: 8,
   },
-  row: {
-    flexDirection: 'row',
-  },
   label: {
     fontSize: 14,
     fontWeight: '500',
@@ -535,20 +246,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    fontSize: 14,
-    color: '#111827',
-  },
-  selectBox: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  selectText: {
     fontSize: 14,
     color: '#111827',
   },
@@ -599,47 +296,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#374151',
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  modalCard: {
-    maxHeight: '70%',
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 16,
-    gap: 12,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  modalClose: {
-    padding: 4,
-  },
-  modalLoading: {
-    alignItems: 'center',
-    paddingVertical: 16,
-    gap: 8,
-  },
-  loadingText: {
-    fontSize: 14,
-  },
-  optionRow: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  optionText: {
-    fontSize: 14,
-  },
   saveButton: {
     backgroundColor: '#2563EB',
     borderRadius: 12,
@@ -651,10 +307,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  emptyText: {
-    textAlign: 'center',
-    paddingVertical: 16,
-    fontSize: 14,
   },
 });

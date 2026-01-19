@@ -1,6 +1,7 @@
 import { NativeModules, Platform } from 'react-native';
 import { API_BASE_URL as ENV_API_URL, API_DEVICE_HOST } from '@env';
 import { getCurrentNetworkStatus } from '../utils/network';
+import i18n from '../i18n';
 
 export type AuthResponse = {
   user: any;
@@ -177,12 +178,12 @@ export type AiProductCard = {
 
 export type AiAction =
   | {
-      type: 'ADD_TO_CART';
-      payload: { productId: string; quantity: number };
-      requiresConfirmation: boolean;
-      confirmationId?: string;
-      note?: string;
-    };
+    type: 'ADD_TO_CART';
+    payload: { productId: string; quantity: number };
+    requiresConfirmation: boolean;
+    confirmationId?: string;
+    note?: string;
+  };
 
 export type AiChatResponse = {
   reply: string;
@@ -344,15 +345,15 @@ async function requestJson<TResponse>(
     const fallbackMessage =
       response.status === 401
         ? (typeof i18n?.t === 'function'
-            ? i18n.t('sessionExpired')
-            : 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.')
+          ? i18n.t('sessionExpired')
+          : 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.')
         : response.status >= 500
           ? (typeof i18n?.t === 'function'
-              ? i18n.t('serverUnavailable')
-              : 'Máy chủ đang gặp sự cố. Vui lòng thử lại sau.')
+            ? i18n.t('serverUnavailable')
+            : 'Máy chủ đang gặp sự cố. Vui lòng thử lại sau.')
           : (typeof i18n?.t === 'function'
-              ? i18n.t('errorOccurred')
-              : 'Đã xảy ra lỗi. Vui lòng thử lại.');
+            ? i18n.t('errorOccurred')
+            : 'Đã xảy ra lỗi. Vui lòng thử lại.');
     const message =
       (Array.isArray(data?.message) && data?.message[0]) ||
       data?.message ||
@@ -658,7 +659,7 @@ function backendToFrontendAddress(addr: BackendAddress, index: number): Frontend
   const address = [addr.street, addr.ward, addr.district, addr.city]
     .filter(Boolean)
     .join(', ');
-  
+
   return {
     id: `addr-${index}`,
     name: addr.name,

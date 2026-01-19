@@ -8,8 +8,9 @@ import { Address, AddressFormValues } from '../types';
 import { DEFAULT_ADDRESSES } from '../constants/defaults';
 import { buildFullAddress } from '../utils/address';
 import { AddressForm } from '../components/address/AddressForm';
+import { AddressItem } from '../components/address/AddressItem';
 import { getCurrentNetworkStatus, useNetworkStatus } from '../utils/network';
-import { getAddresses, addAddress, updateAddress, deleteAddress, setDefaultAddress, FrontendAddress } from '../services/api';
+import { getAddresses, addAddress, updateAddress, deleteAddress, setDefaultAddress } from '../services/api';
 
 interface AddressBookProps {
   onBack: () => void;
@@ -56,7 +57,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
   const loadAddresses = async () => {
     if (!accessToken) return;
     if (!ensureOnline()) return;
-    
+
     setIsLoading(true);
     try {
       const fetchedAddresses = await getAddresses(accessToken);
@@ -251,8 +252,8 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
 
   return (
     <View style={[styles.container, { backgroundColor: t.background }]}>
-      <StatusBar 
-        barStyle={t === lightTheme ? 'dark-content' : 'light-content'} 
+      <StatusBar
+        barStyle={t === lightTheme ? 'dark-content' : 'light-content'}
         backgroundColor="transparent"
         translucent={true}
       />
@@ -287,69 +288,15 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
           </View>
         ) : (
           addressList.map((addr) => (
-          <View
-            key={addr.id}
-            style={[
-              styles.addressCard,
-              { backgroundColor: t.card, borderColor: t.border, shadowOpacity: t === lightTheme ? 0.05 : 0, elevation: t === lightTheme ? 2 : 0 },
-              addr.isDefault && { borderColor: t.primary, borderWidth: 2 },
-            ]}
-          >
-            <View style={styles.addressHeader}>
-              <View style={styles.addressInfo}>
-                <Text style={[styles.addressName, { color: t.text }]}>{addr.name}</Text>
-                <Text style={[styles.addressSeparator, { color: t.muted }]}>{'|'}</Text>
-                <Text style={[styles.addressPhone, { color: t.muted }]}>{addr.phone}</Text>
-              </View>
-              {addr.isDefault ? (
-                <View style={[styles.defaultBadge, { backgroundColor: t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)', borderColor: t === lightTheme ? '#93C5FD' : t.primary }]}>
-                  <Text style={[styles.defaultBadgeText, { color: t.primary }]}>{translate('default')}</Text>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  onPress={() => handleSetDefault(addr.id)}
-                  style={[styles.setDefaultButton, { borderColor: t.border }]}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.setDefaultText, { color: t.muted }]}>{translate('set_as_default_address')}</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <Text style={[styles.addressText, { color: t.text }]}>{addr.address}</Text>
-
-            <View style={styles.addressFooter}>
-              <View style={[styles.typeBadge, { backgroundColor: t.surface }]}>
-                <AppIcon
-                  name={addr.type === 'Nhà riêng' ? 'home' : 'briefcase'}
-                  size={10}
-                  color={t.muted}
-                />
-                <Text style={[styles.typeBadgeText, { color: t.muted }]}>
-                  {addr.type === 'Nhà riêng' ? translate('home') : translate('office')}
-                </Text>
-              </View>
-              <View style={styles.actions}>
-                <TouchableOpacity
-                  onPress={() => openEditForm(addr)}
-                  style={styles.actionButton}
-                  activeOpacity={0.7}
-                >
-                  <AppIcon name="edit" size={14} color={t.primary} />
-                  <Text style={[styles.actionText, { color: t.primary }]}>{translate('edit')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleDelete(addr.id)}
-                  style={styles.actionButton}
-                  activeOpacity={0.7}
-                >
-                  <AppIcon name="trash" size={14} color="#EF4444" />
-                  <Text style={[styles.actionText, { color: '#EF4444' }]}>{translate('delete')}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        ))
+            <AddressItem
+              key={addr.id}
+              address={addr}
+              theme={t}
+              onSetDefault={handleSetDefault}
+              onEdit={openEditForm}
+              onDelete={handleDelete}
+            />
+          ))
         )}
 
         <TouchableOpacity
@@ -419,113 +366,6 @@ const styles = StyleSheet.create({
   offlineText: {
     fontSize: 12,
     fontWeight: '500',
-  },
-  addressCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  addressCardDefault: {
-    borderColor: '#93C5FD',
-    borderWidth: 2,
-  },
-  addressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  addressInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-  },
-  addressName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  addressSeparator: {
-    fontSize: 14,
-    color: '#9CA3AF',
-  },
-  addressPhone: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  defaultBadge: {
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#93C5FD',
-  },
-  defaultBadgeText: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: '#2563EB',
-  },
-  setDefaultButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  setDefaultText: {
-    fontSize: 10,
-    color: '#9CA3AF',
-  },
-  addressText: {
-    fontSize: 14,
-    color: '#4B5563',
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  addressFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  typeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  typeBadgeText: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  actionText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#2563EB',
   },
   addButton: {
     flexDirection: 'row',

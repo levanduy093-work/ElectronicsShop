@@ -56,7 +56,7 @@ class SocketService {
     if (this.socket) return;
 
     this.socket = io(SOCKET_URL, {
-      transports: ['websocket'], // Bắt buộc dùng websocket để ổn định trên React Native
+      transports: ['polling', 'websocket'], // Thêm polling để fallback nếu websocket lỗi
     });
 
     this.socket.on('connect', () => {
