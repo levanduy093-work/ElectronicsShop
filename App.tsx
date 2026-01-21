@@ -688,6 +688,7 @@ function App(): React.JSX.Element {
   const homeScrollOffsetRef = useRef(0);
   const [catalogSearch, setCatalogSearch] = useState('');
   const catalogScrollOffsetRef = useRef(0);
+  const searchScrollOffsetRef = useRef(0);
   const availableCategories = useMemo(() => {
     const base = (CATEGORIES.length ? CATEGORIES : extractCategoriesFromProducts(products)).map(c => c.name);
     return Array.from(new Set(base.filter(Boolean)));
@@ -1647,6 +1648,7 @@ function App(): React.JSX.Element {
   };
 
   const navigateToProduct = (product: Product) => {
+    setPreviousScreen(currentScreen);
     setSelectedProduct(product);
     setCurrentScreen('product-detail');
   };
@@ -2373,7 +2375,7 @@ function App(): React.JSX.Element {
         return selectedProduct ? (
           <ProductDetail
             product={selectedProduct}
-            onBack={() => handleTabChange(currentTab)}
+            onBack={() => setCurrentScreen(previousScreen)}
             onAddToCart={handleAddToCart}
             isFavorite={wishlist.some(item => item.id === selectedProduct.id)}
             onToggleFavorite={() => handleToggleWishlistAsync(selectedProduct)}
@@ -2548,6 +2550,10 @@ function App(): React.JSX.Element {
             isLoggedIn={isLoggedIn}
             accessToken={authTokens?.accessToken || null}
             filters={filters}
+            initialScrollOffset={searchScrollOffsetRef.current}
+            onScrollPositionChange={(offset) => {
+              searchScrollOffsetRef.current = offset;
+            }}
           />
         );
 

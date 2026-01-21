@@ -531,6 +531,17 @@ export function getPopularSearches(): Promise<string[]> {
   return getJson<string[]>('/users/popular-searches'); // Public endpoint
 }
 
+// Search Trends API - dedicated endpoint for search trends
+export function getSearchTrends(limit: number = 10): Promise<string[]> {
+  return getJson<string[]>(`/search-trends?limit=${limit}`); // Public endpoint
+}
+
+// Increment search trend - called when user clicks on a product from search results
+// This is a fire-and-forget endpoint, no auth required
+export function incrementSearchTrend(keyword: string): Promise<{ success: boolean }> {
+  return postJson<{ success: boolean }>('/search-trends/increment', { keyword });
+}
+
 export function getMyVouchers(token: string) {
   return getJson<ApiVoucher[]>('/vouchers/my', { token });
 }

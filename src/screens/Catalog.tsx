@@ -61,6 +61,7 @@ export function Catalog({
   const [searchQuery, setSearchQuery] = useState(controlledSearchQuery ?? '');
   const listRef = useRef<FlatList<Product>>(null);
   const hasRestoredScroll = useRef(false);
+  const [isLayoutReady, setIsLayoutReady] = useState(false);
 
   const normalizeCategory = (value?: string) => {
     const key = (value || '').trim().toLowerCase();
@@ -139,13 +140,19 @@ export function Catalog({
   }, [controlledSearchQuery]);
 
   useEffect(() => {
-    if (initialScrollOffset !== undefined && listRef.current) {
-      requestAnimationFrame(() => {
+    if (initialScrollOffset !== undefined && listRef.current && !hasRestoredScroll.current && isLayoutReady) {
+      // Wait for FlatList to be fully rendered before scrolling
+      const timer = setTimeout(() => {
         listRef.current?.scrollToOffset({ offset: initialScrollOffset, animated: false });
-      });
-      hasRestoredScroll.current = true;
+        hasRestoredScroll.current = true;
+      }, 200);
+      return () => clearTimeout(timer);
     }
-  }, [initialScrollOffset, filteredProducts.length]);
+  }, [initialScrollOffset, isLayoutReady]);
+
+  const handleLayout = () => {
+    setIsLayoutReady(true);
+  };
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     onScrollPositionChange?.(event.nativeEvent.contentOffset.y);
@@ -247,6 +254,11 @@ export function Catalog({
             showsVerticalScrollIndicator={false}
             onScroll={handleScroll}
             scrollEventThrottle={16}
+            onLayout={handleLayout}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            updateCellsBatchingPeriod={50}
+            windowSize={10}
           />
         ) : (
           <View style={styles.emptyContainer}>

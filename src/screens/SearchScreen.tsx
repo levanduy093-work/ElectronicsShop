@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../types';
@@ -28,6 +28,8 @@ interface SearchScreenProps {
     rating?: number | null;
     onlyInStock?: boolean;
   };
+  initialScrollOffset?: number;
+  onScrollPositionChange?: (offset: number) => void;
 }
 
 export function SearchScreen({
@@ -42,6 +44,8 @@ export function SearchScreen({
   isLoggedIn = false,
   accessToken = null,
   filters, // Destructure filters
+  initialScrollOffset,
+  onScrollPositionChange,
 }: SearchScreenProps) {
   const props = { filters }; // Helper to access props inside component if needed or just use destructured
 
@@ -53,6 +57,20 @@ export function SearchScreen({
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
   const [isRecentSearchesExpanded, setIsRecentSearchesExpanded] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Restore scroll position when component mounts or initialScrollOffset changes
+  useEffect(() => {
+    if (scrollViewRef.current && initialScrollOffset !== undefined) {
+      requestAnimationFrame(() => {
+        scrollViewRef.current?.scrollTo({ y: initialScrollOffset, animated: false });
+      });
+    }
+  }, [initialScrollOffset]);
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    onScrollPositionChange?.(event.nativeEvent.contentOffset.y);
+  };
 
   // Load search history khi component mount hoặc userId/accessToken thay đổi
   useEffect(() => {
@@ -147,6 +165,39 @@ export function SearchScreen({
       console.warn('Failed to save search query', error);
     }
   }, [userId, accessToken]);
+
+  // Lưu query vào search trends database chạy nền (fire-and-forget) - không block UI
+  const incrementTrendInBackground = useCallback((searchQuery: string) => {
+    if (!searchQuery || searchQuery.trim().length < 2) return;
+
+    // Fire-and-forget: gọi API increment trực tiếp, không cần auth
+    import('../services/api').then(({ incrementSearchTrend }) => {
+      incrementSearchTrend(searchQuery.trim())
+        .catch(err => console.warn('Background increment trend failed:', err));
+    });
+
+    // Đồng thời lưu vào search history của user (nếu đã đăng nhập)
+    if (userId && accessToken) {
+      saveSearchQuery(searchQuery.trim(), userId, accessToken)
+        .then(() => {
+          loadSearchHistory(userId, accessToken)
+            .then(setRecentSearches)
+            .catch(() => { /* ignore */ });
+        })
+        .catch(() => { /* ignore */ });
+    }
+  }, [userId, accessToken]);
+
+  // Handler khi user click vào sản phẩm trong kết quả tìm kiếm
+  const handleProductClick = useCallback((product: Product) => {
+    // 1. Lưu query vào search trends database chạy nền (không block, không cần auth)
+    if (query && query.trim().length >= 2) {
+      incrementTrendInBackground(query);
+    }
+
+    // 2. Gọi callback để navigate đến product detail (không bị delay)
+    onProductClick?.(product);
+  }, [query, incrementTrendInBackground, onProductClick]);
 
   // Hàm cập nhật query (không tự động lưu vào lịch sử)
   const updateQuery = useCallback((newQuery: string, shouldSave: boolean = false) => {
@@ -251,14 +302,24 @@ export function SearchScreen({
   const [trendingSearches, setTrendingSearches] = useState(['Raspberry Pi 5', 'ESP32 Cam', 'Mỏ hàn', 'Cảm biến nhiệt độ', 'Led RGB']);
 
   useEffect(() => {
-    import('../services/api').then(({ getPopularSearches }) => {
-      getPopularSearches()
+    import('../services/api').then(({ getSearchTrends, getPopularSearches }) => {
+      // Try the dedicated search trends endpoint first
+      getSearchTrends(10)
         .then(trends => {
           if (trends && trends.length > 0) {
             setTrendingSearches(trends);
           }
         })
-        .catch(err => console.warn('Failed to load specific trends', err));
+        .catch(() => {
+          // Fallback to popular searches from user history aggregation
+          getPopularSearches()
+            .then(trends => {
+              if (trends && trends.length > 0) {
+                setTrendingSearches(trends);
+              }
+            })
+            .catch(err => console.warn('Failed to load search trends', err));
+        });
     });
   }, []);
 
@@ -308,7 +369,14 @@ export function SearchScreen({
         )}
       </View>
 
-      <ScrollView style={[styles.content, { backgroundColor: t.background }]} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollViewRef}
+        style={[styles.content, { backgroundColor: t.background }]}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        contentOffset={{ x: 0, y: initialScrollOffset || 0 }}
+      >
         {query ? (
           <View style={styles.resultsContainer}>
             <Text style={[styles.resultsTitle, { color: t.muted }]}>{translate('search_results', { count: filteredProducts.length })}</Text>
@@ -319,7 +387,7 @@ export function SearchScreen({
                     key={p.id}
                     product={p}
                     theme={t}
-                    onPress={() => onProductClick?.(p)}
+                    onPress={() => handleProductClick(p)}
                   />
                 ))}
               </View>
