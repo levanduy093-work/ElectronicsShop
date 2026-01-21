@@ -1,65 +1,81 @@
-# ElectroAI - Ứng dụng Mua Sắm Linh Kiện Điện Tử
+# ElectroAI - Ứng dụng Mua Sắm Linh Kiện Điện Tử & Trợ Lý AI
 
-## 📱 Tổng quan
+## 📱 Tổng quan (Overview)
 
-ElectroAI là một ứng dụng di động React Native hiện đại chuyên biệt cho việc mua sắm và quản lý linh kiện điện tử. Ứng dụng kết hợp trải nghiệm thương mại điện tử mượt mà với sức mạnh của trí tuệ nhân tạo (AI) để hỗ trợ kỹ sư và người yêu thích điện tử trong việc lựa chọn linh kiện và phân tích mạch điện.
+**ElectroAI** là nền tảng thương mại điện tử thế hệ mới dành riêng cho lĩnh vực linh kiện điện tử, được tích hợp sâu Trí tuệ nhân tạo (AI) để hỗ trợ kỹ sư, sinh viên và người đam mê công nghệ.
 
-## ✨ Chức năng chi tiết
+Khác với các ứng dụng mua sắm thông thường, ElectroAI sở hữu một **"Kỹ sư AI" ảo**, có khả năng tư vấn kỹ thuật, phân tích sơ đồ mạch qua hình ảnh và tự động đề xuất linh kiện phù hợp, giúp rút ngắn thời gian từ ý tưởng đến thực thi.
 
-### 1. Trợ lý ảo AI (AI Engineer)
-Tính năng nổi bật nhất của ứng dụng, giúp người dùng tương tác thông minh:
-- **Chat tư vấn trực tiếp**: Trò chuyện với AI để tìm kiếm linh kiện, hỏi đáp về kỹ thuật.
-- **Phân tích hình ảnh**: Hỗ trợ upload ảnh (sơ đồ mạch, linh kiện) từ thư viện để AI phân tích.
-- **Tương tác ngữ cảnh**: AI có thể trả về các "thẻ sản phẩm" (Product Cards) cho phép người dùng xem chi tiết hoặc thêm vào giỏ hàng ngay trong khung chat.
-- **Hành động tự động**: Hỗ trợ các tác vụ như thêm vào giỏ hàng tự động thông qua xác nhận với AI.
+## ✨ Tính năng Nổi bật (Key Features)
 
-### 2. Mua sắm & Danh mục sản phẩm
-- **Catalog thông minh**:
-  - Hiển thị sản phẩm dạng lưới (Grid).
-  - **Bộ lọc đa dạng**: Lọc theo danh mục (Vi điều khiển, Cảm biến, IC số, v.v.), khoảng giá, đánh giá (rating) và tình trạng tồn kho.
-  - **Tìm kiếm**: Tìm kiếm sản phẩm theo tên với từ khóa.
-  - **Danh mục tự động**: Hệ thống tự động chuẩn hóa các tên danh mục khác nhau về chuẩn chung.
-- **Chi tiết sản phẩm**: Xem thông tin chi tiết, hình ảnh, giá bán và các thông số kỹ thuật.
+### 1. 🤖 Trợ lý Kỹ thuật AI (AI Engineer Assistant)
+Đây là "trái tim" của ứng dụng, mang lại trải nghiệm vượt trội:
+- **Tư vấn thông minh**: Chat bot hiểu ngữ cảnh kỹ thuật, giúp giải đáp thắc mắc về datasheet, thông số linh kiện.
+- **Phân tích hình ảnh (Vision)**: Upload ảnh sơ đồ mạch hoặc bo mạch thực tế, AI sẽ nhận diện các linh kiện và đề xuất danh sách mua hàng tương ứng.
+- **Thẻ sản phẩm trong Chat**: AI trả về trực tiếp các Product Card tương tác được, cho phép xem nhanh giá, tồn kho và thêm vào giỏ ngay trong cuộc hội thoại.
+- **Hành động tự động**: AI có thể thực hiện "Add to Cart" (Thêm vào giỏ) thay người dùng sau khi được xác nhận.
 
-### 3. Giỏ hàng & Thanh toán (Checkout)
-Quy trình thanh toán được thiết kế tối ưu qua 3 bước:
-- **Bước 1: Địa chỉ**: Chọn địa chỉ giao hàng từ sổ địa chỉ hoặc thêm mới.
-- **Bước 2: Vận chuyển**: Tùy chọn phương thức vận chuyển (Nhanh/Tiêu chuẩn) với mức phí rõ ràng.
-- **Bước 3: Thanh toán**:
-  - **VNPAY**: Tích hợp cổng thanh toán VNPAY, mở trực tiếp ứng dụng ngân hàng hoặc web để thanh toán, tự động kiểm tra trạng thái giao dịch.
+### 2. 🔐 Xác thực & Bảo mật (Authentication)
+Hệ thống tài khoản bảo mật cao:
+- **Đăng ký/Đăng nhập**: Hỗ trợ đăng ký tài khoản mới với quy trình xác thực OTP qua Email (SendGrid/SMTP).
+- **Quản lý mật khẩu**: Tính năng "Quên mật khẩu" và "Đổi mật khẩu" an toàn với mã xác minh OTP.
+- **Token Management**: Cơ chế tự động làm mới phiên đăng nhập (Refresh Token) giúp trải nghiệm người dùng không bị gián đoạn.
+
+### 3. 🛍️ Trải nghiệm Mua sắm (Shopping Experience)
+- **Danh mục đa dạng**: Hệ thống phân loại thông minh (Vi điều khiển, Cảm biến, IC, Dây cáp, v.v...) với khả năng tự động chuẩn hóa tên gọi.
+- **Tìm kiếm nâng cao**:
+  - Hỗ trợ tìm kiếm mờ (Fuzzy Search) thông minh.
+  - **Lịch sử tìm kiếm**: Lưu lại các từ khóa đã tìm giúp truy cập nhanh.
+- **Bộ lọc chuyên sâu (Filter)**: Lọc sản phẩm theo khoảng giá, đánh giá (sao), tình trạng tồn kho và danh mục.
+- **Chi tiết sản phẩm**:
+  - Thông số kỹ thuật (Specs) chi tiết.
+  - Xem Datasheet sản phẩm.
+  - **Sản phẩm liên quan**: Gợi ý các sản phẩm bổ trợ.
+  - **Đánh giá & Bình luận**: Xem và viết đánh giá, hỗ trợ đính kèm hình ảnh thực tế sản phẩm.
+
+### 4. ❤️ Tiện ích Cá nhân (User Utilities)
+- **Danh sách yêu thích (Wishlist)**: Lưu lại các linh kiện quan tâm để mua sau.
+- **Sổ địa chỉ**: Quản lý nhiều địa chỉ giao hàng, dễ dàng chuyển đổi địa chỉ mặc định.
+- **Ví Voucher**: Lưu trữ và áp dụng mã giảm giá.
+- **Trung tâm hỗ trợ (Support Center)**: Kênh hỗ trợ khách hàng tích hợp sẵn.
+
+### 5. 🛒 Giỏ hàng & Thanh toán (Checkout)
+Quy trình "Checkout" 3 bước tối ưu hóa tỷ lệ chuyển đổi:
+- **Giỏ hàng**: Tự động đồng bộ giỏ hàng giữa các thiết bị (nếu đăng nhập).
+- **Vận chuyển & Voucher**: Chọn phương thức vận chuyển và áp mã giảm giá trực quan.
+- **Thanh toán đa kênh**:
   - **COD**: Thanh toán khi nhận hàng.
-- **Mã giảm giá (Voucher)**: Áp dụng voucher giảm giá trực tiếp hoặc miễn phí vận chuyển.
+  - **VNPAY**: Tích hợp cổng thanh toán VNPAY an toàn, hỗ trợ quét QR, thẻ ATM/Visa nội địa và quốc tế.
 
-### 4. Quản lý Đơn hàng
-- **Lịch sử đơn hàng**: Theo dõi danh sách đơn hàng với trạng thái chi tiết (Đang xử lý, Đang giao, Hoàn thành, Đã hủy).
-- **Trạng thái trực quan**: Hiển thị trạng thái đơn hàng với màu sắc và badge tương ứng (ví dụ: Đang giao hàng - màu xanh, Đã hủy - màu đỏ).
-- **Chi tiết đơn hàng**: Xem lại thông tin sản phẩm, tổng tiền, phí vận chuyển và phương thức thanh toán của từng đơn hàng.
+### 6. 📦 Quản lý Đơn hàng (Order Management)
+- **Theo dõi thời gian thực (Real-time Tracking)**: Cập nhật trạng thái đơn hàng (Mới đặt, Đang xử lý, Đang giao, Thành công) ngay lập tức qua Socket.io.
+- **Lịch sử chi tiết**: Xem lại đầy đủ thông tin đơn hàng cũ, bao gồm cả timeline xử lý.
 
-### 5. Tài khoản & Cá nhân hóa
-- **Hồ sơ người dùng**: Quản lý thông tin cá nhân, cập nhật ảnh đại diện (Avatar).
-- **Sổ địa chỉ**: Lưu trữ và quản lý nhiều địa chỉ giao hàng, thiết lập địa chỉ mặc định.
-- **Ví Voucher**: Xem và quản lý danh sách mã giảm giá cá nhân.
-- **Thống kê**: Xem nhanh số lượng đơn hàng đã đặt và số voucher đang có.
+### 7. 🔔 Thông báo & Đa ngôn ngữ
+- **Push Notifications**: Thông báo đẩy qua Firebase Cloud Messaging (FCM) về trạng thái đơn hàng, khuyến mãi mới.
+- **Đa ngôn ngữ (i18n)**: Chuyển đổi linh hoạt giữa Tiếng Việt và Tiếng Anh.
+- **Giao diện**: Hỗ trợ Dark Mode / Light Mode.
 
-### 6. Tính năng khác
-- **Đa ngôn ngữ**: Hỗ trợ chuyển đổi ngôn ngữ (Tiếng Việt/Tiếng Anh) sử dụng `i18next`.
-- **Giao diện**: Hỗ trợ Dark Mode/Light Mode tùy theo cài đặt hệ thống hoặc người dùng.
-- **Thông báo**: Tích hợp Firebase Cloud Messaging để nhận thông báo về đơn hàng và khuyến mãi.
-- **Real-time**: Sử dụng Socket.io để cập nhật trạng thái đơn hàng thời gian thực.
+---
 
-## 🛠️ Công nghệ sử dụng
+## 🛠️ Công nghệ sử dụng (Tech Stack)
 
-### Core
-- **React Native**: 0.83.1
-- **React**: 19.2.0
-- **TypeScript**: 5.8.3
-- **Node.js**: >= 20
+### Mobile App (Client)
+- **Framework**: React Native 0.83.1
+- **Ngôn ngữ**: TypeScript 5.8
+- **State & Logic**: React Hooks, Context API.
+- **UI Kit**: Custom Design System, `react-native-vector-icons`, `react-native-svg`.
+- **Navigation**: React Navigation (Stack/Tab).
 
-### Libraries chính
-- **UI/UX**: `react-native-vector-icons`, `react-native-svg`, `react-native-safe-area-context`, `react-native-community/slider`.
-- **Networking & Data**: `socket.io-client` (Real-time), `react-native-firebase` (Push Notification), `@react-native-async-storage/async-storage` (Local Storage).
-- **Media**: `react-native-image-picker` (Upload ảnh).
-- **Payment**: Tích hợp VNPAY.
+### Kết nối & Tích hợp
+- **Real-time**: Socket.io Client.
+- **API**: RESTful API (Axios/Fetch).
+- **Notification**: Firebase Cloud Messaging (FCM).
+- **Storage**: AsyncStorage (Lưu cache, token, settings).
+- **Payment**: VNPAY SDK/Webview integration.
+- **AI Integration**: Kết nối tới module AI Backend xử lý NLP và Vision.
+
+---
 
 ## 🚀 Cài đặt và chạy ứng dụng
 
@@ -110,6 +126,8 @@ npm start
 npm run ios
 ```
 
+---
+
 ## 📞 Liên hệ & Hỗ trợ
 
 Để nhận file cấu hình môi trường **`.env`** (chứa API Keys, Firebase Config, Payment Gateway credentials) để chạy thử nghiệm đầy đủ các tính năng của dự án, vui lòng liên hệ:
@@ -118,4 +136,4 @@ npm run ios
 - **Email**: levanduy.work@gmail.com
 
 ---
-© 2024 ElectroAI Project.
+© 2026 ElectroAI Project.
