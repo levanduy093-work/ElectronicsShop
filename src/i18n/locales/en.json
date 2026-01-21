@@ -72,7 +72,6 @@
   "forgot_password_subtitle_otp": "Enter the OTP sent to your email.",
   "forgot_password_subtitle_password": "Enter new password for your account.",
   "send_otp": "Send OTP",
-  "sending": "Sending...",
   "checking": "Checking...",
   "verify_code": "Verify Code",
   "new_password": "New Password",
@@ -405,6 +404,7 @@
   "biometric_enable_prompt": "Authenticate to enable biometric lock",
   "biometric_app_locked": "App is locked",
   "biometric_unlock_with": "Use {{method}} to unlock",
+  "biometric_unlock_btn": "Unlock with {{method}}",
   "biometric_auth_failed": "Authentication failed. Please try again.",
   "biometric_unlock": "Unlock"
 }

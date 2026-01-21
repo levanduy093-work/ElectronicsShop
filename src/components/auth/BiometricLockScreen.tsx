@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { BiometricIcon } from '../common/BiometricIcon';
 import { authenticateBiometric, checkBiometricSupport, type BiometricStatus } from '../../services/BiometricService';
 import { useTheme } from '../../theme';
@@ -10,6 +11,7 @@ interface BiometricLockScreenProps {
 }
 
 export function BiometricLockScreen({ onUnlock }: BiometricLockScreenProps) {
+    const { t } = useTranslation();
     const insets = useSafeAreaInsets();
     const { theme, isDarkMode } = useTheme();
     const [biometricStatus, setBiometricStatus] = useState<BiometricStatus | null>(null);
@@ -42,7 +44,7 @@ export function BiometricLockScreen({ onUnlock }: BiometricLockScreenProps) {
         setAuthFailed(false);
 
         try {
-            const success = await authenticateBiometric('Xác thực để mở khóa ứng dụng');
+            const success = await authenticateBiometric(t('biometric_auth_prompt'));
             if (success && !hasUnlockedRef.current) {
                 hasUnlockedRef.current = true;
                 onUnlock();
@@ -66,18 +68,18 @@ export function BiometricLockScreen({ onUnlock }: BiometricLockScreenProps) {
                 </View>
 
                 <Text style={[styles.title, { color: theme.text }]}>
-                    Ứng dụng đã khóa
+                    {t('biometric_app_locked')}
                 </Text>
 
                 <Text style={[styles.subtitle, { color: theme.muted }]}>
                     {biometricStatus?.displayName
-                        ? `Sử dụng ${biometricStatus.displayName} để mở khóa`
-                        : 'Xác thực để tiếp tục'}
+                        ? t('biometric_unlock_with', { method: biometricStatus.displayName })
+                        : t('biometric_auth_prompt')}
                 </Text>
 
                 {authFailed && (
                     <Text style={[styles.errorText, { color: '#EF4444' }]}>
-                        Xác thực thất bại. Vui lòng thử lại.
+                        {t('biometric_auth_failed')}
                     </Text>
                 )}
 
@@ -89,8 +91,8 @@ export function BiometricLockScreen({ onUnlock }: BiometricLockScreenProps) {
                     <BiometricIcon type={biometricStatus?.biometryType || null} size={24} color="#FFFFFF" />
                     <Text style={styles.unlockButtonText}>
                         {biometricStatus?.displayName
-                            ? `Mở khóa bằng ${biometricStatus.displayName}`
-                            : 'Mở khóa'}
+                            ? t('biometric_unlock_btn', { method: biometricStatus.displayName })
+                            : t('biometric_unlock')}
                     </Text>
                 </TouchableOpacity>
             </View>

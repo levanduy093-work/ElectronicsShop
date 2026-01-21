@@ -72,7 +72,6 @@
   "forgot_password_subtitle_otp": "Nhập mã xác nhận đã được gửi đến email của bạn.",
   "forgot_password_subtitle_password": "Nhập mật khẩu mới cho tài khoản của bạn.",
   "send_otp": "Gửi mã xác nhận",
-  "sending": "Đang gửi...",
   "checking": "Đang kiểm tra...",
   "verify_code": "Xác nhận mã",
   "new_password": "Mật khẩu mới",
@@ -407,6 +406,7 @@
   "biometric_enable_prompt": "Xác thực để bật khóa sinh trắc học",
   "biometric_app_locked": "Ứng dụng đã khóa",
   "biometric_unlock_with": "Sử dụng {{method}} để mở khóa",
+  "biometric_unlock_btn": "Mở khóa bằng {{method}}",
   "biometric_auth_failed": "Xác thực thất bại. Vui lòng thử lại.",
   "biometric_unlock": "Mở khóa"
 }
