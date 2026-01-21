@@ -1,9 +1,16 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, StatusBar, Platform, useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
 import { darkTheme, lightTheme } from '../theme';
+import {
+  checkBiometricSupport,
+  setBiometricEnabled,
+  isBiometricLockEnabled,
+  authenticateBiometric,
+  type BiometricStatus
+} from '../services/BiometricService';
 
 interface SettingsProps {
   onBack: () => void;
@@ -15,6 +22,7 @@ interface SettingsProps {
   isPushEnabled?: boolean;
   onTogglePush?: () => void;
   onResetOnboarding?: () => void;
+  onBiometricChange?: (enabled: boolean) => void;
 }
 
 export function Settings({
@@ -26,6 +34,7 @@ export function Settings({
   isPushEnabled = true,
   onTogglePush,
   onResetOnboarding,
+  onBiometricChange,
 }: SettingsProps) {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -34,7 +43,31 @@ export function Settings({
     ? (systemColorScheme === 'dark')
     : themeMode === 'dark';
   const theme = isDarkMode ? darkTheme : lightTheme;
-  const [showThemeSelector, setShowThemeSelector] = React.useState(false);
+  const [showThemeSelector, setShowThemeSelector] = useState(false);
+
+  // Biometric state
+  const [biometricStatus, setBiometricStatus] = useState<BiometricStatus | null>(null);
+  const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
+
+  useEffect(() => {
+    // Load biometric support status
+    checkBiometricSupport().then(setBiometricStatus);
+    // Load saved biometric preference
+    isBiometricLockEnabled().then(setIsBiometricEnabled);
+  }, []);
+
+  const handleBiometricToggle = async (enabled: boolean) => {
+    if (enabled) {
+      // Require biometric auth before enabling
+      const authenticated = await authenticateBiometric('Xác thực để bật khóa sinh trắc học');
+      if (!authenticated) {
+        return; // Don't enable if auth failed
+      }
+    }
+    setIsBiometricEnabled(enabled);
+    await setBiometricEnabled(enabled);
+    onBiometricChange?.(enabled);
+  };
 
   const handleChangeLanguage = () => {
     if (onNavigateToLanguage) {
@@ -226,6 +259,43 @@ export function Settings({
               </View>
               <AppIcon name="chevron-right" size={18} color={theme.muted} />
             </TouchableOpacity>
+
+            {/* Biometric Lock */}
+            <>
+              <View style={styles.divider} />
+              <View style={styles.settingItem}>
+                <View style={styles.settingLeft}>
+                  <View style={[styles.settingIcon, { backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }]}>
+                    <AppIcon
+                      name={biometricStatus?.biometryType === 'FaceID' ? 'scan-face' : 'fingerprint'}
+                      size={18}
+                      color={theme.muted}
+                    />
+                  </View>
+                  <View style={styles.settingLabelContainer}>
+                    <Text style={[styles.settingLabel, { color: theme.text }]}>
+                      {biometricStatus?.isSupported
+                        ? (biometricStatus.biometryType === 'FaceID'
+                          ? t('biometric_lock_faceid')
+                          : t('biometric_lock_fingerprint'))
+                        : t('biometric_lock')}
+                    </Text>
+                    <Text style={[styles.settingSubtle, { color: theme.muted }]}>
+                      {biometricStatus?.isSupported
+                        ? t('biometric_lock_desc')
+                        : t('biometric_not_supported')}
+                    </Text>
+                  </View>
+                </View>
+                <Switch
+                  value={isBiometricEnabled}
+                  onValueChange={handleBiometricToggle}
+                  trackColor={{ false: '#E5E7EB', true: theme.primary }}
+                  thumbColor={isDarkMode ? '#F9FAFB' : '#FFFFFF'}
+                  disabled={!biometricStatus?.isSupported}
+                />
+              </View>
+            </>
           </View>
         </View>
       </ScrollView>

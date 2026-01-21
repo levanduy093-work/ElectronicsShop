@@ -50,6 +50,8 @@
 	<string>Cần quyền nhận diện giọng nói để sử dụng trợ lý AI</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Cần quyền truy cập thư viện ảnh để chọn ảnh đại diện</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Sử dụng Face ID để mở khóa ứng dụng</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>

@@ -397,5 +397,16 @@
   "push_notification_disabled": "Đã tắt thông báo đẩy",
   "push_notification_permission_denied": "Quyền thông báo bị từ chối. Vui lòng bật trong Cài đặt hệ thống",
   "push_notification_error": "Không thể bật thông báo đẩy",
-  "push_notification_will_enable_after_login": "Thông báo đẩy sẽ được bật sau khi đăng nhập"
+  "push_notification_will_enable_after_login": "Thông báo đẩy sẽ được bật sau khi đăng nhập",
+  "biometric_lock": "Mở khóa bằng sinh trắc học",
+  "biometric_lock_faceid": "Mở khóa bằng Face ID",
+  "biometric_lock_fingerprint": "Mở khóa bằng Vân tay",
+  "biometric_lock_desc": "Bảo mật ứng dụng với sinh trắc học",
+  "biometric_not_supported": "Thiết bị không hỗ trợ tính năng này",
+  "biometric_auth_prompt": "Xác thực để mở khóa ứng dụng",
+  "biometric_enable_prompt": "Xác thực để bật khóa sinh trắc học",
+  "biometric_app_locked": "Ứng dụng đã khóa",
+  "biometric_unlock_with": "Sử dụng {{method}} để mở khóa",
+  "biometric_auth_failed": "Xác thực thất bại. Vui lòng thử lại.",
+  "biometric_unlock": "Mở khóa"
 }

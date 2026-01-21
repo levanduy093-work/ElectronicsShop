@@ -17,6 +17,7 @@
     "@react-native-firebase/app": "^23.8.2",
     "@react-native-firebase/messaging": "^23.8.2",
     "@react-native/gradle-plugin": "^0.83.1",
+    "@sbaiahmed1/react-native-biometrics": "^0.11.0",
     "i18next": "^25.7.4",
     "intl-pluralrules": "^2.0.1",
     "prop-types": "^15.8.1",
