@@ -79,7 +79,6 @@ yarn-error.log
 
 # Secrets and service configs
 .env
-.env.*
 .npmrc
 android/app/google-services.json
 ios/GoogleService-Info.plist
