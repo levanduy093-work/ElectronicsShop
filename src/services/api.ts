@@ -527,6 +527,10 @@ export function clearSearchHistory(token: string): Promise<void> {
   return deleteJson<void>('/users/me/search-history', { token });
 }
 
+export function getPopularSearches(): Promise<string[]> {
+  return getJson<string[]>('/users/popular-searches'); // Public endpoint
+}
+
 export function getMyVouchers(token: string) {
   return getJson<ApiVoucher[]>('/vouchers/my', { token });
 }

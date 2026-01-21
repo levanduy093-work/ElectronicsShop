@@ -248,7 +248,19 @@ export function SearchScreen({
     })
     : [];
 
-  const trendingSearches = ['Raspberry Pi 5', 'ESP32 Cam', 'Mỏ hàn', 'Cảm biến nhiệt độ', 'Led RGB'];
+  const [trendingSearches, setTrendingSearches] = useState(['Raspberry Pi 5', 'ESP32 Cam', 'Mỏ hàn', 'Cảm biến nhiệt độ', 'Led RGB']);
+
+  useEffect(() => {
+    import('../services/api').then(({ getPopularSearches }) => {
+      getPopularSearches()
+        .then(trends => {
+          if (trends && trends.length > 0) {
+            setTrendingSearches(trends);
+          }
+        })
+        .catch(err => console.warn('Failed to load specific trends', err));
+    });
+  }, []);
 
   return (
     <KeyboardAvoidingView
