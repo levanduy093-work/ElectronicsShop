@@ -2547,6 +2547,7 @@ function App(): React.JSX.Element {
             userId={userId}
             isLoggedIn={isLoggedIn}
             accessToken={authTokens?.accessToken || null}
+            filters={filters}
           />
         );
 

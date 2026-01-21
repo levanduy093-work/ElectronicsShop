@@ -20,6 +20,12 @@ interface SearchScreenProps {
   userId?: string | null;
   isLoggedIn?: boolean;
   accessToken?: string | null;
+  filters?: {
+    priceRange?: [number, number];
+    categories?: string[];
+    rating?: number | null;
+    onlyInStock?: boolean;
+  };
 }
 
 export function SearchScreen({
@@ -33,7 +39,10 @@ export function SearchScreen({
   userId = null,
   isLoggedIn = false,
   accessToken = null,
+  filters, // Destructure filters
 }: SearchScreenProps) {
+  const props = { filters }; // Helper to access props inside component if needed or just use destructured
+
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
   const { t: translate } = useTranslation();
@@ -137,8 +146,17 @@ export function SearchScreen({
     ic: ['ic so', 'ic số', 'digital ic'],
   };
 
+  // Filters
+  const {
+    priceRange = [0, 100000000],
+    categories = [],
+    rating = null,
+    onlyInStock = false
+  } = (props.filters || {});
+
   const filteredProducts = query
     ? products.filter(p => {
+      // 1. Text Search Matching
       const aliases = categoryAliases[normalizeText(p.category)] || [];
       const haystacks = [
         p.name,
@@ -150,7 +168,19 @@ export function SearchScreen({
           .map(([k, v]) => `${k} ${v}`)
           .join(' '),
       ];
-      return haystacks.some(h => fuzzyMatch(h, query));
+      const textMatch = haystacks.some(h => fuzzyMatch(h, query));
+      if (!textMatch) return false;
+
+      // 2. Filter Matching
+      if (p.price < priceRange[0] || p.price > priceRange[1]) return false;
+
+      if (categories.length > 0 && !categories.includes(p.category)) return false;
+
+      if (rating !== null && p.rating < rating) return false;
+
+      if (onlyInStock && p.stock === 'Out of Stock') return false;
+
+      return true;
     })
     : [];
 
