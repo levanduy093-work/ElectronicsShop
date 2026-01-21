@@ -20,6 +20,7 @@ Hệ thống tài khoản bảo mật cao:
 - **Đăng ký/Đăng nhập**: Hỗ trợ đăng ký tài khoản mới với quy trình xác thực OTP qua Email (SendGrid/SMTP).
 - **Quản lý mật khẩu**: Tính năng "Quên mật khẩu" và "Đổi mật khẩu" an toàn với mã xác minh OTP.
 - **Token Management**: Cơ chế tự động làm mới phiên đăng nhập (Refresh Token) giúp trải nghiệm người dùng không bị gián đoạn.
+- **Khóa Ứng dụng (Biometric Lock)**: Bảo vệ quyền riêng tư bằng Face ID / Touch ID mỗi khi mở app hoặc quay lại từ nền (Background). Kích hoạt trong phần Cài đặt.
 
 ### 3. 🛍️ Trải nghiệm Mua sắm (Shopping Experience)
 - **Danh mục đa dạng**: Hệ thống phân loại thông minh (Vi điều khiển, Cảm biến, IC, Dây cáp, v.v...) với khả năng tự động chuẩn hóa tên gọi.
@@ -55,6 +56,27 @@ Quy trình "Checkout" 3 bước tối ưu hóa tỷ lệ chuyển đổi:
 - **Push Notifications**: Thông báo đẩy qua Firebase Cloud Messaging (FCM) về trạng thái đơn hàng, khuyến mãi mới.
 - **Đa ngôn ngữ (i18n)**: Chuyển đổi linh hoạt giữa Tiếng Việt và Tiếng Anh.
 - **Giao diện**: Hỗ trợ Dark Mode / Light Mode.
+
+---
+
+## ⚡ Hiệu suất & Tối ưu hóa (Performance) (New Update)
+Ứng dụng đã được tối ưu hóa sâu để đạt tốc độ khởi động "Zero-Wait" (tức thì):
+
+### 1. Zero-Wait Startup
+- Loại bỏ hoàn toàn màn hình chờ (Splash Loading).
+- App hiển thị ngay lập tức màn hình Home với dữ liệu mặc định/cache, sau đó cập nhật ngầm (Background Update).
+
+### 2. Parallel Data Loading
+- Sử dụng `Promise.all` để tải song song 5 luồng dữ liệu quan trọng (Auth, Cart, Theme, Onboarding, Push Settings) thay vì tuần tự.
+- Giảm thời gian khôi phục trạng thái xuống mức mili-giây.
+
+### 3. Strict Cache Strategy
+- Cơ chế **Cache-First**: Luôn ưu tiên hiển thị dữ liệu sản phẩm từ bộ nhớ đệm (AsyncStorage) trong lần mở đầu tiên.
+- **Background Fetch**: Dữ liệu mới nhất sẽ được tải ngầm và cập nhật UI mượt mà không gây gián đoạn.
+
+### 4. Code Splitting & Lazy Loading
+- Áp dụng `React.lazy` và `Suspense` để chia nhỏ bundle.
+- Chỉ tải các module cần thiết (Home) khi khởi động. Các màn hình phụ (Cart, Profile, Settings...) chỉ được tải vào bộ nhớ khi người dùng thực sự truy cập.
 
 ---
 
