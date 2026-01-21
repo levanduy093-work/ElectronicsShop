@@ -6,7 +6,7 @@ import { Product } from '../types';
 import { ProductCard } from '../components/ui/ProductCard';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../theme';
-import { loadSearchHistory, saveSearchQuery, clearSearchHistory } from '../utils/searchHistory';
+import { loadSearchHistory, saveSearchQuery, clearSearchHistory, loadLocalHistory } from '../utils/searchHistory';
 
 interface SearchScreenProps {
   onBack: () => void;
@@ -56,8 +56,24 @@ export function SearchScreen({
   useEffect(() => {
     const loadHistory = async () => {
       try {
-        const history = await loadSearchHistory(userId, accessToken || undefined);
-        setRecentSearches(history);
+        // 1. Cache-first: Load from local storage immediately for instant UI
+        const localData = await loadLocalHistory(userId);
+        if (localData && localData.length > 0) {
+          setRecentSearches(localData);
+        }
+
+        // 2. Network-update: Sync with server in background
+        if (userId && accessToken) {
+          const syncedData = await loadSearchHistory(userId, accessToken);
+          // Only update if different to avoid re-renders or if local was empty
+          if (JSON.stringify(syncedData) !== JSON.stringify(localData)) {
+            setRecentSearches(syncedData);
+          }
+        } else if (!localData || localData.length === 0) {
+          // If guest and no local data, normal load (which tries migration)
+          const history = await loadSearchHistory(userId, accessToken || undefined);
+          setRecentSearches(history);
+        }
       } catch (error) {
         console.warn('Failed to load search history', error);
       }

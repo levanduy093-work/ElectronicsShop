@@ -11,6 +11,8 @@ import { AddressForm } from '../components/address/AddressForm';
 import { AddressItem } from '../components/address/AddressItem';
 import { getCurrentNetworkStatus, useNetworkStatus } from '../utils/network';
 import { getAddresses, addAddress, updateAddress, deleteAddress, setDefaultAddress } from '../services/api';
+import { loadLocalAddresses, saveAddresses } from '../services/storage';
+import { socketService } from '../services/socket';
 
 interface AddressBookProps {
   onBack: () => void;
@@ -45,21 +47,52 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
     return true;
   }, [translate]);
 
+  // Cache-first load
+  useEffect(() => {
+    loadLocalAddresses().then((cached) => {
+      if (cached && cached.length > 0) {
+        setLocalAddresses(cached);
+        if (onUpdateAddresses) {
+          onUpdateAddresses(cached);
+        }
+      }
+    });
+  }, [onUpdateAddresses]);
+
+  // Real-time updates via Socket
+  useEffect(() => {
+    const handleAddressUpdate = (updatedAddresses: Address[]) => {
+      console.log('Received real-time address update');
+      setLocalAddresses(updatedAddresses);
+      saveAddresses(updatedAddresses); // Update cache
+      if (onUpdateAddresses) {
+        onUpdateAddresses(updatedAddresses);
+      }
+    };
+
+    socketService.on('addresses_updated', handleAddressUpdate);
+
+    return () => {
+      socketService.off('addresses_updated');
+    };
+  }, [onUpdateAddresses]);
+
   // Fetch addresses from API on mount if accessToken is available
   useEffect(() => {
     const loadAddresses = async () => {
       if (!accessToken) return;
       if (!ensureOnline()) return;
 
-      setIsLoading(true);
+      if (addressList.length === 0) setIsLoading(true); // Only show spinner if no cache
       try {
         const fetchedAddresses = await getAddresses(accessToken);
         setLocalAddresses(fetchedAddresses);
+        saveAddresses(fetchedAddresses); // Save to cache
         if (onUpdateAddresses) {
           onUpdateAddresses(fetchedAddresses);
         }
       } catch (error: any) {
-        Alert.alert(translate('error'), error.message || translate('cannotLoadAddresses'));
+        console.warn('Failed to fetch addresses', error);
       } finally {
         setIsLoading(false);
       }
@@ -70,7 +103,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
     } else if (addresses) {
       setLocalAddresses(addresses);
     }
-  }, [accessToken, addresses, ensureOnline, onUpdateAddresses, translate]);
+  }, [accessToken, addresses, ensureOnline, onUpdateAddresses, addressList.length]);
 
   const handleSetDefault = async (id: string) => {
     const index = addressList.findIndex(addr => addr.id === id);

@@ -174,7 +174,14 @@ export const loadSearchHistory = async (
 };
 
 /**
- * Load từ local storage
+ * Load từ local storage (public wrapper)
+ */
+export const loadLocalHistory = async (userId: string | null): Promise<string[]> => {
+  return await loadFromLocalStorage(userId);
+};
+
+/**
+ * Load từ local storage (internal implementation)
  */
 const loadFromLocalStorage = async (userId: string | null): Promise<string[]> => {
   try {

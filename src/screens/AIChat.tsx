@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
+import { socketService } from '../services/socket';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AiAction, AiProductCard, ChatMessage, Product } from '../types';
@@ -113,6 +114,25 @@ export function AIChat({
       frameSub?.remove();
     };
   }, []);
+
+  // Real-time chat sync
+  useEffect(() => {
+    const handleNewMessage = (newMessage: ChatMessage) => {
+      setMessages((prev) => {
+        // Prevent duplicates
+        if (prev.some(m => m.id === newMessage.id)) return prev;
+        const next = [...prev, newMessage];
+        onMessagesChange?.(next); // Helper to sync with parent/storage
+        return next;
+      });
+    };
+
+    socketService.on('chat_message', handleNewMessage);
+
+    return () => {
+      socketService.off('chat_message');
+    };
+  }, [onMessagesChange]);
 
   const bottomNavHeight = 80 + Math.max(insets.bottom, 12);
   const isKeyboardVisible = keyboardHeight > 0;
