@@ -2575,6 +2575,12 @@ function App(): React.JSX.Element {
 
               // Apply filters without changing state
               return products.filter(product => {
+                if (searchQuery) {
+                  const query = searchQuery.toLowerCase().trim();
+                  if (!product.name.toLowerCase().includes(query)) {
+                    return false;
+                  }
+                }
                 if (product.price < tempFilterState.priceRange[0] || product.price > tempFilterState.priceRange[1]) {
                   return false;
                 }
