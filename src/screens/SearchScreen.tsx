@@ -7,6 +7,8 @@ import { ProductCard } from '../components/ui/ProductCard';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../theme';
 import { loadSearchHistory, saveSearchQuery, clearSearchHistory, loadLocalHistory } from '../utils/searchHistory';
+import { socketService } from '../services/socket';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface SearchScreenProps {
   onBack: () => void;
@@ -81,6 +83,52 @@ export function SearchScreen({
 
     loadHistory();
   }, [userId, isLoggedIn, accessToken]);
+
+  // Real-time search history sync
+  useEffect(() => {
+    const handleHistoryUpdate = (updatedHistory: string[]) => {
+      console.log('Received search history update');
+      setRecentSearches(updatedHistory);
+      // We don't need to manually save to AsyncStorage here because the backend 
+      // is the source of truth for the 'updatedHistory' payload.
+      // However, to keep local cache in sync for next restart:
+      if (userId) {
+        import('../utils/searchHistory').then(({ saveSearchQuery }) => {
+          // Just refreshing the view is enough, but saving to local storage needs 
+          // a specific function or we can just rely on the next load.
+          // Better approach might be to expose a way to overwrite local storage.
+        });
+      }
+    };
+
+    // Better implementation: Update local storage directly
+    const handleSocketUpdate = async (updatedHistory: string[]) => {
+      setRecentSearches(updatedHistory);
+      // Sync to local storage for offline/next load
+      if (userId) {
+        const key = `electronicsshop/search_history/user/${userId}`;
+        const historyItems = updatedHistory.map((query, index) => ({
+          query,
+          timestamp: Date.now() - index * 1000
+        }));
+        const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
+        await AsyncStorage.setItem(key, JSON.stringify(historyItems));
+      }
+    };
+
+    if (userId) {
+      // We need to import socketService dynamically or ensure it's imported
+      import('../services/socket').then(({ socketService }) => {
+        socketService.on('search_history_updated', handleSocketUpdate);
+      });
+    }
+
+    return () => {
+      import('../services/socket').then(({ socketService }) => {
+        socketService.off('search_history_updated');
+      });
+    };
+  }, [userId]);
 
   useEffect(() => {
     setQuery(initialQuery);
