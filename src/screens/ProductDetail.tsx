@@ -170,6 +170,12 @@ export function ProductDetail({
     return { universalLink, deepLink };
   };
 
+  // Use ref to store callback to avoid triggering re-fetches when callback reference changes
+  const onReviewStatsChangeRef = useRef(onReviewStatsChange);
+  useEffect(() => {
+    onReviewStatsChangeRef.current = onReviewStatsChange;
+  }, [onReviewStatsChange]);
+
   const fetchReviews = useCallback(async () => {
     setReviewsLoading(true);
     try {
@@ -177,20 +183,21 @@ export function ProductDetail({
       setReviews(data);
       const avg =
         data.length > 0 ? data.reduce((sum, r) => sum + (r.rating || 0), 0) / data.length : 0;
-      onReviewStatsChange?.(product.id, { averageRating: avg, reviewCount: data.length });
+      onReviewStatsChangeRef.current?.(product.id, { averageRating: avg, reviewCount: data.length });
       setReviewsFetched(true);
     } catch (error: any) {
       console.warn('ProductDetail - Failed to load reviews', error?.message || error);
     } finally {
       setReviewsLoading(false);
     }
-  }, [product.id, onReviewStatsChange]);
+  }, [product.id]);
 
   useEffect(() => {
     setReviewsFetched(false);
     setActiveImageIndex(0); // Reset gallery
     fetchReviews();
-  }, [product.id, fetchReviews]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.id]); // Only re-fetch when product changes, not when fetchReviews reference changes
 
   useEffect(() => {
     const handler = (payload: any) => {

@@ -77,10 +77,13 @@ export function BottomNav({ currentTab, onTabChange, cartCount = 0, theme }: Bot
     );
   };
 
+  // Add extra padding on Android to avoid overlap with gesture navigation bar
+  const minBottomPadding = Platform.OS === 'android' ? 36 : 16;
+
   return (
     <View style={[
       styles.container,
-      { paddingBottom: Math.max(insets.bottom, 16), backgroundColor: resolvedTheme.surface, borderTopColor: resolvedTheme.border }
+      { paddingBottom: Math.max(insets.bottom, minBottomPadding), backgroundColor: resolvedTheme.surface, borderTopColor: resolvedTheme.border }
     ]}>
       <TabButton tab="home" icon="home" label={translate('home')} />
       <TabButton tab="catalog" icon="grid" label={translate('categories')} />
