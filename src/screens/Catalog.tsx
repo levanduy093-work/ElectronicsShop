@@ -44,7 +44,7 @@ interface CatalogProps {
 export function Catalog({
   onProductClick,
   onFilterClick,
-  filters,
+
   applyFilters,
   theme = lightTheme,
   products = [],
@@ -98,20 +98,20 @@ export function Catalog({
 
   // Start with all products
   let filteredProducts = products;
-  
+
   // Apply search filter first (if any)
   if (searchQuery) {
     filteredProducts = filteredProducts.filter(p =>
       p.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }
-  
+
   // Apply category filter (if not 'All')
   if (activeCategory !== 'All') {
     const normalizedActive = normalizeCategory(activeCategory);
     filteredProducts = filteredProducts.filter(p => normalizeCategory(p.category) === normalizedActive);
   }
-  
+
   // Apply advanced filters (price, rating, stock, categories from filter screen)
   if (applyFilters) {
     filteredProducts = applyFilters(filteredProducts);
@@ -152,8 +152,8 @@ export function Catalog({
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: theme.background }]} 
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: theme.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {/* Search Header */}
@@ -209,10 +209,10 @@ export function Catalog({
               activeOpacity={0.7}
             >
               <View style={styles.categoryTabContent}>
-                <AppIcon 
-                  name={cat.icon} 
-                  size={16} 
-                  color={isActive ? theme.surface : theme.muted} 
+                <AppIcon
+                  name={cat.icon}
+                  size={16}
+                  color={isActive ? theme.surface : theme.muted}
                 />
                 <Text style={[
                   styles.categoryTabText,

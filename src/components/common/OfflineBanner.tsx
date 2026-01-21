@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Animated, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from './Icon';
-import { Theme, lightTheme, useTheme } from '../../theme';
+import { useTheme } from '../../theme';
 
 interface OfflineBannerProps {
   visible: boolean;
@@ -10,8 +10,8 @@ interface OfflineBannerProps {
 
 export function OfflineBanner({ visible }: OfflineBannerProps) {
   const insets = useSafeAreaInsets();
-  const { theme, isDarkMode } = useTheme();
-  const t = theme || lightTheme;
+  const { isDarkMode } = useTheme();
+  // const t = theme || lightTheme;
   const slideAnim = React.useRef(new Animated.Value(-50)).current;
   const opacity = React.useRef(new Animated.Value(0)).current;
 

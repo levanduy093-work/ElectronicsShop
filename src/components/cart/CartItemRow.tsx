@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useTranslation } from 'react-i18next';
+
 import { AppIcon } from '../../components/common/Icon';
 import { ImageWithFallback } from '../../components/common/ImageWithFallback';
 import { CartItem } from '../../types';
@@ -24,7 +24,7 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({
     onEditClassification,
     theme: t,
 }) => {
-    const { t: translate } = useTranslation();
+
 
     return (
         <View style={[styles.itemCard, { backgroundColor: t.card, borderColor: t.border, shadowOpacity: t === lightTheme ? 0.05 : 0, elevation: t === lightTheme ? 2 : 0 }]}>

@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Share, useWindowDimensions, Modal, TextInput, Image, Animated, Easing, KeyboardAvoidingView, Platform, FlatList } from 'react-native';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Share, useWindowDimensions, Modal, TextInput, Image, Animated, Easing, KeyboardAvoidingView, Platform } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -56,7 +56,7 @@ export function ProductDetail({
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'desc' | 'specs' | 'reviews' | 'datasheet'>('desc');
   const insets = useSafeAreaInsets();
-  
+
   // Animation values
   const animItem = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const animScale = useRef(new Animated.Value(0)).current;
@@ -69,15 +69,15 @@ export function ProductDetail({
   // Options and Classifications state
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [selectedClassification, setSelectedClassification] = useState<string | null>(null);
-  
+
   // Get options and classifications from product, with fallback
-  const productOptions = product.options && product.options.length > 0 
-    ? product.options 
-    : ['Tiêu chuẩn'];
-  const productClassifications = product.classifications && product.classifications.length > 0 
-    ? product.classifications 
-    : [];
-  
+  const productOptions = useMemo(() => product.options && product.options.length > 0
+    ? product.options
+    : ['Tiêu chuẩn'], [product.options]);
+  const productClassifications = useMemo(() => product.classifications && product.classifications.length > 0
+    ? product.classifications
+    : [], [product.classifications]);
+
   // Initialize selected values
   useEffect(() => {
     if (productOptions.length > 0 && selectedOption === null) {
@@ -86,40 +86,40 @@ export function ProductDetail({
     if (productClassifications.length > 0 && selectedClassification === null) {
       setSelectedClassification(productClassifications[0]);
     }
-  }, [product.id]);
+  }, [product.id, productOptions, productClassifications, selectedOption, selectedClassification]);
 
   const runAddToCartAnimation = (callback: () => void) => {
     animItem.setValue({ x: 0, y: 0 });
     animScale.setValue(0.5);
     animOpacity.setValue(1);
 
-    const targetX = width / 2 - 40; 
+    const targetX = width / 2 - 40;
     const targetY = -(height / 2) + insets.top + 30;
 
     Animated.parallel([
       Animated.timing(animItem, {
         toValue: { x: targetX, y: targetY },
-        duration: 600, 
+        duration: 600,
         useNativeDriver: true,
         easing: Easing.bezier(0.2, 0.8, 0.2, 1),
       }),
       Animated.sequence([
         Animated.timing(animScale, {
-          toValue: 1, 
-          duration: 150, 
+          toValue: 1,
+          duration: 150,
           useNativeDriver: true,
         }),
         Animated.timing(animScale, {
-          toValue: 0.2, 
-          duration: 450, 
+          toValue: 0.2,
+          duration: 450,
           useNativeDriver: true,
         }),
       ]),
       Animated.sequence([
-        Animated.delay(450), 
+        Animated.delay(450),
         Animated.timing(animOpacity, {
           toValue: 0,
-          duration: 150, 
+          duration: 150,
           useNativeDriver: true,
         }),
       ]),
@@ -129,7 +129,7 @@ export function ProductDetail({
   };
 
   const [expandedReviews, setExpandedReviews] = useState<Record<string, boolean>>({});
-  const reviewImageSize = (slideWidth - 16 * 2 - 8 * 3) / 4; 
+  const reviewImageSize = (slideWidth - 16 * 2 - 8 * 3) / 4;
   const { theme: ctxTheme, isDarkMode } = useTheme();
   const theme = injectedTheme || ctxTheme;
   const { showToast } = useToast();
@@ -170,7 +170,7 @@ export function ProductDetail({
     return { universalLink, deepLink };
   };
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     setReviewsLoading(true);
     try {
       const data = await getReviews(product.id);
@@ -184,13 +184,13 @@ export function ProductDetail({
     } finally {
       setReviewsLoading(false);
     }
-  };
+  }, [product.id, onReviewStatsChange]);
 
   useEffect(() => {
     setReviewsFetched(false);
     setActiveImageIndex(0); // Reset gallery
     fetchReviews();
-  }, [product.id]);
+  }, [product.id, fetchReviews]);
 
   useEffect(() => {
     const handler = (payload: any) => {
@@ -205,7 +205,7 @@ export function ProductDetail({
     return () => {
       socketService.off('db_change');
     };
-  }, [product.id]);
+  }, [product.id, fetchReviews]);
 
   const formatReviewDate = (value?: string) => {
     if (!value) return '';
@@ -227,7 +227,7 @@ export function ProductDetail({
         title: product.name,
         url: shareLink,
       });
-    } catch (error) {
+    } catch {
       showToast(t('cannotShare'), 'error');
     }
   };
@@ -257,10 +257,10 @@ export function ProductDetail({
     }
 
     const result = onAddToCart(product, allowedQuantity, selectedOption || undefined, selectedClassification || undefined);
-    if (result === false) return; 
+    if (result === false) return;
 
-    showToast(t('addedToCart'), 'success'); 
-    runAddToCartAnimation(() => {});
+    showToast(t('addedToCart'), 'success');
+    runAddToCartAnimation(() => { });
   };
 
   const resetReviewForm = () => {
@@ -435,7 +435,7 @@ export function ProductDetail({
               </View>
             ))}
           </ScrollView>
-          
+
           {productImages.length > 1 && (
             <View style={styles.pagination}>
               {productImages.map((_, index) => (
@@ -451,59 +451,59 @@ export function ProductDetail({
           )}
 
           <View style={[styles.headerOverlay, { top: insets.top + 8 }]}>
-            <TouchableOpacity 
-              onPress={onBack} 
+            <TouchableOpacity
+              onPress={onBack}
               style={[
                 styles.headerButton,
                 {
                   backgroundColor: theme.surface,
                   shadowOpacity: !isDarkMode ? 0.12 : 0.3,
                 }
-              ]} 
+              ]}
               activeOpacity={0.7}
             >
               <AppIcon name="arrow-left" size={24} color={theme.text} />
             </TouchableOpacity>
             <View style={styles.headerRight}>
-              <TouchableOpacity 
-                onPress={handleShare} 
+              <TouchableOpacity
+                onPress={handleShare}
                 style={[
                   styles.headerButton,
                   {
                     backgroundColor: theme.surface,
                     shadowOpacity: !isDarkMode ? 0.12 : 0.3,
                   }
-                ]} 
+                ]}
                 activeOpacity={0.7}
               >
                 <AppIcon name="share2" size={24} color={theme.text} />
               </TouchableOpacity>
-              <TouchableOpacity 
-                onPress={handleHeartClick} 
+              <TouchableOpacity
+                onPress={handleHeartClick}
                 style={[
                   styles.headerButton,
                   {
                     backgroundColor: theme.surface,
                     shadowOpacity: !isDarkMode ? 0.12 : 0.3,
                   }
-                ]} 
+                ]}
                 activeOpacity={0.7}
               >
-                <AppIcon 
-                  name="heart" 
-                  size={24} 
-                  color={isFavorite ? "#EF4444" : theme.text} 
+                <AppIcon
+                  name="heart"
+                  size={24}
+                  color={isFavorite ? "#EF4444" : theme.text}
                 />
               </TouchableOpacity>
-              <TouchableOpacity 
-                onPress={onNavigateToCart} 
+              <TouchableOpacity
+                onPress={onNavigateToCart}
                 style={[
                   styles.headerButton,
                   {
                     backgroundColor: theme.surface,
                     shadowOpacity: !isDarkMode ? 0.12 : 0.3,
                   }
-                ]} 
+                ]}
                 activeOpacity={0.7}
               >
                 <AppIcon name="shopping-cart" size={24} color={theme.text} />
@@ -538,7 +538,7 @@ export function ProductDetail({
                 )}
               </View>
             </View>
-            
+
             <View style={styles.ratingRow}>
               <View style={styles.ratingContainer}>
                 <AppIcon name="star" size={16} color="#FBBF24" />
@@ -669,7 +669,7 @@ export function ProductDetail({
                 </View>
               </View>
             )}
-            
+
             {activeTab === 'specs' && (
               <View style={styles.specsContainer}>
                 {Object.entries(product.specs).map(([key, value]) => {
@@ -683,7 +683,7 @@ export function ProductDetail({
                   } else {
                     displayValue = String(value);
                   }
-                  
+
                   return (
                     <View key={key} style={styles.specRow}>
                       <Text style={[styles.specKey, { color: theme.muted }]}>{key}</Text>
@@ -738,8 +738,8 @@ export function ProductDetail({
                   </View>
                 </View>
 
-                <TouchableOpacity 
-                  activeOpacity={0.8} 
+                <TouchableOpacity
+                  activeOpacity={0.8}
                   onPress={handleWriteReview}
                   style={[
                     styles.writeReviewButton,
@@ -766,8 +766,8 @@ export function ProductDetail({
                 )}
 
                 {reviews.map((r) => (
-                  <View 
-                    key={r._id || r.productId + r.userId + (r.comment || '')} 
+                  <View
+                    key={r._id || r.productId + r.userId + (r.comment || '')}
                     style={[
                       styles.reviewCard,
                       {
@@ -804,7 +804,7 @@ export function ProductDetail({
                         {r.images
                           .slice(0, expandedReviews[r._id || r.productId] ? r.images.length : 4)
                           .map((img, idx) => {
-                            const extra = r.images.length - 4;
+                            const extra = (r.images?.length || 0) - 4;
                             const showOverlay = !(expandedReviews[r._id || r.productId]) && idx === 3 && extra > 0;
                             const Wrapper = showOverlay ? TouchableOpacity : View;
                             return (
@@ -850,9 +850,9 @@ export function ProductDetail({
             {activeTab === 'datasheet' && (
               <View style={styles.datasheetContainer}>
                 {datasheetFiles.map((file) => (
-                  <TouchableOpacity 
-                    key={file.id} 
-                    activeOpacity={0.8} 
+                  <TouchableOpacity
+                    key={file.id}
+                    activeOpacity={0.8}
                     style={[
                       styles.dataCard,
                       {
@@ -908,7 +908,7 @@ export function ProductDetail({
         animationType="fade"
         onRequestClose={handleCloseModal}
       >
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           style={styles.modalBackdrop}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
@@ -1011,7 +1011,7 @@ export function ProductDetail({
             />
           </TouchableOpacity>
         </View>
-        
+
         <TouchableOpacity
           onPress={handleAddToCart}
           style={[

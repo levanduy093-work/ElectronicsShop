@@ -86,7 +86,7 @@ export function Home({
     return () => {
       socketService.off('product_updated');
     };
-  }, []);
+  }, [onRefreshProducts]);
 
   const handleBannerPressInternal = (item: HomeBanner) => {
     if (onBannerPress) {

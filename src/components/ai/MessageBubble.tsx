@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, Modal, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Modal } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AiAction, AiProductCard, ChatMessage } from '../../types';
 import { AppIcon } from '../common/Icon';

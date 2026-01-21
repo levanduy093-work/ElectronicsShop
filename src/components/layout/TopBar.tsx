@@ -8,7 +8,7 @@ interface TopBarProps {
   title?: string;
   showSearch?: boolean;
   onSearchClick?: () => void;
-  onFilterClick?: () => void;
+
   onNotificationClick?: () => void;
   onNewChat?: () => void;
   theme?: Theme;
@@ -16,11 +16,11 @@ interface TopBarProps {
   visible?: boolean;
 }
 
-function TopBarComponent({ 
-  title = "ElectroAI", 
-  showSearch = true, 
-  onSearchClick, 
-  onFilterClick,
+function TopBarComponent({
+  title = "ElectroAI",
+  showSearch = true,
+  onSearchClick,
+
   onNotificationClick,
   onNewChat,
   theme = lightTheme,
@@ -34,10 +34,10 @@ function TopBarComponent({
 
   return (
     <View style={[
-      styles.container, 
-      { 
+      styles.container,
+      {
         paddingTop: visible ? topPadding : 0,
-        backgroundColor: resolvedTheme.surface, 
+        backgroundColor: resolvedTheme.surface,
         borderBottomColor: resolvedTheme.border,
         opacity: visible ? 1 : 0,
         height: visible ? undefined : 0,
@@ -51,11 +51,11 @@ function TopBarComponent({
             resizeMode="contain"
             fadeDuration={0}
             defaultSource={require('../../assets/images/logo.png')}
-            onLoadEnd={() => {}}
+            onLoadEnd={() => { }}
           />
           <Text style={[styles.title, { color: resolvedTheme.text }]}>{title}</Text>
         </View>
-        
+
         <View style={styles.rightSection}>
           {showSearch && (
             <TouchableOpacity

@@ -2,7 +2,7 @@ import 'intl-pluralrules';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Text } from 'react-native';
+
 
 import en from './locales/en.json';
 import vi from './locales/vi.json';
@@ -12,7 +12,7 @@ const RESOURCES = {
   vi: { translation: vi },
 };
 
-const LANGUAGE_DETECTOR = {
+const LANGUAGE_DETECTOR: any = {
   type: 'languageDetector',
   async: true,
   detect: async (callback: (lang: string) => void) => {
@@ -28,7 +28,7 @@ const LANGUAGE_DETECTOR = {
       return callback('vi');
     }
   },
-  init: () => {},
+  init: () => { },
   cacheUserLanguage: async (language: string) => {
     try {
       await AsyncStorage.setItem('user-language', language);
@@ -43,7 +43,7 @@ i18n
   .use(LANGUAGE_DETECTOR)
   .use(initReactI18next)
   .init({
-    compatibilityJSON: 'v3',
+    compatibilityJSON: 'v4',
     resources: RESOURCES,
     fallbackLng: 'vi',
     interpolation: {

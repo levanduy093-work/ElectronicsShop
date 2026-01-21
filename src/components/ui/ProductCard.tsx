@@ -11,14 +11,14 @@ interface ProductCardProps {
   product: Product;
   style?: any;
   onPress?: () => void;
-  onAdd?: (product: Product) => void;
+
   theme?: Theme;
 }
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 48) / 2; // 2 columns with padding
 
-export function ProductCard({ product, style, onPress, onAdd, theme = lightTheme }: ProductCardProps) {
+export function ProductCard({ product, style, onPress, theme = lightTheme }: ProductCardProps) {
   const { t } = useTranslation();
   const hasReviews = (product.reviews ?? 0) > 0 && (product.rating ?? 0) > 0;
   const displayRating = hasReviews ? Number(product.rating).toFixed(1) : '0';
@@ -48,12 +48,12 @@ export function ProductCard({ product, style, onPress, onAdd, theme = lightTheme
           </View>
         )}
       </View>
-      
+
       <View style={styles.content}>
         <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>
           {product.name}
         </Text>
-        
+
         <View style={styles.ratingContainer}>
           <AppIcon name="star" size={12} color="#FBBF24" />
           <Text style={[styles.rating, { color: theme.muted }]}>

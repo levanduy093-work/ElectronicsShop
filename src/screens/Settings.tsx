@@ -30,7 +30,7 @@ export function Settings({
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const systemColorScheme = useColorScheme();
-  const isDarkMode = themeMode === 'system' 
+  const isDarkMode = themeMode === 'system'
     ? (systemColorScheme === 'dark')
     : themeMode === 'dark';
   const theme = isDarkMode ? darkTheme : lightTheme;
@@ -50,8 +50,8 @@ export function Settings({
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar 
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
+      <StatusBar
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={theme.surface}
         translucent={true}
       />
@@ -72,8 +72,8 @@ export function Settings({
           <Text style={[styles.sectionTitle, { color: theme.muted }]}>{t('general')}</Text>
           <View style={[styles.sectionCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
             {/* Theme Mode */}
-            <TouchableOpacity 
-              style={styles.settingItem} 
+            <TouchableOpacity
+              style={styles.settingItem}
               activeOpacity={0.7}
               onPress={() => setShowThemeSelector(!showThemeSelector)}
             >
@@ -157,7 +157,7 @@ export function Settings({
               </View>
               <View style={styles.settingRight}>
                 <Text style={[styles.settingValue, { color: theme.muted }]}>
-                   {i18n.language === 'en' ? t('english') : t('vietnamese')}
+                  {i18n.language === 'en' ? t('english') : t('vietnamese')}
                 </Text>
                 <AppIcon name="chevron-right" size={18} color={theme.muted} />
               </View>
@@ -323,6 +323,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     marginTop: 2,
+    color: '#6B7280',
   },
   settingRight: {
     flexDirection: 'row',
@@ -339,11 +340,7 @@ const styles = StyleSheet.create({
     marginLeft: 16,
     marginRight: 16,
   },
-  settingSubtle: {
-    fontSize: 12,
-    marginTop: 2,
-    color: '#6B7280',
-  },
+
   themeSelector: {
     paddingHorizontal: 16,
     paddingVertical: 8,

@@ -504,9 +504,9 @@ const mapApiNotificationToUi = (item: ApiNotification, t?: (key: string, options
 };
 
 const mapApiProductToUi = (product: ApiProduct): Product => {
-    const stockNumber = product.stock ?? 0;
-    const stockLabel =
-      stockNumber <= 0 ? 'Out of Stock' : stockNumber < 5 ? 'Low Stock' : 'In Stock';
+  const stockNumber = product.stock ?? 0;
+  const stockLabel =
+    stockNumber <= 0 ? 'Out of Stock' : stockNumber < 5 ? 'Low Stock' : 'In Stock';
 
   const price = product.price?.salePrice ?? product.price?.originalPrice ?? 0;
   const originalPrice = product.price?.originalPrice || undefined;
@@ -607,11 +607,11 @@ function App(): React.JSX.Element {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const authTokensRef = useRef<{ accessToken: string; refreshToken: string } | null>(null);
   const cartIdRef = useRef<string | null>(null);
-  const cartSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const cartSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fcmRefreshUnsubRef = useRef<(() => void) | null>(null);
   const hasRegisteredFcmRef = useRef(false);
   const hasFetchedCartRef = useRef(false);
-  const openNotificationsRef = useRef<() => void>(() => {});
+  const openNotificationsRef = useRef<() => void>(() => { });
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
   const [notifications, setNotifications] = useState<UiNotification[]>([]);
@@ -667,10 +667,10 @@ function App(): React.JSX.Element {
     }
   }, []);
 
-  const loadProducts = async (options?: { useCache?: boolean }) => {
+  const loadProducts = useCallback(async (options?: { useCache?: boolean }) => {
     setIsLoadingProducts(true);
     setProductsError(null);
-    
+
     // Try to load from cache if offline or if useCache is true
     const isOffline = networkStatus.isConnected === false;
     if (isOffline || options?.useCache) {
@@ -692,21 +692,21 @@ function App(): React.JSX.Element {
       const mapped = result.map(mapApiProductToUi);
       setProducts(mapped);
       productsRef.current = mapped;
-      
+
       // Cache the products
       await cacheProducts(result);
-      
+
       setCartItems(prev =>
         prev.map(item => {
           const updated = mapped.find(p => p.id === item.id);
           return updated
-            ? { 
-                ...item, 
-                stockQuantity: updated.stockQuantity, 
-                stock: updated.stock,
-                options: updated.options,
-                classifications: updated.classifications,
-              }
+            ? {
+              ...item,
+              stockQuantity: updated.stockQuantity,
+              stock: updated.stock,
+              options: updated.options,
+              classifications: updated.classifications,
+            }
             : item;
         }),
       );
@@ -715,7 +715,7 @@ function App(): React.JSX.Element {
     } catch (error: any) {
       const errorMessage = error?.message || 'Không thể tải sản phẩm';
       console.warn('App.tsx - Failed to load products', errorMessage);
-      
+
       // Try cache on error
       const cached = await getCachedProducts();
       if (cached && cached.length > 0) {
@@ -730,7 +730,7 @@ function App(): React.JSX.Element {
     } finally {
       setIsLoadingProducts(false);
     }
-  };
+  }, [networkStatus.isConnected]);
 
   useEffect(() => {
     socketService.connect();
@@ -745,10 +745,10 @@ function App(): React.JSX.Element {
     };
   }, [loadProducts]);
 
-  const loadBanners = async (options?: { useCache?: boolean }) => {
+  const loadBanners = useCallback(async (options?: { useCache?: boolean }) => {
     setIsLoadingBanners(true);
     setBannersError(null);
-    
+
     // Try to load from cache if offline or if useCache is true
     const isOffline = networkStatus.isConnected === false;
     if (isOffline || options?.useCache) {
@@ -767,15 +767,15 @@ function App(): React.JSX.Element {
       const result = await getPublicBanners();
       const mapped = result.map(mapApiBannerToUi);
       setBanners(mapped);
-      
+
       // Cache the banners
       await cacheBanners(result);
-      
+
       setBannersError(null);
     } catch (error: any) {
       const errorMessage = error?.message || 'Không thể tải banner';
       console.warn('App.tsx - Failed to load banners', errorMessage);
-      
+
       // Try cache on error
       const cached = await getCachedBanners();
       if (cached && cached.length > 0) {
@@ -787,7 +787,7 @@ function App(): React.JSX.Element {
     } finally {
       setIsLoadingBanners(false);
     }
-  };
+  }, [networkStatus.isConnected]);
 
   const loadFavorites = async (tokenOverride?: string) => {
     const token = tokenOverride || authTokensRef.current?.accessToken;
@@ -900,7 +900,7 @@ function App(): React.JSX.Element {
     (url?: string | null) => {
       if (!url) return;
       try {
-        const parsed = new URL(url);
+        const parsed = new URL(url) as any;
         if (parsed.protocol !== 'electronicsshop:') return;
         const host = parsed.host;
         if (host === 'payment' || host === 'payment-return') {
@@ -968,7 +968,7 @@ function App(): React.JSX.Element {
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     },
-    [loadOrders, t],
+    [loadOrders, t, loadProducts],
   );
 
   const syncAuthTokens = useCallback((
@@ -988,7 +988,7 @@ function App(): React.JSX.Element {
         ...(user?.email ? { email: user.email } : {}),
         ...(user?.avatar ? { avatar: user.avatar } : {}),
       };
-      persistAuthState(tokens, nextProfile, nextUserId).catch(() => {});
+      persistAuthState(tokens, nextProfile, nextUserId).catch(() => { });
       return nextProfile;
     });
   }, [userId]);
@@ -1011,7 +1011,7 @@ function App(): React.JSX.Element {
 
   useEffect(() => {
     if (!selectedProduct) return;
-    
+
     // Initial client-side filter for immediate feedback
     const localRelated = products
       .filter(p => p.category === selectedProduct.category && p.id !== selectedProduct.id)
@@ -1119,7 +1119,7 @@ function App(): React.JSX.Element {
   const handleTogglePush = useCallback(async () => {
     const newValue = !isPushEnabled;
     setIsPushEnabled(newValue);
-    
+
     try {
       await AsyncStorage.setItem(PUSH_SETTINGS_KEY, JSON.stringify(newValue));
     } catch (err) {
@@ -1172,7 +1172,7 @@ function App(): React.JSX.Element {
 
   useEffect(() => {
     const restoreAuth = async () => {
-      let restoredLoggedIn = false;
+
       let tokenForBackground: string | null = null;
       try {
         const storedOnboarding = await AsyncStorage.getItem(ONBOARDING_STORAGE_KEY);
@@ -1185,7 +1185,6 @@ function App(): React.JSX.Element {
           if (parsed?.tokens?.accessToken && parsed?.tokens?.refreshToken) {
             syncAuthTokens(parsed.tokens, parsed.profile, parsed.userId ?? null);
             tokenForBackground = parsed.tokens.accessToken;
-            restoredLoggedIn = true;
           }
         }
 
@@ -1233,16 +1232,16 @@ function App(): React.JSX.Element {
       }
 
       if (tokenForBackground) {
-        loadOrders(tokenForBackground, { silent: true }).catch(() => {});
-        loadFavorites(tokenForBackground).catch(() => {});
-        loadVouchers(tokenForBackground).catch(() => {});
-        loadNotifications(tokenForBackground, { silent: true }).catch(() => {});
-        loadAddresses(tokenForBackground).catch(() => {});
+        loadOrders(tokenForBackground, { silent: true }).catch(() => { });
+        loadFavorites(tokenForBackground).catch(() => { });
+        loadVouchers(tokenForBackground).catch(() => { });
+        loadNotifications(tokenForBackground, { silent: true }).catch(() => { });
+        loadAddresses(tokenForBackground).catch(() => { });
       }
     };
 
     restoreAuth();
-  }, [syncAuthTokens]);
+  }, [syncAuthTokens, loadNotifications, loadOrders, loadProducts]);
 
   useEffect(() => {
     if (isRestoringAuth) return;
@@ -1273,17 +1272,17 @@ function App(): React.JSX.Element {
         setCartItems(prev => mergeCartItems(prev, mapped));
       })
       .catch(err => console.warn('App.tsx - Failed to fetch cart', err));
-  }, [isLoggedIn, authTokens?.accessToken, products]);
+  }, [isLoggedIn, authTokens?.accessToken, products, t]);
 
   useEffect(() => {
     // Load cache first for faster initial render
-    loadProducts({ useCache: true }).catch(() => {});
-    loadBanners({ useCache: true }).catch(() => {});
-    
+    loadProducts({ useCache: true }).catch(() => { });
+    loadBanners({ useCache: true }).catch(() => { });
+
     // Then load fresh data from API if online
     if (networkStatus.isConnected) {
-      loadProducts().catch(() => {});
-      loadBanners().catch(() => {});
+      loadProducts().catch(() => { });
+      loadBanners().catch(() => { });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1291,8 +1290,8 @@ function App(): React.JSX.Element {
   // Reload when network comes back online
   useEffect(() => {
     if (networkStatus.isConnected) {
-      loadProducts().catch(() => {});
-      loadBanners().catch(() => {});
+      loadProducts().catch(() => { });
+      loadBanners().catch(() => { });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [networkStatus.isConnected]);
@@ -1309,13 +1308,13 @@ function App(): React.JSX.Element {
             ...(doc.email ? { email: doc.email } : {}),
             ...(doc.avatar ? { avatar: doc.avatar } : {}),
           };
-          persistAuthState(authTokensRef.current as any, next, userId).catch(() => {});
+          persistAuthState(authTokensRef.current as any, next, userId).catch(() => { });
           return next;
         });
       }
 
       if (payload?.collection === 'vouchers' && authTokensRef.current?.accessToken) {
-        loadVouchers().catch(() => {});
+        loadVouchers().catch(() => { });
       }
 
       // Lắng nghe thay đổi notification state theo user (Mongo change stream)
@@ -1324,12 +1323,12 @@ function App(): React.JSX.Element {
         userId &&
         `${payload.fullDocument?.user_id || payload.fullDocument?.userId}` === `${userId}`
       ) {
-        loadNotifications(undefined, { silent: true }).catch(() => {});
+        loadNotifications(undefined, { silent: true }).catch(() => { });
       }
 
       if (payload?.collection === 'notifications' && authTokensRef.current?.accessToken) {
         // Khi có broadcast mới, refresh danh sách người dùng hiện tại
-        loadNotifications(undefined, { silent: true }).catch(() => {});
+        loadNotifications(undefined, { silent: true }).catch(() => { });
       }
 
       if (payload?.collection === 'orders' && authTokensRef.current?.accessToken) {
@@ -1341,7 +1340,7 @@ function App(): React.JSX.Element {
             const mapped = mapApiOrderToUi(doc, productsRef.current, t);
             setOrders(prev => {
               const exists = prev.some(o => o.id === mapped.id);
-              const updated = exists 
+              const updated = exists
                 ? prev.map(o => (o.id === mapped.id ? mapped : o))
                 : [mapped, ...prev];
               return updated.sort((a, b) => {
@@ -1376,7 +1375,7 @@ function App(): React.JSX.Element {
           });
           setSelectedProduct(prev => (prev && prev.id === mapped.id ? mapped : prev));
         } else {
-          loadProducts().catch(() => {}); // fallback
+          loadProducts().catch(() => { }); // fallback
         }
       }
     };
@@ -1384,22 +1383,22 @@ function App(): React.JSX.Element {
     return () => {
       socketService.off('db_change');
     };
-  }, [userId]);
+  }, [userId, loadNotifications, loadProducts, t]);
 
   useEffect(() => {
     if (isRestoringAuth) return;
     if (isLoggedIn && authTokens) {
-      persistAuthState(authTokens, userProfile, userId).catch(() => {});
+      persistAuthState(authTokens, userProfile, userId).catch(() => { });
     }
   }, [authTokens, isLoggedIn, userProfile, isRestoringAuth, userId]);
 
   useEffect(() => {
     if (isLoggedIn && authTokens?.accessToken) {
-      loadOrders().catch(() => {});
-      loadFavorites().catch(() => {});
-      loadVouchers().catch(() => {});
-      loadNotifications(undefined, { silent: true }).catch(() => {});
-      loadAddresses().catch(() => {});
+      loadOrders().catch(() => { });
+      loadFavorites().catch(() => { });
+      loadVouchers().catch(() => { });
+      loadNotifications(undefined, { silent: true }).catch(() => { });
+      loadAddresses().catch(() => { });
     } else if (!isLoggedIn) {
       setOrders([]);
       setWishlist([]);
@@ -1412,7 +1411,7 @@ function App(): React.JSX.Element {
 
   useEffect(() => {
     if (selectedOrderId && !orders.find(o => o.id === selectedOrderId)) {
-      fetchOrderDetail(selectedOrderId).catch(() => {});
+      fetchOrderDetail(selectedOrderId).catch(() => { });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrderId, orders]);
@@ -1420,16 +1419,16 @@ function App(): React.JSX.Element {
   // Auto-refresh orders every 60 seconds when user is logged in
   useEffect(() => {
     if (!isLoggedIn || !authTokensRef.current?.accessToken) return;
-    
+
     const interval = setInterval(() => {
-      loadOrders(undefined, { silent: true }).catch(() => {});
+      loadOrders(undefined, { silent: true }).catch(() => { });
     }, 60000); // Refresh every 60 seconds
 
     return () => clearInterval(interval);
   }, [isLoggedIn, authTokens?.accessToken, loadOrders]);
 
   const refreshOrders = () => {
-    loadOrders().catch(() => {});
+    loadOrders().catch(() => { });
   };
 
   const refreshOrderDetail = async (orderId: string) => {
@@ -1450,7 +1449,7 @@ function App(): React.JSX.Element {
       };
       setUserProfile(optimisticProfile);
       if (authTokensRef.current) {
-        persistAuthState(authTokensRef.current as any, optimisticProfile, userId).catch(() => {});
+        persistAuthState(authTokensRef.current as any, optimisticProfile, userId).catch(() => { });
       }
 
       const accessToken = authTokensRef.current?.accessToken;
@@ -1487,7 +1486,7 @@ function App(): React.JSX.Element {
           setUserProfile(prev => {
             const next = { ...prev, ...updatedUser };
             if (authTokensRef.current) {
-              persistAuthState(authTokensRef.current as any, next, userId).catch(() => {});
+              persistAuthState(authTokensRef.current as any, next, userId).catch(() => { });
             }
             return next;
           });
@@ -1496,7 +1495,7 @@ function App(): React.JSX.Element {
         }
       };
 
-      syncProfile().catch(() => {});
+      syncProfile().catch(() => { });
       return true;
     } catch (error: any) {
       console.warn('App.tsx - Failed to update profile', error?.message || error);
@@ -1633,7 +1632,7 @@ function App(): React.JSX.Element {
 
   const navigateToOrderHistory = () => {
     // Refresh orders when navigating back to ensure status is up to date
-    loadOrders().catch(() => {});
+    loadOrders().catch(() => { });
     setCurrentScreen('order-history');
   };
 
@@ -1642,7 +1641,7 @@ function App(): React.JSX.Element {
       openAuthScreen('login', currentScreen);
       return;
     }
-    loadNotifications(undefined, { silent: false }).catch(() => {});
+    loadNotifications(undefined, { silent: false }).catch(() => { });
     setCurrentScreen('notifications');
   }, [currentScreen, loadNotifications, openAuthScreen]);
 
@@ -1669,7 +1668,7 @@ function App(): React.JSX.Element {
   }, []);
 
   const refreshNotifications = () => {
-    loadNotifications(undefined, { silent: false }).catch(() => {});
+    loadNotifications(undefined, { silent: false }).catch(() => { });
   };
 
   const handleMarkNotificationRead = async (id: string) => {
@@ -1680,7 +1679,7 @@ function App(): React.JSX.Element {
       syncNotificationsFromApi(result);
     } catch (error: any) {
       console.warn('App.tsx - Failed to mark notification read', error?.message || error);
-      loadNotifications(undefined, { silent: true }).catch(() => {});
+      loadNotifications(undefined, { silent: true }).catch(() => { });
     }
   };
 
@@ -1726,7 +1725,7 @@ function App(): React.JSX.Element {
         const itemKey2 = `${item.id}-${item.selectedOption || 'default'}-${item.selectedClassification || 'default'}`;
         return itemKey2 === itemKey;
       });
-      
+
       if (existing) {
         const desired = existing.quantity + safeQuantity;
         const clamped = Math.min(desired, limit);
@@ -1752,22 +1751,22 @@ function App(): React.JSX.Element {
         if (!opt || typeof opt !== 'string' || !opt.trim()) return undefined;
         return opt.trim();
       };
-      
+
       const newItem: CartItem = {
-        ...product, 
+        ...product,
         quantity: Math.max(1, initialQty),
       };
-      
+
       const normalizedOption = normalizeOption(selectedOption);
       const normalizedClassification = normalizeOption(selectedClassification);
-      
+
       if (normalizedOption) {
         newItem.selectedOption = normalizedOption;
       }
       if (normalizedClassification) {
         newItem.selectedClassification = normalizedClassification;
       }
-      
+
       return [...prev, newItem];
     });
     return success;
@@ -1780,7 +1779,7 @@ function App(): React.JSX.Element {
 
         const limit = item.stockQuantity ?? Number.POSITIVE_INFINITY;
         const desired = item.quantity + delta;
-        
+
         // If decreasing quantity (delta < 0)
         if (delta < 0) {
           const clamped = Math.max(1, desired);
@@ -1793,7 +1792,7 @@ function App(): React.JSX.Element {
           }
           return { ...item, quantity: clamped };
         }
-        
+
         // If increasing quantity (delta > 0)
         if (delta > 0) {
           const clamped = Math.min(desired, limit);
@@ -1808,7 +1807,7 @@ function App(): React.JSX.Element {
           }
           return { ...item, quantity: clamped };
         }
-        
+
         // If delta === 0, no change
         return item;
       }),
@@ -2015,15 +2014,16 @@ function App(): React.JSX.Element {
           discount: 0,
           totalPrice: item.price * item.quantity,
         };
-        // Only include selectedOption if it has a non-empty value (strictly check)
-        const hasSelectedOption = item.selectedOption && typeof item.selectedOption === 'string' && item.selectedOption.trim().length > 0;
+        const selectedOption = item.selectedOption;
+        const hasSelectedOption = selectedOption && typeof selectedOption === 'string' && selectedOption.trim().length > 0;
         if (hasSelectedOption) {
-          orderItem.selectedOption = item.selectedOption.trim();
+          orderItem.selectedOption = selectedOption.trim();
         }
         // Only include selectedClassification if it has a non-empty value (strictly check)
-        const hasSelectedClassification = item.selectedClassification && typeof item.selectedClassification === 'string' && item.selectedClassification.trim().length > 0;
+        const selectedClassification = item.selectedClassification;
+        const hasSelectedClassification = selectedClassification && typeof selectedClassification === 'string' && selectedClassification.trim().length > 0;
         if (hasSelectedClassification) {
-          orderItem.selectedClassification = item.selectedClassification.trim();
+          orderItem.selectedClassification = selectedClassification.trim();
         }
         return orderItem;
       }),
@@ -2035,13 +2035,13 @@ function App(): React.JSX.Element {
       paymentStatus: normalizedPayment === 'cod' ? 'pending' : 'pending',
       shippingAddress: params.shippingAddress
         ? {
-            name: params.shippingAddress.name,
-            phone: params.shippingAddress.phone,
-            city: params.shippingAddress.city,
-            district: params.shippingAddress.district,
-            ward: params.shippingAddress.ward,
-            street: params.shippingAddress.detailedAddress || params.shippingAddress.address,
-          }
+          name: params.shippingAddress.name,
+          phone: params.shippingAddress.phone,
+          city: params.shippingAddress.city,
+          district: params.shippingAddress.district,
+          ward: params.shippingAddress.ward,
+          street: params.shippingAddress.detailedAddress || params.shippingAddress.address,
+        }
         : undefined,
     };
 
@@ -2057,7 +2057,7 @@ function App(): React.JSX.Element {
       const created = await apiCreateOrder(payload, authTokensRef.current.accessToken);
       const uiOrder = mapApiOrderToUi(created, productsRef.current, t);
       setOrders(prev => [uiOrder, ...prev]);
-      loadProducts().catch(() => {});
+      loadProducts().catch(() => { });
       return uiOrder;
     } catch (error: any) {
       console.warn('App.tsx - Failed to create order', error?.message || error);
@@ -2122,12 +2122,12 @@ function App(): React.JSX.Element {
       const next = prev.map(p =>
         p.id === productId
           ? {
-              ...p,
-              rating: stats.averageRating,
-              averageRating: stats.averageRating,
-              reviews: stats.reviewCount,
-              reviewCount: stats.reviewCount,
-            }
+            ...p,
+            rating: stats.averageRating,
+            averageRating: stats.averageRating,
+            reviews: stats.reviewCount,
+            reviewCount: stats.reviewCount,
+          }
           : p,
       );
       productsRef.current = next;
@@ -2137,12 +2137,12 @@ function App(): React.JSX.Element {
     setSelectedProduct(prev =>
       prev?.id === productId
         ? {
-            ...prev,
-            rating: stats.averageRating,
-            averageRating: stats.averageRating,
-            reviews: stats.reviewCount,
-            reviewCount: stats.reviewCount,
-          }
+          ...prev,
+          rating: stats.averageRating,
+          averageRating: stats.averageRating,
+          reviews: stats.reviewCount,
+          reviewCount: stats.reviewCount,
+        }
         : prev,
     );
   };
@@ -2152,14 +2152,14 @@ function App(): React.JSX.Element {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
     };
-    markOnboardingSeen().catch(() => {});
+    markOnboardingSeen().catch(() => { });
     setAddresses([]); // reset stale addresses from previous session
     syncAuthTokens(tokens, data.user, data.user?._id ?? null);
-    loadOrders(tokens.accessToken).catch(() => {});
-    loadFavorites(tokens.accessToken).catch(() => {});
-    loadVouchers(tokens.accessToken).catch(() => {});
-    loadNotifications(tokens.accessToken, { silent: true }).catch(() => {});
-    loadAddresses(tokens.accessToken).catch(() => {});
+    loadOrders(tokens.accessToken).catch(() => { });
+    loadFavorites(tokens.accessToken).catch(() => { });
+    loadVouchers(tokens.accessToken).catch(() => { });
+    loadNotifications(tokens.accessToken, { silent: true }).catch(() => { });
+    loadAddresses(tokens.accessToken).catch(() => { });
     // Sync search history từ local lên API khi user đăng nhập
     import('./src/utils/searchHistory').then(({ syncLocalToApi }) => {
       syncLocalToApi(data.user?._id ?? null, tokens.accessToken);
@@ -2199,7 +2199,7 @@ function App(): React.JSX.Element {
             banners={banners}
             onBannerPress={handleBannerPress}
             onSelectCategory={handleSelectCategory}
-            onRefreshProducts={() => { loadProducts().catch(() => {}); }}
+            onRefreshProducts={() => { loadProducts().catch(() => { }); }}
             initialScrollOffset={homeScrollOffsetRef.current}
             initialVisibleCount={homeVisibleCount}
             onVisibleCountChange={setHomeVisibleCount}
@@ -2211,10 +2211,10 @@ function App(): React.JSX.Element {
         );
       case 'catalog':
         return (
-          <Catalog 
-            onFilterClick={openFilter} 
-            onProductClick={navigateToProduct} 
-            filters={filters}
+          <Catalog
+            onFilterClick={openFilter}
+            onProductClick={navigateToProduct}
+
             applyFilters={applyFilters}
             theme={theme}
             products={products}
@@ -2308,11 +2308,11 @@ function App(): React.JSX.Element {
 
       case 'checkout':
         return (
-      <Checkout
-        onBack={() => handleTabChange('cart')}
-        onPlaceOrder={async ({ address, paymentMethod, shippingFee, items, totalAmount, subTotal, discount }) => {
-          const created = await placeOrder({
-            items,
+          <Checkout
+            onBack={() => handleTabChange('cart')}
+            onPlaceOrder={async ({ address, paymentMethod, shippingFee, items, totalAmount, subTotal, discount }) => {
+              const created = await placeOrder({
+                items,
                 paymentMethod,
                 totals: {
                   subTotal,
@@ -2341,23 +2341,23 @@ function App(): React.JSX.Element {
             onSuccess={() => {
               setCartItems([]);
               handleTabChange('home');
-              loadOrders().catch(() => {});
+              loadOrders().catch(() => { });
             }}
             cartItems={cartItems}
-        theme={theme}
-        addresses={addresses}
-        onUpdateAddresses={setAddresses}
-        accessToken={authTokens?.accessToken}
-        voucher={appliedVoucher}
-      />
+            theme={theme}
+            addresses={addresses}
+            onUpdateAddresses={setAddresses}
+            accessToken={authTokens?.accessToken}
+            voucher={appliedVoucher}
+          />
         );
 
       case 'order-history':
         console.log('App.tsx - Rendering OrderHistory with orders count:', orders.length);
-        return <OrderHistory 
-          onBack={() => handleTabChange('profile')} 
-          onViewDetail={navigateToOrderDetail} 
-          orders={orders} 
+        return <OrderHistory
+          onBack={() => handleTabChange('profile')}
+          onViewDetail={navigateToOrderDetail}
+          orders={orders}
           theme={theme}
           onRefresh={refreshOrders}
           refreshing={isRefreshingOrders}
@@ -2365,9 +2365,9 @@ function App(): React.JSX.Element {
 
       case 'order-detail':
         return selectedOrderId ? (
-          <OrderDetail 
-            orderId={selectedOrderId} 
-            onBack={navigateToOrderHistory} 
+          <OrderDetail
+            orderId={selectedOrderId}
+            onBack={navigateToOrderHistory}
             order={orders.find(o => o.id === selectedOrderId)}
             theme={theme}
             onReorder={handleAddToCart}
@@ -2384,7 +2384,7 @@ function App(): React.JSX.Element {
                 if (!existingOrder) {
                   throw new Error(t('order_not_found'));
                 }
-                
+
                 // Create new payment URL with existing order data
                 const payload = {
                   code: existingOrder.code || `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
@@ -2416,7 +2416,7 @@ function App(): React.JSX.Element {
                     street: existingOrder.shippingAddress.street,
                   } : undefined,
                 };
-                
+
                 const payment = await createVnpayPayment(payload, authTokensRef.current.accessToken);
                 const uiOrder = mapApiOrderToUi(payment.order, productsRef.current, t);
                 setOrders(prev => [uiOrder, ...prev]);
@@ -2454,8 +2454,7 @@ function App(): React.JSX.Element {
             onFilterClick={openFilter}
             initialQuery={searchQuery}
             onQueryChange={setSearchQuery}
-            filters={filters}
-            applyFilters={applyFilters}
+
             products={products}
             theme={theme}
             userId={userId}
@@ -2486,7 +2485,7 @@ function App(): React.JSX.Element {
                 rating: tempFilters.rating !== undefined ? tempFilters.rating : filters.rating,
                 onlyInStock: tempFilters.onlyInStock !== undefined ? tempFilters.onlyInStock : filters.onlyInStock,
               };
-              
+
               // Apply filters without changing state
               return products.filter(product => {
                 if (product.price < tempFilterState.priceRange[0] || product.price > tempFilterState.priceRange[1]) {
@@ -2606,36 +2605,36 @@ function App(): React.JSX.Element {
     <ThemeProvider value={{ theme, isDarkMode }}>
       <ForegroundNotificationHandler />
       <OfflineBanner visible={networkStatus.isConnected === false} />
-      <StatusBar 
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
+      <StatusBar
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={theme.surface}
         translucent={true}
       />
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <TopBar
-        title={currentScreen === 'cart' ? t('cart_title') : t('app_name')}
-        showSearch={currentScreen === 'home'}
-        onSearchClick={() => setCurrentScreen('search')}
-        onFilterClick={openFilter}
-        onNotificationClick={openNotifications}
-        hasUnread={hasUnreadNotifications}
-        theme={theme}
-        visible={showTopBar}
-      />
-
-      <View style={[styles.content, { backgroundColor: theme.background }]}>
-        {renderScreen(currentScreen)}
-      </View>
-
-      {!isFullScreen && (
-        <BottomNav
-          currentTab={currentTab}
-          onTabChange={handleTabChange}
-          cartCount={cartCount}
+        <TopBar
+          title={currentScreen === 'cart' ? t('cart_title') : t('app_name')}
+          showSearch={currentScreen === 'home'}
+          onSearchClick={() => setCurrentScreen('search')}
+          onFilterClick={openFilter}
+          onNotificationClick={openNotifications}
+          hasUnread={hasUnreadNotifications}
           theme={theme}
+          visible={showTopBar}
         />
-      )}
-    </View>
+
+        <View style={[styles.content, { backgroundColor: theme.background }]}>
+          {renderScreen(currentScreen)}
+        </View>
+
+        {!isFullScreen && (
+          <BottomNav
+            currentTab={currentTab}
+            onTabChange={handleTabChange}
+            cartCount={cartCount}
+            theme={theme}
+          />
+        )}
+      </View>
     </ThemeProvider>
   );
 }

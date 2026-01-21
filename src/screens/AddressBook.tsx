@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, StatusBar, Platform, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../theme';
-import { Address, AddressFormValues } from '../types';
+import { Address, AddressFormValues, AddressType } from '../types';
 import { DEFAULT_ADDRESSES } from '../constants/defaults';
 import { buildFullAddress } from '../utils/address';
 import { AddressForm } from '../components/address/AddressForm';
@@ -36,41 +36,41 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [formInitialValues, setFormInitialValues] = useState<Partial<AddressFormValues>>();
 
-  // Fetch addresses from API on mount if accessToken is available
-  useEffect(() => {
-    if (accessToken) {
-      loadAddresses();
-    } else if (addresses) {
-      setLocalAddresses(addresses);
-    }
-  }, [accessToken]);
-
-  const ensureOnline = () => {
+  const ensureOnline = useCallback(() => {
     const status = getCurrentNetworkStatus();
     if (status.isConnected === false) {
       Alert.alert(translate('no_internet'), translate('please_check_connection'));
       return false;
     }
     return true;
-  };
+  }, [translate]);
 
-  const loadAddresses = async () => {
-    if (!accessToken) return;
-    if (!ensureOnline()) return;
+  // Fetch addresses from API on mount if accessToken is available
+  useEffect(() => {
+    const loadAddresses = async () => {
+      if (!accessToken) return;
+      if (!ensureOnline()) return;
 
-    setIsLoading(true);
-    try {
-      const fetchedAddresses = await getAddresses(accessToken);
-      setLocalAddresses(fetchedAddresses);
-      if (onUpdateAddresses) {
-        onUpdateAddresses(fetchedAddresses);
+      setIsLoading(true);
+      try {
+        const fetchedAddresses = await getAddresses(accessToken);
+        setLocalAddresses(fetchedAddresses);
+        if (onUpdateAddresses) {
+          onUpdateAddresses(fetchedAddresses);
+        }
+      } catch (error: any) {
+        Alert.alert(translate('error'), error.message || translate('cannotLoadAddresses'));
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error: any) {
-      Alert.alert(translate('error'), error.message || translate('cannotLoadAddresses'));
-    } finally {
-      setIsLoading(false);
+    };
+
+    if (accessToken) {
+      loadAddresses();
+    } else if (addresses) {
+      setLocalAddresses(addresses);
     }
-  };
+  }, [accessToken, addresses, ensureOnline, onUpdateAddresses, translate]);
 
   const handleSetDefault = async (id: string) => {
     const index = addressList.findIndex(addr => addr.id === id);

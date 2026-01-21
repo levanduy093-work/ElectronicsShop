@@ -62,12 +62,12 @@ export interface AiProductCard {
 
 export type AiAction =
   | {
-      type: 'ADD_TO_CART';
-      payload: { productId: string; quantity: number };
-      requiresConfirmation: boolean;
-      confirmationId?: string;
-      note?: string;
-    };
+    type: 'ADD_TO_CART';
+    payload: { productId: string; quantity: number };
+    requiresConfirmation: boolean;
+    confirmationId?: string;
+    note?: string;
+  };
 
 export interface ChatMessage {
   id: string;
@@ -136,7 +136,7 @@ export interface Order {
   }>;
 }
 
-export type AddressType = 'Nhà riêng' | 'Văn phòng';
+export type AddressType = string; // 'Nhà riêng' | 'Văn phòng'
 
 export interface AddressFormValues {
   name: string;

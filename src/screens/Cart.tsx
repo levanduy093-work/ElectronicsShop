@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { CartItem, Voucher } from '../types';
 import { AVAILABLE_VOUCHERS } from '../constants/data';
 import { Theme, lightTheme, useTheme } from '../theme';
@@ -28,7 +28,7 @@ interface CartProps {
 export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpdateItemOptions, onExplore, theme, vouchers, appliedVoucher: externalAppliedVoucher, onVoucherChange }: CartProps) {
   const { t: translate } = useTranslation();
   const { theme: ctxTheme } = useTheme();
-  const insets = useSafeAreaInsets();
+
   const { showToast } = useToast();
   const t = theme || ctxTheme || lightTheme;
   const voucherList = vouchers && vouchers.length > 0 ? vouchers : AVAILABLE_VOUCHERS;
@@ -43,7 +43,7 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpda
       setAppliedVoucher(externalAppliedVoucher || null);
       setVoucherCode(externalAppliedVoucher?.code || '');
     }
-  }, [externalAppliedVoucher]);
+  }, [externalAppliedVoucher, appliedVoucher]);
 
   const [showOptionModal, setShowOptionModal] = useState(false);
   const [showClassificationModal, setShowClassificationModal] = useState(false);

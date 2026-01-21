@@ -76,7 +76,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                 contentContainerStyle={styles.categoriesContainer}
             >
                 {displayCategories.length > 0 ? (
-                    displayCategories.map((cat, index) => (
+                    displayCategories.map((cat) => (
                         <CategoryPill
                             key={cat.id}
                             item={cat}

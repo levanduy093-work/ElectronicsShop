@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from './Icon';
-import { Theme, lightTheme, useTheme } from '../../theme';
+import { lightTheme, useTheme } from '../../theme';
 
 export type ToastType = 'success' | 'error' | 'info';
 
@@ -22,6 +22,23 @@ export function Toast({ message, type = 'success', duration = 2000, onHide, visi
   const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    const hideToast = () => {
+      Animated.parallel([
+        Animated.timing(translateY, {
+          toValue: -100,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        onHide();
+      });
+    };
+
     if (visible) {
       // Show animation
       Animated.parallel([
@@ -47,24 +64,7 @@ export function Toast({ message, type = 'success', duration = 2000, onHide, visi
     } else {
       hideToast();
     }
-  }, [visible]);
-
-  const hideToast = () => {
-    Animated.parallel([
-      Animated.timing(translateY, {
-        toValue: -100,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onHide();
-    });
-  };
+  }, [visible, duration, onHide, translateY, opacity]);
 
   const getIconName = () => {
     switch (type) {

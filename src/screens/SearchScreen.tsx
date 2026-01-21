@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../types';
@@ -14,13 +14,7 @@ interface SearchScreenProps {
   onFilterClick?: () => void;
   initialQuery?: string;
   onQueryChange?: (query: string) => void;
-  filters?: {
-    priceRange: [number, number];
-    categories: string[];
-    rating: number | null;
-    onlyInStock: boolean;
-  };
-  applyFilters?: (products: Product[], searchText?: string) => Product[];
+
   theme?: Theme;
   products?: Product[];
   userId?: string | null;
@@ -34,8 +28,6 @@ export function SearchScreen({
   onFilterClick,
   initialQuery = '',
   onQueryChange,
-  filters,
-  applyFilters,
   theme,
   products = [],
   userId = null,
@@ -48,23 +40,20 @@ export function SearchScreen({
   const t = theme || ctxTheme || lightTheme;
   const [query, setQuery] = useState(initialQuery);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+
   const [isRecentSearchesExpanded, setIsRecentSearchesExpanded] = useState(false);
 
   // Load search history khi component mount hoặc userId/accessToken thay đổi
   useEffect(() => {
     const loadHistory = async () => {
-      setIsLoadingHistory(true);
       try {
         const history = await loadSearchHistory(userId, accessToken || undefined);
         setRecentSearches(history);
       } catch (error) {
         console.warn('Failed to load search history', error);
-      } finally {
-        setIsLoadingHistory(false);
       }
     };
-    
+
     loadHistory();
   }, [userId, isLoggedIn, accessToken]);
 
@@ -75,7 +64,7 @@ export function SearchScreen({
   // Hàm để lưu query vào lịch sử (chỉ gọi khi user submit hoặc chọn từ danh sách)
   const saveToHistory = useCallback(async (searchQuery: string) => {
     if (!searchQuery || searchQuery.trim().length < 2) return;
-    
+
     try {
       await saveSearchQuery(searchQuery.trim(), userId, accessToken || undefined);
       // Reload history để cập nhật UI
@@ -90,20 +79,20 @@ export function SearchScreen({
   const updateQuery = useCallback((newQuery: string, shouldSave: boolean = false) => {
     setQuery(newQuery);
     onQueryChange?.(newQuery);
-    
+
     // Chỉ lưu vào lịch sử nếu shouldSave = true (khi user chọn từ danh sách hoặc submit)
     if (shouldSave) {
       saveToHistory(newQuery);
     }
   }, [onQueryChange, saveToHistory]);
-  
+
   // Xử lý khi user submit search (nhấn enter hoặc search button)
   const handleSearchSubmit = useCallback(() => {
     if (query && query.trim().length >= 2) {
       saveToHistory(query);
     }
   }, [query, saveToHistory]);
-  
+
   const handleClearHistory = useCallback(async () => {
     try {
       await clearSearchHistory(userId, accessToken || undefined);
@@ -150,26 +139,26 @@ export function SearchScreen({
 
   const filteredProducts = query
     ? products.filter(p => {
-        const aliases = categoryAliases[normalizeText(p.category)] || [];
-        const haystacks = [
-          p.name,
-          p.code || '',
-          p.category || '',
-          ...aliases,
-          p.description || '',
-          Object.entries(p.specs || {})
-            .map(([k, v]) => `${k} ${v}`)
-            .join(' '),
-        ];
-        return haystacks.some(h => fuzzyMatch(h, query));
-      })
+      const aliases = categoryAliases[normalizeText(p.category)] || [];
+      const haystacks = [
+        p.name,
+        p.code || '',
+        p.category || '',
+        ...aliases,
+        p.description || '',
+        Object.entries(p.specs || {})
+          .map(([k, v]) => `${k} ${v}`)
+          .join(' '),
+      ];
+      return haystacks.some(h => fuzzyMatch(h, query));
+    })
     : [];
 
   const trendingSearches = ['Raspberry Pi 5', 'ESP32 Cam', 'Mỏ hàn', 'Cảm biến nhiệt độ', 'Led RGB'];
 
   return (
-    <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: t.background }]} 
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: t.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {/* Search Header */}

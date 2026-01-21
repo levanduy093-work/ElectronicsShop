@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, FlatList, StatusBar, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../types';
@@ -24,8 +24,8 @@ export function Wishlist({ items, onBack, onRemove, onProductClick, theme }: Wis
 
   return (
     <View style={[styles.container, { backgroundColor: t.background }]}>
-      <StatusBar 
-        barStyle={t === lightTheme ? 'dark-content' : 'light-content'} 
+      <StatusBar
+        barStyle={t === lightTheme ? 'dark-content' : 'light-content'}
         backgroundColor="transparent"
         translucent={true}
       />

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../common/Icon';
-import { Theme, lightTheme, useTheme } from '../../theme';
+import { Theme, useTheme } from '../../theme';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 
@@ -20,15 +20,15 @@ export function BottomNav({ currentTab, onTabChange, cartCount = 0, theme }: Bot
   const { t: translate } = useTranslation();
   const resolvedTheme = theme || ctxTheme;
 
-  const TabButton = ({ 
-    tab, 
-    icon, 
-    label, 
-    isSpecial = false 
-  }: { 
-    tab: NavTab; 
-    icon: string; 
-    label: string; 
+  const TabButton = ({
+    tab,
+    icon,
+    label,
+    isSpecial = false
+  }: {
+    tab: NavTab;
+    icon: string;
+    label: string;
     isSpecial?: boolean;
   }) => {
     const isActive = currentTab === tab;
@@ -64,10 +64,10 @@ export function BottomNav({ currentTab, onTabChange, cartCount = 0, theme }: Bot
               <Text style={styles.badgeText}>{cartCount > 99 ? '99+' : cartCount}</Text>
             </View>
           )}
-          <AppIcon 
-            name={icon} 
-            size={24} 
-            color={isActive ? activeColor : inactiveColor} 
+          <AppIcon
+            name={icon}
+            size={24}
+            color={isActive ? activeColor : inactiveColor}
           />
         </View>
         <Text style={[styles.tabLabel, isActive && { color: activeColor }]}>

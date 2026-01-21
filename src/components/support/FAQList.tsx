@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../common/Icon';
-import { Theme, lightTheme } from '../../theme';
+import { Theme } from '../../theme';
 
 interface FAQItemProps {
     question: string;

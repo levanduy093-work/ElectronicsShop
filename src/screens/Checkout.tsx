@@ -153,7 +153,7 @@ export function Checkout({
   });
   const [checkingPayment, setCheckingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
-  const [pollCount, setPollCount] = useState(0);
+  const [, setPollCount] = useState(0);
   const [successInfo, setSuccessInfo] = useState<{ code?: string; amount: number; payment?: string }>({
     amount: 0,
   });
@@ -285,7 +285,7 @@ export function Checkout({
     } finally {
       setCheckingPayment(false);
     }
-  }, [pendingPayment.id, onCheckPaymentStatus, translate, showToast]);
+  }, [pendingPayment.id, pendingPayment.amount, pendingPayment.code, onCheckPaymentStatus, translate, showToast]);
 
   // Poll payment status automatically when in waiting step
   useEffect(() => {
@@ -313,7 +313,7 @@ export function Checkout({
       }
     });
     return () => sub.remove();
-  }, [step, pendingPayment.id]);
+  }, [step, pendingPayment.id, handleCheckPayment]);
 
   if (isAddingAddress) {
     return (

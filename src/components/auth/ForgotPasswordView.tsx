@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../../components/common/Icon';
-import { Theme, lightTheme } from '../../theme';
+import { Theme } from '../../theme';
 import { useToast } from '../../components/common/ToastProvider';
 import { sendResetOtp, verifyResetOtp, resetPassword } from '../../services/api';
 

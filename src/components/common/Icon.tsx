@@ -65,7 +65,7 @@ const iconMap: Record<string, string> = {
   'trending-up': 'trending-up',
   'tag': 'tag',
   'info': 'information',
-  'package': 'package-variant',
+
   'smartphone': 'cellphone',
   'moon': 'weather-night',
   'globe': 'web',
@@ -78,7 +78,7 @@ const iconMap: Record<string, string> = {
   'mic': 'microphone',
   'copy': 'content-copy',
   'truck': 'truck',
-  'check-circle': 'check-circle',
+
   'cash': 'cash',
   'omega': 'omega',
   'capacitor': 'sine-wave',
@@ -107,7 +107,7 @@ export function AppIcon({ name, size = 24, color = '#000', style }: IconProps) {
   const iconName = iconMap[name] || name;
   try {
     return <Icon name={iconName} size={size} color={color} style={style} />;
-  } catch (error) {
+  } catch {
     // Fallback to a default icon if the icon doesn't exist
     return <Icon name="help-circle" size={size} color={color} style={style} />;
   }

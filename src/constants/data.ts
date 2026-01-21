@@ -1,4 +1,4 @@
-import { Category, Product, Voucher, ChatMessage } from '../types/models';
+import { Category, Product, Voucher } from '../types/models';
 
 // Categories should be fetched from API or extracted from products dynamically
 export const CATEGORIES: Category[] = [];

@@ -22,21 +22,21 @@ const getSearchHistoryKey = (userId: string | null): string => {
 /**
  * Migrate guest history sang user history khi user đăng nhập
  */
-const migrateGuestHistory = async (userId: string): Promise<string[]> => {
+const migrateGuestHistory = async (): Promise<string[]> => {
   try {
     const guestKey = getSearchHistoryKey(null);
     const guestStored = await AsyncStorage.getItem(guestKey);
     if (!guestStored) return [];
-    
+
     const guestHistory: SearchHistoryItem[] = JSON.parse(guestStored);
     const queries = guestHistory
       .sort((a, b) => b.timestamp - a.timestamp)
       .map(item => item.query)
       .slice(0, MAX_HISTORY_ITEMS);
-    
+
     // Xóa guest history sau khi migrate
     await AsyncStorage.removeItem(guestKey);
-    
+
     return queries;
   } catch (error) {
     console.warn('Failed to migrate guest history', error);
@@ -52,20 +52,20 @@ export const syncLocalToApi = async (
   accessToken: string
 ): Promise<void> => {
   if (!userId || !accessToken) return;
-  
+
   try {
     // Load user history
     let localHistory = await loadFromLocalStorage(userId);
-    
+
     // Nếu user history rỗng, thử migrate từ guest history
     if (!localHistory || localHistory.length === 0) {
-      const guestHistory = await migrateGuestHistory(userId);
+      const guestHistory = await migrateGuestHistory();
       if (guestHistory.length > 0) {
         localHistory = guestHistory;
         await saveToLocalStorage(guestHistory, userId);
       }
     }
-    
+
     if (localHistory && localHistory.length > 0) {
       try {
         await saveSearchHistory(localHistory, accessToken);
@@ -96,8 +96,8 @@ export const loadSearchHistory = async (
       try {
         const apiHistory = await getSearchHistory(accessToken);
         // Load local history để merge
-        const localHistory = await loadFromLocalStorage(userId);
-        
+        let localHistory = await loadFromLocalStorage(userId);
+
         if (apiHistory && apiHistory.length > 0) {
           // API có data: merge với local và sync
           const merged = mergeHistories(apiHistory, localHistory);
@@ -116,13 +116,13 @@ export const loadSearchHistory = async (
           // API trả về empty hoặc không có data
           // Nếu local history rỗng, thử migrate từ guest history
           if (!localHistory || localHistory.length === 0) {
-            const guestHistory = await migrateGuestHistory(userId);
+            const guestHistory = await migrateGuestHistory();
             if (guestHistory.length > 0) {
               localHistory = guestHistory;
               await saveToLocalStorage(guestHistory, userId);
             }
           }
-          
+
           if (localHistory && localHistory.length > 0) {
             // Local có data: sync local lên API
             try {
@@ -164,7 +164,7 @@ export const loadSearchHistory = async (
         return localHistory;
       }
     }
-    
+
     // Load từ local storage (cho guest)
     return await loadFromLocalStorage(userId);
   } catch (error) {
@@ -181,7 +181,7 @@ const loadFromLocalStorage = async (userId: string | null): Promise<string[]> =>
     const key = getSearchHistoryKey(userId);
     const stored = await AsyncStorage.getItem(key);
     if (!stored) return [];
-    
+
     const history: SearchHistoryItem[] = JSON.parse(stored);
     // Sắp xếp theo timestamp mới nhất trước, và chỉ lấy query strings
     return history
@@ -216,7 +216,7 @@ const saveToLocalStorage = async (queries: string[], userId: string | null): Pro
 const mergeHistories = (apiHistory: string[], localHistory: string[]): string[] => {
   const seen = new Set<string>();
   const merged: string[] = [];
-  
+
   // Ưu tiên API history trước
   for (const query of apiHistory) {
     const lower = query.toLowerCase();
@@ -225,7 +225,7 @@ const mergeHistories = (apiHistory: string[], localHistory: string[]): string[] 
       merged.push(query);
     }
   }
-  
+
   // Thêm local history chưa có trong API
   for (const query of localHistory) {
     const lower = query.toLowerCase();
@@ -234,7 +234,7 @@ const mergeHistories = (apiHistory: string[], localHistory: string[]): string[] 
       merged.push(query);
     }
   }
-  
+
   return merged;
 };
 
@@ -247,22 +247,22 @@ export const saveSearchQuery = async (
   accessToken?: string | null
 ): Promise<void> => {
   if (!query || !query.trim()) return;
-  
+
   try {
     const trimmedQuery = query.trim();
-    
+
     // Load history hiện tại
     const currentHistory = await loadSearchHistory(userId, accessToken);
-    
+
     // Loại bỏ query trùng lặp (case-insensitive) và thêm mới vào đầu
     const updatedHistory = [
       trimmedQuery,
       ...currentHistory.filter(q => q.toLowerCase() !== trimmedQuery.toLowerCase())
     ].slice(0, MAX_HISTORY_ITEMS);
-    
+
     // Lưu vào local storage
     await saveToLocalStorage(updatedHistory, userId);
-    
+
     // Sync với API nếu user đã đăng nhập
     if (userId && accessToken) {
       try {
@@ -288,7 +288,7 @@ export const clearSearchHistory = async (
     // Xóa local storage
     const key = getSearchHistoryKey(userId);
     await AsyncStorage.removeItem(key);
-    
+
     // Xóa trên API nếu user đã đăng nhập
     if (userId && accessToken) {
       try {
@@ -310,12 +310,12 @@ export const removeSearchQuery = async (query: string, userId: string | null): P
     const key = getSearchHistoryKey(userId);
     const existing = await AsyncStorage.getItem(key);
     if (!existing) return;
-    
+
     let history: SearchHistoryItem[] = JSON.parse(existing);
     history = history.filter(
       item => item.query.toLowerCase() !== query.toLowerCase()
     );
-    
+
     await AsyncStorage.setItem(key, JSON.stringify(history));
   } catch (error) {
     console.warn('Failed to remove search query', error);
