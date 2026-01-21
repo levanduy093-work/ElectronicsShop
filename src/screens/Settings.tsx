@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, StatusBar
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
+import { BiometricIcon } from '../components/common/BiometricIcon';
 import { darkTheme, lightTheme } from '../theme';
 import {
   checkBiometricSupport,
@@ -266,8 +267,8 @@ export function Settings({
               <View style={styles.settingItem}>
                 <View style={styles.settingLeft}>
                   <View style={[styles.settingIcon, { backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }]}>
-                    <AppIcon
-                      name={biometricStatus?.biometryType === 'FaceID' ? 'scan-face' : 'fingerprint'}
+                    <BiometricIcon
+                      type={biometricStatus?.biometryType || null}
                       size={18}
                       color={theme.muted}
                     />

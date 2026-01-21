@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppIcon } from '../common/Icon';
+import { BiometricIcon } from '../common/BiometricIcon';
 import { authenticateBiometric, checkBiometricSupport, type BiometricStatus } from '../../services/BiometricService';
 import { useTheme } from '../../theme';
 
@@ -54,13 +54,6 @@ export function BiometricLockScreen({ onUnlock }: BiometricLockScreenProps) {
         }
     };
 
-    const getIcon = () => {
-        if (biometricStatus?.biometryType === 'FaceID') {
-            return 'scan-face';
-        }
-        return 'fingerprint';
-    };
-
     return (
         <View style={[styles.container, { backgroundColor: theme.background }]}>
             <StatusBar
@@ -69,7 +62,7 @@ export function BiometricLockScreen({ onUnlock }: BiometricLockScreenProps) {
             />
             <View style={[styles.content, { paddingTop: insets.top + 100 }]}>
                 <View style={[styles.iconContainer, { backgroundColor: theme.primary + '20' }]}>
-                    <AppIcon name={getIcon()} size={64} color={theme.primary} />
+                    <BiometricIcon type={biometricStatus?.biometryType || null} size={64} color={theme.primary} />
                 </View>
 
                 <Text style={[styles.title, { color: theme.text }]}>
@@ -93,7 +86,7 @@ export function BiometricLockScreen({ onUnlock }: BiometricLockScreenProps) {
                     onPress={handleAuthenticate}
                     activeOpacity={0.8}
                 >
-                    <AppIcon name={getIcon()} size={24} color="#FFFFFF" />
+                    <BiometricIcon type={biometricStatus?.biometryType || null} size={24} color="#FFFFFF" />
                     <Text style={styles.unlockButtonText}>
                         {biometricStatus?.displayName
                             ? `Mở khóa bằng ${biometricStatus.displayName}`
