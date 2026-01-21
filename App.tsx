@@ -2696,7 +2696,7 @@ function App(): React.JSX.Element {
           title={currentScreen === 'cart' ? t('cart_title') : t('app_name')}
           showSearch={currentScreen === 'home'}
           onSearchClick={() => setCurrentScreen('search')}
-          onFilterClick={openFilter}
+          onFilterClick={['home', 'catalog'].includes(currentScreen) ? undefined : openFilter}
           onNotificationClick={openNotifications}
           hasUnread={hasUnreadNotifications}
           theme={theme}
