@@ -7,25 +7,26 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, Alert, AppState, AppStateStatus, Linking, StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Home } from './src/screens/Home';
-import { Catalog } from './src/screens/Catalog';
-import { AIChat } from './src/screens/AIChat';
-import { Cart } from './src/screens/Cart';
-import { Profile } from './src/screens/Profile';
-import { ProductDetail } from './src/screens/ProductDetail';
-import { Checkout } from './src/screens/Checkout';
-import { OrderHistory } from './src/screens/OrderHistory';
-import { OrderDetail } from './src/screens/OrderDetail';
-import { Auth } from './src/screens/Auth';
-import { SearchScreen } from './src/screens/SearchScreen';
-import { FilterScreen } from './src/screens/FilterScreen';
-import { Wishlist } from './src/screens/Wishlist';
-import { AddressBook } from './src/screens/AddressBook';
-import { Settings } from './src/screens/Settings';
-import { SupportCenter } from './src/screens/SupportCenter';
-import { Notifications } from './src/screens/Notifications';
-import { ChangePassword } from './src/screens/ChangePassword';
-import { LanguageSelection } from './src/screens/LanguageSelection';
 import { Onboarding } from './src/screens/Onboarding';
+
+const Catalog = React.lazy(() => import('./src/screens/Catalog').then(m => ({ default: m.Catalog })));
+const AIChat = React.lazy(() => import('./src/screens/AIChat').then(m => ({ default: m.AIChat })));
+const Cart = React.lazy(() => import('./src/screens/Cart').then(m => ({ default: m.Cart })));
+const Profile = React.lazy(() => import('./src/screens/Profile').then(m => ({ default: m.Profile })));
+const ProductDetail = React.lazy(() => import('./src/screens/ProductDetail').then(m => ({ default: m.ProductDetail })));
+const Checkout = React.lazy(() => import('./src/screens/Checkout').then(m => ({ default: m.Checkout })));
+const OrderHistory = React.lazy(() => import('./src/screens/OrderHistory').then(m => ({ default: m.OrderHistory })));
+const OrderDetail = React.lazy(() => import('./src/screens/OrderDetail').then(m => ({ default: m.OrderDetail })));
+const Auth = React.lazy(() => import('./src/screens/Auth').then(m => ({ default: m.Auth })));
+const SearchScreen = React.lazy(() => import('./src/screens/SearchScreen').then(m => ({ default: m.SearchScreen })));
+const FilterScreen = React.lazy(() => import('./src/screens/FilterScreen').then(m => ({ default: m.FilterScreen })));
+const Wishlist = React.lazy(() => import('./src/screens/Wishlist').then(m => ({ default: m.Wishlist })));
+const AddressBook = React.lazy(() => import('./src/screens/AddressBook').then(m => ({ default: m.AddressBook })));
+const Settings = React.lazy(() => import('./src/screens/Settings').then(m => ({ default: m.Settings })));
+const SupportCenter = React.lazy(() => import('./src/screens/SupportCenter').then(m => ({ default: m.SupportCenter })));
+const Notifications = React.lazy(() => import('./src/screens/Notifications').then(m => ({ default: m.Notifications })));
+const ChangePassword = React.lazy(() => import('./src/screens/ChangePassword').then(m => ({ default: m.ChangePassword })));
+const LanguageSelection = React.lazy(() => import('./src/screens/LanguageSelection').then(m => ({ default: m.LanguageSelection })));
 import { BottomNav } from './src/components/layout/BottomNav';
 import { TopBar } from './src/components/layout/TopBar';
 import { Product, CartItem, Order, Voucher, HomeBanner, ChatMessage, Address } from './src/types';
@@ -2673,7 +2674,9 @@ function App(): React.JSX.Element {
         />
 
         <View style={[styles.content, { backgroundColor: theme.background }]}>
-          {renderScreen(currentScreen)}
+          <React.Suspense fallback={<View style={{ flex: 1, backgroundColor: theme.background }} />}>
+            {renderScreen(currentScreen)}
+          </React.Suspense>
         </View>
 
         {!isFullScreen && (
