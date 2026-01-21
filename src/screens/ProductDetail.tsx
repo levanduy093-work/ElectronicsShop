@@ -988,6 +988,7 @@ export function ProductDetail({
         {
           backgroundColor: theme.surface,
           borderTopColor: theme.border,
+          paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 36) : Math.max(insets.bottom, 16),
         }
       ]}>
         <View style={[
