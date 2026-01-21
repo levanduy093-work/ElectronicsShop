@@ -4,7 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import { ActivityIndicator, Alert, AppState, AppStateStatus, Linking, StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Home } from './src/screens/Home';
 import { Catalog } from './src/screens/Catalog';
@@ -84,6 +84,8 @@ import {
   deleteFcmToken,
   getInitialNotificationOpen,
 } from './src/services/fcm';
+import { BiometricLockScreen } from './src/components/auth/BiometricLockScreen';
+import { isBiometricLockEnabled } from './src/services/BiometricService';
 
 type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
 type Screen =
@@ -626,6 +628,46 @@ function App(): React.JSX.Element {
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isLoadingBanners, setIsLoadingBanners] = useState(false);
+
+  // Biometric lock state
+  const [isAppLocked, setIsAppLocked] = useState(false);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const wasInBackgroundRef = useRef(false);
+
+  // Check biometric setting on mount and listen for app state changes
+  useEffect(() => {
+    const checkBiometricSetting = async () => {
+      const enabled = await isBiometricLockEnabled();
+      // Lock app on initial load if biometric is enabled
+      if (enabled) {
+        setIsAppLocked(true);
+      }
+    };
+    checkBiometricSetting();
+
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      // Track when app goes to true background (not just inactive for dialogs)
+      if (nextAppState === 'background') {
+        wasInBackgroundRef.current = true;
+      }
+
+      // Only lock when coming from true background, not from inactive (Face ID dialog)
+      if (
+        wasInBackgroundRef.current &&
+        nextAppState === 'active'
+      ) {
+        wasInBackgroundRef.current = false;
+        const enabled = await isBiometricLockEnabled();
+        if (enabled) {
+          setIsAppLocked(true);
+        }
+      }
+      appStateRef.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription.remove();
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({
@@ -2597,6 +2639,15 @@ function App(): React.JSX.Element {
         <View style={[styles.container, { alignItems: 'center', justifyContent: 'center', backgroundColor: theme.background }]}>
           <ActivityIndicator size="large" color={theme.primary} />
         </View>
+      </ThemeProvider>
+    );
+  }
+
+  // Show biometric lock screen if app is locked
+  if (isAppLocked) {
+    return (
+      <ThemeProvider value={{ theme, isDarkMode }}>
+        <BiometricLockScreen onUnlock={() => setIsAppLocked(false)} />
       </ThemeProvider>
     );
   }

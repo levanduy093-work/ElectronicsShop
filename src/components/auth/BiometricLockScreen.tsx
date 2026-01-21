@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../common/Icon';
@@ -14,24 +14,43 @@ export function BiometricLockScreen({ onUnlock }: BiometricLockScreenProps) {
     const { theme, isDarkMode } = useTheme();
     const [biometricStatus, setBiometricStatus] = useState<BiometricStatus | null>(null);
     const [authFailed, setAuthFailed] = useState(false);
+    const isAuthenticatingRef = useRef(false);
+    const hasUnlockedRef = useRef(false);
 
     useEffect(() => {
         checkBiometricSupport().then(setBiometricStatus);
     }, []);
 
     useEffect(() => {
-        // Auto-trigger biometric prompt on mount
-        handleAuthenticate();
+        // Auto-trigger biometric prompt on mount (with small delay to ensure UI is ready)
+        const timer = setTimeout(() => {
+            if (!hasUnlockedRef.current) {
+                handleAuthenticate();
+            }
+        }, 300);
+        return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleAuthenticate = async () => {
+        // Prevent multiple simultaneous auth attempts
+        if (isAuthenticatingRef.current || hasUnlockedRef.current) {
+            return;
+        }
+
+        isAuthenticatingRef.current = true;
         setAuthFailed(false);
-        const success = await authenticateBiometric('Xác thực để mở khóa ứng dụng');
-        if (success) {
-            onUnlock();
-        } else {
-            setAuthFailed(true);
+
+        try {
+            const success = await authenticateBiometric('Xác thực để mở khóa ứng dụng');
+            if (success && !hasUnlockedRef.current) {
+                hasUnlockedRef.current = true;
+                onUnlock();
+            } else if (!success) {
+                setAuthFailed(true);
+            }
+        } finally {
+            isAuthenticatingRef.current = false;
         }
     };
 

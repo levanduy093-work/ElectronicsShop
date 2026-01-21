@@ -101,6 +101,11 @@ const iconMap: Record<string, string> = {
   'power-plug': 'power-plug',
   'power-plug-outline': 'power-plug-outline',
   'music': 'music',
+
+  // Biometric icons
+  'scan-face': 'face-recognition',
+  'face-recognition': 'face-recognition',
+  'fingerprint': 'fingerprint',
 };
 
 export function AppIcon({ name, size = 24, color = '#000', style }: IconProps) {
