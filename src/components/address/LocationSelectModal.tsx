@@ -5,6 +5,16 @@ import { AppIcon } from '../common/Icon';
 import { Theme } from '../../theme';
 import { LocationOption } from '../../services/locations';
 
+const normalizeText = (text: string) =>
+    text
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
 interface LocationSelectModalProps {
     visible: boolean;
     title: string;
@@ -32,9 +42,13 @@ export function LocationSelectModal({
     }, [visible]);
 
     const filtered = useMemo(() => {
-        const q = query.trim().toLowerCase();
+        const q = normalizeText(query);
         if (!q) return options;
-        return options.filter(opt => opt.name.toLowerCase().includes(q));
+        return options.filter(opt => {
+            const base = normalizeText(opt.name);
+            const codeName = opt.codename ? normalizeText(opt.codename) : '';
+            return base.includes(q) || codeName.includes(q);
+        });
     }, [options, query]);
 
     return (
