@@ -709,13 +709,13 @@ function App(): React.JSX.Element {
     }
   }, []);
 
-  const loadProducts = useCallback(async (options?: { useCache?: boolean }) => {
+  const loadProducts = useCallback(async (options?: { useCache?: boolean; onlyCache?: boolean }) => {
     setIsLoadingProducts(true);
     setProductsError(null);
 
     // Try to load from cache if offline or if useCache is true
     const isOffline = networkStatus.isConnected === false;
-    if (isOffline || options?.useCache) {
+    if (isOffline || options?.useCache || options?.onlyCache) {
       const cached = await getCachedProducts();
       if (cached && cached.length > 0) {
         const mapped = cached.map(mapApiProductToUi);
@@ -726,6 +726,11 @@ function App(): React.JSX.Element {
           setProductsError('Đang hiển thị dữ liệu đã lưu. Kết nối mạng đã bị ngắt.');
         }
         return mapped;
+      }
+      // If strict cache mode (onlyCache) and no cache found, return undefined immediately
+      if (options?.onlyCache) {
+        setIsLoadingProducts(false);
+        return undefined;
       }
     }
 
@@ -1214,26 +1219,37 @@ function App(): React.JSX.Element {
 
   useEffect(() => {
     const restoreAuth = async () => {
-
       let tokenForBackground: string | null = null;
       try {
-        const storedOnboarding = await AsyncStorage.getItem(ONBOARDING_STORAGE_KEY);
+        // Run all independent async operations in parallel
+        const [
+          storedOnboarding,
+          storedAuth,
+          storedCart,
+          storedThemeMode,
+          storedPush
+        ] = await Promise.all([
+          AsyncStorage.getItem(ONBOARDING_STORAGE_KEY),
+          AsyncStorage.getItem(AUTH_STORAGE_KEY),
+          loadPersistedCart(),
+          loadPersistedThemeMode(),
+          AsyncStorage.getItem(PUSH_SETTINGS_KEY)
+        ]);
+
         const onboardingSeen = storedOnboarding === 'true';
         setHasSeenOnboarding(onboardingSeen);
 
-        const stored = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
+        if (storedAuth) {
+          const parsed = JSON.parse(storedAuth);
           if (parsed?.tokens?.accessToken && parsed?.tokens?.refreshToken) {
             syncAuthTokens(parsed.tokens, parsed.profile, parsed.userId ?? null);
             tokenForBackground = parsed.tokens.accessToken;
           }
         }
 
-        const storedCart = await loadPersistedCart();
         if (storedCart) {
-          // Load products first to get options/classifications
-          const loadedProducts = await loadProducts();
+          // Load products STRICTLY from cache first to avoid waiting
+          const loadedProducts = await loadProducts({ onlyCache: true });
           if (loadedProducts) {
             // Merge cart items with product data to restore options/classifications
             const mergedCart = storedCart.map(cartItem => {
@@ -1253,12 +1269,10 @@ function App(): React.JSX.Element {
           }
         }
 
-        const storedThemeMode = await loadPersistedThemeMode();
         if (storedThemeMode) {
           setThemeMode(storedThemeMode);
         }
 
-        const storedPush = await AsyncStorage.getItem(PUSH_SETTINGS_KEY);
         if (storedPush !== null) {
           setIsPushEnabled(JSON.parse(storedPush));
         }
@@ -2627,21 +2641,6 @@ function App(): React.JSX.Element {
 
   const isFullScreen = ['onboarding', 'product-detail', 'checkout', 'order-history', 'order-detail', 'notifications', 'search', 'filter', 'address-book', 'settings', 'support', 'wishlist', 'change-password', 'language-selection'].includes(currentScreen);
   const showTopBar = !isFullScreen && currentScreen !== 'ai' && currentScreen !== 'profile' && currentScreen !== 'auth' && currentScreen !== 'onboarding';
-
-  if (isRestoringAuth) {
-    return (
-      <ThemeProvider value={{ theme, isDarkMode }}>
-        <StatusBar
-          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-          backgroundColor={theme.surface}
-          translucent={true}
-        />
-        <View style={[styles.container, { alignItems: 'center', justifyContent: 'center', backgroundColor: theme.background }]}>
-          <ActivityIndicator size="large" color={theme.primary} />
-        </View>
-      </ThemeProvider>
-    );
-  }
 
   // Show biometric lock screen if app is locked
   if (isAppLocked) {
