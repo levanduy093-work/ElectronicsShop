@@ -11,7 +11,9 @@ interface TopBarProps {
   onFilterClick?: () => void;
   onNotificationClick?: () => void;
   onNewChat?: () => void;
+  onHistoryClick?: () => void;
   theme?: Theme;
+
   hasUnread?: boolean;
   visible?: boolean;
 }
@@ -23,7 +25,9 @@ function TopBarComponent({
   onFilterClick,
   onNotificationClick,
   onNewChat,
+  onHistoryClick,
   theme = lightTheme,
+
   hasUnread = false,
   visible = true,
 }: TopBarProps) {
@@ -84,6 +88,16 @@ function TopBarComponent({
               <AppIcon name="plus" size={16} color="#FFFFFF" />
             </TouchableOpacity>
           )}
+          {onHistoryClick && (
+            <TouchableOpacity
+              onPress={onHistoryClick}
+              style={styles.iconButton}
+              activeOpacity={0.7}
+            >
+              <AppIcon name="time-outline" size={24} color={resolvedTheme.muted} />
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             onPress={onNotificationClick}
             style={styles.iconButton}

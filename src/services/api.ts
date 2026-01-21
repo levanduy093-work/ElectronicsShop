@@ -1,6 +1,8 @@
 import { NativeModules, Platform } from 'react-native';
 import { API_BASE_URL as ENV_API_URL, API_DEVICE_HOST } from '@env';
 import { getCurrentNetworkStatus } from '../utils/network';
+import { ChatMessage } from '../types';
+
 import i18n from '../i18n';
 
 export type AuthResponse = {
@@ -750,6 +752,27 @@ export function aiChat(
 ) {
   return postJson<AiChatResponse>('/ai/chat', data, { token });
 }
+
+export type ApiChatSession = {
+  _id: string;
+  userId: string;
+  messages: ChatMessage[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function getChatSessions(token: string) {
+  return getJson<ApiChatSession[]>('/chat', { token });
+}
+
+export function createChatSession(messages: ChatMessage[], token: string) {
+  return postJson<ApiChatSession>('/chat', { messages }, { token });
+}
+
+export function deleteChatSession(id: string, token: string) {
+  return deleteJson<{ message: string }>(`/chat/${id}`, { token });
+}
+
 
 export function confirmAiAction(confirmationId: string, token: string, quantity?: number, productId?: string) {
   return postJson<{ message: string }>(

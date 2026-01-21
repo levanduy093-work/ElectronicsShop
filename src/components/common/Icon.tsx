@@ -62,7 +62,10 @@ const iconMap: Record<string, string> = {
   'edit': 'pencil',
   'check': 'check',
   'clock': 'clock-outline',
+  'history': 'history',
+  'time-outline': 'clock-outline',
   'trending-up': 'trending-up',
+
   'tag': 'tag',
   'info': 'information',
 

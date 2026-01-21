@@ -65,6 +65,8 @@ import {
   fetchMyCart,
   upsertCart,
 } from './src/services/api';
+import { loadChatHistory, saveChatHistory } from './src/services/storage';
+
 import { socketService } from './src/services/socket';
 
 import './src/i18n';
@@ -679,7 +681,9 @@ function App(): React.JSX.Element {
   });
   const [homeVisibleCount, setHomeVisibleCount] = useState(10);
   const [aiMessages, setAiMessages] = useState<ChatMessage[]>([]);
+  const [isChatLoaded, setIsChatLoaded] = useState(false);
   const [userProfile, setUserProfile] = useState(DEFAULT_PROFILE);
+
   const [userId, setUserId] = useState<string | null>(null);
   const homeScrollOffsetRef = useRef(0);
   const [catalogSearch, setCatalogSearch] = useState('');
@@ -1228,14 +1232,18 @@ function App(): React.JSX.Element {
           storedAuth,
           storedCart,
           storedThemeMode,
-          storedPush
+          storedPush,
+          storedChatHistory
         ] = await Promise.all([
+
           AsyncStorage.getItem(ONBOARDING_STORAGE_KEY),
           AsyncStorage.getItem(AUTH_STORAGE_KEY),
           loadPersistedCart(),
           loadPersistedThemeMode(),
-          AsyncStorage.getItem(PUSH_SETTINGS_KEY)
+          AsyncStorage.getItem(PUSH_SETTINGS_KEY),
+          loadChatHistory(),
         ]);
+
 
         const onboardingSeen = storedOnboarding === 'true';
         setHasSeenOnboarding(onboardingSeen);
@@ -1277,6 +1285,19 @@ function App(): React.JSX.Element {
         if (storedPush !== null) {
           setIsPushEnabled(JSON.parse(storedPush));
         }
+
+
+        if (storedChatHistory && storedChatHistory.length > 0) {
+          console.log('[App] Hydrating chat history with:', storedChatHistory.length, 'messages');
+          setAiMessages(storedChatHistory);
+        } else {
+          console.log('[App] No stored chat history found or empty.');
+        }
+        setIsChatLoaded(true);
+
+
+
+
 
         if (!onboardingSeen) {
           setCurrentTab('home');
@@ -2026,6 +2047,15 @@ function App(): React.JSX.Element {
       }
     };
   }, [cartItems, authTokens?.accessToken]);
+
+  // Save chat history whenever it changes
+  useEffect(() => {
+    if (isChatLoaded) {
+      saveChatHistory(aiMessages);
+    }
+  }, [aiMessages, isChatLoaded]);
+
+
 
   const placeOrder = async (params: {
     items: CartItem[];

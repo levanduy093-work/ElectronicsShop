@@ -20,8 +20,13 @@ import { MessageBubble } from '../components/ai/MessageBubble';
 import { TopBar } from '../components/layout/TopBar';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme } from '../theme';
-import { aiChat, confirmAiAction, addCartItem, uploadImage, UploadImageFile } from '../services/api';
+import { aiChat, confirmAiAction, addCartItem, uploadImage, UploadImageFile, createChatSession, getChatSessions, ApiChatSession, deleteChatSession } from '../services/api';
+
 import { useToast } from '../components/common/ToastProvider';
+import { ChatSession, loadArchivedSessions, saveArchivedSession, saveChatHistory } from '../services/storage';
+
+import { Modal } from 'react-native';
+
 
 interface AIChatProps {
   theme?: Theme;
@@ -50,12 +55,31 @@ export function AIChat({
   const [isSending, setIsSending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [showHistory, setShowHistory] = useState(false);
+  const [archives, setArchives] = useState<ApiChatSession[]>([]);
+
+
   const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
   const { t: translate } = useTranslation();
 
+  const sanitizeMessage = (msg: any, index: number): ChatMessage => {
+    let content = msg.content;
+    if (typeof content === 'object' && content !== null) {
+      content = content.text || '';
+    }
+    return {
+      ...msg,
+      // Ensure specific string ID with random component to guarantee uniqueness
+      id: (msg.id && String(msg.id)) || (msg._id && String(msg._id)) || `msg-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 9)}`,
+      content: String(content || ''),
+      timestamp: msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp || msg.time || Date.now()),
+    };
+  };
+
   const setMessages = (updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
+
     setMessagesState((prev) => (typeof updater === 'function' ? (updater as any)(prev) : updater));
   };
 
@@ -65,11 +89,8 @@ export function AIChat({
     }
   }, [externalMessages]);
 
-  useEffect(() => {
-    if (onMessagesChange) {
-      onMessagesChange(messages);
-    }
-  }, [messages, onMessagesChange]);
+  // Removed fragile bidirectional sync effect
+
 
   useEffect(() => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -133,6 +154,7 @@ export function AIChat({
 
     const nextMessages = [...messages, userMessage];
     setMessages(nextMessages);
+    onMessagesChange?.(nextMessages);
     setInputValue('');
     setIsTyping(true);
     setIsSending(true);
@@ -151,7 +173,11 @@ export function AIChat({
         actions: response.actions,
       };
 
-      setMessages((prev) => [...prev, aiMessage]);
+      setMessages((prev) => {
+        const next = [...prev, aiMessage];
+        onMessagesChange?.(next);
+        return next;
+      });
     } catch (error: any) {
       console.warn('AIChat.tsx - aiChat error', error);
       showToast(error?.message || translate('cannotSendAIRequest'), 'error');
@@ -248,6 +274,7 @@ export function AIChat({
 
       const nextMessages = [...messages, userMessage];
       setMessages(nextMessages);
+      onMessagesChange?.(nextMessages);
       setInputValue('');
       setIsTyping(true);
       setIsSending(true);
@@ -265,7 +292,11 @@ export function AIChat({
         actions: response.actions,
       };
 
-      setMessages((prev) => [...prev, aiMessage]);
+      setMessages((prev) => {
+        const next = [...prev, aiMessage];
+        onMessagesChange?.(next);
+        return next;
+      });
     } catch (error: any) {
       console.warn('AIChat.tsx - pickAndSendImage error', error);
       showToast(error?.message || translate('cannotUploadImage'), 'error');
@@ -276,6 +307,67 @@ export function AIChat({
     }
   };
 
+  const handleNewChat = async () => {
+    if (messages.length > 0) {
+      if (accessToken) {
+        try {
+          // Strip local ID and legacy 'time' field before sending to backend
+          const payload = messages.map(({ id, time, ...rest }: any) => ({
+            ...rest,
+            timestamp: rest.timestamp || (time ? new Date(time) : new Date()),
+          }));
+          await createChatSession(payload as any, accessToken);
+          showToast(translate('chat_archived'), 'success');
+        } catch (e) {
+          console.error('Failed to archive chat', e);
+          showToast(translate('error_occurred'), 'error');
+        }
+      } else {
+        // Fallback for guest or offline? For now just skip or warn
+        showToast(translate('login_required'), 'info');
+      }
+    }
+    setMessages([]);
+    onMessagesChange?.([]);
+    setInputValue('');
+  };
+
+  const handleOpenHistory = async () => {
+    if (!accessToken) {
+      showToast(translate('login_required'), 'info');
+      return;
+    }
+    try {
+      const list = await getChatSessions(accessToken);
+      const sanitizedList = list.map(session => ({
+        ...session,
+        messages: session.messages.map((msg, idx) => sanitizeMessage(msg, idx)),
+      }));
+      setArchives(sanitizedList);
+      setShowHistory(true);
+    } catch (e) {
+      console.error('Failed to load history', e);
+      showToast(translate('error_occurred'), 'error');
+    }
+  };
+
+  const restoreSession = (session: ApiChatSession) => {
+    // Save current if not empty before switching
+    if (messages.length > 0 && accessToken) {
+      const payload = messages.map(({ id, time, ...rest }: any) => ({
+        ...rest,
+        timestamp: rest.timestamp || (time ? new Date(time) : new Date()),
+      }));
+      createChatSession(payload as any, accessToken).catch(() => { });
+    }
+    setMessages(session.messages);
+    onMessagesChange?.(session.messages);
+    setShowHistory(false);
+  };
+
+
+
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <TopBar
@@ -283,11 +375,10 @@ export function AIChat({
         showSearch={false}
         theme={theme}
         onNotificationClick={onNotificationClick}
-        onNewChat={() => {
-          setMessages([]);
-          setInputValue('');
-        }}
+        onNewChat={handleNewChat}
+        onHistoryClick={handleOpenHistory}
       />
+
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
@@ -307,9 +398,10 @@ export function AIChat({
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {messages.map((msg) => (
+          {messages.map((msg, index) => (
             <MessageBubble
-              key={msg.id}
+              key={msg.id || index}
+
               message={msg}
               onAction={handleAction}
               onSelectCard={(card) => onOpenProduct?.(card.productId)}
@@ -387,7 +479,48 @@ export function AIChat({
           <Text style={[styles.sendingText, { color: theme.muted }]}>Đang gửi...</Text>
         </View>
       )}
+
+      <Modal
+        visible={showHistory}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowHistory(false)}
+      >
+        <View style={[styles.historyContainer, { backgroundColor: theme.background }]}>
+          <View style={[styles.historyHeader, { borderBottomColor: theme.border }]}>
+            <Text style={[styles.historyTitle, { color: theme.text }]}>{translate('chat_history')}</Text>
+            <TouchableOpacity onPress={() => setShowHistory(false)} style={styles.closeButton}>
+              <AppIcon name="close" size={24} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView contentContainerStyle={styles.historyList}>
+            {archives.length === 0 ? (
+              <Text style={[styles.emptyText, { color: theme.muted }]}>{translate('no_history')}</Text>
+            ) : (
+              archives.map((session) => (
+                <TouchableOpacity
+                  key={session._id}
+                  style={[styles.historyItem, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                  onPress={() => restoreSession(session)}
+                >
+                  <Text style={[styles.historySnippet, { color: theme.text }]} numberOfLines={2}>
+                    {session.messages[session.messages.length - 1]?.content || 'Empty chat'}
+                  </Text>
+                  <Text style={[styles.historyUnknown, { color: theme.muted }]}>
+                    {new Date(session.createdAt || Date.now()).toLocaleString()}
+                  </Text>
+                  <Text style={[styles.historyCount, { color: theme.primary }]}>
+                    {session.messages.length} msgs
+                  </Text>
+                </TouchableOpacity>
+              ))
+
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
+
   );
 }
 
@@ -479,4 +612,48 @@ const styles = StyleSheet.create({
   sendingText: {
     fontSize: 12,
   },
+  historyContainer: {
+    flex: 1,
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  historyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  historyList: {
+    padding: 16,
+    gap: 12,
+  },
+  historyItem: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  historySnippet: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  historyUnknown: {
+    fontSize: 12,
+  },
+  historyCount: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 40,
+    fontSize: 16,
+  },
 });
+

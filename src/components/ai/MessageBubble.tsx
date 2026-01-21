@@ -108,7 +108,8 @@ export function MessageBubble({ message, onAction, onSelectCard }: MessageBubble
               styles.messageText,
               { color: isUser ? '#FFFFFF' : isDark ? '#E5E7EB' : '#111827' },
             ]}>
-              {message.content}
+              {typeof message.content === 'string' ? message.content : (message.content as any)?.text || ''}
+
             </Text>
           </View>
 
@@ -116,7 +117,8 @@ export function MessageBubble({ message, onAction, onSelectCard }: MessageBubble
           {!isUser && (
             <View style={styles.metadata}>
               <Text style={[styles.timestamp, { color: isDark ? '#9CA3AF' : '#9CA3AF' }]}>
-                {message.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                {new Date(message.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+
               </Text>
               <TouchableOpacity activeOpacity={0.7}>
                 <AppIcon name="copy" size={12} color={isDark ? '#9CA3AF' : '#9CA3AF'} />
