@@ -8,7 +8,7 @@ interface TopBarProps {
   title?: string;
   showSearch?: boolean;
   onSearchClick?: () => void;
-
+  onFilterClick?: () => void;
   onNotificationClick?: () => void;
   onNewChat?: () => void;
   theme?: Theme;
@@ -20,7 +20,7 @@ function TopBarComponent({
   title = "ElectroAI",
   showSearch = true,
   onSearchClick,
-
+  onFilterClick,
   onNotificationClick,
   onNewChat,
   theme = lightTheme,
@@ -64,6 +64,15 @@ function TopBarComponent({
               activeOpacity={0.7}
             >
               <AppIcon name="search" size={22} color={resolvedTheme.muted} />
+            </TouchableOpacity>
+          )}
+          {onFilterClick && (
+            <TouchableOpacity
+              onPress={onFilterClick}
+              style={styles.iconButton}
+              activeOpacity={0.7}
+            >
+              <AppIcon name="filter" size={22} color={resolvedTheme.muted} />
             </TouchableOpacity>
           )}
           {onNewChat && (

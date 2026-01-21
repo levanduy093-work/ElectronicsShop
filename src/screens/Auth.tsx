@@ -10,13 +10,13 @@ import { ForgotPasswordView } from '../components/auth/ForgotPasswordView';
 import { AuthForm } from '../components/auth/AuthForm';
 
 interface AuthProps {
-
+  onBack?: () => void;
   onLoginSuccess: (data: AuthResponse) => void;
   theme?: Theme;
   initialMode?: 'login' | 'register';
 }
 
-export function Auth({ onLoginSuccess, theme, initialMode = 'login' }: AuthProps) {
+export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: AuthProps) {
   const { t: translate } = useTranslation();
   const { theme: ctxTheme } = useTheme();
   const { showToast } = useToast();
