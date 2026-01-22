@@ -684,8 +684,6 @@ function App(): React.JSX.Element {
   const [userId, setUserId] = useState<string | null>(null);
   const homeScrollOffsetRef = useRef(0);
   const [catalogSearch, setCatalogSearch] = useState('');
-  const [catalogScrollOffset, setCatalogScrollOffset] = useState(0);
-  const catalogScrollOffsetRef = useRef(0);
   const searchScrollOffsetRef = useRef(0);
   const availableCategories = useMemo(() => {
     const base = (CATEGORIES.length ? CATEGORIES : extractCategoriesFromProducts(products)).map(c => c.name);
@@ -1635,10 +1633,6 @@ function App(): React.JSX.Element {
   };
 
   const navigateToProduct = (product: Product) => {
-    // Save scroll position before navigating away from catalog
-    if (currentScreen === 'catalog') {
-      setCatalogScrollOffset(catalogScrollOffsetRef.current);
-    }
     setPreviousScreen(currentScreen);
     setSelectedProduct(product);
     setCurrentScreen('product-detail');
@@ -2284,25 +2278,8 @@ function App(): React.JSX.Element {
           />
         );
       case 'catalog':
-        return (
-          <Catalog
-            onFilterClick={openFilter}
-            onProductClick={navigateToProduct}
-
-            applyFilters={applyFilters}
-            theme={theme}
-            products={products}
-            initialCategory={selectedCategory}
-            activeCategory={selectedCategory}
-            onActiveCategoryChange={setSelectedCategory}
-            searchQuery={catalogSearch}
-            onSearchQueryChange={setCatalogSearch}
-            initialScrollOffset={catalogScrollOffset}
-            onScrollPositionChange={(offset) => {
-              catalogScrollOffsetRef.current = offset;
-            }}
-          />
-        );
+        // Catalog is rendered separately to preserve scroll position
+        return null;
       case 'ai':
         return (
           <AIChat
@@ -2700,8 +2677,31 @@ function App(): React.JSX.Element {
         />
 
         <View style={[styles.content, { backgroundColor: theme.background }]}>
+          {/* Keep Catalog mounted when navigating to product-detail from catalog */}
+          {(currentScreen === 'catalog' || (currentScreen === 'product-detail' && previousScreen === 'catalog')) && (
+            <View
+              style={[
+                { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: currentScreen === 'catalog' ? 1 : 0 },
+                currentScreen !== 'catalog' && { opacity: 0 }
+              ]}
+              pointerEvents={currentScreen === 'catalog' ? 'auto' : 'none'}
+            >
+              <Catalog
+                onFilterClick={openFilter}
+                onProductClick={navigateToProduct}
+                applyFilters={applyFilters}
+                theme={theme}
+                products={products}
+                initialCategory={selectedCategory}
+                activeCategory={selectedCategory}
+                onActiveCategoryChange={setSelectedCategory}
+                searchQuery={catalogSearch}
+                onSearchQueryChange={setCatalogSearch}
+              />
+            </View>
+          )}
           <React.Suspense fallback={<View style={{ flex: 1, backgroundColor: theme.background }} />}>
-            {renderScreen(currentScreen)}
+            {currentScreen !== 'catalog' && renderScreen(currentScreen)}
           </React.Suspense>
         </View>
 

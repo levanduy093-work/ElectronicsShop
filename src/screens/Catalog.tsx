@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,6 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../types';
@@ -37,8 +35,6 @@ interface CatalogProps {
   onActiveCategoryChange?: (category: string) => void;
   searchQuery?: string;
   onSearchQueryChange?: (query: string) => void;
-  initialScrollOffset?: number;
-  onScrollPositionChange?: (offset: number) => void;
 }
 
 export function Catalog({
@@ -53,18 +49,10 @@ export function Catalog({
   onActiveCategoryChange,
   searchQuery: controlledSearchQuery,
   onSearchQueryChange,
-  initialScrollOffset,
-  onScrollPositionChange,
 }: CatalogProps) {
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState<string>(controlledCategory ?? initialCategory ?? 'All');
   const [searchQuery, setSearchQuery] = useState(controlledSearchQuery ?? '');
-  const listRef = useRef<FlatList<Product>>(null);
-  // Track current scroll position for saving
-  const currentScrollPosition = useRef(0);
-  // Flag to track if we need to restore scroll
-  const needsScrollRestore = useRef(initialScrollOffset !== undefined && initialScrollOffset > 0);
-  const targetScrollOffset = useRef(initialScrollOffset ?? 0);
 
   const normalizeCategory = (value?: string) => {
     const key = (value || '').trim().toLowerCase();
@@ -142,78 +130,10 @@ export function Catalog({
     }
   }, [controlledSearchQuery]);
 
-  // Restore scroll position when component mounts with saved position
-  useEffect(() => {
-    if (needsScrollRestore.current && targetScrollOffset.current > 0) {
-      // Multiple attempts to restore scroll position
-      const attempts = [50, 150, 300];
-      const timers: ReturnType<typeof setTimeout>[] = [];
-      
-      attempts.forEach((delay) => {
-        const timer = setTimeout(() => {
-          if (listRef.current && needsScrollRestore.current) {
-            listRef.current.scrollToOffset({
-              offset: targetScrollOffset.current,
-              animated: false,
-            });
-          }
-        }, delay);
-        timers.push(timer);
-      });
-      
-      // Mark as restored after last attempt
-      const finalTimer = setTimeout(() => {
-        needsScrollRestore.current = false;
-      }, 350);
-      timers.push(finalTimer);
-      
-      return () => {
-        timers.forEach(clearTimeout);
-      };
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount
-
-  // Also restore on content size change (backup mechanism)
-  const handleContentSizeChange = useCallback((width: number, height: number) => {
-    if (needsScrollRestore.current && targetScrollOffset.current > 0 && height > targetScrollOffset.current) {
-      if (listRef.current) {
-        listRef.current.scrollToOffset({
-          offset: targetScrollOffset.current,
-          animated: false,
-        });
-        needsScrollRestore.current = false;
-      }
-    }
-  }, []);
-
-  const handleLayout = useCallback(() => {
-    // Restore scroll on layout if needed
-    if (needsScrollRestore.current && targetScrollOffset.current > 0 && listRef.current) {
-      setTimeout(() => {
-        if (listRef.current && needsScrollRestore.current) {
-          listRef.current.scrollToOffset({
-            offset: targetScrollOffset.current,
-            animated: false,
-          });
-        }
-      }, 100);
-    }
-  }, []);
-
-  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    currentScrollPosition.current = offsetY;
-    // Update parent ref on every scroll
-    onScrollPositionChange?.(offsetY);
-  }, [onScrollPositionChange]);
-  
-  // Wrap onProductClick to ensure scroll position is saved before navigation
+  // Simple product press handler - no need to save scroll position as component stays mounted
   const handleProductPress = useCallback((product: Product) => {
-    // Save current scroll position before navigating
-    onScrollPositionChange?.(currentScrollPosition.current);
     onProductClick?.(product);
-  }, [onProductClick, onScrollPositionChange]);
+  }, [onProductClick]);
 
   return (
     <KeyboardAvoidingView
@@ -295,7 +215,6 @@ export function Catalog({
         <Text style={[styles.productsCount, { color: theme.muted }]}>{t('products_count', { count: filteredProducts.length })}</Text>
         {filteredProducts.length > 0 ? (
           <FlatList
-            ref={listRef}
             data={filteredProducts}
             numColumns={2}
             keyExtractor={(item) => item.id}
@@ -309,10 +228,7 @@ export function Catalog({
             contentContainerStyle={styles.productsGrid}
             columnWrapperStyle={styles.productsRow}
             showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
             scrollEventThrottle={16}
-            onLayout={handleLayout}
-            onContentSizeChange={handleContentSizeChange}
             removeClippedSubviews={false}
             maxToRenderPerBatch={10}
             windowSize={11}
