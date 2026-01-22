@@ -148,6 +148,7 @@ const CART_STORAGE_KEY = 'electronicsshop/cart';
 const PUSH_SETTINGS_KEY = 'electronicsshop/push_settings';
 const ONBOARDING_STORAGE_KEY = 'electronicsshop/onboarding_seen';
 const THEME_MODE_STORAGE_KEY = 'electronicsshop/theme_mode';
+const AI_CHAT_STORAGE_KEY = 'electronicsshop/ai-chat/messages';
 const DEFAULT_PROFILE = {
   name: "Nguyễn Văn A",
   email: "nguyenva@example.com",
@@ -258,6 +259,33 @@ async function loadPersistedCart(): Promise<CartItem[] | null> {
   } catch (error) {
     console.warn('App.tsx - Failed to load cart', error);
     return null;
+  }
+}
+
+async function loadPersistedAiMessages(): Promise<ChatMessage[]> {
+  try {
+    const stored = await AsyncStorage.getItem(AI_CHAT_STORAGE_KEY);
+    if (!stored) return [];
+    const raw = JSON.parse(stored) as any[];
+    return (raw || []).map(item => ({
+      ...item,
+      timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
+    }));
+  } catch (error) {
+    console.warn('App.tsx - Failed to load AI chat messages', error);
+    return [];
+  }
+}
+
+async function persistAiMessages(messages: ChatMessage[]) {
+  try {
+    const payload = messages.map(m => ({
+      ...m,
+      timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : m.timestamp,
+    }));
+    await AsyncStorage.setItem(AI_CHAT_STORAGE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.warn('App.tsx - Failed to persist AI chat messages', error);
   }
 }
 
@@ -592,6 +620,7 @@ function App(): React.JSX.Element {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [previousScreen, setPreviousScreen] = useState<Screen>('home');
   const [previousTab, setPreviousTab] = useState<NavTab>('home');
+  const [hasVisitedAi, setHasVisitedAi] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
@@ -682,6 +711,8 @@ function App(): React.JSX.Element {
   const [userProfile, setUserProfile] = useState(DEFAULT_PROFILE);
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [aiMessages, setAiMessages] = useState<ChatMessage[]>([]);
+  const aiMessagesRef = useRef<ChatMessage[]>([]);
   const homeScrollOffsetRef = useRef(0);
   const [catalogSearch, setCatalogSearch] = useState('');
   const searchScrollOffsetRef = useRef(0);
@@ -689,6 +720,19 @@ function App(): React.JSX.Element {
     const base = (CATEGORIES.length ? CATEGORIES : extractCategoriesFromProducts(products)).map(c => c.name);
     return Array.from(new Set(base.filter(Boolean)));
   }, [products]);
+
+  useEffect(() => {
+    loadPersistedAiMessages()
+      .then((stored) => {
+        setAiMessages(stored);
+        aiMessagesRef.current = stored;
+      })
+      .catch(err => console.warn('App.tsx - Failed to restore AI chat messages', err));
+  }, []);
+
+  useEffect(() => {
+    aiMessagesRef.current = aiMessages;
+  }, [aiMessages]);
 
   const openAuthScreen = useCallback(
     (mode: 'login' | 'register' = 'login', previous?: Screen) => {
@@ -1622,7 +1666,16 @@ function App(): React.JSX.Element {
     homeScrollOffsetRef.current = offset;
   }, []);
 
+  const handleAiMessagesChange = useCallback((messages: ChatMessage[]) => {
+    setAiMessages(messages);
+    aiMessagesRef.current = messages;
+    persistAiMessages(messages).catch(err => console.warn('App.tsx - Failed to persist AI chat messages', err));
+  }, []);
+
   const handleTabChange = (tab: NavTab) => {
+    if (tab === 'ai') {
+      setHasVisitedAi(true);
+    }
     setCurrentTab(tab);
     setCurrentScreen(tab);
   };
@@ -2281,23 +2334,7 @@ function App(): React.JSX.Element {
         // Catalog is rendered separately to preserve scroll position
         return null;
       case 'ai':
-        return (
-          <AIChat
-            theme={theme}
-            onNotificationClick={openNotifications}
-            accessToken={authTokens?.accessToken}
-            onAddToCart={handleAddToCart}
-            onRequireLogin={() => {
-              openAuthScreen('login', 'ai');
-            }}
-            onOpenProduct={(productId) => {
-              const target = products.find((p) => p.id === productId);
-              if (target) {
-                navigateToProduct(target);
-              }
-            }}
-          />
-        );
+        return null;
       case 'cart':
         return (
           <Cart
@@ -2697,6 +2734,33 @@ function App(): React.JSX.Element {
                 onActiveCategoryChange={setSelectedCategory}
                 searchQuery={catalogSearch}
                 onSearchQueryChange={setCatalogSearch}
+              />
+            </View>
+          )}
+          {(currentScreen === 'ai' || hasVisitedAi) && (
+            <View
+              style={[
+                { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: currentScreen === 'ai' ? 1 : 0 },
+                currentScreen !== 'ai' && { opacity: 0 }
+              ]}
+              pointerEvents={currentScreen === 'ai' ? 'auto' : 'none'}
+            >
+              <AIChat
+                theme={theme}
+                onNotificationClick={openNotifications}
+                accessToken={authTokens?.accessToken}
+                onAddToCart={handleAddToCart}
+                onRequireLogin={() => {
+                  openAuthScreen('login', 'ai');
+                }}
+                onOpenProduct={(productId) => {
+                  const target = products.find((p) => p.id === productId);
+                  if (target) {
+                    navigateToProduct(target);
+                  }
+                }}
+                messages={aiMessages}
+                onMessagesChange={handleAiMessagesChange}
               />
             </View>
           )}
