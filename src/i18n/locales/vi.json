@@ -411,5 +411,10 @@
   "biometric_unlock_with": "Sử dụng {{method}} để mở khóa",
   "biometric_unlock_btn": "Mở khóa bằng {{method}}",
   "biometric_auth_failed": "Xác thực thất bại. Vui lòng thử lại.",
-  "biometric_unlock": "Mở khóa"
+  "biometric_unlock": "Mở khóa",
+  "clear_history_all": "Xoá tất cả",
+  "chat_deleted": "Đã xoá đoạn chat",
+  "chat_all_deleted": "Đã xoá tất cả lịch sử chat",
+  "confirm_delete_chat": "Bạn có chắc muốn xoá đoạn chat này?",
+  "confirm_delete_all_chat": "Bạn có chắc muốn xoá tất cả lịch sử chat?"
 }

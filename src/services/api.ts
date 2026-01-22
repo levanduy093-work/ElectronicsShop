@@ -788,6 +788,9 @@ export function deleteChatSession(id: string, token: string) {
   return deleteJson<{ message: string }>(`/chat/${id}`, { token });
 }
 
+export function deleteAllChatSessions(token: string) {
+  return deleteJson<{ deletedCount: number }>('/chat/all', { token });
+}
 
 export function confirmAiAction(confirmationId: string, token: string, quantity?: number, productId?: string) {
   return postJson<{ message: string }>(

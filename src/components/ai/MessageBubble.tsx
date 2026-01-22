@@ -18,14 +18,14 @@ export function MessageBubble({ message, onAction, onSelectCard }: MessageBubble
   const isDark = theme !== lightTheme;
   const [modalVisible, setModalVisible] = useState(false);
 
-  const renderProductCard = (card: AiProductCard) => {
-    const isOutOfStock = card.stock <= 0;
+  const renderProductCard = (card: AiProductCard, index: number) => {
+    const isOutOfStock = (card.stock ?? 0) <= 0;
     const action = message.actions?.find(
       (a) => a.type === 'ADD_TO_CART' && a.payload.productId === card.productId,
     );
 
     return (
-      <View key={card.productId} style={[styles.productCard, { borderColor: theme.border, backgroundColor: isDark ? '#1F2933' : '#F9FAFB' }]}>
+      <View key={card.productId || `card-${index}`} style={[styles.productCard, { borderColor: theme.border, backgroundColor: isDark ? '#1F2933' : '#F9FAFB' }]}>
         <View style={styles.productCardHeader}>
           <Text style={[styles.productName, { color: isDark ? '#E5E7EB' : '#111827' }]} numberOfLines={2}>
             {card.name}
@@ -41,9 +41,9 @@ export function MessageBubble({ message, onAction, onSelectCard }: MessageBubble
         </Text>
         <View style={styles.productFooter}>
           <View>
-            <Text style={[styles.productPrice, { color: theme.primary }]}>{card.price.toLocaleString('vi-VN')}đ</Text>
-            <Text style={[styles.productStock, { color: card.stock > 0 ? '#16A34A' : '#DC2626' }]}>
-              {card.stock > 0 ? t('stockLeft', { count: card.stock }) : t('out_of_stock')}
+            <Text style={[styles.productPrice, { color: theme.primary }]}>{(card.price ?? 0).toLocaleString('vi-VN')}đ</Text>
+            <Text style={[styles.productStock, { color: (card.stock ?? 0) > 0 ? '#16A34A' : '#DC2626' }]}>
+              {(card.stock ?? 0) > 0 ? t('stockLeft', { count: card.stock ?? 0 }) : t('out_of_stock')}
             </Text>
           </View>
           <View style={styles.productActions}>

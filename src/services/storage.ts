@@ -1,8 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ChatMessage } from '../types';
 
-const CHAT_HISTORY_KEY = '@chat_history';
-const CHAT_ARCHIVES_KEY = '@chat_archives';
+const CHAT_HISTORY_KEY_PREFIX = '@chat_history';
+const CHAT_ARCHIVES_KEY_PREFIX = '@chat_archives';
+
+// Helper to get user-specific key
+const getChatHistoryKey = (userId?: string | null) =>
+    userId ? `${CHAT_HISTORY_KEY_PREFIX}_${userId}` : CHAT_HISTORY_KEY_PREFIX;
+
+const getChatArchivesKey = (userId?: string | null) =>
+    userId ? `${CHAT_ARCHIVES_KEY_PREFIX}_${userId}` : CHAT_ARCHIVES_KEY_PREFIX;
 
 export interface ChatSession {
     id: string;
@@ -12,18 +19,18 @@ export interface ChatSession {
 }
 
 
-export const saveChatHistory = async (messages: ChatMessage[]) => {
+export const saveChatHistory = async (messages: ChatMessage[], userId?: string | null) => {
     try {
         const jsonValue = JSON.stringify(messages);
-        await AsyncStorage.setItem(CHAT_HISTORY_KEY, jsonValue);
+        await AsyncStorage.setItem(getChatHistoryKey(userId), jsonValue);
     } catch (e) {
         console.warn('Failed to save chat history', e);
     }
 };
 
-export const loadChatHistory = async (): Promise<ChatMessage[]> => {
+export const loadChatHistory = async (userId?: string | null): Promise<ChatMessage[]> => {
     try {
-        const jsonValue = await AsyncStorage.getItem(CHAT_HISTORY_KEY);
+        const jsonValue = await AsyncStorage.getItem(getChatHistoryKey(userId));
         console.log('[Storage] Loaded chat history:', jsonValue ? 'found data' : 'empty');
         return jsonValue != null ? JSON.parse(jsonValue) : [];
     } catch (e) {
@@ -32,10 +39,20 @@ export const loadChatHistory = async (): Promise<ChatMessage[]> => {
     }
 };
 
-export const saveArchivedSession = async (messages: ChatMessage[]) => {
+export const clearChatHistory = async (userId?: string | null) => {
+    try {
+        await AsyncStorage.removeItem(getChatHistoryKey(userId));
+        await AsyncStorage.removeItem(getChatArchivesKey(userId));
+        console.log('[Storage] Cleared chat history for user:', userId || 'guest');
+    } catch (e) {
+        console.warn('Failed to clear chat history', e);
+    }
+};
+
+export const saveArchivedSession = async (messages: ChatMessage[], userId?: string | null) => {
     if (!messages || messages.length === 0) return;
     try {
-        const archives = await loadArchivedSessions();
+        const archives = await loadArchivedSessions(userId);
         const lastMsg = messages[messages.length - 1];
         const snippet = lastMsg.content.substring(0, 50) + (lastMsg.content.length > 50 ? '...' : '');
 
@@ -47,16 +64,16 @@ export const saveArchivedSession = async (messages: ChatMessage[]) => {
         };
 
         const newArchives = [newSession, ...archives];
-        await AsyncStorage.setItem(CHAT_ARCHIVES_KEY, JSON.stringify(newArchives));
+        await AsyncStorage.setItem(getChatArchivesKey(userId), JSON.stringify(newArchives));
         console.log('[Storage] Archived session:', newSession.id);
     } catch (e) {
         console.warn('Failed to archive session', e);
     }
 };
 
-export const loadArchivedSessions = async (): Promise<ChatSession[]> => {
+export const loadArchivedSessions = async (userId?: string | null): Promise<ChatSession[]> => {
     try {
-        const jsonValue = await AsyncStorage.getItem(CHAT_ARCHIVES_KEY);
+        const jsonValue = await AsyncStorage.getItem(getChatArchivesKey(userId));
         return jsonValue != null ? JSON.parse(jsonValue) : [];
     } catch (e) {
         console.warn('Failed to load archives', e);

@@ -21,7 +21,7 @@ import { MessageBubble } from '../components/ai/MessageBubble';
 import { TopBar } from '../components/layout/TopBar';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme } from '../theme';
-import { aiChat, confirmAiAction, addCartItem, uploadImage, UploadImageFile, createChatSession, getChatSessions, ApiChatSession, deleteChatSession } from '../services/api';
+import { aiChat, confirmAiAction, addCartItem, uploadImage, UploadImageFile, createChatSession, getChatSessions, ApiChatSession, deleteChatSession, deleteAllChatSessions } from '../services/api';
 
 import { useToast } from '../components/common/ToastProvider';
 import { ChatSession, loadArchivedSessions, saveArchivedSession, saveChatHistory } from '../services/storage';
@@ -58,6 +58,12 @@ export function AIChat({
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [showHistory, setShowHistory] = useState(false);
   const [archives, setArchives] = useState<ApiChatSession[]>([]);
+  const [confirmModal, setConfirmModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({ visible: false, title: '', message: '', onConfirm: () => { } });
 
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -385,6 +391,46 @@ export function AIChat({
     setShowHistory(false);
   };
 
+  const handleDeleteSession = (sessionId: string) => {
+    if (!accessToken) return;
+    setConfirmModal({
+      visible: true,
+      title: translate('confirmDelete') || 'Confirm',
+      message: translate('confirm_delete_chat') || 'Are you sure you want to delete this chat?',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, visible: false }));
+        try {
+          await deleteChatSession(sessionId, accessToken);
+          setArchives(prev => prev.filter(s => s._id !== sessionId));
+          showToast(translate('chat_deleted'), 'success');
+        } catch (e) {
+          console.error('Failed to delete session', e);
+          showToast(translate('error_occurred'), 'error');
+        }
+      },
+    });
+  };
+
+  const handleDeleteAll = () => {
+    if (!accessToken) return;
+    setConfirmModal({
+      visible: true,
+      title: translate('confirmDelete') || 'Confirm',
+      message: translate('confirm_delete_all_chat') || 'Are you sure you want to delete all chat history?',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, visible: false }));
+        try {
+          await deleteAllChatSessions(accessToken);
+          setArchives([]);
+          showToast(translate('chat_all_deleted'), 'success');
+        } catch (e) {
+          console.error('Failed to delete all sessions', e);
+          showToast(translate('error_occurred'), 'error');
+        }
+      },
+    });
+  };
+
 
 
 
@@ -509,34 +555,80 @@ export function AIChat({
         <View style={[styles.historyContainer, { backgroundColor: theme.background }]}>
           <View style={[styles.historyHeader, { borderBottomColor: theme.border }]}>
             <Text style={[styles.historyTitle, { color: theme.text }]}>{translate('chat_history')}</Text>
-            <TouchableOpacity onPress={() => setShowHistory(false)} style={styles.closeButton}>
-              <AppIcon name="close" size={24} color={theme.text} />
-            </TouchableOpacity>
+            <View style={styles.historyHeaderActions}>
+              {archives.length > 0 && (
+                <TouchableOpacity onPress={handleDeleteAll} style={styles.deleteAllButton}>
+                  <AppIcon name="trash" size={18} color="#DC2626" />
+                  <Text style={styles.deleteAllText}>{translate('clear_history_all')}</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={() => setShowHistory(false)} style={styles.closeButton}>
+                <AppIcon name="close" size={24} color={theme.text} />
+              </TouchableOpacity>
+            </View>
           </View>
           <ScrollView contentContainerStyle={styles.historyList}>
             {archives.length === 0 ? (
               <Text style={[styles.emptyText, { color: theme.muted }]}>{translate('no_history')}</Text>
             ) : (
               archives.map((session) => (
-                <TouchableOpacity
+                <View
                   key={session._id}
                   style={[styles.historyItem, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                  onPress={() => restoreSession(session)}
                 >
-                  <Text style={[styles.historySnippet, { color: theme.text }]} numberOfLines={2}>
-                    {session.messages[session.messages.length - 1]?.content || 'Empty chat'}
-                  </Text>
-                  <Text style={[styles.historyUnknown, { color: theme.muted }]}>
-                    {new Date(session.createdAt || Date.now()).toLocaleString()}
-                  </Text>
-                  <Text style={[styles.historyCount, { color: theme.primary }]}>
-                    {session.messages.length} msgs
-                  </Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.historyItemContent}
+                    onPress={() => restoreSession(session)}
+                  >
+                    <Text style={[styles.historySnippet, { color: theme.text }]} numberOfLines={2}>
+                      {session.messages[session.messages.length - 1]?.content || 'Empty chat'}
+                    </Text>
+                    <Text style={[styles.historyUnknown, { color: theme.muted }]}>
+                      {new Date(session.createdAt || Date.now()).toLocaleString()}
+                    </Text>
+                    <Text style={[styles.historyCount, { color: theme.primary }]}>
+                      {session.messages.length} msgs
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.deleteSessionButton}
+                    onPress={() => handleDeleteSession(session._id)}
+                  >
+                    <AppIcon name="trash" size={18} color="#DC2626" />
+                  </TouchableOpacity>
+                </View>
               ))
-
             )}
           </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Confirmation Modal */}
+      <Modal
+        visible={confirmModal.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmModal(prev => ({ ...prev, visible: false }))}
+      >
+        <View style={styles.confirmOverlay}>
+          <View style={[styles.confirmCard, { backgroundColor: theme.card }]}>
+            <Text style={[styles.confirmTitle, { color: theme.text }]}>{confirmModal.title}</Text>
+            <Text style={[styles.confirmMessage, { color: theme.muted }]}>{confirmModal.message}</Text>
+            <View style={styles.confirmButtons}>
+              <TouchableOpacity
+                style={[styles.confirmButton, styles.confirmCancelButton, { borderColor: theme.border }]}
+                onPress={() => setConfirmModal(prev => ({ ...prev, visible: false }))}
+              >
+                <Text style={[styles.confirmButtonText, { color: theme.text }]}>{translate('cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmButton, styles.confirmDeleteButton]}
+                onPress={confirmModal.onConfirm}
+              >
+                <Text style={[styles.confirmButtonText, styles.confirmDeleteText]}>{translate('delete')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </Modal>
     </View>
@@ -654,10 +746,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   historyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    gap: 8,
   },
   historySnippet: {
     fontSize: 16,
@@ -674,6 +767,83 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 40,
     fontSize: 16,
+  },
+  historyHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  deleteAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+  },
+  deleteAllText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#DC2626',
+  },
+  historyItemContent: {
+    flex: 1,
+    gap: 8,
+  },
+  deleteSessionButton: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  confirmOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  confirmCard: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+  },
+  confirmTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  confirmMessage: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  confirmButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  confirmButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  confirmCancelButton: {
+    borderWidth: 1,
+  },
+  confirmDeleteButton: {
+    backgroundColor: '#DC2626',
+  },
+  confirmButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  confirmDeleteText: {
+    color: '#FFFFFF',
   },
 });
 

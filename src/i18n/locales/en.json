@@ -409,5 +409,10 @@
   "biometric_unlock_with": "Use {{method}} to unlock",
   "biometric_unlock_btn": "Unlock with {{method}}",
   "biometric_auth_failed": "Authentication failed. Please try again.",
-  "biometric_unlock": "Unlock"
+  "biometric_unlock": "Unlock",
+  "clear_history_all": "Clear All",
+  "chat_deleted": "Chat deleted",
+  "chat_all_deleted": "All chat history cleared",
+  "confirm_delete_chat": "Are you sure you want to delete this chat?",
+  "confirm_delete_all_chat": "Are you sure you want to delete all chat history?"
 }

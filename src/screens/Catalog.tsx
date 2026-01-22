@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Platform,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Dimensions,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../types';
@@ -62,6 +63,14 @@ export function Catalog({
   const listRef = useRef<FlatList<Product>>(null);
   const hasRestoredScroll = useRef(false);
   const [isLayoutReady, setIsLayoutReady] = useState(false);
+  const scrollRestorationAttempted = useRef(false);
+  // Store the initial scroll offset on component mount - capture immediately
+  const initialOffsetValue = initialScrollOffset ?? 0;
+  const pendingScrollOffset = useRef<number>(initialOffsetValue);
+  const lastContentHeight = useRef(0);
+  const mountedWithScrollOffset = useRef(initialOffsetValue);
+  // Track current scroll position
+  const currentScrollPosition = useRef(0);
 
   const normalizeCategory = (value?: string) => {
     const key = (value || '').trim().toLowerCase();
@@ -139,24 +148,140 @@ export function Catalog({
     }
   }, [controlledSearchQuery]);
 
+  // Reset scroll restoration flag when component mounts
   useEffect(() => {
-    if (initialScrollOffset !== undefined && listRef.current && !hasRestoredScroll.current && isLayoutReady) {
-      // Wait for FlatList to be fully rendered before scrolling
+    // Capture the initial scroll offset from props at mount time
+    // Use the prop value directly since refs might not be initialized yet
+    const targetOffset = initialScrollOffset ?? 0;
+    
+    // Reset all flags for fresh restoration attempt
+    scrollRestorationAttempted.current = false;
+    hasRestoredScroll.current = false;
+    lastContentHeight.current = 0;
+    currentScrollPosition.current = 0;
+    
+    if (targetOffset > 0) {
+      pendingScrollOffset.current = targetOffset;
+      mountedWithScrollOffset.current = targetOffset;
+      
+      // Immediate restore attempt after mount
       const timer = setTimeout(() => {
-        listRef.current?.scrollToOffset({ offset: initialScrollOffset, animated: false });
-        hasRestoredScroll.current = true;
-      }, 200);
+        if (listRef.current && !hasRestoredScroll.current && pendingScrollOffset.current > 0) {
+          listRef.current.scrollToOffset({
+            offset: pendingScrollOffset.current,
+            animated: false,
+          });
+          scrollRestorationAttempted.current = true;
+          hasRestoredScroll.current = true;
+        }
+      }, 100);
+      
       return () => clearTimeout(timer);
+    } else {
+      // No scroll restoration needed
+      pendingScrollOffset.current = 0;
+      hasRestoredScroll.current = true;
     }
-  }, [initialScrollOffset, isLayoutReady]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
-  const handleLayout = () => {
-    setIsLayoutReady(true);
-  };
+  // Attempt to restore scroll position when content is ready
+  const handleContentSizeChange = useCallback((width: number, height: number) => {
+    // Track content height changes
+    lastContentHeight.current = height;
+    
+    const targetScrollOffset = pendingScrollOffset.current;
+    
+    // Skip if no pending scroll offset or already restored
+    if (targetScrollOffset <= 0 || hasRestoredScroll.current) {
+      return;
+    }
+    
+    // Need enough content to scroll to the target position
+    // Use a smaller threshold to restore earlier
+    const minRequiredHeight = targetScrollOffset + 50;
+    if (height < minRequiredHeight) {
+      return;
+    }
+    
+    // Attempt scroll restoration
+    if (listRef.current) {
+      // Calculate valid scroll offset
+      const screenHeight = Dimensions.get('window').height;
+      const maxOffset = Math.max(0, height - screenHeight + 200);
+      const finalOffset = Math.min(targetScrollOffset, maxOffset);
+      
+      if (finalOffset > 0) {
+        // Mark as attempted before scrolling
+        scrollRestorationAttempted.current = true;
+        
+        // Scroll immediately without animation
+        listRef.current.scrollToOffset({ 
+          offset: finalOffset, 
+          animated: false 
+        });
+        
+        // Mark as restored
+        hasRestoredScroll.current = true;
+      } else {
+        hasRestoredScroll.current = true;
+      }
+    }
+  }, []);
 
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    onScrollPositionChange?.(event.nativeEvent.contentOffset.y);
-  };
+  const handleLayout = useCallback(() => {
+    if (!isLayoutReady) {
+      setIsLayoutReady(true);
+      
+      // Backup restoration: try to restore when layout is ready
+      const targetOffset = pendingScrollOffset.current;
+      if (targetOffset > 0 && !hasRestoredScroll.current && listRef.current) {
+        // Use setTimeout to ensure FlatList is ready
+        setTimeout(() => {
+          if (listRef.current && !hasRestoredScroll.current) {
+            listRef.current.scrollToOffset({ 
+              offset: targetOffset, 
+              animated: false 
+            });
+            scrollRestorationAttempted.current = true;
+            hasRestoredScroll.current = true;
+          }
+        }, 50);
+      }
+    }
+  }, [isLayoutReady]);
+
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    // Always track the current scroll position
+    currentScrollPosition.current = offsetY;
+    
+    // Always save scroll position to parent
+    // This ensures we capture the scroll position even during scroll restoration
+    onScrollPositionChange?.(offsetY);
+  }, [onScrollPositionChange]);
+  
+  // Also capture scroll position when momentum ends (after fling/swipe)
+  const handleMomentumScrollEnd = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    currentScrollPosition.current = offsetY;
+    onScrollPositionChange?.(offsetY);
+  }, [onScrollPositionChange]);
+  
+  // Capture scroll position when scroll ends by dragging
+  const handleScrollEndDrag = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    currentScrollPosition.current = offsetY;
+    onScrollPositionChange?.(offsetY);
+  }, [onScrollPositionChange]);
+  
+  // Wrap onProductClick to ensure scroll position is saved before navigation
+  const handleProductPress = useCallback((product: Product) => {
+    // Ensure current scroll position is saved before navigating
+    const scrollPos = currentScrollPosition.current;
+    onScrollPositionChange?.(scrollPos);
+    onProductClick?.(product);
+  }, [onProductClick, onScrollPositionChange]);
 
   return (
     <KeyboardAvoidingView
@@ -238,6 +363,7 @@ export function Catalog({
         <Text style={[styles.productsCount, { color: theme.muted }]}>{t('products_count', { count: filteredProducts.length })}</Text>
         {filteredProducts.length > 0 ? (
           <FlatList
+            key="catalog-product-list"
             ref={listRef}
             data={filteredProducts}
             numColumns={2}
@@ -246,19 +372,23 @@ export function Catalog({
               <ProductCard
                 product={item}
                 theme={theme}
-                onPress={() => onProductClick?.(item)}
+                onPress={() => handleProductPress(item)}
               />
             )}
             contentContainerStyle={styles.productsGrid}
             columnWrapperStyle={styles.productsRow}
             showsVerticalScrollIndicator={false}
             onScroll={handleScroll}
+            onMomentumScrollEnd={handleMomentumScrollEnd}
+            onScrollEndDrag={handleScrollEndDrag}
             scrollEventThrottle={16}
             onLayout={handleLayout}
-            removeClippedSubviews={true}
-            maxToRenderPerBatch={10}
+            onContentSizeChange={handleContentSizeChange}
+            removeClippedSubviews={false}
+            maxToRenderPerBatch={12}
             updateCellsBatchingPeriod={50}
-            windowSize={10}
+            windowSize={15}
+            initialNumToRender={12}
           />
         ) : (
           <View style={styles.emptyContainer}>

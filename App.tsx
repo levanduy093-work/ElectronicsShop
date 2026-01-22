@@ -1234,7 +1234,6 @@ function App(): React.JSX.Element {
           storedCart,
           storedThemeMode,
           storedPush,
-          storedChatHistory
         ] = await Promise.all([
 
           AsyncStorage.getItem(ONBOARDING_STORAGE_KEY),
@@ -1242,17 +1241,19 @@ function App(): React.JSX.Element {
           loadPersistedCart(),
           loadPersistedThemeMode(),
           AsyncStorage.getItem(PUSH_SETTINGS_KEY),
-          loadChatHistory(),
         ]);
 
 
         const onboardingSeen = storedOnboarding === 'true';
         setHasSeenOnboarding(onboardingSeen);
 
+        // Parse auth first to get userId
+        let restoredUserId: string | null = null;
         if (storedAuth) {
           const parsed = JSON.parse(storedAuth);
           if (parsed?.tokens?.accessToken && parsed?.tokens?.refreshToken) {
-            syncAuthTokens(parsed.tokens, parsed.profile, parsed.userId ?? null);
+            restoredUserId = parsed.userId ?? null;
+            syncAuthTokens(parsed.tokens, parsed.profile, restoredUserId);
             tokenForBackground = parsed.tokens.accessToken;
           }
         }
@@ -1287,12 +1288,13 @@ function App(): React.JSX.Element {
           setIsPushEnabled(JSON.parse(storedPush));
         }
 
-
+        // Load chat history with the restored userId for user-specific storage
+        const storedChatHistory = await loadChatHistory(restoredUserId);
         if (storedChatHistory && storedChatHistory.length > 0) {
-          console.log('[App] Hydrating chat history with:', storedChatHistory.length, 'messages');
+          console.log('[App] Hydrating chat history with:', storedChatHistory.length, 'messages for user:', restoredUserId || 'guest');
           setAiMessages(storedChatHistory);
         } else {
-          console.log('[App] No stored chat history found or empty.');
+          console.log('[App] No stored chat history found or empty for user:', restoredUserId || 'guest');
         }
         setIsChatLoaded(true);
 
@@ -2053,9 +2055,9 @@ function App(): React.JSX.Element {
   // Save chat history whenever it changes
   useEffect(() => {
     if (isChatLoaded) {
-      saveChatHistory(aiMessages);
+      saveChatHistory(aiMessages, userId);
     }
-  }, [aiMessages, isChatLoaded]);
+  }, [aiMessages, isChatLoaded, userId]);
 
 
 
