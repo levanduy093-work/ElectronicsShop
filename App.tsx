@@ -684,6 +684,7 @@ function App(): React.JSX.Element {
   const [userId, setUserId] = useState<string | null>(null);
   const homeScrollOffsetRef = useRef(0);
   const [catalogSearch, setCatalogSearch] = useState('');
+  const [catalogScrollOffset, setCatalogScrollOffset] = useState(0);
   const catalogScrollOffsetRef = useRef(0);
   const searchScrollOffsetRef = useRef(0);
   const availableCategories = useMemo(() => {
@@ -1634,6 +1635,10 @@ function App(): React.JSX.Element {
   };
 
   const navigateToProduct = (product: Product) => {
+    // Save scroll position before navigating away from catalog
+    if (currentScreen === 'catalog') {
+      setCatalogScrollOffset(catalogScrollOffsetRef.current);
+    }
     setPreviousScreen(currentScreen);
     setSelectedProduct(product);
     setCurrentScreen('product-detail');
@@ -2292,7 +2297,7 @@ function App(): React.JSX.Element {
             onActiveCategoryChange={setSelectedCategory}
             searchQuery={catalogSearch}
             onSearchQueryChange={setCatalogSearch}
-            initialScrollOffset={catalogScrollOffsetRef.current}
+            initialScrollOffset={catalogScrollOffset}
             onScrollPositionChange={(offset) => {
               catalogScrollOffsetRef.current = offset;
             }}

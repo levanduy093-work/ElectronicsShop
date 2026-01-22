@@ -11,7 +11,6 @@ import {
   Platform,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Dimensions,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../types';
@@ -61,16 +60,11 @@ export function Catalog({
   const [activeCategory, setActiveCategory] = useState<string>(controlledCategory ?? initialCategory ?? 'All');
   const [searchQuery, setSearchQuery] = useState(controlledSearchQuery ?? '');
   const listRef = useRef<FlatList<Product>>(null);
-  const hasRestoredScroll = useRef(false);
-  const [isLayoutReady, setIsLayoutReady] = useState(false);
-  const scrollRestorationAttempted = useRef(false);
-  // Store the initial scroll offset on component mount - capture immediately
-  const initialOffsetValue = initialScrollOffset ?? 0;
-  const pendingScrollOffset = useRef<number>(initialOffsetValue);
-  const lastContentHeight = useRef(0);
-  const mountedWithScrollOffset = useRef(initialOffsetValue);
-  // Track current scroll position
+  // Track current scroll position for saving
   const currentScrollPosition = useRef(0);
+  // Flag to track if we need to restore scroll
+  const needsScrollRestore = useRef(initialScrollOffset !== undefined && initialScrollOffset > 0);
+  const targetScrollOffset = useRef(initialScrollOffset ?? 0);
 
   const normalizeCategory = (value?: string) => {
     const key = (value || '').trim().toLowerCase();
@@ -148,138 +142,76 @@ export function Catalog({
     }
   }, [controlledSearchQuery]);
 
-  // Reset scroll restoration flag when component mounts
+  // Restore scroll position when component mounts with saved position
   useEffect(() => {
-    // Capture the initial scroll offset from props at mount time
-    // Use the prop value directly since refs might not be initialized yet
-    const targetOffset = initialScrollOffset ?? 0;
-    
-    // Reset all flags for fresh restoration attempt
-    scrollRestorationAttempted.current = false;
-    hasRestoredScroll.current = false;
-    lastContentHeight.current = 0;
-    currentScrollPosition.current = 0;
-    
-    if (targetOffset > 0) {
-      pendingScrollOffset.current = targetOffset;
-      mountedWithScrollOffset.current = targetOffset;
+    if (needsScrollRestore.current && targetScrollOffset.current > 0) {
+      // Multiple attempts to restore scroll position
+      const attempts = [50, 150, 300];
+      const timers: ReturnType<typeof setTimeout>[] = [];
       
-      // Immediate restore attempt after mount
-      const timer = setTimeout(() => {
-        if (listRef.current && !hasRestoredScroll.current && pendingScrollOffset.current > 0) {
-          listRef.current.scrollToOffset({
-            offset: pendingScrollOffset.current,
-            animated: false,
-          });
-          scrollRestorationAttempted.current = true;
-          hasRestoredScroll.current = true;
-        }
-      }, 100);
+      attempts.forEach((delay) => {
+        const timer = setTimeout(() => {
+          if (listRef.current && needsScrollRestore.current) {
+            listRef.current.scrollToOffset({
+              offset: targetScrollOffset.current,
+              animated: false,
+            });
+          }
+        }, delay);
+        timers.push(timer);
+      });
       
-      return () => clearTimeout(timer);
-    } else {
-      // No scroll restoration needed
-      pendingScrollOffset.current = 0;
-      hasRestoredScroll.current = true;
+      // Mark as restored after last attempt
+      const finalTimer = setTimeout(() => {
+        needsScrollRestore.current = false;
+      }, 350);
+      timers.push(finalTimer);
+      
+      return () => {
+        timers.forEach(clearTimeout);
+      };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
 
-  // Attempt to restore scroll position when content is ready
+  // Also restore on content size change (backup mechanism)
   const handleContentSizeChange = useCallback((width: number, height: number) => {
-    // Track content height changes
-    lastContentHeight.current = height;
-    
-    const targetScrollOffset = pendingScrollOffset.current;
-    
-    // Skip if no pending scroll offset or already restored
-    if (targetScrollOffset <= 0 || hasRestoredScroll.current) {
-      return;
-    }
-    
-    // Need enough content to scroll to the target position
-    // Use a smaller threshold to restore earlier
-    const minRequiredHeight = targetScrollOffset + 50;
-    if (height < minRequiredHeight) {
-      return;
-    }
-    
-    // Attempt scroll restoration
-    if (listRef.current) {
-      // Calculate valid scroll offset
-      const screenHeight = Dimensions.get('window').height;
-      const maxOffset = Math.max(0, height - screenHeight + 200);
-      const finalOffset = Math.min(targetScrollOffset, maxOffset);
-      
-      if (finalOffset > 0) {
-        // Mark as attempted before scrolling
-        scrollRestorationAttempted.current = true;
-        
-        // Scroll immediately without animation
-        listRef.current.scrollToOffset({ 
-          offset: finalOffset, 
-          animated: false 
+    if (needsScrollRestore.current && targetScrollOffset.current > 0 && height > targetScrollOffset.current) {
+      if (listRef.current) {
+        listRef.current.scrollToOffset({
+          offset: targetScrollOffset.current,
+          animated: false,
         });
-        
-        // Mark as restored
-        hasRestoredScroll.current = true;
-      } else {
-        hasRestoredScroll.current = true;
+        needsScrollRestore.current = false;
       }
     }
   }, []);
 
   const handleLayout = useCallback(() => {
-    if (!isLayoutReady) {
-      setIsLayoutReady(true);
-      
-      // Backup restoration: try to restore when layout is ready
-      const targetOffset = pendingScrollOffset.current;
-      if (targetOffset > 0 && !hasRestoredScroll.current && listRef.current) {
-        // Use setTimeout to ensure FlatList is ready
-        setTimeout(() => {
-          if (listRef.current && !hasRestoredScroll.current) {
-            listRef.current.scrollToOffset({ 
-              offset: targetOffset, 
-              animated: false 
-            });
-            scrollRestorationAttempted.current = true;
-            hasRestoredScroll.current = true;
-          }
-        }, 50);
-      }
+    // Restore scroll on layout if needed
+    if (needsScrollRestore.current && targetScrollOffset.current > 0 && listRef.current) {
+      setTimeout(() => {
+        if (listRef.current && needsScrollRestore.current) {
+          listRef.current.scrollToOffset({
+            offset: targetScrollOffset.current,
+            animated: false,
+          });
+        }
+      }, 100);
     }
-  }, [isLayoutReady]);
+  }, []);
 
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetY = event.nativeEvent.contentOffset.y;
-    // Always track the current scroll position
     currentScrollPosition.current = offsetY;
-    
-    // Always save scroll position to parent
-    // This ensures we capture the scroll position even during scroll restoration
-    onScrollPositionChange?.(offsetY);
-  }, [onScrollPositionChange]);
-  
-  // Also capture scroll position when momentum ends (after fling/swipe)
-  const handleMomentumScrollEnd = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    currentScrollPosition.current = offsetY;
-    onScrollPositionChange?.(offsetY);
-  }, [onScrollPositionChange]);
-  
-  // Capture scroll position when scroll ends by dragging
-  const handleScrollEndDrag = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    currentScrollPosition.current = offsetY;
+    // Update parent ref on every scroll
     onScrollPositionChange?.(offsetY);
   }, [onScrollPositionChange]);
   
   // Wrap onProductClick to ensure scroll position is saved before navigation
   const handleProductPress = useCallback((product: Product) => {
-    // Ensure current scroll position is saved before navigating
-    const scrollPos = currentScrollPosition.current;
-    onScrollPositionChange?.(scrollPos);
+    // Save current scroll position before navigating
+    onScrollPositionChange?.(currentScrollPosition.current);
     onProductClick?.(product);
   }, [onProductClick, onScrollPositionChange]);
 
@@ -363,7 +295,6 @@ export function Catalog({
         <Text style={[styles.productsCount, { color: theme.muted }]}>{t('products_count', { count: filteredProducts.length })}</Text>
         {filteredProducts.length > 0 ? (
           <FlatList
-            key="catalog-product-list"
             ref={listRef}
             data={filteredProducts}
             numColumns={2}
@@ -379,16 +310,13 @@ export function Catalog({
             columnWrapperStyle={styles.productsRow}
             showsVerticalScrollIndicator={false}
             onScroll={handleScroll}
-            onMomentumScrollEnd={handleMomentumScrollEnd}
-            onScrollEndDrag={handleScrollEndDrag}
             scrollEventThrottle={16}
             onLayout={handleLayout}
             onContentSizeChange={handleContentSizeChange}
             removeClippedSubviews={false}
-            maxToRenderPerBatch={12}
-            updateCellsBatchingPeriod={50}
-            windowSize={15}
-            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={11}
+            initialNumToRender={10}
           />
         ) : (
           <View style={styles.emptyContainer}>
