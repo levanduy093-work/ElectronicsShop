@@ -768,30 +768,6 @@ export function aiChat(
   return postJson<AiChatResponse>('/ai/chat', data, { token });
 }
 
-export type ApiChatSession = {
-  _id: string;
-  userId: string;
-  messages: ChatMessage[];
-  createdAt: string;
-  updatedAt: string;
-};
-
-export function getChatSessions(token: string) {
-  return getJson<ApiChatSession[]>('/chat', { token });
-}
-
-export function createChatSession(messages: ChatMessage[], token: string) {
-  return postJson<ApiChatSession>('/chat', { messages }, { token });
-}
-
-export function deleteChatSession(id: string, token: string) {
-  return deleteJson<{ message: string }>(`/chat/${id}`, { token });
-}
-
-export function deleteAllChatSessions(token: string) {
-  return deleteJson<{ deletedCount: number }>('/chat/all', { token });
-}
-
 export function confirmAiAction(confirmationId: string, token: string, quantity?: number, productId?: string) {
   return postJson<{ message: string }>(
     '/ai/confirm',

@@ -65,7 +65,6 @@ import {
   fetchMyCart,
   upsertCart,
 } from './src/services/api';
-import { loadChatHistory, saveChatHistory } from './src/services/storage';
 
 import { socketService } from './src/services/socket';
 
@@ -680,8 +679,6 @@ function App(): React.JSX.Element {
     onlyInStock: false,
   });
   const [homeVisibleCount, setHomeVisibleCount] = useState(10);
-  const [aiMessages, setAiMessages] = useState<ChatMessage[]>([]);
-  const [isChatLoaded, setIsChatLoaded] = useState(false);
   const [userProfile, setUserProfile] = useState(DEFAULT_PROFILE);
 
   const [userId, setUserId] = useState<string | null>(null);
@@ -1287,19 +1284,6 @@ function App(): React.JSX.Element {
         if (storedPush !== null) {
           setIsPushEnabled(JSON.parse(storedPush));
         }
-
-        // Load chat history with the restored userId for user-specific storage
-        const storedChatHistory = await loadChatHistory(restoredUserId);
-        if (storedChatHistory && storedChatHistory.length > 0) {
-          console.log('[App] Hydrating chat history with:', storedChatHistory.length, 'messages for user:', restoredUserId || 'guest');
-          setAiMessages(storedChatHistory);
-        } else {
-          console.log('[App] No stored chat history found or empty for user:', restoredUserId || 'guest');
-        }
-        setIsChatLoaded(true);
-
-
-
 
 
         if (!onboardingSeen) {
@@ -2052,13 +2036,6 @@ function App(): React.JSX.Element {
     };
   }, [cartItems, authTokens?.accessToken]);
 
-  // Save chat history whenever it changes
-  useEffect(() => {
-    if (isChatLoaded) {
-      saveChatHistory(aiMessages, userId);
-    }
-  }, [aiMessages, isChatLoaded, userId]);
-
 
 
   const placeOrder = async (params: {
@@ -2243,9 +2220,10 @@ function App(): React.JSX.Element {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
     };
+    const newUserId = data.user?._id ?? null;
     markOnboardingSeen().catch(() => { });
     setAddresses([]); // reset stale addresses from previous session
-    syncAuthTokens(tokens, data.user, data.user?._id ?? null);
+    syncAuthTokens(tokens, data.user, newUserId);
     loadOrders(tokens.accessToken).catch(() => { });
     loadFavorites(tokens.accessToken).catch(() => { });
     loadVouchers(tokens.accessToken).catch(() => { });
@@ -2253,7 +2231,7 @@ function App(): React.JSX.Element {
     loadAddresses(tokens.accessToken).catch(() => { });
     // Sync search history từ local lên API khi user đăng nhập
     import('./src/utils/searchHistory').then(({ syncLocalToApi }) => {
-      syncLocalToApi(data.user?._id ?? null, tokens.accessToken);
+      syncLocalToApi(newUserId, tokens.accessToken);
     }).catch(err => console.warn('Failed to sync search history on login', err));
 
     if (currentScreen === 'auth') {
@@ -2326,8 +2304,6 @@ function App(): React.JSX.Element {
             theme={theme}
             onNotificationClick={openNotifications}
             accessToken={authTokens?.accessToken}
-            messages={aiMessages}
-            onMessagesChange={setAiMessages}
             onAddToCart={handleAddToCart}
             onRequireLogin={() => {
               openAuthScreen('login', 'ai');
