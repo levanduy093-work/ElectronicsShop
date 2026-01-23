@@ -150,6 +150,8 @@ export function ProductDetail({
   const [reviewsFetched, setReviewsFetched] = useState(false);
   const [showDatasheetModal, setShowDatasheetModal] = useState(false);
   const [downloadedPath, setDownloadedPath] = useState<string | null>(null);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState<'denied' | 'blocked'>('denied');
   const ratingCounts = reviews.reduce(
     (acc, r) => {
       acc[r.rating] = (acc[r.rating] || 0) + 1;
@@ -412,6 +414,13 @@ export function ProductDetail({
 
   const handleDownloadDatasheet = async (url: string, fileName: string) => {
     const result = await downloadDatasheetPdf(url, fileName, { skipSuccessAlert: true });
+
+    if (result && !result.success && result.permissionStatus) {
+      setPermissionStatus(result.permissionStatus);
+      setShowPermissionModal(true);
+      return;
+    }
+
     if (result && result.success && result.path) {
       setDownloadedPath(result.path);
       setShowDatasheetModal(true);
@@ -892,6 +901,7 @@ export function ProductDetail({
                           borderColor: theme.border,
                         }
                       ]}
+                      onPress={() => handleDownloadDatasheet(file.url, `${product.code || product.id || 'datasheet'}.pdf`)}
                     >
                       <View style={styles.dataLeft}>
                         <View style={[
@@ -907,12 +917,7 @@ export function ProductDetail({
                           <Text style={[styles.dataDesc, { color: theme.muted }]}>{file.desc}</Text>
                         </View>
                       </View>
-                      <TouchableOpacity
-                        activeOpacity={0.7}
-                        onPress={() => handleDownloadDatasheet(file.url, `${product.code || product.id || 'datasheet'}.pdf`)}
-                      >
-                        <AppIcon name="download" size={20} color={theme.primary} />
-                      </TouchableOpacity>
+                      <AppIcon name="download" size={20} color={theme.primary} />
                     </TouchableOpacity>
                   ))
                 ) : (
@@ -1057,6 +1062,62 @@ export function ProductDetail({
               >
                 <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Mở</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showPermissionModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPermissionModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, styles.datasheetModal, { backgroundColor: theme.surface }]}>
+            <View style={[styles.modalSuccessIcon, { backgroundColor: '#FEF2F2' }]}>
+              <AppIcon name="shield-check" size={48} color="#EF4444" />
+            </View>
+            <Text style={[styles.modalTitle, { color: theme.text, textAlign: 'center' }]}>
+              Cần quyền lưu trữ
+            </Text>
+            <Text style={[styles.modalDescription, { color: theme.muted }]}>
+              {permissionStatus === 'blocked'
+                ? 'Bạn đã tắt quyền lưu trữ. Vui lòng vào Cài đặt để cấp lại quyền cho ứng dụng.'
+                : 'Ứng dụng cần quyền lưu trữ để tải datasheet về thiết bị của bạn.'}
+            </Text>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonClose, { backgroundColor: theme.border }]}
+                onPress={() => setShowPermissionModal(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.modalButtonText, { color: theme.text }]}>Hủy</Text>
+              </TouchableOpacity>
+              {permissionStatus === 'blocked' ? (
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonOpen, { backgroundColor: theme.primary }]}
+                  onPress={() => {
+                    setShowPermissionModal(false);
+                    Linking.openSettings();
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Cài đặt</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonOpen, { backgroundColor: theme.primary }]}
+                  onPress={() => {
+                    setShowPermissionModal(false);
+                    handleDownloadDatasheet(String(product.datasheet), `${product.code || product.id || 'datasheet'}.pdf`);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Thử lại</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>

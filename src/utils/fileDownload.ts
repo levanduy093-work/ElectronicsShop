@@ -1,15 +1,15 @@
 import { Alert, Linking, PermissionsAndroid, Platform } from 'react-native';
 import RNFS from 'react-native-fs';
 
-async function requestStoragePermission(): Promise<boolean> {
-  if (Platform.OS !== 'android') return true;
+async function requestStoragePermission(): Promise<'granted' | 'denied' | 'blocked'> {
+  if (Platform.OS !== 'android') return 'granted';
 
   try {
     const permission = PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE;
 
     // Nếu đã được cấp trước đó thì không hỏi lại
     const alreadyGranted = await PermissionsAndroid.check(permission);
-    if (alreadyGranted) return true;
+    if (alreadyGranted) return 'granted';
 
     const granted = await PermissionsAndroid.request(permission, {
       title: 'Cho phép lưu datasheet',
@@ -20,36 +20,17 @@ async function requestStoragePermission(): Promise<boolean> {
     });
 
     if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-      return true;
+      return 'granted';
     }
 
     if (granted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
-      Alert.alert(
-        'Không có quyền lưu tệp',
-        'Bạn đã tắt quyền lưu trữ cho ứng dụng. Vào Cài đặt hệ thống để cấp lại quyền trước khi tải datasheet.',
-        [
-          { text: 'Hủy', style: 'cancel' },
-          {
-            text: 'Mở cài đặt',
-            onPress: () => {
-              Linking.openSettings().catch(() => {
-                // best-effort, không cần alert thêm
-              });
-            },
-          },
-        ],
-      );
-    } else {
-      Alert.alert(
-        'Không có quyền lưu tệp',
-        'Ứng dụng cần quyền lưu trữ để tải datasheet. Bạn có thể cấp lại quyền trong Cài đặt hệ thống.',
-      );
+      return 'blocked';
     }
 
-    return false;
+    return 'denied';
   } catch (err) {
     console.warn('Error requesting storage permission:', err);
-    return false;
+    return 'denied';
   }
 }
 
@@ -61,16 +42,16 @@ export async function downloadDatasheetPdf(
   url: string,
   fileName?: string,
   options?: DownloadOptions
-): Promise<{ success: boolean; path?: string; error?: any }> {
+): Promise<{ success: boolean; path?: string; error?: any; permissionStatus?: 'denied' | 'blocked' }> {
   const trimmedUrl = (url || '').trim();
   if (!trimmedUrl) {
     Alert.alert('Không có datasheet', 'Sản phẩm này chưa có file datasheet.');
     return { success: false, error: 'No URL' };
   }
 
-  const ok = await requestStoragePermission();
-  if (!ok) {
-    return { success: false, error: 'Permission denied' };
+  const permStatus = await requestStoragePermission();
+  if (permStatus !== 'granted') {
+    return { success: false, error: 'Permission issue', permissionStatus: permStatus };
   }
 
   try {
