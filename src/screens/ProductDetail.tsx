@@ -12,6 +12,7 @@ import { useToast } from '../components/common/ToastProvider';
 import { ApiReview, createReview, getReviews, uploadImage, UploadImageFile } from '../services/api';
 import { socketService } from '../services/socket';
 import { ProductCard } from '../components/ui/ProductCard';
+import { downloadDatasheetPdf } from '../utils/fileDownload';
 import { APP_LINK_DOMAIN as ENV_APP_LINK_DOMAIN, APP_LINK_SCHEME as ENV_APP_LINK_SCHEME } from '@env';
 
 interface ProductDetailProps {
@@ -54,6 +55,7 @@ export function ProductDetail({
   const { width, height } = useWindowDimensions();
   const slideWidth = Math.max(width, 1);
   const [quantity, setQuantity] = useState(1);
+  const hasDatasheet = !!(product.datasheet && String(product.datasheet).trim());
   const [activeTab, setActiveTab] = useState<'desc' | 'specs' | 'reviews' | 'datasheet'>('desc');
   const insets = useSafeAreaInsets();
 
@@ -406,10 +408,22 @@ export function ProductDetail({
     }
   };
 
-  const datasheetFiles = [
-    { id: 'd1', name: 'Datasheet.pdf', size: '2.4 MB', desc: 'Tài liệu kỹ thuật', icon: 'file-text' as const },
-    { id: 'd2', name: 'Library & Example Code', size: '156 KB', desc: 'Arduino/C++', icon: 'file-code' as const },
-  ];
+  const datasheetFiles = useMemo(
+    () =>
+      hasDatasheet
+        ? [
+            {
+              id: 'd1',
+              name: 'Datasheet.pdf',
+              size: '',
+              desc: 'Tài liệu kỹ thuật',
+              icon: 'file-text' as const,
+              url: String(product.datasheet),
+            },
+          ]
+        : [],
+    [hasDatasheet, product.datasheet],
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -856,35 +870,46 @@ export function ProductDetail({
 
             {activeTab === 'datasheet' && (
               <View style={styles.datasheetContainer}>
-                {datasheetFiles.map((file) => (
-                  <TouchableOpacity
-                    key={file.id}
-                    activeOpacity={0.8}
-                    style={[
-                      styles.dataCard,
-                      {
-                        backgroundColor: theme.card,
-                        borderColor: theme.border,
-                      }
-                    ]}
-                  >
-                    <View style={styles.dataLeft}>
-                      <View style={[
-                        styles.dataIcon,
+                {hasDatasheet && datasheetFiles.length > 0 ? (
+                  datasheetFiles.map((file) => (
+                    <TouchableOpacity
+                      key={file.id}
+                      activeOpacity={0.8}
+                      style={[
+                        styles.dataCard,
                         {
-                          backgroundColor: !isDarkMode ? '#EFF6FF' : theme.surface,
+                          backgroundColor: theme.card,
+                          borderColor: theme.border,
                         }
-                      ]}>
-                        <AppIcon name={file.icon} size={18} color={theme.primary} />
+                      ]}
+                    >
+                      <View style={styles.dataLeft}>
+                        <View style={[
+                          styles.dataIcon,
+                          {
+                            backgroundColor: !isDarkMode ? '#EFF6FF' : theme.surface,
+                          }
+                        ]}>
+                          <AppIcon name={file.icon} size={18} color={theme.primary} />
+                        </View>
+                        <View>
+                          <Text style={[styles.dataName, { color: theme.text }]}>{file.name}</Text>
+                          <Text style={[styles.dataDesc, { color: theme.muted }]}>{file.desc}</Text>
+                        </View>
                       </View>
-                      <View>
-                        <Text style={[styles.dataName, { color: theme.text }]}>{file.name}</Text>
-                        <Text style={[styles.dataDesc, { color: theme.muted }]}>{file.size} · {file.desc}</Text>
-                      </View>
-                    </View>
-                    <AppIcon name="download" size={20} color={theme.primary} />
-                  </TouchableOpacity>
-                ))}
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => downloadDatasheetPdf(file.url, `${product.code || product.id || 'datasheet'}.pdf`)}
+                      >
+                        <AppIcon name="download" size={20} color={theme.primary} />
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <Text style={[styles.dataDesc, { color: theme.muted }]}>
+                    Sản phẩm này chưa có datasheet.
+                  </Text>
+                )}
               </View>
             )}
           </View>

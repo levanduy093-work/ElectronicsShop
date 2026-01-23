@@ -2843,6 +2843,8 @@ PODS:
     - RNFBApp
     - SocketRocket
     - Yoga
+  - RNFS (2.20.0):
+    - React-Core
   - RNSVG (15.15.1):
     - boost
     - DoubleConversion
@@ -3022,6 +3024,7 @@ DEPENDENCIES:
   - "RNCClipboard (from `../node_modules/@react-native-clipboard/clipboard`)"
   - "RNFBApp (from `../node_modules/@react-native-firebase/app`)"
   - "RNFBMessaging (from `../node_modules/@react-native-firebase/messaging`)"
+  - RNFS (from `../node_modules/react-native-fs`)
   - RNSVG (from `../node_modules/react-native-svg`)
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
   - SocketRocket (~> 0.7.1)
@@ -3213,6 +3216,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-firebase/app"
   RNFBMessaging:
     :path: "../node_modules/@react-native-firebase/messaging"
+  RNFS:
+    :path: "../node_modules/react-native-fs"
   RNSVG:
     :path: "../node_modules/react-native-svg"
   RNVectorIcons:
@@ -3316,6 +3321,7 @@ SPEC CHECKSUMS:
   RNCClipboard: 962296f7af77f6c039b683e21c2e2255af9c05df
   RNFBApp: a841fe676c70fd4b4a5a51a067089bbedc2417a9
   RNFBMessaging: a09018aaf3fedcc808b61193c72af905eb6e3bb2
+  RNFS: 4ac0f0ea233904cb798630b3c077808c06931688
   RNSVG: 55fc5dc0eaa36a875ffb7d05c0f2cd5b2cbfc342
   RNVectorIcons: 6acc19c833be864e9c70894e101a587fe491150a
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
