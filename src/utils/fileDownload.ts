@@ -79,25 +79,28 @@ export async function downloadDatasheetPdf(url: string, fileName?: string) {
 
     await promise;
 
-    Alert.alert(
-      'Đã tải datasheet',
+    const message =
       Platform.OS === 'android'
-        ? `File đã được lưu vào thư mục Tải xuống: ${safeName}`
-        : 'File đã được lưu, bấm Mở để xem.',
+        ? 'File đã được lưu vào thư mục Tải xuống trên thiết bị.'
+        : 'File đã được lưu, bạn có muốn mở ngay không?';
+
+    const buttons =
       Platform.OS === 'ios'
         ? [
-            { text: 'Đóng', style: 'cancel' },
+            { text: 'Đóng', style: 'cancel' as const },
             {
               text: 'Mở',
+              style: 'default' as const,
               onPress: () => {
                 Linking.openURL(targetPath).catch(() => {
-                  Alert.alert('Không thể mở file', 'Vui lòng mở file từ ứng dụng Files.');
+                  Alert.alert('Không thể mở file', 'Vui lòng mở file từ ứng dụng Tệp.');
                 });
               },
             },
           ]
-        : undefined,
-    );
+        : [{ text: 'OK', style: 'default' as const }];
+
+    Alert.alert('Đã tải datasheet', message, buttons);
   } catch (error) {
     console.warn('Failed to download datasheet:', error);
     Alert.alert('Tải datasheet thất bại', 'Vui lòng kiểm tra kết nối mạng và thử lại.');
