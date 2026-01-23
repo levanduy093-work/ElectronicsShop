@@ -53,16 +53,24 @@ async function requestStoragePermission(): Promise<boolean> {
   }
 }
 
-export async function downloadDatasheetPdf(url: string, fileName?: string) {
+interface DownloadOptions {
+  skipSuccessAlert?: boolean;
+}
+
+export async function downloadDatasheetPdf(
+  url: string,
+  fileName?: string,
+  options?: DownloadOptions
+): Promise<{ success: boolean; path?: string; error?: any }> {
   const trimmedUrl = (url || '').trim();
   if (!trimmedUrl) {
     Alert.alert('Không có datasheet', 'Sản phẩm này chưa có file datasheet.');
-    return;
+    return { success: false, error: 'No URL' };
   }
 
   const ok = await requestStoragePermission();
   if (!ok) {
-    return;
+    return { success: false, error: 'Permission denied' };
   }
 
   try {
@@ -77,7 +85,18 @@ export async function downloadDatasheetPdf(url: string, fileName?: string) {
       toFile: targetPath,
     });
 
-    await promise;
+    const result = await promise;
+
+    if (result.statusCode !== 200) {
+      const errorMsg = `Server returned status code ${result.statusCode}`;
+      console.warn(errorMsg);
+      Alert.alert('Tải datasheet thất bại', `Không thể tải file (Lỗi ${result.statusCode}). Vui lòng thử lại sau.`);
+      return { success: false, error: errorMsg };
+    }
+
+    if (options?.skipSuccessAlert) {
+      return { success: true, path: targetPath };
+    }
 
     const message =
       Platform.OS === 'android'
@@ -87,23 +106,25 @@ export async function downloadDatasheetPdf(url: string, fileName?: string) {
     const buttons =
       Platform.OS === 'ios'
         ? [
-            { text: 'Đóng', style: 'cancel' as const },
-            {
-              text: 'Mở',
-              style: 'default' as const,
-              onPress: () => {
-                Linking.openURL(targetPath).catch(() => {
-                  Alert.alert('Không thể mở file', 'Vui lòng mở file từ ứng dụng Tệp.');
-                });
-              },
+          { text: 'Đóng', style: 'cancel' as const },
+          {
+            text: 'Mở',
+            style: 'default' as const,
+            onPress: () => {
+              Linking.openURL(targetPath).catch(() => {
+                Alert.alert('Không thể mở file', 'Vui lòng mở file từ ứng dụng Tệp.');
+              });
             },
-          ]
+          },
+        ]
         : [{ text: 'OK', style: 'default' as const }];
 
     Alert.alert('Đã tải datasheet', message, buttons);
+    return { success: true, path: targetPath };
   } catch (error) {
     console.warn('Failed to download datasheet:', error);
     Alert.alert('Tải datasheet thất bại', 'Vui lòng kiểm tra kết nối mạng và thử lại.');
+    return { success: false, error };
   }
 }
 

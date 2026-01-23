@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Share, useWindowDimensions, Modal, TextInput, Image, Animated, Easing, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Share, useWindowDimensions, Modal, TextInput, Image, Animated, Easing, KeyboardAvoidingView, Platform, Linking } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -148,6 +148,8 @@ export function ProductDetail({
   const [reviewContent, setReviewContent] = useState('');
   const [reviewImages, setReviewImages] = useState<string[]>([]);
   const [reviewsFetched, setReviewsFetched] = useState(false);
+  const [showDatasheetModal, setShowDatasheetModal] = useState(false);
+  const [downloadedPath, setDownloadedPath] = useState<string | null>(null);
   const ratingCounts = reviews.reduce(
     (acc, r) => {
       acc[r.rating] = (acc[r.rating] || 0) + 1;
@@ -408,19 +410,27 @@ export function ProductDetail({
     }
   };
 
+  const handleDownloadDatasheet = async (url: string, fileName: string) => {
+    const result = await downloadDatasheetPdf(url, fileName, { skipSuccessAlert: true });
+    if (result && result.success && result.path) {
+      setDownloadedPath(result.path);
+      setShowDatasheetModal(true);
+    }
+  };
+
   const datasheetFiles = useMemo(
     () =>
       hasDatasheet
         ? [
-            {
-              id: 'd1',
-              name: 'Datasheet.pdf',
-              size: '',
-              desc: 'Tài liệu kỹ thuật',
-              icon: 'file-text' as const,
-              url: String(product.datasheet),
-            },
-          ]
+          {
+            id: 'd1',
+            name: 'Datasheet.pdf',
+            size: '',
+            desc: 'Tài liệu kỹ thuật',
+            icon: 'file-text' as const,
+            url: String(product.datasheet),
+          },
+        ]
         : [],
     [hasDatasheet, product.datasheet],
   );
@@ -899,7 +909,7 @@ export function ProductDetail({
                       </View>
                       <TouchableOpacity
                         activeOpacity={0.7}
-                        onPress={() => downloadDatasheetPdf(file.url, `${product.code || product.id || 'datasheet'}.pdf`)}
+                        onPress={() => handleDownloadDatasheet(file.url, `${product.code || product.id || 'datasheet'}.pdf`)}
                       >
                         <AppIcon name="download" size={20} color={theme.primary} />
                       </TouchableOpacity>
@@ -1005,6 +1015,51 @@ export function ProductDetail({
             </View>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal
+        visible={showDatasheetModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDatasheetModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, styles.datasheetModal, { backgroundColor: theme.surface }]}>
+            <View style={styles.modalSuccessIcon}>
+              <AppIcon name="check-circle" size={48} color="#10B981" />
+            </View>
+            <Text style={[styles.modalTitle, { color: theme.text, textAlign: 'center' }]}>
+              Đã tải datasheet
+            </Text>
+            <Text style={[styles.modalDescription, { color: theme.muted }]}>
+              File đã được lưu, bạn có muốn mở ngay không?
+            </Text>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonClose, { backgroundColor: theme.border }]}
+                onPress={() => setShowDatasheetModal(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.modalButtonText, { color: theme.text }]}>Đóng</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonOpen, { backgroundColor: theme.primary }]}
+                onPress={() => {
+                  setShowDatasheetModal(false);
+                  if (downloadedPath) {
+                    Linking.openURL(downloadedPath).catch(() => {
+                      showToast('Không thể mở file', 'error');
+                    });
+                  }
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Mở</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
 
       {/* Bottom Action Bar */}
@@ -1428,6 +1483,45 @@ const styles = StyleSheet.create({
   },
   modalSubmit: {
     backgroundColor: '#2563EB',
+    flex: 1,
+    alignItems: 'center',
+  },
+  modalButtonClose: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E5E7EB',
+  },
+  modalButtonOpen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  datasheetModal: {
+    padding: 24,
+    alignItems: 'center',
+    maxWidth: 340,
+  },
+  modalSuccessIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#ECFDF5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalDescription: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+    paddingHorizontal: 10,
   },
   modalButtonText: {
     fontSize: 14,
