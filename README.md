@@ -99,7 +99,51 @@ Quy trình "Checkout" 3 bước tối ưu hóa tỷ lệ chuyển đổi:
 
 ---
 
-## 🚀 Cài đặt và chạy ứng dụng
+## 📂 Cấu trúc Dự án (Project Structure)
+
+Dự án được tổ chức theo cấu trúc module hóa, giúp dễ dàng mở rộng và bảo trì:
+
+```
+src/
+├── assets/          # Tài nguyên tĩnh (images, fonts, animations)
+├── components/      # Các component tái sử dụng, chia theo chức năng (auth, cart, product...)
+│   ├── ai/          # Components liên quan đến AI (Chat bubble, AI products)
+│   ├── common/      # Components chung (Button, Input, Header...)
+│   └── ...
+├── constants/       # Các hằng số, config chung
+├── hooks/           # Custom React Hooks
+├── i18n/            # Cấu hình đa ngôn ngữ (locales)
+├── screens/         # Các màn hình chính của ứng dụng
+├── services/        # Xử lý API, storage, socket, authentication
+├── theme/           # Cấu hình giao diện (Colors, Fonts, Metrics)
+├── types/           # Định nghĩa TypeScript Types & Interfaces
+└── utils/           # Các hàm tiện ích bổ trợ
+```
+
+---
+
+## 📜 Các Scripts có sẵn
+
+Trong thư mục dự án, bạn có thể chạy các lệnh sau:
+
+### `npm start`
+Khởi chạy Metro Bundler để phục vụ ứng dụng cho máy ảo hoặc thiết bị thật.
+
+### `npm run android`
+Build và chạy ứng dụng trên Android Emulator hoặc thiết bị kết nối qua USB.
+
+### `npm run ios`
+Build và chạy ứng dụng trên iOS Simulator (chỉ trên macOS).
+
+### `npm run lint`
+Kiểm tra lỗi cú pháp và style code bằng ESLint.
+
+### `npm test`
+Chạy bộ kiểm thử unit test với Jest.
+
+---
+
+## �🚀 Cài đặt và chạy ứng dụng
 
 ### 1. Clone repository
 
@@ -138,7 +182,7 @@ npm run android
 ```
 
 #### iOS (chỉ trên macOS)
-**Lưu ý**: Cần thêm file GoogleService-Info.plis từ firebase vào ElectronicsShop/ios/ để build không phát sinh lỗi, hiện dự án được phát triển bởi tài khoản Apple Personal Developer nên chưa cấu hình được thông báo đẩy trên ios, chỉ mới chạy được trên android.
+**Lưu ý**: Cần thêm file GoogleService-Info.plist từ firebase vào ElectronicsShop/ios/ để build không phát sinh lỗi, hiện dự án được phát triển bởi tài khoản Apple Personal Developer nên chưa cấu hình được thông báo đẩy trên ios, chỉ mới chạy được trên android.
 
 ```bash
 # Khởi động Metro bundler

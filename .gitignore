@@ -80,8 +80,8 @@ yarn-error.log
 # Secrets and service configs
 .env
 .npmrc
-android/app/google-services.json
-ios/GoogleService-Info.plist
+**/google-services.json
+**/GoogleService-Info.plist
 
 # Build artifacts (explicit patterns for safety)
 *.apk
