@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, StatusBar, Platform, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -37,6 +37,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [formInitialValues, setFormInitialValues] = useState<Partial<AddressFormValues>>();
+  const hasFetchedRef = useRef(false);
 
   const ensureOnline = useCallback(() => {
     const status = getCurrentNetworkStatus();
@@ -81,9 +82,11 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
   useEffect(() => {
     const loadAddresses = async () => {
       if (!accessToken) return;
+      if (hasFetchedRef.current) return; // Already fetched
       if (!ensureOnline()) return;
 
-      if (addressList.length === 0) setIsLoading(true); // Only show spinner if no cache
+      hasFetchedRef.current = true;
+      setIsLoading(true);
       try {
         const fetchedAddresses = await getAddresses(accessToken);
         setLocalAddresses(fetchedAddresses);
@@ -93,6 +96,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
         }
       } catch (error: any) {
         console.warn('Failed to fetch addresses', error);
+        hasFetchedRef.current = false; // Allow retry on error
       } finally {
         setIsLoading(false);
       }
@@ -103,7 +107,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
     } else if (addresses) {
       setLocalAddresses(addresses);
     }
-  }, [accessToken, addresses, ensureOnline, onUpdateAddresses, addressList.length]);
+  }, [accessToken, addresses, ensureOnline, onUpdateAddresses]);
 
   const handleSetDefault = async (id: string) => {
     const index = addressList.findIndex(addr => addr.id === id);
