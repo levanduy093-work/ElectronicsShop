@@ -693,12 +693,14 @@ function backendToFrontendAddress(addr: BackendAddress, index: number): Frontend
 
 // Convert frontend address to backend format
 function frontendToBackendAddress(addr: Partial<FrontendAddress>): Partial<BackendAddress> {
+  const district = addr.district || addr.ward || '';
+  const ward = addr.ward || addr.district || '';
   return {
     name: addr.name,
     phone: addr.phone,
     city: addr.city,
-    district: addr.district,
-    ward: addr.ward,
+    district,
+    ward,
     street: addr.detailedAddress,
     type: addr.type,
     isDefault: addr.isDefault,
