@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, FlatList, TextInput, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, FlatList, TextInput, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../common/Icon';
 import { Theme } from '../../theme';
@@ -53,7 +53,10 @@ export function LocationSelectModal({
 
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-            <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView
+                style={styles.modalOverlay}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            >
                 <View style={[styles.modalCard, { backgroundColor: theme.card }]}>
                     <View style={styles.modalHeader}>
                         <Text style={[styles.modalTitle, { color: theme.text }]}>{title}</Text>
@@ -98,7 +101,7 @@ export function LocationSelectModal({
                         />
                     )}
                 </View>
-            </View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 }
