@@ -627,6 +627,7 @@ function App(): React.JSX.Element {
   const [banners, setBanners] = useState<HomeBanner[]>([]);
   const productsRef = useRef<Product[]>(PRODUCTS);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productHistory, setProductHistory] = useState<Product[]>([]);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [addresses, setAddresses] = useState<Address[]>(DEFAULT_ADDRESSES);
@@ -1686,9 +1687,38 @@ function App(): React.JSX.Element {
   };
 
   const navigateToProduct = (product: Product) => {
-    setPreviousScreen(currentScreen);
+    // Quản lý stack sản phẩm để có thể quay lại khi bấm Back
+    setProductHistory((prevHistory) => {
+      // Nếu đang ở màn chi tiết sản phẩm, push thêm vào stack
+      if (currentScreen === 'product-detail') {
+        return [...prevHistory, product];
+      }
+      // Nếu đi từ màn khác sang, reset stack chỉ còn sản phẩm hiện tại
+      return [product];
+    });
+
+    // Chỉ cập nhật previousScreen khi chuyển từ màn khác sang product-detail
+    setPreviousScreen((prev) => (currentScreen === 'product-detail' ? prev : currentScreen));
+
     setSelectedProduct(product);
     setCurrentScreen('product-detail');
+  };
+
+  const handleBackFromProductDetail = () => {
+    setProductHistory((prevHistory) => {
+      if (prevHistory.length > 1) {
+        // Quay lại sản phẩm trước đó trong stack
+        const newHistory = prevHistory.slice(0, -1);
+        const previousProduct = newHistory[newHistory.length - 1];
+        setSelectedProduct(previousProduct);
+        return newHistory;
+      }
+
+      // Nếu chỉ còn một sản phẩm thì thoát khỏi màn chi tiết
+      setSelectedProduct(null);
+      setCurrentScreen(previousScreen);
+      return [];
+    });
   };
 
   const handleOnboardingComplete = useCallback(async () => {
@@ -2372,7 +2402,7 @@ function App(): React.JSX.Element {
         return selectedProduct ? (
           <ProductDetail
             product={selectedProduct}
-            onBack={() => setCurrentScreen(previousScreen)}
+            onBack={handleBackFromProductDetail}
             onAddToCart={handleAddToCart}
             isFavorite={wishlist.some(item => item.id === selectedProduct.id)}
             onToggleFavorite={() => handleToggleWishlistAsync(selectedProduct)}
