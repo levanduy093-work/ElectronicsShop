@@ -37,6 +37,7 @@ import {
     markNotificationRead as apiMarkNotificationRead,
     removeFavorite,
     updateProfile as apiUpdateProfile,
+    getCurrentUser,
     getAddresses,
     uploadImage,
     UploadImageFile,
@@ -605,6 +606,35 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         }
     };
 
+    const loadUserProfile = useCallback(async (tokenOverride?: string, options?: { silent?: boolean }) => {
+        const token = tokenOverride || authTokensRef.current?.accessToken;
+        if (!token) return;
+        try {
+            const result = await getCurrentUser(token);
+            if (result) {
+                setUserProfile(prev => {
+                    const updated = {
+                        ...prev,
+                        ...(result.name ? { name: result.name } : {}),
+                        ...(result.email ? { email: result.email } : {}),
+                        ...(result.avatar ? { avatar: result.avatar } : {}),
+                    };
+                    if (authTokensRef.current) {
+                        persistAuthState(authTokensRef.current as any, updated, result._id || userId).catch(() => { });
+                    }
+                    return updated;
+                });
+                if (result._id && result._id !== userId) {
+                    setUserId(result._id);
+                }
+            }
+        } catch (error: any) {
+            if (!options?.silent) {
+                console.warn('AppStateProvider - Failed to load user profile', error?.message || error);
+            }
+        }
+    }, [userId]);
+
     const syncNotificationsFromApi = useCallback((items: ApiNotification[]) => {
         const translate = typeof t === 'function' ? t : undefined;
         const list = Array.isArray(items) ? items : [];
@@ -703,12 +733,13 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         const newUserId = data.user?._id ?? null;
         setAddresses([]);
         syncAuthTokens(tokens, data.user, newUserId);
+        loadUserProfile(tokens.accessToken, { silent: true }).catch(() => { });
         loadOrders(tokens.accessToken).catch(() => { });
         loadFavorites(tokens.accessToken).catch(() => { });
         loadVouchers(tokens.accessToken).catch(() => { });
         loadNotifications(tokens.accessToken, { silent: true }).catch(() => { });
         loadAddresses(tokens.accessToken).catch(() => { });
-    }, [syncAuthTokens, loadOrders, loadNotifications]);
+    }, [syncAuthTokens, loadOrders, loadNotifications, loadUserProfile]);
 
     // ========================================================================
     // Cart functions
@@ -1075,6 +1106,13 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         init();
     }, [syncAuthTokens]);
 
+    // Fetch user profile after auth is restored
+    useEffect(() => {
+        if (!isRestoringAuth && isLoggedIn && authTokens?.accessToken) {
+            loadUserProfile(undefined, { silent: true }).catch(() => { });
+        }
+    }, [isRestoringAuth, isLoggedIn, authTokens?.accessToken, loadUserProfile]);
+
     // Load products and banners when online
     useEffect(() => {
         if (networkStatus.isConnected) {
@@ -1125,6 +1163,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     // Load user data when logged in
     useEffect(() => {
         if (isLoggedIn && authTokens?.accessToken) {
+            loadUserProfile(undefined, { silent: true }).catch(() => { });
             loadOrders().catch(() => { });
             loadFavorites().catch(() => { });
             loadVouchers().catch(() => { });
@@ -1137,7 +1176,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
             setNotifications([]);
             setAddresses(DEFAULT_ADDRESSES);
         }
-    }, [isLoggedIn, authTokens?.accessToken, loadOrders, loadNotifications]);
+    }, [isLoggedIn, authTokens?.accessToken, loadOrders, loadNotifications, loadUserProfile]);
 
     // Configure API auth
     useEffect(() => {
@@ -1175,6 +1214,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         login,
         logout: handleAuthFailure,
         updateProfile,
+        loadUserProfile,
 
         // Wishlist
         wishlist,
@@ -1236,7 +1276,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     }), [
         products, relatedProducts, banners, isLoadingProducts, productsError, loadProducts,
         cartItems, addToCart, updateCartQuantity, removeFromCart, updateCartItemOptions,
-        isLoggedIn, authTokens, userId, userProfile, login, handleAuthFailure, updateProfile,
+        isLoggedIn, authTokens, userId, userProfile, login, handleAuthFailure, updateProfile, loadUserProfile,
         wishlist, toggleFavorite, isFavorite,
         orders, selectedOrderId, isPlacingOrder, isRefreshingOrders, placeOrder, refreshOrders, refreshOrderDetail,
         vouchers, appliedVoucher,

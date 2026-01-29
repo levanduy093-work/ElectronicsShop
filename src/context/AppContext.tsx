@@ -29,6 +29,7 @@ export interface AppContextValue {
     login: (response: any) => void;
     logout: () => void;
     updateProfile: (data: any) => Promise<void>;
+    loadUserProfile: (tokenOverride?: string, options?: { silent?: boolean }) => Promise<void>;
 
     // Wishlist
     wishlist: Product[];

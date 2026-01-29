@@ -51,6 +51,9 @@ function HomeWrapper() {
             navigation.navigate('Search', {});
         } else if (screen === 'notifications') {
             navigation.navigate('Notifications');
+        } else if (screen === 'ai') {
+            // @ts-ignore - AITab is a sibling tab in RootNavigator
+            navigation.navigate('AITab');
         }
     };
 

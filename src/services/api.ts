@@ -546,6 +546,10 @@ export function getMyVouchers(token: string) {
   return getJson<ApiVoucher[]>('/vouchers/my', { token });
 }
 
+export function getCurrentUser(token: string) {
+  return getJson<{ _id: string; name: string; email: string; avatar?: string }>('/users/me', { token });
+}
+
 export function updateProfile(data: { name?: string; avatar?: string; email?: string }, token: string) {
   return patchJson<{ user: any; accessToken?: string; refreshToken?: string }>(
     '/users/me',

@@ -57,6 +57,7 @@ export function Profile({
   const insets = useSafeAreaInsets();
   const t = theme || ctxTheme || lightTheme;
   const userVouchers = vouchers && vouchers.length > 0 ? vouchers : AVAILABLE_VOUCHERS;
+  const voucherCount = vouchers?.length || 0;
 
   const handleCopyVoucher = (code: string) => {
     showToast(translate('copy_voucher_success', { code }), 'success');
@@ -119,7 +120,7 @@ export function Profile({
 
         <ProfileStats
           orderCount={orderCount}
-          voucherCount={userVouchers.length}
+          voucherCount={voucherCount}
           onNavigateToOrders={() => onNavigateToOrders?.()}
           onShowVouchers={() => setShowVouchers(true)}
           theme={t}

@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../types';
 import { useAppOptional } from '../../context';
@@ -57,6 +57,15 @@ function ProfileWrapper() {
     const { theme, isDarkMode } = useTheme();
     const app = useAppOptional();
 
+    // Refresh user profile when screen is focused
+    useFocusEffect(
+        React.useCallback(() => {
+            if (app?.isLoggedIn && app?.authTokens?.accessToken && app?.loadUserProfile) {
+                app.loadUserProfile(app.authTokens.accessToken, { silent: true }).catch(() => { });
+            }
+        }, [app?.isLoggedIn, app?.authTokens?.accessToken])
+    );
+
     if (!app?.isLoggedIn) {
         // Navigate to Auth if not logged in
         return (
@@ -76,6 +85,8 @@ function ProfileWrapper() {
             <ProfileScreen
                 theme={theme}
                 userProfile={app?.userProfile || { name: '', email: '', avatar: '' }}
+                orderCount={app?.orders?.length || 0}
+                vouchers={app?.vouchers || []}
                 onLogout={app?.logout || (() => { })}
                 onNavigateToOrders={() => navigation.navigate('OrderHistory')}
                 onNavigateToSettings={() => navigation.navigate('Settings')}
