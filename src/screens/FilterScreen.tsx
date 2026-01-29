@@ -37,7 +37,7 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
   const [selectedCategories, setSelectedCategories] = useState<string[]>(currentFilters?.categories || []);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [filteredCount, setFilteredCount] = useState(12);
-  
+
   // Calculate filtered count whenever filters change
   useEffect(() => {
     if (getFilteredCount) {
@@ -46,7 +46,7 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
       const safeMin = Number.isNaN(parsedMin) ? PRICE_MIN : parsedMin;
       const safeMax = Number.isNaN(parsedMax) ? PRICE_MAX : parsedMax;
       const [finalMin, finalMax] = safeMin <= safeMax ? [safeMin, safeMax] : [safeMax, safeMin];
-      
+
       const count = getFilteredCount({
         priceRange: [finalMin, finalMax],
         rating,
@@ -99,8 +99,8 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: t.background }]} 
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: t.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 12), backgroundColor: t.surface, borderBottomColor: t.border }]}>
@@ -246,7 +246,14 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
       </ScrollView>
 
       {/* Footer */}
-      <View style={[styles.footer, { backgroundColor: t.surface, borderTopColor: t.border }]}>
+      <View style={[
+        styles.footer,
+        {
+          backgroundColor: t.surface,
+          borderTopColor: t.border,
+          paddingBottom: 30
+        }
+      ]}>
         <TouchableOpacity
           onPress={handleApply}
           style={[styles.applyButton, { backgroundColor: t.primary }]}

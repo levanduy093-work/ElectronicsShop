@@ -4,6 +4,7 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   KeyboardEvent,
+  LayoutAnimation,
   Platform,
   ScrollView,
   StyleSheet,
@@ -77,11 +78,25 @@ export function AIChat({
   }, [messages, isTyping]);
 
   useEffect(() => {
-    const onKeyboardShow = (e: KeyboardEvent) => setKeyboardHeight(e.endCoordinates?.height ?? 0);
-    const onKeyboardHide = () => setKeyboardHeight(0);
+    const onKeyboardShow = (e: KeyboardEvent) => {
+      if (Platform.OS === 'ios') {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      }
+      setKeyboardHeight(e.endCoordinates?.height ?? 0);
+    };
 
-    const showSub = Keyboard.addListener('keyboardDidShow', onKeyboardShow);
-    const hideSub = Keyboard.addListener('keyboardDidHide', onKeyboardHide);
+    const onKeyboardHide = () => {
+      if (Platform.OS === 'ios') {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      }
+      setKeyboardHeight(0);
+    };
+
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, onKeyboardShow);
+    const hideSub = Keyboard.addListener(hideEvent, onKeyboardHide);
     const frameSub =
       Platform.OS === 'ios'
         ? Keyboard.addListener('keyboardWillChangeFrame', onKeyboardShow)
@@ -113,7 +128,7 @@ export function AIChat({
     };
   }, [onMessagesChange]);
 
-  const bottomNavHeight = 80 + Math.max(insets.bottom, 12);
+  const bottomNavHeight = 16 + insets.bottom;
   const isKeyboardVisible = keyboardHeight > 0;
 
   const toProduct = (card: AiProductCard): Product => ({
@@ -364,7 +379,7 @@ export function AIChat({
           style={[
             styles.inputContainer,
             {
-              paddingBottom: isKeyboardVisible ? Math.max(insets.bottom, 8) : bottomNavHeight,
+              paddingBottom: isKeyboardVisible ? 12 : bottomNavHeight,
               backgroundColor: theme.surface,
               borderTopColor: theme.border,
             },

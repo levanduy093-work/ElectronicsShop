@@ -1,6 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { NativeModules, Platform } from 'react-native';
-import { API_BASE_URL as ENV_API_URL, API_DEVICE_HOST, SOCKET_URL as ENV_SOCKET_URL } from '@env';
+import { API_BASE_URL as ENV_API_URL, API_DEVICE_HOST } from '@env';
 
 const resolveHost = () => {
   const scriptURL = (NativeModules as any)?.SourceCode?.scriptURL as string | undefined;
@@ -25,25 +25,21 @@ const cleanHost = (value?: string) => {
 };
 
 const isLocalHost = (url?: string) => !!url && /localhost|127\.0\.0\.1/.test(url);
-const envSocket = cleanHost(ENV_SOCKET_URL);
 const envApi = cleanHost(ENV_API_URL);
 const deviceHost = cleanHost(API_DEVICE_HOST);
 const fallbackHost = resolveHost();
 
 const pickSocketUrl = () => {
-  // 1) Explicit socket URL if not local
-  if (envSocket && !isLocalHost(envSocket.origin)) return envSocket.origin;
-
-  // 2) API URL if not local
+  // 1) Prefer API URL when it is not pointing to localhost
   if (envApi && !isLocalHost(envApi.origin)) return envApi.origin;
 
-  // 3) Device host override (default port 3000 if missing)
+  // 2) Device host override (default port 3000 if missing)
   if (deviceHost) return deviceHost.port ? deviceHost.origin : `${deviceHost.origin}:3000`;
 
-  // 4) If explicit socket URL is local, fall back to resolved host
-  if (envSocket && isLocalHost(envSocket.origin)) return `http://${fallbackHost}:3000`;
+  // 3) Use API URL even if local (works on simulators)
+  if (envApi) return envApi.origin;
 
-  // 5) Default to resolved host
+  // 4) Default to resolved host
   return `http://${fallbackHost}:3000`;
 };
 
