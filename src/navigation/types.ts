@@ -4,45 +4,20 @@ import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { CompositeScreenProps } from '@react-navigation/native';
 
 // ============================================================================
-// Stack Param Lists
+// Root Stack Param List - Contains ALL detail screens outside tab navigator
 // ============================================================================
 
 export type RootStackParamList = {
     MainTabs: NavigatorScreenParams<RootTabParamList>;
-    OrderDetail: { orderId: string };
-};
-
-export type HomeStackParamList = {
-    Home: undefined;
+    // Shared detail screens
     ProductDetail: { productId: string };
     Search: { initialQuery?: string };
-    Notifications: undefined;
     Filter: undefined;
-};
-
-export type CatalogStackParamList = {
-    Catalog: { category?: string };
-    ProductDetail: { productId: string };
-    Filter: undefined;
-    Search: { initialQuery?: string };
     Notifications: undefined;
-};
-
-export type AIStackParamList = {
-    AIChat: undefined;
-    ProductDetail: { productId: string };
-    Notifications: undefined;
-};
-
-export type CartStackParamList = {
-    Cart: undefined;
+    // Cart flow
     Checkout: undefined;
-    ProductDetail: { productId: string };
-    Notifications: undefined;
-};
-
-export type ProfileStackParamList = {
-    Profile: undefined;
+    OrderDetail: { orderId: string };
+    // Profile flow
     Auth: { mode?: 'login' | 'register' };
     Settings: undefined;
     OrderHistory: undefined;
@@ -51,6 +26,30 @@ export type ProfileStackParamList = {
     SupportCenter: undefined;
     ChangePassword: undefined;
     LanguageSelection: undefined;
+};
+
+// ============================================================================
+// Stack Param Lists - Now only contain ROOT screens for each tab
+// ============================================================================
+
+export type HomeStackParamList = {
+    Home: undefined;
+};
+
+export type CatalogStackParamList = {
+    Catalog: { category?: string };
+};
+
+export type AIStackParamList = {
+    AIChat: undefined;
+};
+
+export type CartStackParamList = {
+    Cart: undefined;
+};
+
+export type ProfileStackParamList = {
+    Profile: undefined;
 };
 
 // ============================================================================
@@ -65,68 +64,30 @@ export type RootTabParamList = {
     ProfileTab: NavigatorScreenParams<ProfileStackParamList>;
 };
 
+
 // ============================================================================
 // Screen Props Types
 // ============================================================================
 
-// Home Stack
-export type HomeScreenProps = CompositeScreenProps<
-    NativeStackScreenProps<HomeStackParamList, 'Home'>,
-    BottomTabScreenProps<RootTabParamList>
->;
+// Root screens in tabs
+export type HomeScreenProps = NativeStackScreenProps<HomeStackParamList, 'Home'>;
+export type CatalogScreenProps = NativeStackScreenProps<CatalogStackParamList, 'Catalog'>;
+export type AIChatScreenProps = NativeStackScreenProps<AIStackParamList, 'AIChat'>;
+export type CartScreenProps = NativeStackScreenProps<CartStackParamList, 'Cart'>;
+export type ProfileScreenProps = NativeStackScreenProps<ProfileStackParamList, 'Profile'>;
 
-export type HomeProductDetailScreenProps = CompositeScreenProps<
-    NativeStackScreenProps<HomeStackParamList, 'ProductDetail'>,
-    BottomTabScreenProps<RootTabParamList>
->;
-
-// Catalog Stack
-export type CatalogScreenProps = CompositeScreenProps<
-    NativeStackScreenProps<CatalogStackParamList, 'Catalog'>,
-    BottomTabScreenProps<RootTabParamList>
->;
-
-// AI Stack
-export type AIChatScreenProps = CompositeScreenProps<
-    NativeStackScreenProps<AIStackParamList, 'AIChat'>,
-    BottomTabScreenProps<RootTabParamList>
->;
-
-// Cart Stack
-export type CartScreenProps = CompositeScreenProps<
-    NativeStackScreenProps<CartStackParamList, 'Cart'>,
-    BottomTabScreenProps<RootTabParamList>
->;
-
-export type CheckoutScreenProps = CompositeScreenProps<
-    NativeStackScreenProps<CartStackParamList, 'Checkout'>,
-    BottomTabScreenProps<RootTabParamList>
->;
-
-// Profile Stack
-export type ProfileScreenProps = CompositeScreenProps<
-    NativeStackScreenProps<ProfileStackParamList, 'Profile'>,
-    BottomTabScreenProps<RootTabParamList>
->;
-
-export type AuthScreenProps = CompositeScreenProps<
-    NativeStackScreenProps<ProfileStackParamList, 'Auth'>,
-    BottomTabScreenProps<RootTabParamList>
->;
-
-export type SettingsScreenProps = CompositeScreenProps<
-    NativeStackScreenProps<ProfileStackParamList, 'Settings'>,
-    BottomTabScreenProps<RootTabParamList>
->;
-
-// Generic props for shared screens
-export type ProductDetailScreenProps<T extends { ProductDetail: { productId: string } }> =
-    NativeStackScreenProps<T, 'ProductDetail'>;
-
-export type OrderDetailScreenProps = CompositeScreenProps<
-    NativeStackScreenProps<RootStackParamList, 'OrderDetail'>,
-    BottomTabScreenProps<RootTabParamList>
->;
-
-export type SearchScreenProps<T extends { Search: { initialQuery?: string } }> =
-    NativeStackScreenProps<T, 'Search'>;
+// Detail screens at root level
+export type ProductDetailScreenProps = NativeStackScreenProps<RootStackParamList, 'ProductDetail'>;
+export type SearchScreenProps = NativeStackScreenProps<RootStackParamList, 'Search'>;
+export type FilterScreenProps = NativeStackScreenProps<RootStackParamList, 'Filter'>;
+export type NotificationsScreenProps = NativeStackScreenProps<RootStackParamList, 'Notifications'>;
+export type CheckoutScreenProps = NativeStackScreenProps<RootStackParamList, 'Checkout'>;
+export type OrderDetailScreenProps = NativeStackScreenProps<RootStackParamList, 'OrderDetail'>;
+export type AuthScreenProps = NativeStackScreenProps<RootStackParamList, 'Auth'>;
+export type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'Settings'>;
+export type OrderHistoryScreenProps = NativeStackScreenProps<RootStackParamList, 'OrderHistory'>;
+export type AddressBookScreenProps = NativeStackScreenProps<RootStackParamList, 'AddressBook'>;
+export type WishlistScreenProps = NativeStackScreenProps<RootStackParamList, 'Wishlist'>;
+export type SupportCenterScreenProps = NativeStackScreenProps<RootStackParamList, 'SupportCenter'>;
+export type ChangePasswordScreenProps = NativeStackScreenProps<RootStackParamList, 'ChangePassword'>;
+export type LanguageSelectionScreenProps = NativeStackScreenProps<RootStackParamList, 'LanguageSelection'>;

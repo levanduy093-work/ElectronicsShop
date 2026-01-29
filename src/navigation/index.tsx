@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { RootNavigator } from './RootNavigator';
+import { RootStack } from './RootStack';
 import { useTheme } from '../theme';
 
 // Loading fallback for lazy-loaded screens
@@ -54,7 +54,7 @@ export function AppNavigator({ cartCount = 0 }: AppNavigatorProps) {
             }}
         >
             <Suspense fallback={<LoadingFallback />}>
-                <RootNavigator cartCount={cartCount} />
+                <RootStack cartCount={cartCount} />
             </Suspense>
         </NavigationContainer>
     );
@@ -70,5 +70,6 @@ const styles = StyleSheet.create({
 
 // Re-export types and navigators
 export * from './types';
-export { RootNavigator } from './RootNavigator';
+export { RootStack } from './RootStack';
+export { TabNavigator } from './TabNavigator';
 export { AnimatedTabBar } from './AnimatedTabBar';

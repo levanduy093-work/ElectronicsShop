@@ -153,6 +153,7 @@ export function AnimatedTabBar({ state, descriptors, navigation, cartCount = 0 }
     // Add extra padding on Android to avoid overlap with gesture navigation bar
     const minBottomPadding = Platform.OS === 'android' ? 36 : 16;
 
+
     return (
         <View
             style={[
