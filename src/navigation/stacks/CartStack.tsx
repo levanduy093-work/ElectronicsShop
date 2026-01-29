@@ -22,6 +22,9 @@ const ProductDetailScreen = React.lazy(() =>
 const OrderDetailScreen = React.lazy(() =>
     import('../../screens/OrderDetail').then(m => ({ default: m.OrderDetail }))
 );
+const NotificationsScreen = React.lazy(() =>
+    import('../../screens/Notifications').then(m => ({ default: m.Notifications }))
+);
 
 const Stack = createNativeStackNavigator<CartStackParamList>();
 
@@ -50,7 +53,9 @@ function CartWrapper() {
             title={t('cart_title')}
             showSearch={false}
             hasUnread={hasUnread}
-            onNotificationClick={() => { }}
+            onNotificationClick={() => {
+                navigation.navigate('Notifications');
+            }}
         >
             <Suspense fallback={<LoadingFallback />}>
                 <CartScreen
@@ -92,6 +97,27 @@ function CheckoutWrapper() {
                 onUpdateAddresses={app?.updateAddresses || (() => { })}
                 accessToken={app?.authTokens?.accessToken}
                 voucher={app?.appliedVoucher || null}
+            />
+        </Suspense>
+    );
+}
+
+// Wrapper for Notifications screen
+function NotificationsWrapper() {
+    const navigation = useNavigation<NativeStackNavigationProp<CartStackParamList>>();
+    const { theme } = useTheme();
+    const app = useAppOptional();
+
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <NotificationsScreen
+                onBack={() => navigation.goBack()}
+                theme={theme}
+                notifications={app?.notifications || []}
+                onMarkAllRead={app?.markAllNotificationsRead || (() => { })}
+                onMarkRead={app?.markNotificationRead || (() => { })}
+                refreshing={app?.isRefreshingNotifications || false}
+                onRefresh={app?.refreshNotifications || (() => Promise.resolve())}
             />
         </Suspense>
     );
@@ -173,6 +199,7 @@ export function CartStack() {
             <Stack.Screen name="Checkout" component={CheckoutWrapper} />
             <Stack.Screen name="ProductDetail" component={ProductDetailWrapper} />
             <Stack.Screen name="OrderDetail" component={OrderDetailWrapper} />
+            <Stack.Screen name="Notifications" component={NotificationsWrapper} />
         </Stack.Navigator>
     );
 }

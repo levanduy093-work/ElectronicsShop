@@ -13,6 +13,7 @@ export type HomeStackParamList = {
     Search: { initialQuery?: string };
     Notifications: undefined;
     OrderDetail: { orderId: string };
+    Filter: undefined;
 };
 
 export type CatalogStackParamList = {
@@ -20,11 +21,13 @@ export type CatalogStackParamList = {
     ProductDetail: { productId: string };
     Filter: undefined;
     Search: { initialQuery?: string };
+    Notifications: undefined;
 };
 
 export type AIStackParamList = {
     AIChat: undefined;
     ProductDetail: { productId: string };
+    Notifications: undefined;
 };
 
 export type CartStackParamList = {
@@ -32,6 +35,7 @@ export type CartStackParamList = {
     Checkout: undefined;
     ProductDetail: { productId: string };
     OrderDetail: { orderId: string };
+    Notifications: undefined;
 };
 
 export type ProfileStackParamList = {

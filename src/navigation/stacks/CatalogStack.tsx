@@ -21,6 +21,9 @@ const FilterScreenComponent = React.lazy(() =>
 const SearchScreenComponent = React.lazy(() =>
     import('../../screens/SearchScreen').then(m => ({ default: m.SearchScreen }))
 );
+const NotificationsScreen = React.lazy(() =>
+    import('../../screens/Notifications').then(m => ({ default: m.Notifications }))
+);
 
 const Stack = createNativeStackNavigator<CatalogStackParamList>();
 
@@ -34,6 +37,8 @@ function LoadingFallback() {
     );
 }
 
+import { filterProducts, isProductMatch } from '../../utils/filterUtils';
+
 // Wrapper for Catalog screen
 function CatalogWrapper({ route }: { route: { params?: { category?: string } } }) {
     const navigation = useNavigation<NativeStackNavigationProp<CatalogStackParamList>>();
@@ -42,12 +47,25 @@ function CatalogWrapper({ route }: { route: { params?: { category?: string } } }
 
     const hasUnread = (app?.notifications || []).some(n => !n.read);
 
+    // Filter function to apply filters to products
+    const applyFilters = React.useCallback((products: any[]) => {
+        return filterProducts(products, app?.searchQuery || '', app?.filters || {});
+    }, [app?.filters, app?.searchQuery]);
+
+    // Function to count filtered products
+    const getFilteredCount = React.useCallback((filters: any) => {
+        if (!app?.products) return 0;
+        return filterProducts(app.products, app.searchQuery, filters).length;
+    }, [app?.products, app?.searchQuery]);
+
     return (
         <ScreenLayout
             showTopBar={true}
             showSearch={false}
             hasUnread={hasUnread}
-            onNotificationClick={() => { }}
+            onNotificationClick={() => {
+                navigation.navigate('Notifications');
+            }}
         >
             <Suspense fallback={<LoadingFallback />}>
                 <CatalogScreen
@@ -58,6 +76,8 @@ function CatalogWrapper({ route }: { route: { params?: { category?: string } } }
                     onFilterClick={() => navigation.navigate('Filter')}
                     searchQuery={app?.searchQuery || ''}
                     onSearchQueryChange={app?.setSearchQuery}
+                    filters={app?.filters}
+                    applyFilters={applyFilters}
                 />
             </Suspense>
         </ScreenLayout>
@@ -106,17 +126,23 @@ function FilterWrapper() {
     const { theme } = useTheme();
     const app = useAppOptional();
 
+    // Function to count filtered products
+    const getFilteredCount = React.useCallback((filters: any) => {
+        if (!app?.products) return 0;
+        return filterProducts(app.products, app.searchQuery || '', filters).length;
+    }, [app?.products, app?.searchQuery]);
+
     return (
         <Suspense fallback={<LoadingFallback />}>
             <FilterScreenComponent
                 onClose={() => navigation.goBack()}
                 onApply={(filters) => {
                     app?.setFilters(filters);
-                    navigation.goBack();
                 }}
                 currentFilters={app?.filters}
                 theme={theme}
                 categories={app?.availableCategories || []}
+                getFilteredCount={getFilteredCount}
             />
         </Suspense>
     );
@@ -135,13 +161,34 @@ function SearchWrapper({ route }: { route: { params?: { initialQuery?: string } 
                 onProductClick={(p) => navigation.navigate('ProductDetail', { productId: p.id })}
                 onFilterClick={() => navigation.navigate('Filter')}
                 initialQuery={route.params?.initialQuery || ''}
-                onQueryChange={() => { }}
+                onQueryChange={app?.setSearchQuery}
                 theme={theme}
                 products={app?.products || []}
                 userId={app?.userId || undefined}
                 isLoggedIn={app?.isLoggedIn || false}
                 accessToken={app?.authTokens?.accessToken}
                 filters={app?.filters}
+            />
+        </Suspense>
+    );
+}
+
+// Wrapper for Notifications screen
+function NotificationsWrapper() {
+    const navigation = useNavigation<NativeStackNavigationProp<CatalogStackParamList>>();
+    const { theme } = useTheme();
+    const app = useAppOptional();
+
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <NotificationsScreen
+                onBack={() => navigation.goBack()}
+                theme={theme}
+                notifications={app?.notifications || []}
+                onMarkAllRead={app?.markAllNotificationsRead || (() => { })}
+                onMarkRead={app?.markNotificationRead || (() => { })}
+                refreshing={app?.isRefreshingNotifications || false}
+                onRefresh={app?.refreshNotifications || (() => Promise.resolve())}
             />
         </Suspense>
     );
@@ -161,6 +208,7 @@ export function CatalogStack() {
             <Stack.Screen name="ProductDetail" component={ProductDetailWrapper} />
             <Stack.Screen name="Filter" component={FilterWrapper} />
             <Stack.Screen name="Search" component={SearchWrapper} />
+            <Stack.Screen name="Notifications" component={NotificationsWrapper} />
         </Stack.Navigator>
     );
 }

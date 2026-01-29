@@ -9,6 +9,7 @@ import { Theme, lightTheme, useTheme } from '../theme';
 import { loadSearchHistory, saveSearchQuery, clearSearchHistory, loadLocalHistory } from '../utils/searchHistory';
 import { socketService } from '../services/socket';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { filterProducts } from '../utils/filterUtils';
 
 interface SearchScreenProps {
   onBack: () => void;
@@ -227,40 +228,6 @@ export function SearchScreen({
   }, [userId, accessToken]);
 
   // Apply filters and search
-  const normalizeText = (value?: string) =>
-    (value || '')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .trim();
-
-  const fuzzyMatch = (haystack: string, needle: string) => {
-    const h = normalizeText(haystack);
-    const n = normalizeText(needle);
-    if (!n) return true;
-    if (h.includes(n)) return true;
-    const tokens = n.split(/\s+/).filter(Boolean);
-    if (!tokens.length) return true;
-    const allTokensIncluded = tokens.every(t => h.includes(t));
-    if (allTokensIncluded) return true;
-    const words = h.split(/\s+/).filter(Boolean);
-    return tokens.every(t => words.some(w => w.startsWith(t)));
-  };
-
-  const categoryAliases: Record<string, string[]> = {
-    capacitor: ['tu dien', 'tụ điện', 'tụ điện hóa', 'tudien'],
-    resistor: ['dien tro', 'điện trở', 'trở'],
-    microcontroller: ['vi dieu khien', 'vi điều khiển', 'controller'],
-    controller: ['vi dieu khien', 'vi điều khiển', 'controller'],
-    sensor: ['cam bien', 'cảm biến'],
-    power: ['nguon', 'nguon & pin', 'nguồn', 'nguồn & pin', 'battery', 'pin'],
-    battery: ['pin', 'nguon', 'nguon & pin'],
-    cable: ['day cap', 'dây cáp', 'dây & cáp', 'wire'],
-    wire: ['day', 'day cap', 'dây', 'cable'],
-    tool: ['dung cu', 'dụng cụ', 'tools'],
-    ic: ['ic so', 'ic số', 'digital ic'],
-  };
-
   // Filters
   const {
     priceRange = [0, 100000000],
@@ -270,33 +237,7 @@ export function SearchScreen({
   } = (props.filters || {});
 
   const filteredProducts = query
-    ? products.filter(p => {
-      // 1. Text Search Matching
-      const aliases = categoryAliases[normalizeText(p.category)] || [];
-      const haystacks = [
-        p.name,
-        p.code || '',
-        p.category || '',
-        ...aliases,
-        p.description || '',
-        Object.entries(p.specs || {})
-          .map(([k, v]) => `${k} ${v}`)
-          .join(' '),
-      ];
-      const textMatch = haystacks.some(h => fuzzyMatch(h, query));
-      if (!textMatch) return false;
-
-      // 2. Filter Matching
-      if (p.price < priceRange[0] || p.price > priceRange[1]) return false;
-
-      if (categories.length > 0 && !categories.includes(p.category)) return false;
-
-      if (rating !== null && p.rating < rating) return false;
-
-      if (onlyInStock && p.stock === 'Out of Stock') return false;
-
-      return true;
-    })
+    ? filterProducts(products, query, { priceRange, categories, rating, onlyInStock })
     : [];
 
   const [trendingSearches, setTrendingSearches] = useState(['Raspberry Pi 5', 'ESP32 Cam', 'Mỏ hàn', 'Cảm biến nhiệt độ', 'Led RGB']);

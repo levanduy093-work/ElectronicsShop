@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { Product } from '../types';
 import { CATEGORIES } from '../constants/data';
 import { extractCategoriesFromProducts } from '../utils/product';
+import { filterProducts } from '../utils/filterUtils';
 import { ProductCard } from '../components/ui/ProductCard';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme } from '../theme';
@@ -49,6 +50,7 @@ export function Catalog({
   onActiveCategoryChange,
   searchQuery: controlledSearchQuery,
   onSearchQueryChange,
+  filters,
 }: CatalogProps) {
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState<string>(controlledCategory ?? initialCategory ?? 'All');
@@ -91,22 +93,18 @@ export function Catalog({
   // Start with all products
   let filteredProducts = products;
 
-  // Apply search filter first (if any)
-  if (searchQuery) {
-    filteredProducts = filteredProducts.filter(p =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+  // Apply filters first (includes search + advanced filters from CatalogStack)
+  if (applyFilters) {
+    filteredProducts = applyFilters(filteredProducts);
+  } else if (searchQuery) {
+    // Fallback if applyFilters not provided (though it should be)
+    filteredProducts = filterProducts(filteredProducts, searchQuery, filters || {});
   }
 
-  // Apply category filter (if not 'All')
+  // Apply category tab filter (if not 'All')
   if (activeCategory !== 'All') {
     const normalizedActive = normalizeCategory(activeCategory);
     filteredProducts = filteredProducts.filter(p => normalizeCategory(p.category) === normalizedActive);
-  }
-
-  // Apply advanced filters (price, rating, stock, categories from filter screen)
-  if (applyFilters) {
-    filteredProducts = applyFilters(filteredProducts);
   }
 
   // Extract categories from products if CATEGORIES is empty

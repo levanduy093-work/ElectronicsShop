@@ -24,6 +24,9 @@ const NotificationsScreen = React.lazy(() =>
 const OrderDetailScreen = React.lazy(() =>
     import('../../screens/OrderDetail').then(m => ({ default: m.OrderDetail }))
 );
+const FilterScreenComponent = React.lazy(() =>
+    import('../../screens/FilterScreen').then(m => ({ default: m.FilterScreen }))
+);
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
 
@@ -129,9 +132,9 @@ function SearchWrapper({ route }: { route: { params?: { initialQuery?: string } 
             <SearchScreenComponent
                 onBack={() => navigation.goBack()}
                 onProductClick={(p) => navigation.navigate('ProductDetail', { productId: p.id })}
-                onFilterClick={() => { }}
+                onFilterClick={() => navigation.navigate('Filter')}
                 initialQuery={route.params?.initialQuery || ''}
-                onQueryChange={() => { }}
+                onQueryChange={app?.setSearchQuery}
                 theme={theme}
                 products={app?.products || []}
                 userId={app?.userId || undefined}
@@ -190,6 +193,36 @@ function OrderDetailWrapper({ route }: { route: { params: { orderId: string } } 
     );
 }
 
+import { filterProducts } from '../../utils/filterUtils';
+
+// Wrapper component for Filter screen
+function FilterWrapper() {
+    const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
+    const { theme } = useTheme();
+    const app = useAppOptional();
+
+    // Function to count filtered products
+    const getFilteredCount = React.useCallback((filters: any) => {
+        if (!app?.products) return 0;
+        return filterProducts(app.products, app.searchQuery || '', filters).length;
+    }, [app?.products, app?.searchQuery]);
+
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <FilterScreenComponent
+                onClose={() => navigation.goBack()}
+                onApply={(filters) => {
+                    app?.setFilters(filters);
+                }}
+                currentFilters={app?.filters}
+                theme={theme}
+                categories={app?.availableCategories || []}
+                getFilteredCount={getFilteredCount}
+            />
+        </Suspense>
+    );
+}
+
 export function HomeStack() {
     return (
         <Stack.Navigator
@@ -203,6 +236,7 @@ export function HomeStack() {
             <Stack.Screen name="Home" component={HomeWrapper} />
             <Stack.Screen name="ProductDetail" component={ProductDetailWrapper} />
             <Stack.Screen name="Search" component={SearchWrapper} />
+            <Stack.Screen name="Filter" component={FilterWrapper} />
             <Stack.Screen name="Notifications" component={NotificationsWrapper} />
             <Stack.Screen name="OrderDetail" component={OrderDetailWrapper} />
         </Stack.Navigator>

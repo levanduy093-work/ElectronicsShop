@@ -14,6 +14,9 @@ const AIChatScreen = React.lazy(() =>
 const ProductDetailScreen = React.lazy(() =>
     import('../../screens/ProductDetail').then(m => ({ default: m.ProductDetail }))
 );
+const NotificationsScreen = React.lazy(() =>
+    import('../../screens/Notifications').then(m => ({ default: m.Notifications }))
+);
 
 const Stack = createNativeStackNavigator<AIStackParamList>();
 
@@ -43,6 +46,9 @@ function AIChatWrapper() {
                 onAddToCart={app?.addToCart}
                 onOpenProduct={(productId: string) => navigation.navigate('ProductDetail', { productId })}
                 onRequireLogin={app?.requireLogin}
+                onNotificationClick={() => {
+                    navigation.navigate('Notifications');
+                }}
             />
         </Suspense>
     );
@@ -84,6 +90,27 @@ function ProductDetailWrapper({ route }: { route: { params: { productId: string 
     );
 }
 
+// Wrapper for Notifications screen
+function NotificationsWrapper() {
+    const navigation = useNavigation<NativeStackNavigationProp<AIStackParamList>>();
+    const { theme } = useTheme();
+    const app = useAppOptional();
+
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <NotificationsScreen
+                onBack={() => navigation.goBack()}
+                theme={theme}
+                notifications={app?.notifications || []}
+                onMarkAllRead={app?.markAllNotificationsRead || (() => { })}
+                onMarkRead={app?.markNotificationRead || (() => { })}
+                refreshing={app?.isRefreshingNotifications || false}
+                onRefresh={app?.refreshNotifications || (() => Promise.resolve())}
+            />
+        </Suspense>
+    );
+}
+
 export function AIStack() {
     return (
         <Stack.Navigator
@@ -96,6 +123,7 @@ export function AIStack() {
         >
             <Stack.Screen name="AIChat" component={AIChatWrapper} />
             <Stack.Screen name="ProductDetail" component={ProductDetailWrapper} />
+            <Stack.Screen name="Notifications" component={NotificationsWrapper} />
         </Stack.Navigator>
     );
 }
