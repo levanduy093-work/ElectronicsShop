@@ -1,0 +1,2826 @@
+/**
+ * ElectronicsShop App
+ * React Native version converted from Figma design
+ */
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, AppState, AppStateStatus, Linking, StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Home } from './src/screens/Home';
+import { Onboarding } from './src/screens/Onboarding';
+
+const Catalog = React.lazy(() => import('./src/screens/Catalog').then(m => ({ default: m.Catalog })));
+const AIChat = React.lazy(() => import('./src/screens/AIChat').then(m => ({ default: m.AIChat })));
+const Cart = React.lazy(() => import('./src/screens/Cart').then(m => ({ default: m.Cart })));
+const Profile = React.lazy(() => import('./src/screens/Profile').then(m => ({ default: m.Profile })));
+const ProductDetail = React.lazy(() => import('./src/screens/ProductDetail').then(m => ({ default: m.ProductDetail })));
+const Checkout = React.lazy(() => import('./src/screens/Checkout').then(m => ({ default: m.Checkout })));
+const OrderHistory = React.lazy(() => import('./src/screens/OrderHistory').then(m => ({ default: m.OrderHistory })));
+const OrderDetail = React.lazy(() => import('./src/screens/OrderDetail').then(m => ({ default: m.OrderDetail })));
+const Auth = React.lazy(() => import('./src/screens/Auth').then(m => ({ default: m.Auth })));
+const SearchScreen = React.lazy(() => import('./src/screens/SearchScreen').then(m => ({ default: m.SearchScreen })));
+const FilterScreen = React.lazy(() => import('./src/screens/FilterScreen').then(m => ({ default: m.FilterScreen })));
+const Wishlist = React.lazy(() => import('./src/screens/Wishlist').then(m => ({ default: m.Wishlist })));
+const AddressBook = React.lazy(() => import('./src/screens/AddressBook').then(m => ({ default: m.AddressBook })));
+const Settings = React.lazy(() => import('./src/screens/Settings').then(m => ({ default: m.Settings })));
+const SupportCenter = React.lazy(() => import('./src/screens/SupportCenter').then(m => ({ default: m.SupportCenter })));
+const Notifications = React.lazy(() => import('./src/screens/Notifications').then(m => ({ default: m.Notifications })));
+const ChangePassword = React.lazy(() => import('./src/screens/ChangePassword').then(m => ({ default: m.ChangePassword })));
+const LanguageSelection = React.lazy(() => import('./src/screens/LanguageSelection').then(m => ({ default: m.LanguageSelection })));
+import { BottomNav } from './src/components/layout/BottomNav';
+import { TopBar } from './src/components/layout/TopBar';
+import { Product, CartItem, Order, Voucher, HomeBanner, ChatMessage, Address } from './src/types';
+import { PRODUCTS, CATEGORIES } from './src/constants/data';
+import { DEFAULT_ADDRESSES } from './src/constants/defaults';
+import { darkTheme, lightTheme, ThemeProvider } from './src/theme';
+import { useToast } from './src/components/common/ToastProvider';
+import {
+  ApiNotification,
+  ApiOrder,
+  ApiProduct,
+  ApiVoucher,
+  ApiCart,
+  ApiCartItem,
+  AuthResponse,
+  ApiBanner,
+  addFavorite,
+  configureApiAuth,
+  createOrder as apiCreateOrder,
+  createVnpayPayment,
+  getPublicBanners,
+  getFavorites as apiGetFavorites,
+  getMyVouchers,
+  getNotifications as apiGetNotifications,
+  getOrderById,
+  getOrders as apiGetOrders,
+  getProducts,
+  getRelatedProducts,
+  markAllNotificationsRead as apiMarkAllNotificationsRead,
+  markNotificationRead as apiMarkNotificationRead,
+  removeFavorite,
+  updateProfile as apiUpdateProfile,
+  getAddresses,
+  uploadImage,
+  UploadImageFile,
+  fetchMyCart,
+  upsertCart,
+} from './src/services/api';
+
+import { socketService } from './src/services/socket';
+
+import './src/i18n';
+import { useTranslation } from 'react-i18next';
+import { extractCategoriesFromProducts } from './src/utils/product';
+import { useNetworkStatus } from './src/utils/network';
+import { cacheBanners, getCachedBanners, cacheProducts, getCachedProducts } from './src/utils/cache';
+import { OfflineBanner } from './src/components/common/OfflineBanner';
+import { APP_LINK_DOMAIN as ENV_APP_LINK_DOMAIN, APP_LINK_SCHEME as ENV_APP_LINK_SCHEME } from '@env';
+
+// UNCOMMENT THIS AFTER INSTALLING @react-native-firebase/messaging AND ADDING CONFIG FILES
+import {
+  requestUserPermission,
+  getFcmToken,
+  subscribeForegroundMessage,
+  subscribeNotificationOpened,
+  subscribeToFcmTokenRefresh,
+  deleteFcmToken,
+  getInitialNotificationOpen,
+} from './src/services/fcm';
+import { BiometricLockScreen } from './src/components/auth/BiometricLockScreen';
+import { isBiometricLockEnabled } from './src/services/BiometricService';
+
+type NavTab = 'home' | 'catalog' | 'ai' | 'cart' | 'profile';
+type Screen =
+  | NavTab
+  | 'onboarding'
+  | 'product-detail'
+  | 'checkout'
+  | 'order-history'
+  | 'order-detail'
+  | 'auth'
+  | 'notifications'
+  | 'search'
+  | 'filter'
+  | 'address-book'
+  | 'settings'
+  | 'support'
+  | 'wishlist'
+  | 'change-password'
+  | 'language-selection';
+
+// Screen depth mapping (kept for future navigation tracking)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const SCREEN_DEPTH: Record<Screen, number> = {
+  home: 0,
+  catalog: 0,
+  ai: 0,
+  cart: 0,
+  profile: 0,
+  onboarding: 0,
+  'product-detail': 1,
+  checkout: 2,
+  'order-history': 1,
+  'order-detail': 2,
+  auth: 1,
+  notifications: 1,
+  search: 1,
+  filter: 2,
+  'address-book': 1,
+  settings: 1,
+  support: 1,
+  wishlist: 1,
+  'change-password': 2,
+  'language-selection': 2,
+};
+
+const isTabScreen = (screen: Screen) =>
+  screen === 'home' || screen === 'catalog' || screen === 'ai' || screen === 'cart' || screen === 'profile';
+
+interface FilterState {
+  priceRange: [number, number];
+  categories: string[];
+  rating: number | null;
+  onlyInStock: boolean;
+}
+
+const AUTH_STORAGE_KEY = 'electronicsshop/auth';
+const CART_STORAGE_KEY = 'electronicsshop/cart';
+const PUSH_SETTINGS_KEY = 'electronicsshop/push_settings';
+const ONBOARDING_STORAGE_KEY = 'electronicsshop/onboarding_seen';
+const THEME_MODE_STORAGE_KEY = 'electronicsshop/theme_mode';
+const AI_CHAT_STORAGE_KEY = 'electronicsshop/ai-chat/messages';
+const DEFAULT_PROFILE = {
+  name: "Nguyễn Văn A",
+  email: "nguyenva@example.com",
+  avatar: "",
+};
+// App link configuration (for future deep linking enhancements)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const APP_LINK_HOST = (ENV_APP_LINK_DOMAIN || 'electronicsshop.app').replace(/^https?:\/\//, '');
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const APP_LINK_SCHEME = ENV_APP_LINK_SCHEME || 'electronicsshop';
+
+const CATEGORY_ALIASES: Record<string, string> = {
+  'vi dieu khien': 'Vi điều khiển',
+  'controller': 'Vi điều khiển',
+  'microcontroller': 'Vi điều khiển',
+  'cảm biến': 'Cảm biến',
+  'sensor': 'Cảm biến',
+  'nguon & pin': 'Nguồn & Pin',
+  'nguon': 'Nguồn & Pin',
+  'power': 'Nguồn & Pin',
+  'battery': 'Nguồn & Pin',
+  'dây & cáp': 'Dây & Cáp',
+  'day & cap': 'Dây & Cáp',
+  'cable': 'Dây & Cáp',
+  'wire': 'Dây & Cáp',
+  'dụng cụ': 'Dụng cụ',
+  'dung cu': 'Dụng cụ',
+  'tool': 'Dụng cụ',
+  'tools': 'Dụng cụ',
+  'ic số': 'IC số',
+  'ic so': 'IC số',
+  'ic': 'IC số',
+  'digital ic': 'IC số',
+  'điện trở': 'Điện trở',
+  'dien tro': 'Điện trở',
+  'resistor': 'Điện trở',
+  'tụ điện': 'Tụ điện',
+  'tu dien': 'Tụ điện',
+  'capacitor': 'Tụ điện',
+};
+
+const normalizeCategoryName = (value?: string) => {
+  const key = (value || '').trim().toLowerCase();
+  return CATEGORY_ALIASES[key] || (value || '').trim();
+};
+
+const normalizeText = (value?: string) =>
+  (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+const fuzzyMatch = (haystack: string, needle: string) => {
+  const h = normalizeText(haystack);
+  const n = normalizeText(needle);
+  if (!n) return true;
+  if (h.includes(n)) return true;
+
+  const tokens = n.split(/\s+/).filter(Boolean);
+  if (!tokens.length) return true;
+
+  // Mỗi từ khóa nhỏ phải xuất hiện ở đâu đó trong chuỗi gốc
+  const allTokensIncluded = tokens.every(t => h.includes(t));
+  if (allTokensIncluded) return true;
+
+  // Cho phép match prefix của từ
+  const words = h.split(/\s+/).filter(Boolean);
+  return tokens.every(t => words.some(w => w.startsWith(t)));
+};
+
+async function persistAuthState(
+  tokens: { accessToken: string; refreshToken: string },
+  profile: typeof DEFAULT_PROFILE,
+  userId?: string | null,
+) {
+  try {
+    await AsyncStorage.setItem(
+      AUTH_STORAGE_KEY,
+      JSON.stringify({ tokens, profile, userId }),
+    );
+  } catch (error) {
+    console.warn('App.tsx - Failed to persist auth state', error);
+  }
+}
+
+async function clearPersistedAuthState() {
+  try {
+    await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+  } catch (error) {
+    console.warn('App.tsx - Failed to clear auth state', error);
+  }
+}
+
+async function persistCartState(items: CartItem[]) {
+  try {
+    await AsyncStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+  } catch (error) {
+    console.warn('App.tsx - Failed to persist cart', error);
+  }
+}
+
+async function loadPersistedCart(): Promise<CartItem[] | null> {
+  try {
+    const stored = await AsyncStorage.getItem(CART_STORAGE_KEY);
+    if (!stored) return null;
+    return JSON.parse(stored) as CartItem[];
+  } catch (error) {
+    console.warn('App.tsx - Failed to load cart', error);
+    return null;
+  }
+}
+
+async function loadPersistedAiMessages(): Promise<ChatMessage[]> {
+  try {
+    const stored = await AsyncStorage.getItem(AI_CHAT_STORAGE_KEY);
+    if (!stored) return [];
+    const raw = JSON.parse(stored) as any[];
+    return (raw || []).map(item => ({
+      ...item,
+      timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
+    }));
+  } catch (error) {
+    console.warn('App.tsx - Failed to load AI chat messages', error);
+    return [];
+  }
+}
+
+async function persistAiMessages(messages: ChatMessage[]) {
+  try {
+    const payload = messages.map(m => ({
+      ...m,
+      timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : m.timestamp,
+    }));
+    await AsyncStorage.setItem(AI_CHAT_STORAGE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.warn('App.tsx - Failed to persist AI chat messages', error);
+  }
+}
+
+async function persistThemeMode(mode: 'light' | 'dark' | 'system') {
+  try {
+    await AsyncStorage.setItem(THEME_MODE_STORAGE_KEY, mode);
+  } catch (error) {
+    console.warn('App.tsx - Failed to persist theme mode', error);
+  }
+}
+
+async function loadPersistedThemeMode(): Promise<'light' | 'dark' | 'system' | null> {
+  try {
+    const stored = await AsyncStorage.getItem(THEME_MODE_STORAGE_KEY);
+    if (!stored) return null;
+    return stored as 'light' | 'dark' | 'system';
+  } catch (error) {
+    console.warn('App.tsx - Failed to load theme mode', error);
+    return null;
+  }
+}
+
+const getOrderStatusText = (status: Order['status'], t: (key: string) => string): string => {
+  const statusMap: Record<Order['status'], string> = {
+    processing: t('order_status_processing'),
+    shipping: t('order_status_shipping'),
+    completed: t('order_status_completed'),
+    cancelled: t('order_status_cancelled'),
+  };
+  return statusMap[status];
+};
+
+const formatDateTime = (value?: string | Date | null) => {
+  if (!value) return '';
+  const date = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return '';
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  const hh = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+};
+
+const formatRelativeTime = (value?: string | Date | null, t?: (key: string, options?: any) => string) => {
+  if (!value) return '';
+  const date = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return '';
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+  if (typeof t !== 'function') {
+    // Fallback if translation not available
+    if (diffMinutes < 1) return 'Just now';
+    if (diffMinutes < 60) return `${diffMinutes} minutes ago`;
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return formatDateTime(date);
+  }
+  if (diffMinutes < 1) return t('time_just_now');
+  if (diffMinutes < 60) return t('time_minutes_ago', { count: diffMinutes });
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return t('time_hours_ago', { count: diffHours });
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return t('time_days_ago', { count: diffDays });
+  return formatDateTime(date);
+};
+
+type UiNotification = {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+  sendAt?: string;
+};
+
+const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS, t?: (key: string) => string): Order => {
+  const created = order.status?.ordered || order.createdAt || new Date().toISOString();
+  const hasShipped = Boolean(order.status?.shipped);
+  const hasPackaged = Boolean(order.status?.packaged);
+  const hasConfirmed = Boolean(order.status?.confirmed);
+  const isCompleted = hasShipped && order.paymentStatus === 'paid';
+  const isCancelled = Boolean(order.isCancelled);
+
+  let status: Order['status'] = 'processing';
+  if (isCancelled) status = 'cancelled';
+  else if (isCompleted) status = 'completed';
+  else if (hasShipped) status = 'shipping';
+
+  const addressString = [
+    order.shippingAddress?.street,
+    order.shippingAddress?.ward,
+    order.shippingAddress?.district,
+    order.shippingAddress?.city,
+  ]
+    .filter(Boolean)
+    .join(', ') || (t ? t('address_none') : 'No address');
+
+  const pickImage = (productId: string) =>
+    productLookup.find(p => p.id === productId)?.image || productLookup[0]?.image || '';
+
+  const getTitle = (key: string) => t ? t(key) : key;
+  const timeline = [
+    { time: formatDateTime(created), title: getTitle('order_placed_success'), active: Boolean(created) },
+    { time: formatDateTime(order.status?.confirmed), title: getTitle('order_confirmed'), active: hasConfirmed },
+    { time: formatDateTime(order.status?.packaged), title: getTitle('order_packing'), active: hasPackaged },
+    { time: formatDateTime(order.status?.shipped), title: getTitle('order_shipping'), active: hasShipped },
+  ];
+
+  if (!isCancelled) {
+    timeline.push({
+      time: isCompleted ? formatDateTime(order.status?.shipped) : '',
+      title: getTitle('order_delivery_success'),
+      active: isCompleted,
+    });
+  }
+
+  return {
+    id: order._id,
+    code: order.code || order._id,
+    date: formatDateTime(created),
+    createdAt: typeof created === 'string' ? created : new Date(created).toISOString(),
+    status,
+    statusText: t ? getOrderStatusText(status, t) : status,
+    paymentStatus: order.paymentStatus,
+    items: order.items.map(item => ({
+      id: item.productId,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      image: pickImage(item.productId),
+      selectedOption: item.selectedOption,
+      selectedClassification: item.selectedClassification,
+    })),
+    shippingAddress: {
+      name: order.shippingAddress?.name || (t ? t('receiver') : 'Receiver'),
+      phone: order.shippingAddress?.phone || '',
+      address: addressString,
+    },
+    payment: {
+      method: order.payment || 'cod',
+      subtotal: order.subTotal,
+      shippingFee: order.shippingFee,
+      discount: order.discount,
+      total: order.totalPrice,
+    },
+    timeline,
+  };
+};
+
+const ForegroundNotificationHandler = () => {
+  const { showToast } = useToast();
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    const unsubscribe = subscribeForegroundMessage(({ title, body }) => {
+      const text = title && body ? `${title}: ${body}` : title || body || t('notification_new');
+      showToast(text, 'info', 3500);
+    });
+    return () => unsubscribe?.();
+  }, [showToast, t]);
+
+  return null;
+};
+
+const computeCartTotals = (items: CartItem[]) => {
+  const subTotal = items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
+  const totalItem = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+  const shippingFee = 0;
+  const totalPrice = subTotal + shippingFee;
+  return { subTotal, totalItem, shippingFee, totalPrice };
+};
+
+const mapApiCartToUi = (cart: ApiCart, productsLookup: Product[], t?: (key: string) => string): CartItem[] => {
+  return (cart.items || []).map(item => {
+    const found = productsLookup.find(p => p.id === item.productId);
+    const priceFromProduct = found?.salePrice ?? found?.price ?? found?.originalPrice ?? item.price;
+    return {
+      id: item.productId,
+      name: found?.name || item.name || (t ? t('product') : 'Product'),
+      price: priceFromProduct || 0,
+      originalPrice: found?.originalPrice,
+      salePrice: found?.salePrice,
+      rating: found?.rating ?? 0,
+      reviews: found?.reviews ?? 0,
+      reviewCount: found?.reviewCount,
+      averageRating: found?.averageRating,
+      image: found?.image || item.image || '',
+      images: found?.images,
+      category: found?.category || item.category || 'Khác',
+      stock: found?.stock || 'In Stock',
+      stockQuantity: found?.stockQuantity,
+      description: found?.description || '',
+      specs: found?.specs || {},
+      code: found?.code,
+      saleCount: found?.saleCount,
+      datasheet: found?.datasheet,
+      quantity: item.quantity || 1,
+    };
+  });
+};
+
+const mapCartItemToApi = (item: CartItem): ApiCartItem => {
+  const price = item.salePrice ?? item.price ?? item.originalPrice ?? 0;
+  return {
+    productId: item.id,
+    quantity: item.quantity,
+    price,
+    name: item.name,
+    category: item.category,
+    image: item.image,
+  };
+};
+
+const mergeCartItems = (localItems: CartItem[], remoteItems: CartItem[]) => {
+  const map = new Map<string, CartItem>();
+  const upsert = (source: CartItem[]) => {
+    source.forEach(item => {
+      const existing = map.get(item.id);
+      if (existing) {
+        const qty = (existing.quantity || 0) + (item.quantity || 0);
+        map.set(item.id, { ...existing, ...item, quantity: qty });
+      } else {
+        map.set(item.id, item);
+      }
+    });
+  };
+  upsert(localItems);
+  upsert(remoteItems);
+  return Array.from(map.values());
+};
+
+const mapApiNotificationToUi = (item: ApiNotification, t?: (key: string, options?: any) => string): UiNotification => {
+  const fallbackDate = item.deliveredAt || item.readAt || item.updatedAt || new Date().toISOString();
+  const sendAt = item.sendAt || item.createdAt || fallbackDate;
+  return {
+    id: item.id || item._id || '',
+    type: item.type || 'system',
+    title: item.title || '',
+    message: item.body || '',
+    time: formatRelativeTime(sendAt, t),
+    read: Boolean(item.isRead),
+    sendAt: sendAt || undefined,
+  };
+};
+
+const mapApiProductToUi = (product: ApiProduct): Product => {
+  const stockNumber = product.stock ?? 0;
+  const stockLabel =
+    stockNumber <= 0 ? 'Out of Stock' : stockNumber < 5 ? 'Low Stock' : 'In Stock';
+
+  const price = product.price?.salePrice ?? product.price?.originalPrice ?? 0;
+  const originalPrice = product.price?.originalPrice || undefined;
+
+  const specs: Record<string, string> = {};
+  if (product.specs) {
+    Object.entries(product.specs).forEach(([k, v]) => {
+      if (v) specs[k] = v as string;
+    });
+  }
+
+  const normalizedImages = (product.images || [])
+    .map(img => (img || '').trim())
+    .filter(Boolean);
+  const primaryImage =
+    normalizedImages.find(() => true) ||
+    'https://images.unsplash.com/photo-1581093588401-99b6fa-2?auto=format&fit=crop&w=600&q=80';
+
+  return {
+    id: product._id,
+    name: product.name,
+    price,
+    salePrice: product.price?.salePrice,
+    originalPrice,
+    rating: product.averageRating ?? 0,
+    averageRating: product.averageRating ?? 0,
+    reviews: product.reviewCount ?? 0,
+    reviewCount: product.reviewCount ?? 0,
+    image: primaryImage,
+    images: normalizedImages,
+    category: product.category || 'Khác',
+    stock: stockLabel,
+    stockQuantity: stockNumber,
+    description: product.description || '',
+    specs,
+    code: product.code,
+    saleCount: product.saleCount,
+    datasheet: product.datasheet,
+    options: product.options,
+    classifications: product.classifications,
+  };
+};
+
+const mapApiVoucherToUi = (voucher: ApiVoucher): Voucher => {
+  const fallbackType = voucher.description?.toLowerCase().includes('ship') ? 'shipping' : 'fixed';
+  return {
+    id: voucher._id,
+    code: voucher.code,
+    description: voucher.description || '',
+    type: voucher.type || fallbackType,
+    discountPrice: Number(voucher.discountPrice ?? 0) || 0,
+    discountRate: voucher.discountRate,
+    maxDiscountPrice: voucher.maxDiscountPrice,
+    minTotal: Number(voucher.minTotal) || 0,
+    expire: voucher.expire,
+  };
+};
+
+const mapApiBannerToUi = (banner: ApiBanner): HomeBanner => ({
+  id: banner._id,
+  title: banner.title,
+  subtitle: banner.subtitle,
+  imageUrl: banner.imageUrl,
+  ctaLabel: banner.ctaLabel,
+  ctaLink: banner.ctaLink,
+  ctaProductId: banner.productId,
+  isActive: banner.isActive,
+  order: banner.order,
+});
+
+function App(): React.JSX.Element {
+  const { t } = useTranslation();
+  const { showToast } = useToast();
+  const systemColorScheme = useColorScheme();
+  const systemDarkMode = systemColorScheme === 'dark';
+  const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>('system');
+  const isDarkMode = themeMode === 'system' ? systemDarkMode : themeMode === 'dark';
+  const [currentTab, setCurrentTab] = useState<NavTab>('home');
+  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  const [previousScreen, setPreviousScreen] = useState<Screen>('home');
+  const [previousTab, setPreviousTab] = useState<NavTab>('home');
+  const [hasVisitedAi, setHasVisitedAi] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [banners, setBanners] = useState<HomeBanner[]>([]);
+  const productsRef = useRef<Product[]>(PRODUCTS);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productHistory, setProductHistory] = useState<Product[]>([]);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [addresses, setAddresses] = useState<Address[]>(DEFAULT_ADDRESSES);
+  const [wishlist, setWishlist] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [isRefreshingOrders, setIsRefreshingOrders] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authTokens, setAuthTokens] = useState<{ accessToken: string; refreshToken: string } | null>(null);
+  const [isRestoringAuth, setIsRestoringAuth] = useState(true);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const authTokensRef = useRef<{ accessToken: string; refreshToken: string } | null>(null);
+  const cartIdRef = useRef<string | null>(null);
+  const cartSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fcmRefreshUnsubRef = useRef<(() => void) | null>(null);
+  const hasRegisteredFcmRef = useRef(false);
+  const hasFetchedCartRef = useRef(false);
+  const openNotificationsRef = useRef<() => void>(() => { });
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
+  const [notifications, setNotifications] = useState<UiNotification[]>([]);
+  const [isRefreshingNotifications, setIsRefreshingNotifications] = useState(false);
+  const [isPushEnabled, setIsPushEnabled] = useState(true);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
+  const networkStatus = useNetworkStatus();
+  const [productsError, setProductsError] = useState<string | null>(null);
+  // Banners error and loading state (used in loadBanners function)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [bannersError, setBannersError] = useState<string | null>(null);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [isLoadingBanners, setIsLoadingBanners] = useState(false);
+
+  // Biometric lock state
+  const [isAppLocked, setIsAppLocked] = useState(false);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const wasInBackgroundRef = useRef(false);
+
+  // Check biometric setting on mount and listen for app state changes
+  useEffect(() => {
+    const checkBiometricSetting = async () => {
+      const enabled = await isBiometricLockEnabled();
+      // Lock app on initial load if biometric is enabled
+      if (enabled) {
+        setIsAppLocked(true);
+      }
+    };
+    checkBiometricSetting();
+
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      // Track when app goes to true background (not just inactive for dialogs)
+      if (nextAppState === 'background') {
+        wasInBackgroundRef.current = true;
+      }
+
+      // Only lock when coming from true background, not from inactive (Face ID dialog)
+      if (
+        wasInBackgroundRef.current &&
+        nextAppState === 'active'
+      ) {
+        wasInBackgroundRef.current = false;
+        const enabled = await isBiometricLockEnabled();
+        if (enabled) {
+          setIsAppLocked(true);
+        }
+      }
+      appStateRef.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription.remove();
+  }, []);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState<FilterState>({
+    priceRange: [0, 10000000],
+    categories: [],
+    rating: null,
+    onlyInStock: false,
+  });
+  const [homeVisibleCount, setHomeVisibleCount] = useState(10);
+  const [userProfile, setUserProfile] = useState(DEFAULT_PROFILE);
+
+  const [userId, setUserId] = useState<string | null>(null);
+  const [aiMessages, setAiMessages] = useState<ChatMessage[]>([]);
+  const aiMessagesRef = useRef<ChatMessage[]>([]);
+  const homeScrollOffsetRef = useRef(0);
+  const [catalogSearch, setCatalogSearch] = useState('');
+  const searchScrollOffsetRef = useRef(0);
+  const availableCategories = useMemo(() => {
+    const base = (CATEGORIES.length ? CATEGORIES : extractCategoriesFromProducts(products)).map(c => c.name);
+    return Array.from(new Set(base.filter(Boolean)));
+  }, [products]);
+
+  useEffect(() => {
+    loadPersistedAiMessages()
+      .then((stored) => {
+        setAiMessages(stored);
+        aiMessagesRef.current = stored;
+      })
+      .catch(err => console.warn('App.tsx - Failed to restore AI chat messages', err));
+  }, []);
+
+  useEffect(() => {
+    aiMessagesRef.current = aiMessages;
+  }, [aiMessages]);
+
+  const openAuthScreen = useCallback(
+    (mode: 'login' | 'register' = 'login', previous?: Screen) => {
+      setAuthMode(mode);
+      setPreviousTab(currentTab);
+      setPreviousScreen(previous ?? currentScreen);
+      setCurrentTab('profile');
+      setCurrentScreen('auth');
+    },
+    [currentScreen, currentTab],
+  );
+
+  const markOnboardingSeen = useCallback(async () => {
+    try {
+      await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+    } catch (error) {
+      console.warn('App.tsx - Failed to persist onboarding state', error);
+    } finally {
+      setHasSeenOnboarding(true);
+    }
+  }, []);
+
+  const loadProducts = useCallback(async (options?: { useCache?: boolean; onlyCache?: boolean }) => {
+    setIsLoadingProducts(true);
+    setProductsError(null);
+
+    // Try to load from cache if offline or if useCache is true
+    const isOffline = networkStatus.isConnected === false;
+    if (isOffline || options?.useCache || options?.onlyCache) {
+      const cached = await getCachedProducts();
+      if (cached && cached.length > 0) {
+        const mapped = cached.map(mapApiProductToUi);
+        setProducts(mapped);
+        productsRef.current = mapped;
+        setIsLoadingProducts(false);
+        if (isOffline) {
+          setProductsError('Đang hiển thị dữ liệu đã lưu. Kết nối mạng đã bị ngắt.');
+        }
+        return mapped;
+      }
+      // If strict cache mode (onlyCache) and no cache found, return undefined immediately
+      if (options?.onlyCache) {
+        setIsLoadingProducts(false);
+        return undefined;
+      }
+    }
+
+    try {
+      const result = await getProducts();
+      const mapped = result.map(mapApiProductToUi);
+      setProducts(mapped);
+      productsRef.current = mapped;
+
+      // Cache the products
+      await cacheProducts(result);
+
+      setCartItems(prev =>
+        prev.map(item => {
+          const updated = mapped.find(p => p.id === item.id);
+          return updated
+            ? {
+              ...item,
+              stockQuantity: updated.stockQuantity,
+              stock: updated.stock,
+              options: updated.options,
+              classifications: updated.classifications,
+            }
+            : item;
+        }),
+      );
+      setProductsError(null);
+      return mapped;
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Không thể tải sản phẩm';
+      console.warn('App.tsx - Failed to load products', errorMessage);
+
+      // Try cache on error
+      const cached = await getCachedProducts();
+      if (cached && cached.length > 0) {
+        const mapped = cached.map(mapApiProductToUi);
+        setProducts(mapped);
+        productsRef.current = mapped;
+        setProductsError('Đang hiển thị dữ liệu đã lưu. ' + errorMessage);
+      } else {
+        setProductsError(errorMessage);
+      }
+      return undefined;
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  }, [networkStatus.isConnected]);
+
+  useEffect(() => {
+    socketService.connect();
+    const handleProductUpdate = () => {
+      loadProducts().catch(err => {
+        console.warn('App.tsx - Failed to load products after socket update', err);
+      });
+    };
+    socketService.on('product_updated', handleProductUpdate);
+    return () => {
+      socketService.off('product_updated');
+    };
+  }, [loadProducts]);
+
+  const loadBanners = useCallback(async (options?: { useCache?: boolean }) => {
+    setIsLoadingBanners(true);
+    setBannersError(null);
+
+    // Try to load from cache if offline or if useCache is true
+    const isOffline = networkStatus.isConnected === false;
+    if (isOffline || options?.useCache) {
+      const cached = await getCachedBanners();
+      if (cached && cached.length > 0) {
+        setBanners(cached.map(mapApiBannerToUi));
+        setIsLoadingBanners(false);
+        if (isOffline) {
+          setBannersError('Đang hiển thị dữ liệu đã lưu. Kết nối mạng đã bị ngắt.');
+        }
+        return;
+      }
+    }
+
+    try {
+      const result = await getPublicBanners();
+      const mapped = result.map(mapApiBannerToUi);
+      setBanners(mapped);
+
+      // Cache the banners
+      await cacheBanners(result);
+
+      setBannersError(null);
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Không thể tải banner';
+      console.warn('App.tsx - Failed to load banners', errorMessage);
+
+      // Try cache on error
+      const cached = await getCachedBanners();
+      if (cached && cached.length > 0) {
+        setBanners(cached.map(mapApiBannerToUi));
+        setBannersError('Đang hiển thị dữ liệu đã lưu. ' + errorMessage);
+      } else {
+        setBannersError(errorMessage);
+      }
+    } finally {
+      setIsLoadingBanners(false);
+    }
+  }, [networkStatus.isConnected]);
+
+  const loadFavorites = async (tokenOverride?: string) => {
+    const token = tokenOverride || authTokensRef.current?.accessToken;
+    if (!token) return;
+    try {
+      const result = await apiGetFavorites(token);
+      const mapped = result.map(mapApiProductToUi);
+      setWishlist(mapped);
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to load favorites', error?.message || error);
+    }
+  };
+
+  const loadOrders = useCallback(async (tokenOverride?: string, options?: { silent?: boolean }) => {
+    const token = tokenOverride || authTokensRef.current?.accessToken;
+    if (!token) return;
+
+    const showSpinner = !options?.silent;
+    if (showSpinner) setIsRefreshingOrders(true);
+    try {
+      const result = await apiGetOrders(token);
+      const mapped = result
+        .map(o => mapApiOrderToUi(o, productsRef.current, t))
+        .sort((a, b) => {
+          const dateA = new Date(a.createdAt || a.date).getTime();
+          const dateB = new Date(b.createdAt || b.date).getTime();
+          return dateB - dateA;
+        });
+      setOrders(mapped);
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to load orders', error?.message || error);
+    } finally {
+      if (showSpinner) setIsRefreshingOrders(false);
+    }
+  }, [t]);
+
+  const loadVouchers = async (tokenOverride?: string) => {
+    const token = tokenOverride || authTokensRef.current?.accessToken;
+    if (!token) return;
+    try {
+      const result = await getMyVouchers(token);
+      const mapped = result.map(mapApiVoucherToUi);
+      setVouchers(mapped);
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to load vouchers', error?.message || error);
+    }
+  };
+
+  const loadAddresses = async (tokenOverride?: string) => {
+    const token = tokenOverride || authTokensRef.current?.accessToken;
+    if (!token) return;
+    try {
+      const result = await getAddresses(token);
+      setAddresses(result);
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to load addresses', error?.message || error);
+    }
+  };
+
+  const syncNotificationsFromApi = useCallback((items: ApiNotification[]) => {
+    const translate = typeof t === 'function' ? t : undefined;
+    const list = Array.isArray(items) ? items : [];
+    const mapped = list
+      .map(item => mapApiNotificationToUi(item, translate))
+      .filter(item => item.id)
+      .sort((a, b) => {
+        const timeA = a.sendAt ? new Date(a.sendAt).getTime() : 0;
+        const timeB = b.sendAt ? new Date(b.sendAt).getTime() : 0;
+        return timeB - timeA;
+      });
+    setNotifications(mapped);
+  }, [t]);
+
+  const loadNotifications = useCallback(async (tokenOverride?: string, options?: { silent?: boolean }) => {
+    const token = tokenOverride || authTokensRef.current?.accessToken;
+    if (!token) return;
+    const showSpinner = !options?.silent;
+    if (showSpinner) setIsRefreshingNotifications(true);
+    try {
+      const result = await apiGetNotifications(token);
+      syncNotificationsFromApi(result);
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to load notifications', error?.message || error);
+    } finally {
+      if (showSpinner) setIsRefreshingNotifications(false);
+    }
+  }, [syncNotificationsFromApi]);
+
+  const fetchOrderDetail = async (orderId: string) => {
+    const token = authTokensRef.current?.accessToken;
+    if (!token) return;
+    try {
+      const result = await getOrderById(orderId, token);
+      const mapped = mapApiOrderToUi(result, productsRef.current, t);
+      setOrders(prev => {
+        const exists = prev.some(o => o.id === mapped.id);
+        const updated = exists ? prev.map(o => (o.id === mapped.id ? mapped : o)) : [mapped, ...prev];
+        return updated.sort((a, b) => {
+          const dateA = new Date(a.createdAt || a.date).getTime();
+          const dateB = new Date(b.createdAt || b.date).getTime();
+          return dateB - dateA;
+        });
+      });
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to fetch order detail', error?.message || error);
+    }
+  };
+
+  const handleDeepLink = useCallback(
+    (url?: string | null) => {
+      if (!url) return;
+      try {
+        const parsed = new URL(url) as any;
+        if (parsed.protocol !== 'electronicsshop:') return;
+        const host = parsed.host;
+        if (host === 'payment' || host === 'payment-return') {
+          const order = parsed.searchParams.get('order') || '';
+          const status = parsed.searchParams.get('status') || '';
+          const success = status === 'paid';
+          Alert.alert(
+            t('payment_title'),
+            success
+              ? t('payment_success', { order: order ? `#${order} ` : '' })
+              : t('payment_failed'),
+          );
+          loadOrders().catch(err => {
+            console.warn('App.tsx - Failed to load orders after deep link', err);
+          });
+          return;
+        }
+
+        const normalizedPath = parsed.pathname.replace(/^\/+/, '');
+        const segments = normalizedPath.split('/').filter(Boolean);
+        const isProductPath =
+          host === 'product' ||
+          host === 'electronicsshop.app' ||
+          host === 'www.electronicsshop.app' ||
+          segments[0] === 'product';
+
+        if (isProductPath) {
+          let productId =
+            parsed.searchParams.get('id') ||
+            parsed.searchParams.get('product') ||
+            parsed.searchParams.get('productId') ||
+            (host === 'product' && segments.length ? segments[0] : null);
+
+          if (!productId && segments[0] === 'product' && segments[1]) {
+            productId = segments[1];
+          }
+
+          if (!productId) return;
+
+          const openProduct = (targetId: string, list?: Product[]) => {
+            const source = list || productsRef.current;
+            const found = source.find(p => `${p.id}` === `${targetId}`);
+            if (found) {
+              setSelectedProduct(found);
+              setCurrentTab('home');
+              setCurrentScreen('product-detail');
+            } else {
+              Alert.alert(t('product_not_found'), t('product_link_invalid'));
+            }
+          };
+
+          const existing = productsRef.current.find(p => `${p.id}` === `${productId}`);
+          if (existing) {
+            openProduct(productId);
+          } else {
+            loadProducts()
+              .then(res => openProduct(productId, res))
+              .catch(err => {
+                console.warn('App.tsx - Failed to load products for deep link', err);
+              });
+          }
+        }
+      } catch (error) {
+        console.warn('App.tsx - Failed to handle deep link', error);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [loadOrders, t, loadProducts],
+  );
+
+  const syncAuthTokens = useCallback((
+    tokens: { accessToken: string; refreshToken: string },
+    user?: { name?: string; email?: string; avatar?: string; _id?: string },
+    userIdOverride?: string | null,
+  ) => {
+    authTokensRef.current = tokens;
+    setAuthTokens(tokens);
+    setIsLoggedIn(true);
+    const nextUserId = userIdOverride ?? user?._id ?? userId ?? null;
+    setUserId(nextUserId);
+    setUserProfile(prev => {
+      const nextProfile = {
+        ...prev,
+        ...(user?.name ? { name: user.name } : {}),
+        ...(user?.email ? { email: user.email } : {}),
+        ...(user?.avatar ? { avatar: user.avatar } : {}),
+      };
+      persistAuthState(tokens, nextProfile, nextUserId).catch(() => { });
+      return nextProfile;
+    });
+  }, [userId]);
+
+  const handleAuthFailure = useCallback(() => {
+    setIsLoggedIn(false);
+    setAuthTokens(null);
+    authTokensRef.current = null;
+    cartIdRef.current = null;
+    hasFetchedCartRef.current = false;
+    setUserProfile(DEFAULT_PROFILE);
+    setUserId(null);
+    setVouchers([]);
+    setNotifications([]);
+    setIsRefreshingNotifications(false);
+    setAddresses(DEFAULT_ADDRESSES);
+    setCartItems([]);
+    void clearPersistedAuthState();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedProduct) return;
+
+    // Initial client-side filter for immediate feedback
+    const localRelated = products
+      .filter(p => p.category === selectedProduct.category && p.id !== selectedProduct.id)
+      .slice(0, 6);
+    setRelatedProducts(localRelated);
+
+    // Fetch from API for better recommendations
+    getRelatedProducts(selectedProduct.id)
+      .then(res => {
+        if (res && res.length > 0) {
+          setRelatedProducts(res.map(mapApiProductToUi));
+        }
+      })
+      .catch(err => {
+        console.warn('App.tsx - Failed to load related products', err);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProduct?.id, products]);
+
+  useEffect(() => {
+    if (!selectedProduct) return;
+    const updated = products.find(p => p.id === selectedProduct.id);
+    if (!updated) return;
+    const hasChanged =
+      updated.stockQuantity !== selectedProduct.stockQuantity ||
+      updated.stock !== selectedProduct.stock ||
+      updated.price !== selectedProduct.price;
+    if (hasChanged) {
+      setSelectedProduct(updated);
+    }
+  }, [products, selectedProduct]);
+
+  useEffect(() => {
+    configureApiAuth({
+      getTokens: () => authTokensRef.current,
+      onTokensRefreshed: (tokens, user) => syncAuthTokens(tokens, user),
+      onAuthFailure: handleAuthFailure,
+    });
+  }, [handleAuthFailure, syncAuthTokens]);
+
+  // Handle FCM token refresh only (don't request permission automatically)
+  useEffect(() => {
+    if (!isLoggedIn || !authTokens?.accessToken || !isPushEnabled) {
+      fcmRefreshUnsubRef.current?.();
+      fcmRefreshUnsubRef.current = null;
+      if (!isPushEnabled) {
+        deleteFcmToken().catch(err => console.warn('App.tsx - Failed to delete token', err));
+        hasRegisteredFcmRef.current = false;
+      }
+      return;
+    }
+
+    // Only subscribe to token refresh if push is already enabled
+    // Don't request permission here - that will be done when user toggles in Settings
+    fcmRefreshUnsubRef.current?.();
+    fcmRefreshUnsubRef.current = subscribeToFcmTokenRefresh(authTokens.accessToken);
+
+    return () => {
+      fcmRefreshUnsubRef.current?.();
+      fcmRefreshUnsubRef.current = null;
+    };
+  }, [isLoggedIn, authTokens?.accessToken, isPushEnabled]);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      hasRegisteredFcmRef.current = false;
+    }
+  }, [isLoggedIn]);
+
+  // Ensure token is registered once user is logged in with push enabled (even if toggle was already on)
+  useEffect(() => {
+    if (!isPushEnabled || !isLoggedIn || !authTokens?.accessToken) return;
+    if (hasRegisteredFcmRef.current) return;
+
+    let cancelled = false;
+    const register = async () => {
+      try {
+        const granted = await requestUserPermission();
+        if (!granted) {
+          showToast(t('push_notification_permission_denied'), 'error');
+          return;
+        }
+        if (cancelled) return;
+        await getFcmToken(authTokens.accessToken);
+        if (!cancelled) {
+          hasRegisteredFcmRef.current = true;
+        }
+      } catch (err) {
+        console.warn('App.tsx - Failed to register FCM token after login', err);
+      }
+    };
+
+    register();
+    return () => {
+      cancelled = true;
+    };
+  }, [isPushEnabled, isLoggedIn, authTokens?.accessToken, showToast, t]);
+
+  // Handler to enable push notifications (requests permission when user toggles on)
+  const handleThemeModeChange = useCallback(async (mode: 'light' | 'dark' | 'system') => {
+    setThemeMode(mode);
+    await persistThemeMode(mode);
+  }, []);
+
+  const handleTogglePush = useCallback(async () => {
+    const newValue = !isPushEnabled;
+    setIsPushEnabled(newValue);
+
+    try {
+      await AsyncStorage.setItem(PUSH_SETTINGS_KEY, JSON.stringify(newValue));
+    } catch (err) {
+      console.warn('App.tsx - Failed to save push settings', err);
+    }
+
+    if (newValue) {
+      // User wants to enable push - request permission now
+      if (isLoggedIn && authTokens?.accessToken) {
+        try {
+          const hasPermission = await requestUserPermission();
+          if (hasPermission) {
+            await getFcmToken(authTokens.accessToken);
+            showToast(t('push_notification_enabled'), 'success');
+          } else {
+            // Permission denied - revert toggle
+            setIsPushEnabled(false);
+            await AsyncStorage.setItem(PUSH_SETTINGS_KEY, JSON.stringify(false));
+            showToast(t('push_notification_permission_denied'), 'error');
+          }
+        } catch (err) {
+          console.warn('App.tsx - Failed to enable push notifications', err);
+          // Revert toggle on error
+          setIsPushEnabled(false);
+          await AsyncStorage.setItem(PUSH_SETTINGS_KEY, JSON.stringify(false));
+          showToast(t('push_notification_error'), 'error');
+        }
+      } else {
+        // Not logged in - just save preference for later
+        showToast(t('push_notification_will_enable_after_login'), 'info');
+      }
+    } else {
+      // User wants to disable push - delete token
+      try {
+        await deleteFcmToken();
+        showToast(t('push_notification_disabled'), 'success');
+      } catch (err) {
+        console.warn('App.tsx - Failed to disable push notifications', err);
+      }
+    }
+  }, [isPushEnabled, isLoggedIn, authTokens?.accessToken, showToast, t]);
+
+  useEffect(() => {
+    Linking.getInitialURL()
+      .then(handleDeepLink)
+      .catch(() => undefined);
+    const sub = Linking.addEventListener('url', event => handleDeepLink(event.url));
+    return () => sub.remove();
+  }, [handleDeepLink]);
+
+  useEffect(() => {
+    const restoreAuth = async () => {
+      let tokenForBackground: string | null = null;
+      try {
+        // Run all independent async operations in parallel
+        const [
+          storedOnboarding,
+          storedAuth,
+          storedCart,
+          storedThemeMode,
+          storedPush,
+        ] = await Promise.all([
+
+          AsyncStorage.getItem(ONBOARDING_STORAGE_KEY),
+          AsyncStorage.getItem(AUTH_STORAGE_KEY),
+          loadPersistedCart(),
+          loadPersistedThemeMode(),
+          AsyncStorage.getItem(PUSH_SETTINGS_KEY),
+        ]);
+
+
+        const onboardingSeen = storedOnboarding === 'true';
+        setHasSeenOnboarding(onboardingSeen);
+
+        // Parse auth first to get userId
+        let restoredUserId: string | null = null;
+        if (storedAuth) {
+          const parsed = JSON.parse(storedAuth);
+          if (parsed?.tokens?.accessToken && parsed?.tokens?.refreshToken) {
+            restoredUserId = parsed.userId ?? null;
+            syncAuthTokens(parsed.tokens, parsed.profile, restoredUserId);
+            tokenForBackground = parsed.tokens.accessToken;
+          }
+        }
+
+        if (storedCart) {
+          // Load products STRICTLY from cache first to avoid waiting
+          const loadedProducts = await loadProducts({ onlyCache: true });
+          if (loadedProducts) {
+            // Merge cart items with product data to restore options/classifications
+            const mergedCart = storedCart.map(cartItem => {
+              const product = loadedProducts.find(p => p.id === cartItem.id);
+              if (product) {
+                return {
+                  ...cartItem,
+                  options: product.options,
+                  classifications: product.classifications,
+                };
+              }
+              return cartItem;
+            });
+            setCartItems(mergedCart);
+          } else {
+            setCartItems(storedCart);
+          }
+        }
+
+        if (storedThemeMode) {
+          setThemeMode(storedThemeMode);
+        }
+
+        if (storedPush !== null) {
+          setIsPushEnabled(JSON.parse(storedPush));
+        }
+
+
+        if (!onboardingSeen) {
+          setCurrentTab('home');
+          setCurrentScreen('onboarding');
+        }
+      } catch (error) {
+        console.warn('App.tsx - Failed to restore auth state', error);
+      } finally {
+        setIsRestoringAuth(false);
+      }
+
+      if (tokenForBackground) {
+        loadOrders(tokenForBackground, { silent: true }).catch(() => { });
+        loadFavorites(tokenForBackground).catch(() => { });
+        loadVouchers(tokenForBackground).catch(() => { });
+        loadNotifications(tokenForBackground, { silent: true }).catch(() => { });
+        loadAddresses(tokenForBackground).catch(() => { });
+      }
+    };
+
+    restoreAuth();
+  }, [syncAuthTokens, loadNotifications, loadOrders, loadProducts]);
+
+  useEffect(() => {
+    if (isRestoringAuth) return;
+    if (!hasSeenOnboarding) {
+      setCurrentTab('home');
+      setCurrentScreen('onboarding');
+    }
+  }, [hasSeenOnboarding, isRestoringAuth]);
+
+  useEffect(() => {
+    if (!isLoggedIn || !authTokens?.accessToken) {
+      cartIdRef.current = null;
+      hasFetchedCartRef.current = false;
+      return;
+    }
+    if (hasFetchedCartRef.current) return;
+    hasFetchedCartRef.current = true;
+    const token = authTokens.accessToken;
+    fetchMyCart(token)
+      .then(res => {
+        const cart = Array.isArray(res) ? res[0] : null;
+        if (!cart) {
+          cartIdRef.current = null;
+          return;
+        }
+        cartIdRef.current = cart._id || null;
+        const mapped = mapApiCartToUi(cart, productsRef.current, t);
+        setCartItems(prev => mergeCartItems(prev, mapped));
+      })
+      .catch(err => console.warn('App.tsx - Failed to fetch cart', err));
+  }, [isLoggedIn, authTokens?.accessToken, products, t]);
+
+  useEffect(() => {
+    // Load cache first for faster initial render
+    loadProducts({ useCache: true }).catch(() => { });
+    loadBanners({ useCache: true }).catch(() => { });
+
+    // Then load fresh data from API if online
+    if (networkStatus.isConnected) {
+      loadProducts().catch(() => { });
+      loadBanners().catch(() => { });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Reload when network comes back online
+  useEffect(() => {
+    if (networkStatus.isConnected) {
+      loadProducts().catch(() => { });
+      loadBanners().catch(() => { });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [networkStatus.isConnected]);
+
+  useEffect(() => {
+    socketService.connect();
+    const handleDbChange = (payload: any) => {
+      if (payload?.collection === 'users' && userId && `${payload.documentId}` === `${userId}`) {
+        const doc = payload.fullDocument || {};
+        setUserProfile(prev => {
+          const next = {
+            ...prev,
+            ...(doc.name ? { name: doc.name } : {}),
+            ...(doc.email ? { email: doc.email } : {}),
+            ...(doc.avatar ? { avatar: doc.avatar } : {}),
+          };
+          persistAuthState(authTokensRef.current as any, next, userId).catch(() => { });
+          return next;
+        });
+      }
+
+      if (payload?.collection === 'vouchers' && authTokensRef.current?.accessToken) {
+        loadVouchers().catch(() => { });
+      }
+
+      // Lắng nghe thay đổi notification state theo user (Mongo change stream)
+      if (
+        payload?.collection === 'user_notification_status' &&
+        userId &&
+        `${payload.fullDocument?.user_id || payload.fullDocument?.userId}` === `${userId}`
+      ) {
+        loadNotifications(undefined, { silent: true }).catch(() => { });
+      }
+
+      if (payload?.collection === 'notifications' && authTokensRef.current?.accessToken) {
+        // Khi có broadcast mới, refresh danh sách người dùng hiện tại
+        loadNotifications(undefined, { silent: true }).catch(() => { });
+      }
+
+      if (payload?.collection === 'orders' && authTokensRef.current?.accessToken) {
+        const op = payload.operationType;
+        const doc = payload.fullDocument;
+        if (op === 'update' || op === 'replace') {
+          // Update order status when order is updated
+          if (doc && userId && `${doc.userId}` === `${userId}`) {
+            const mapped = mapApiOrderToUi(doc, productsRef.current, t);
+            setOrders(prev => {
+              const exists = prev.some(o => o.id === mapped.id);
+              const updated = exists
+                ? prev.map(o => (o.id === mapped.id ? mapped : o))
+                : [mapped, ...prev];
+              return updated.sort((a, b) => {
+                const dateA = new Date(a.createdAt || a.date).getTime();
+                const dateB = new Date(b.createdAt || b.date).getTime();
+                return dateB - dateA;
+              });
+            });
+          }
+        }
+      }
+
+      if (payload?.collection === 'products') {
+        const op = payload.operationType;
+        const doc = payload.fullDocument;
+        if (op === 'delete') {
+          setProducts(prev => {
+            const filtered = prev.filter(p => p.id !== `${payload.documentId}`);
+            productsRef.current = filtered;
+            return filtered;
+          });
+          setSelectedProduct(prev => (prev && prev.id === `${payload.documentId}` ? null : prev));
+          return;
+        }
+        if (doc) {
+          const mapped = mapApiProductToUi(doc);
+          setProducts(prev => {
+            const exists = prev.some(p => p.id === mapped.id);
+            const next = exists ? prev.map(p => (p.id === mapped.id ? mapped : p)) : [mapped, ...prev];
+            productsRef.current = next;
+            return next;
+          });
+          setSelectedProduct(prev => (prev && prev.id === mapped.id ? mapped : prev));
+        } else {
+          loadProducts().catch(() => { }); // fallback
+        }
+      }
+    };
+    socketService.on('db_change', handleDbChange);
+    return () => {
+      socketService.off('db_change');
+    };
+  }, [userId, loadNotifications, loadProducts, t]);
+
+  useEffect(() => {
+    if (isRestoringAuth) return;
+    if (isLoggedIn && authTokens) {
+      persistAuthState(authTokens, userProfile, userId).catch(() => { });
+    }
+  }, [authTokens, isLoggedIn, userProfile, isRestoringAuth, userId]);
+
+  useEffect(() => {
+    if (isLoggedIn && authTokens?.accessToken) {
+      loadOrders().catch(() => { });
+      loadFavorites().catch(() => { });
+      loadVouchers().catch(() => { });
+      loadNotifications(undefined, { silent: true }).catch(() => { });
+      loadAddresses().catch(() => { });
+    } else if (!isLoggedIn) {
+      setOrders([]);
+      setWishlist([]);
+      setVouchers([]);
+      setNotifications([]);
+      setAddresses(DEFAULT_ADDRESSES);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, authTokens?.accessToken]);
+
+  useEffect(() => {
+    if (selectedOrderId && !orders.find(o => o.id === selectedOrderId)) {
+      fetchOrderDetail(selectedOrderId).catch(() => { });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedOrderId, orders]);
+
+  // Auto-refresh orders every 60 seconds when user is logged in
+  useEffect(() => {
+    if (!isLoggedIn || !authTokensRef.current?.accessToken) return;
+
+    const interval = setInterval(() => {
+      loadOrders(undefined, { silent: true }).catch(() => { });
+    }, 60000); // Refresh every 60 seconds
+
+    return () => clearInterval(interval);
+  }, [isLoggedIn, authTokens?.accessToken, loadOrders]);
+
+  const refreshOrders = () => {
+    loadOrders().catch(() => { });
+  };
+
+  const refreshOrderDetail = async (orderId: string) => {
+    await fetchOrderDetail(orderId);
+  };
+
+  const handleUpdateProfile = async (
+    data: Partial<typeof userProfile> & { avatarFile?: UploadImageFile },
+  ) => {
+    try {
+      // Optimistic update so UI responds instantly
+      const optimisticAvatar = data.avatar || data.avatarFile?.uri || userProfile.avatar;
+      const optimisticProfile = {
+        ...userProfile,
+        ...(data.name ? { name: data.name } : {}),
+        ...(data.email ? { email: data.email } : {}),
+        ...(optimisticAvatar ? { avatar: optimisticAvatar } : {}),
+      };
+      setUserProfile(optimisticProfile);
+      if (authTokensRef.current) {
+        persistAuthState(authTokensRef.current as any, optimisticProfile, userId).catch(() => { });
+      }
+
+      const accessToken = authTokensRef.current?.accessToken;
+      if (!accessToken) {
+        return true;
+      }
+
+      // Sync in background to avoid blocking UI
+      const syncProfile = async () => {
+        try {
+          let avatarToUpdate = optimisticAvatar;
+
+          if (data.avatarFile?.uri) {
+            const uploadResult = await uploadImage(data.avatarFile, {
+              token: authTokensRef.current?.accessToken,
+              folder: `electronics-shop/avatars/${userId || 'guest'}`,
+            });
+            avatarToUpdate = uploadResult?.secure_url || uploadResult?.url || avatarToUpdate;
+          }
+
+          const payload = {
+            ...(data.name ? { name: data.name } : {}),
+            ...(data.email ? { email: data.email } : {}),
+            ...(avatarToUpdate ? { avatar: avatarToUpdate } : {}),
+          };
+
+          if (!Object.keys(payload).length) return;
+
+          const result = await apiUpdateProfile(
+            payload,
+            authTokensRef.current?.accessToken || accessToken,
+          );
+          const updatedUser = result.user || payload;
+          setUserProfile(prev => {
+            const next = { ...prev, ...updatedUser };
+            if (authTokensRef.current) {
+              persistAuthState(authTokensRef.current as any, next, userId).catch(() => { });
+            }
+            return next;
+          });
+        } catch (error: any) {
+          console.warn('App.tsx - Background profile sync failed', error?.message || error);
+        }
+      };
+
+      syncProfile().catch(() => { });
+      return true;
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to update profile', error?.message || error);
+      return false;
+    }
+  };
+
+  // Filter function to apply filters to products
+  const applyFilters = (productsList: Product[], searchText?: string): Product[] => {
+    return productsList.filter(product => {
+      // Price range filter
+      if (product.price < filters.priceRange[0] || product.price > filters.priceRange[1]) {
+        return false;
+      }
+
+      // Category filter
+      if (filters.categories.length > 0) {
+        const productCat = normalizeCategoryName(product.category);
+        const filterCats = filters.categories.map(normalizeCategoryName);
+        if (!filterCats.includes(productCat)) {
+          return false;
+        }
+      }
+
+      // Rating filter
+      if (filters.rating !== null && product.rating < filters.rating) {
+        return false;
+      }
+
+      // Stock filter - only exclude Out of Stock products
+      if (filters.onlyInStock && product.stock === 'Out of Stock') {
+        return false;
+      }
+
+      // Search text filter
+      if (searchText) {
+        const haystacks = [
+          product.name,
+          product.code || '',
+          product.category || '',
+          normalizeCategoryName(product.category),
+          product.description || '',
+          Object.entries(product.specs || {})
+            .map(([k, v]) => `${k} ${v}`)
+            .join(' '),
+        ];
+        const matches = haystacks.some(hay => fuzzyMatch(hay, searchText));
+        if (!matches) return false;
+      }
+
+      return true;
+    });
+  };
+
+  const hasUnreadNotifications = notifications.some(notification => !notification.read);
+  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const theme = isDarkMode ? darkTheme : lightTheme;
+
+  const handleHomeScrollPosition = useCallback((offset: number) => {
+    homeScrollOffsetRef.current = offset;
+  }, []);
+
+  const handleAiMessagesChange = useCallback((messages: ChatMessage[]) => {
+    setAiMessages(messages);
+    aiMessagesRef.current = messages;
+    persistAiMessages(messages).catch(err => console.warn('App.tsx - Failed to persist AI chat messages', err));
+  }, []);
+
+  const handleTabChange = (tab: NavTab) => {
+    if (tab === 'ai') {
+      setHasVisitedAi(true);
+    }
+    setCurrentTab(tab);
+    setCurrentScreen(tab);
+  };
+  const handleSelectCategory = (category: string) => {
+    setSelectedCategory(category);
+    setCurrentTab('catalog');
+    setCurrentScreen('catalog');
+  };
+
+  const navigateToProduct = (product: Product) => {
+    // Quản lý stack sản phẩm để có thể quay lại khi bấm Back
+    setProductHistory((prevHistory) => {
+      // Nếu đang ở màn chi tiết sản phẩm, push thêm vào stack
+      if (currentScreen === 'product-detail') {
+        return [...prevHistory, product];
+      }
+      // Nếu đi từ màn khác sang, reset stack chỉ còn sản phẩm hiện tại
+      return [product];
+    });
+
+    // Chỉ cập nhật previousScreen khi chuyển từ màn khác sang product-detail
+    setPreviousScreen((prev) => (currentScreen === 'product-detail' ? prev : currentScreen));
+
+    setSelectedProduct(product);
+    setCurrentScreen('product-detail');
+  };
+
+  const handleBackFromProductDetail = () => {
+    setProductHistory((prevHistory) => {
+      if (prevHistory.length > 1) {
+        // Quay lại sản phẩm trước đó trong stack
+        const newHistory = prevHistory.slice(0, -1);
+        const previousProduct = newHistory[newHistory.length - 1];
+        setSelectedProduct(previousProduct);
+        return newHistory;
+      }
+
+      // Nếu chỉ còn một sản phẩm thì thoát khỏi màn chi tiết
+      setSelectedProduct(null);
+      setCurrentScreen(previousScreen);
+      return [];
+    });
+  };
+
+  const handleOnboardingComplete = useCallback(async () => {
+    await markOnboardingSeen();
+    setCurrentTab('home');
+    setCurrentScreen('home');
+  }, [markOnboardingSeen]);
+
+  const handleOnboardingLogin = useCallback(async () => {
+    await markOnboardingSeen();
+    openAuthScreen('login', 'home');
+  }, [markOnboardingSeen, openAuthScreen]);
+
+  const handleOnboardingSignUp = useCallback(async () => {
+    await markOnboardingSeen();
+    openAuthScreen('register', 'home');
+  }, [markOnboardingSeen, openAuthScreen]);
+
+  const handleResetOnboarding = useCallback(async () => {
+    try {
+      await AsyncStorage.removeItem(ONBOARDING_STORAGE_KEY);
+      setHasSeenOnboarding(false);
+      showToast(t('reset_onboarding_success'), 'success');
+      setCurrentTab('home');
+      setCurrentScreen('onboarding');
+    } catch (error) {
+      console.warn('App.tsx - Failed to reset onboarding', error);
+      showToast(t('update_failed'), 'error');
+    }
+  }, [showToast, t]);
+
+  const handleBannerPress = (banner: HomeBanner) => {
+    if (banner.ctaProductId) {
+      const targetProduct = productsRef.current.find(p => p.id === banner.ctaProductId);
+      if (targetProduct) {
+        navigateToProduct(targetProduct);
+        return;
+      }
+    }
+
+    if (banner.ctaLink) {
+      Linking.openURL(banner.ctaLink).catch(() => Alert.alert(t('link_error'), t('try_again')));
+      return;
+    }
+
+    if (productsRef.current[0]) {
+      navigateToProduct(productsRef.current[0]);
+    }
+  };
+
+  const navigateToCheckout = (voucher: Voucher | null) => {
+    if (!isLoggedIn) {
+      openAuthScreen('login', currentScreen);
+    } else {
+      setAppliedVoucher(voucher);
+      setCurrentScreen('checkout');
+    }
+  };
+
+  const navigateToOrderHistory = () => {
+    // Refresh orders when navigating back to ensure status is up to date
+    loadOrders().catch(() => { });
+    setCurrentScreen('order-history');
+  };
+
+  const openNotifications = useCallback(() => {
+    if (!authTokensRef.current?.accessToken) {
+      openAuthScreen('login', currentScreen);
+      return;
+    }
+    loadNotifications(undefined, { silent: false }).catch(() => { });
+    setCurrentScreen('notifications');
+  }, [currentScreen, loadNotifications, openAuthScreen]);
+
+  useEffect(() => {
+    openNotificationsRef.current = openNotifications;
+  }, [openNotifications]);
+
+  useEffect(() => {
+    const handleOpenFromSystemTray = () => {
+      openNotificationsRef.current();
+    };
+
+    const unsubscribe = subscribeNotificationOpened(() => {
+      handleOpenFromSystemTray();
+    });
+
+    getInitialNotificationOpen().then(message => {
+      if (message) {
+        handleOpenFromSystemTray();
+      }
+    });
+
+    return () => unsubscribe?.();
+  }, []);
+
+  const refreshNotifications = () => {
+    loadNotifications(undefined, { silent: false }).catch(() => { });
+  };
+
+  const handleMarkNotificationRead = async (id: string) => {
+    if (!authTokensRef.current?.accessToken) return;
+    setNotifications(prev => prev.map(item => (item.id === id ? { ...item, read: true } : item)));
+    try {
+      const result = await apiMarkNotificationRead(id, authTokensRef.current.accessToken);
+      syncNotificationsFromApi(result);
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to mark notification read', error?.message || error);
+      loadNotifications(undefined, { silent: true }).catch(() => { });
+    }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    if (!authTokensRef.current?.accessToken) return;
+    try {
+      const result = await apiMarkAllNotificationsRead(authTokensRef.current.accessToken);
+      syncNotificationsFromApi(result);
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to mark all notifications read', error?.message || error);
+    }
+  };
+
+  const navigateToOrderDetail = (orderId: string) => {
+    setSelectedOrderId(orderId);
+    setCurrentScreen('order-detail');
+  };
+
+  const handleAddToCart = (product: Product, quantity: number, selectedOption?: string, selectedClassification?: string) => {
+    if (!authTokensRef.current?.accessToken) {
+      showToast(t('loginRequiredCart'), 'info');
+      openAuthScreen('login', currentScreen);
+      return false;
+    }
+
+    const available = product.stockQuantity;
+    const isOutOfStock = product.stock === 'Out of Stock' || (available !== undefined && available <= 0);
+    if (isOutOfStock) {
+      Alert.alert(t('out_of_stock'), t('product_out_of_stock', { name: product.name }));
+      return false;
+    }
+
+    const safeQuantity = Math.max(1, quantity);
+    const limit = available ?? Number.POSITIVE_INFINITY;
+
+    // Create a unique key for cart items based on product id, option, and classification
+    const itemKey = `${product.id}-${selectedOption || 'default'}-${selectedClassification || 'default'}`;
+
+    let success = false;
+    setCartItems(prev => {
+      // Find existing item with same product, option, and classification
+      const existing = prev.find(item => {
+        const itemKey2 = `${item.id}-${item.selectedOption || 'default'}-${item.selectedClassification || 'default'}`;
+        return itemKey2 === itemKey;
+      });
+
+      if (existing) {
+        const desired = existing.quantity + safeQuantity;
+        const clamped = Math.min(desired, limit);
+        if (clamped < desired) {
+          Alert.alert(t('not_enough_stock'), t('only_x_left', { count: clamped, name: product.name }));
+          return prev; // Không thay đổi gì
+        }
+        success = true;
+        return prev.map(item => {
+          const itemKey2 = `${item.id}-${item.selectedOption || 'default'}-${item.selectedClassification || 'default'}`;
+          return itemKey2 === itemKey ? { ...item, quantity: Math.max(1, clamped) } : item;
+        });
+      }
+
+      const initialQty = Math.min(safeQuantity, limit);
+      if (initialQty < safeQuantity) {
+        Alert.alert(t('not_enough_stock'), t('only_x_left', { count: initialQty, name: product.name }));
+        return prev; // Không thay đổi gì
+      }
+      success = true;
+      // Normalize options: only include if valid non-empty string
+      const normalizeOption = (opt?: string) => {
+        if (!opt || typeof opt !== 'string' || !opt.trim()) return undefined;
+        return opt.trim();
+      };
+
+      const newItem: CartItem = {
+        ...product,
+        quantity: Math.max(1, initialQty),
+      };
+
+      const normalizedOption = normalizeOption(selectedOption);
+      const normalizedClassification = normalizeOption(selectedClassification);
+
+      if (normalizedOption) {
+        newItem.selectedOption = normalizedOption;
+      }
+      if (normalizedClassification) {
+        newItem.selectedClassification = normalizedClassification;
+      }
+
+      return [...prev, newItem];
+    });
+    return success;
+  };
+
+  const updateCartQuantity = (id: string, delta: number) => {
+    setCartItems(prev =>
+      prev.map(item => {
+        if (item.id !== id) return item;
+
+        const limit = item.stockQuantity ?? Number.POSITIVE_INFINITY;
+        const desired = item.quantity + delta;
+
+        // If decreasing quantity (delta < 0)
+        if (delta < 0) {
+          const clamped = Math.max(1, desired);
+          if (clamped !== desired) {
+            // Only show alert if trying to go below minimum (1)
+            Alert.alert(
+              t('min_quantity_1'),
+              t('min_quantity_1'),
+            );
+          }
+          return { ...item, quantity: clamped };
+        }
+
+        // If increasing quantity (delta > 0)
+        if (delta > 0) {
+          const clamped = Math.min(desired, limit);
+          if (clamped !== desired) {
+            // Only show stock alert when trying to exceed available stock
+            Alert.alert(
+              t('not_enough_stock'),
+              limit === Number.POSITIVE_INFINITY
+                ? t('min_quantity_1')
+                : t('product_only_x_left', { count: limit }),
+            );
+          }
+          return { ...item, quantity: clamped };
+        }
+
+        // If delta === 0, no change
+        return item;
+      }),
+    );
+  };
+
+  const removeFromCart = (id: string) => {
+    setCartItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const updateCartItemOptions = (itemId: string, selectedOption?: string, selectedClassification?: string) => {
+    setCartItems(prev => {
+      // Find the item to update
+      const itemIndex = prev.findIndex(item => item.id === itemId);
+      if (itemIndex === -1) return prev;
+
+      const currentItem = prev[itemIndex];
+      // Normalize options: only use if valid non-empty string, otherwise undefined
+      const normalizeOption = (opt?: string) => {
+        if (!opt || typeof opt !== 'string' || !opt.trim()) return undefined;
+        return opt.trim();
+      };
+      const newOption = selectedOption !== undefined ? normalizeOption(selectedOption) : normalizeOption(currentItem.selectedOption);
+      const newClassification = selectedClassification !== undefined ? normalizeOption(selectedClassification) : normalizeOption(currentItem.selectedClassification);
+
+      // Create unique key for the new combination
+      const newItemKey = `${currentItem.id}-${newOption || 'default'}-${newClassification || 'default'}`;
+      const currentItemKey = `${currentItem.id}-${currentItem.selectedOption || 'default'}-${currentItem.selectedClassification || 'default'}`;
+
+      // If the key is the same, just update the item
+      if (newItemKey === currentItemKey) {
+        return prev.map((item, index) =>
+          index === itemIndex
+            ? { ...item, selectedOption: newOption, selectedClassification: newClassification }
+            : item
+        );
+      }
+
+      // If key is different, check if there's already an item with the new combination
+      const existingItemIndex = prev.findIndex(item => {
+        const itemKey = `${item.id}-${item.selectedOption || 'default'}-${item.selectedClassification || 'default'}`;
+        return itemKey === newItemKey && item.id === currentItem.id;
+      });
+
+      if (existingItemIndex !== -1 && existingItemIndex !== itemIndex) {
+        // Merge with existing item
+        const existingItem = prev[existingItemIndex];
+        const newQuantity = existingItem.quantity + currentItem.quantity;
+        return prev
+          .map((item, index) => {
+            if (index === existingItemIndex) {
+              return { ...item, quantity: newQuantity };
+            }
+            return item;
+          })
+          .filter((_, index) => index !== itemIndex);
+      }
+
+      // Update the item with new options
+      return prev.map((item, index) =>
+        index === itemIndex
+          ? { ...item, selectedOption: newOption, selectedClassification: newClassification }
+          : item
+      );
+    });
+  };
+
+  const refreshCartStock = async () => {
+    const latestProducts = (await loadProducts()) || productsRef.current;
+    if (!latestProducts || latestProducts.length === 0) return;
+
+    let removedCount = 0;
+    let adjustedCount = 0;
+
+    setCartItems(prev => {
+      const next: CartItem[] = [];
+      prev.forEach(item => {
+        const updated = latestProducts.find(p => p.id === item.id);
+        if (!updated) {
+          next.push(item);
+          return;
+        }
+
+        const availableQty = updated.stockQuantity;
+        const clampedQty =
+          availableQty === undefined ? item.quantity : Math.min(item.quantity, Math.max(0, availableQty));
+        const isOut = updated.stock === 'Out of Stock' || clampedQty <= 0;
+
+        if (isOut) {
+          removedCount += 1;
+          return;
+        }
+
+        if (clampedQty < item.quantity) {
+          adjustedCount += 1;
+        }
+
+        next.push({
+          ...item,
+          quantity: Math.max(1, clampedQty),
+          stock: updated.stock,
+          stockQuantity: updated.stockQuantity,
+          options: updated.options,
+          classifications: updated.classifications,
+          price: updated.price,
+          image: updated.image,
+          name: updated.name,
+          description: updated.description,
+          category: updated.category,
+        });
+      });
+
+      return next;
+    });
+
+    if (removedCount || adjustedCount) {
+      showToast(
+        t('cart_stock_refreshed', { removed: removedCount, adjusted: adjustedCount }),
+        'info',
+      );
+    }
+  };
+
+  useEffect(() => {
+    void persistCartState(cartItems);
+  }, [cartItems]);
+
+  useEffect(() => {
+    if (currentScreen === 'cart') {
+      void refreshCartStock();
+    }
+    // We intentionally avoid adding refreshCartStock to deps to prevent reloading on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentScreen]);
+
+  useEffect(() => {
+    if (!authTokensRef.current?.accessToken) return;
+    if (cartSyncTimeoutRef.current) {
+      clearTimeout(cartSyncTimeoutRef.current);
+    }
+    cartSyncTimeoutRef.current = setTimeout(async () => {
+      const token = authTokensRef.current?.accessToken;
+      if (!token) return;
+      try {
+        const payloadItems = cartItems.map(mapCartItemToApi);
+        const totals = computeCartTotals(cartItems);
+        const result = await upsertCart(payloadItems, token, cartIdRef.current, totals);
+        if (result?._id) {
+          cartIdRef.current = result._id;
+        }
+      } catch (error) {
+        console.warn('App.tsx - Failed to sync cart to backend', error);
+      }
+    }, 400);
+
+    return () => {
+      if (cartSyncTimeoutRef.current) {
+        clearTimeout(cartSyncTimeoutRef.current);
+      }
+    };
+  }, [cartItems, authTokens?.accessToken]);
+
+
+
+  const placeOrder = async (params: {
+    items: CartItem[];
+    totals: { subTotal: number; shippingFee: number; discount: number; total: number };
+    paymentMethod: string;
+    shippingAddress?: Address;
+  }) => {
+    if (!authTokensRef.current?.accessToken) {
+      throw new Error(t('login_required_order'));
+    }
+
+    const code = `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+    const normalizedPayment = params.paymentMethod?.toLowerCase() || 'cod';
+    const isVnpay = normalizedPayment === 'vnpay';
+
+    // Refresh stock before placing order to avoid overselling
+    const latestProducts = (await loadProducts()) || productsRef.current;
+    const stockMap = new Map<string, number | undefined>(
+      latestProducts.map(p => [p.id, p.stockQuantity]),
+    );
+
+    for (const item of params.items) {
+      const available = stockMap.get(item.id);
+      if (available !== undefined && available < item.quantity) {
+        throw new Error(t('only_x_left', { count: available, name: item.name }));
+      }
+      if (!/^[a-f0-9]{24}$/i.test(item.id)) {
+        throw new Error(t('product_invalid_id', { name: item.name }));
+      }
+    }
+
+    const payload = {
+      code,
+      status: { ordered: new Date().toISOString() },
+      items: params.items.map(item => {
+        const orderItem: any = {
+          productId: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          subTotal: item.price * item.quantity,
+          shippingFee: 0,
+          discount: 0,
+          totalPrice: item.price * item.quantity,
+        };
+        const selectedOption = item.selectedOption;
+        const hasSelectedOption = selectedOption && typeof selectedOption === 'string' && selectedOption.trim().length > 0;
+        if (hasSelectedOption) {
+          orderItem.selectedOption = selectedOption.trim();
+        }
+        // Only include selectedClassification if it has a non-empty value (strictly check)
+        const selectedClassification = item.selectedClassification;
+        const hasSelectedClassification = selectedClassification && typeof selectedClassification === 'string' && selectedClassification.trim().length > 0;
+        if (hasSelectedClassification) {
+          orderItem.selectedClassification = selectedClassification.trim();
+        }
+        return orderItem;
+      }),
+      subTotal: params.totals.subTotal,
+      shippingFee: params.totals.shippingFee,
+      discount: params.totals.discount,
+      totalPrice: params.totals.total,
+      payment: normalizedPayment,
+      paymentStatus: normalizedPayment === 'cod' ? 'pending' : 'pending',
+      shippingAddress: params.shippingAddress
+        ? {
+          name: params.shippingAddress.name,
+          phone: params.shippingAddress.phone,
+          city: params.shippingAddress.city,
+          district: params.shippingAddress.district,
+          ward: params.shippingAddress.ward,
+          street: params.shippingAddress.detailedAddress || params.shippingAddress.address,
+        }
+        : undefined,
+    };
+
+    setIsPlacingOrder(true);
+    try {
+      if (isVnpay) {
+        const payment = await createVnpayPayment(payload, authTokensRef.current.accessToken);
+        const uiOrder = mapApiOrderToUi(payment.order, productsRef.current, t);
+        setOrders(prev => [uiOrder, ...prev]);
+        return { ...uiOrder, paymentUrl: payment.paymentUrl };
+      }
+
+      const created = await apiCreateOrder(payload, authTokensRef.current.accessToken);
+      const uiOrder = mapApiOrderToUi(created, productsRef.current, t);
+      setOrders(prev => [uiOrder, ...prev]);
+      loadProducts().catch(() => { });
+      return uiOrder;
+    } catch (error: any) {
+      console.warn('App.tsx - Failed to create order', error?.message || error);
+      throw error;
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  };
+
+  const syncFavorites = (apiProducts: ApiProduct[]) => {
+    const mapped = apiProducts.map(mapApiProductToUi);
+    setWishlist(mapped);
+  };
+
+  const handleRemoveFavorite = async (productId: string) => {
+    if (!authTokensRef.current?.accessToken) {
+      openAuthScreen('login', currentScreen);
+      return;
+    }
+    try {
+      const updated = await removeFavorite(productId, authTokensRef.current.accessToken);
+      syncFavorites(updated);
+    } catch (error) {
+      console.warn('App.tsx - Failed to remove favorite', error);
+    }
+  };
+
+  const handleToggleWishlistAsync = async (product: Product) => {
+    if (!authTokensRef.current?.accessToken) {
+      showToast(t('loginRequiredFavorite'), 'info');
+      openAuthScreen('login', 'product-detail');
+      return;
+    }
+
+    const prevWishlist = wishlist;
+    const exists = wishlist.some(item => item.id === product.id);
+    // Optimistic UI: update immediately for snappy feedback
+    setWishlist(prev => {
+      const filtered = prev.filter(item => item.id !== product.id);
+      return exists ? filtered : [product, ...filtered];
+    });
+
+    try {
+      if (exists) {
+        const updated = await removeFavorite(product.id, authTokensRef.current.accessToken);
+        syncFavorites(updated);
+      } else {
+        const updated = await addFavorite(product.id, authTokensRef.current.accessToken);
+        syncFavorites(updated);
+      }
+    } catch (error) {
+      console.warn('App.tsx - Failed to toggle favorite', error);
+      setWishlist(prevWishlist); // rollback on failure
+    }
+  };
+
+  const handleReviewStatsChange = (
+    productId: string,
+    stats: { averageRating: number; reviewCount: number },
+  ) => {
+    setProducts(prev => {
+      const next = prev.map(p =>
+        p.id === productId
+          ? {
+            ...p,
+            rating: stats.averageRating,
+            averageRating: stats.averageRating,
+            reviews: stats.reviewCount,
+            reviewCount: stats.reviewCount,
+          }
+          : p,
+      );
+      productsRef.current = next;
+      return next;
+    });
+
+    setSelectedProduct(prev =>
+      prev?.id === productId
+        ? {
+          ...prev,
+          rating: stats.averageRating,
+          averageRating: stats.averageRating,
+          reviews: stats.reviewCount,
+          reviewCount: stats.reviewCount,
+        }
+        : prev,
+    );
+  };
+
+  const handleLoginSuccess = (data: AuthResponse) => {
+    const tokens = {
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+    };
+    const newUserId = data.user?._id ?? null;
+    markOnboardingSeen().catch(() => { });
+    setAddresses([]); // reset stale addresses from previous session
+    syncAuthTokens(tokens, data.user, newUserId);
+    loadOrders(tokens.accessToken).catch(() => { });
+    loadFavorites(tokens.accessToken).catch(() => { });
+    loadVouchers(tokens.accessToken).catch(() => { });
+    loadNotifications(tokens.accessToken, { silent: true }).catch(() => { });
+    loadAddresses(tokens.accessToken).catch(() => { });
+    // Sync search history từ local lên API khi user đăng nhập
+    import('./src/utils/searchHistory').then(({ syncLocalToApi }) => {
+      syncLocalToApi(newUserId, tokens.accessToken);
+    }).catch(err => console.warn('Failed to sync search history on login', err));
+
+    if (currentScreen === 'auth') {
+      const restoreScreen = previousScreen || 'profile';
+      const restoreTab = isTabScreen(restoreScreen) ? restoreScreen as NavTab : previousTab;
+      setCurrentTab(restoreTab);
+      setCurrentScreen(restoreScreen);
+    }
+  };
+
+  const openFilter = () => {
+    setPreviousScreen(currentScreen);
+    setCurrentScreen('filter');
+  };
+
+  const renderScreen = (screen: Screen) => {
+    switch (screen) {
+      case 'onboarding':
+        return (
+          <Onboarding
+            onDone={handleOnboardingComplete}
+            onSkipToAuth={handleOnboardingLogin}
+            onSkipToHome={handleOnboardingComplete}
+            onSignUp={handleOnboardingSignUp}
+          />
+        );
+      case 'home':
+        return (
+          <Home
+            onNavigate={(tab) => handleTabChange(tab as NavTab)}
+            onProductClick={navigateToProduct}
+            theme={theme}
+            products={products}
+            banners={banners}
+            onBannerPress={handleBannerPress}
+            onSelectCategory={handleSelectCategory}
+            onRefreshProducts={() => { loadProducts().catch(() => { }); }}
+            initialScrollOffset={homeScrollOffsetRef.current}
+            initialVisibleCount={homeVisibleCount}
+            onVisibleCountChange={setHomeVisibleCount}
+            onScrollPositionChange={handleHomeScrollPosition}
+            isLoading={isLoadingProducts}
+            error={productsError}
+            isOffline={networkStatus.isConnected === false}
+          />
+        );
+      case 'catalog':
+        // Catalog is rendered separately to preserve scroll position
+        return null;
+      case 'ai':
+        return null;
+      case 'cart':
+        return (
+          <Cart
+            items={cartItems}
+            onUpdateQuantity={updateCartQuantity}
+            onRemoveItem={removeFromCart}
+            onUpdateItemOptions={updateCartItemOptions}
+            onExplore={() => handleTabChange('catalog')}
+            onCheckout={navigateToCheckout}
+            theme={theme}
+            vouchers={vouchers}
+            appliedVoucher={appliedVoucher}
+            onVoucherChange={setAppliedVoucher}
+          />
+        );
+      case 'profile':
+        if (!isLoggedIn) return <Auth onBack={() => handleTabChange('home')} onLoginSuccess={handleLoginSuccess} theme={theme} initialMode={authMode} />;
+        return (
+          <Profile
+            onNavigateToOrders={navigateToOrderHistory}
+            orderCount={orders.length}
+            onNavigateToAddress={() => setCurrentScreen('address-book')}
+            onNavigateToSettings={() => setCurrentScreen('settings')}
+            onNavigateToSupport={() => setCurrentScreen('support')}
+            onNavigateToWishlist={() => setCurrentScreen('wishlist')}
+            onLogout={handleAuthFailure}
+            userProfile={userProfile}
+            onUpdateProfile={handleUpdateProfile}
+            theme={theme}
+            vouchers={vouchers}
+          />
+        );
+
+      case 'product-detail':
+        return selectedProduct ? (
+          <ProductDetail
+            product={selectedProduct}
+            onBack={handleBackFromProductDetail}
+            onAddToCart={handleAddToCart}
+            isFavorite={wishlist.some(item => item.id === selectedProduct.id)}
+            onToggleFavorite={() => handleToggleWishlistAsync(selectedProduct)}
+            isLoggedIn={isLoggedIn}
+            onRequireLogin={() => {
+              openAuthScreen('login', 'product-detail');
+            }}
+            accessToken={authTokens?.accessToken}
+            theme={theme}
+            currentUserId={userId}
+            currentUserName={userProfile.name}
+            onReviewStatsChange={handleReviewStatsChange}
+            onNavigateToCart={() => handleTabChange('cart')}
+            cartItemCount={cartCount}
+            relatedProducts={relatedProducts}
+            onProductClick={navigateToProduct}
+          />
+        ) : null;
+
+      case 'checkout':
+        return (
+          <Checkout
+            onBack={() => handleTabChange('cart')}
+            onPlaceOrder={async ({ address, paymentMethod, shippingFee, items, totalAmount, subTotal, discount }) => {
+              const created = await placeOrder({
+                items,
+                paymentMethod,
+                totals: {
+                  subTotal,
+                  shippingFee,
+                  discount: discount ?? 0,
+                  total: totalAmount,
+                },
+                shippingAddress: address,
+              });
+              return { id: (created as any).id, code: (created as any).code, paymentUrl: (created as any).paymentUrl };
+            }}
+            onCheckPaymentStatus={async (orderId: string) => {
+              if (!authTokensRef.current?.accessToken) return 'pending';
+              try {
+                const order = await getOrderById(orderId, authTokensRef.current.accessToken);
+                const status = order.paymentStatus?.toLowerCase?.() || '';
+                if (status === 'paid') return 'paid';
+                if (status === 'failed') return 'failed';
+                return 'pending';
+              } catch (error) {
+                console.warn('App.tsx - Failed to check payment status', error);
+                return undefined;
+              }
+            }}
+            placingOrder={isPlacingOrder}
+            onSuccess={() => {
+              setCartItems([]);
+              handleTabChange('home');
+              loadOrders().catch(() => { });
+            }}
+            cartItems={cartItems}
+            theme={theme}
+            addresses={addresses}
+            onUpdateAddresses={setAddresses}
+            accessToken={authTokens?.accessToken}
+            voucher={appliedVoucher}
+          />
+        );
+
+      case 'order-history':
+        console.log('App.tsx - Rendering OrderHistory with orders count:', orders.length);
+        return <OrderHistory
+          onBack={() => handleTabChange('profile')}
+          onViewDetail={navigateToOrderDetail}
+          orders={orders}
+          theme={theme}
+          onRefresh={refreshOrders}
+          refreshing={isRefreshingOrders}
+        />;
+
+      case 'order-detail':
+        return selectedOrderId ? (
+          <OrderDetail
+            orderId={selectedOrderId}
+            onBack={navigateToOrderHistory}
+            order={orders.find(o => o.id === selectedOrderId)}
+            theme={theme}
+            onReorder={handleAddToCart}
+            products={products}
+            onNavigateToCart={() => handleTabChange('cart')}
+            onRefreshOrder={refreshOrderDetail}
+            onPayAgain={async (orderId: string) => {
+              if (!authTokensRef.current?.accessToken) {
+                throw new Error(t('login_required_order'));
+              }
+              try {
+                // Get order details
+                const existingOrder = await getOrderById(orderId, authTokensRef.current.accessToken);
+                if (!existingOrder) {
+                  throw new Error(t('order_not_found'));
+                }
+
+                // Create new payment URL with existing order data
+                const payload = {
+                  code: existingOrder.code || `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
+                  status: { ordered: existingOrder.status?.ordered || new Date().toISOString() },
+                  items: existingOrder.items.map(item => ({
+                    productId: item.productId,
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price,
+                    subTotal: item.subTotal || item.price * item.quantity,
+                    shippingFee: item.shippingFee || 0,
+                    discount: item.discount || 0,
+                    totalPrice: item.totalPrice || item.price * item.quantity,
+                    selectedOption: item.selectedOption,
+                    selectedClassification: item.selectedClassification,
+                  })),
+                  subTotal: existingOrder.subTotal,
+                  shippingFee: existingOrder.shippingFee,
+                  discount: existingOrder.discount,
+                  totalPrice: existingOrder.totalPrice,
+                  payment: existingOrder.payment || 'vnpay',
+                  paymentStatus: 'pending',
+                  shippingAddress: existingOrder.shippingAddress ? {
+                    name: existingOrder.shippingAddress.name,
+                    phone: existingOrder.shippingAddress.phone,
+                    city: existingOrder.shippingAddress.city,
+                    district: existingOrder.shippingAddress.district,
+                    ward: existingOrder.shippingAddress.ward,
+                    street: existingOrder.shippingAddress.street,
+                  } : undefined,
+                };
+
+                const payment = await createVnpayPayment(payload, authTokensRef.current.accessToken);
+                const uiOrder = mapApiOrderToUi(payment.order, productsRef.current, t);
+                setOrders(prev => [uiOrder, ...prev]);
+                return { paymentUrl: payment.paymentUrl };
+              } catch (error: any) {
+                console.warn('App.tsx - Failed to create payment URL for order', error?.message || error);
+                throw error;
+              }
+            }}
+            accessToken={authTokens?.accessToken}
+          />
+        ) : null;
+
+      case 'auth':
+        return <Auth onBack={() => handleTabChange(currentTab)} onLoginSuccess={handleLoginSuccess} theme={theme} initialMode={authMode} />;
+
+      case 'notifications':
+        return (
+          <Notifications
+            onBack={() => handleTabChange(currentTab)}
+            theme={theme}
+            notifications={notifications}
+            onMarkAllRead={handleMarkAllNotificationsRead}
+            onMarkRead={handleMarkNotificationRead}
+            refreshing={isRefreshingNotifications}
+            onRefresh={refreshNotifications}
+          />
+        );
+
+      case 'search':
+        return (
+          <SearchScreen
+            onBack={() => handleTabChange(currentTab)}
+            onProductClick={navigateToProduct}
+            onFilterClick={openFilter}
+            initialQuery={searchQuery}
+            onQueryChange={setSearchQuery}
+
+            products={products}
+            theme={theme}
+            userId={userId}
+            isLoggedIn={isLoggedIn}
+            accessToken={authTokens?.accessToken || null}
+            filters={filters}
+            initialScrollOffset={searchScrollOffsetRef.current}
+            onScrollPositionChange={(offset) => {
+              searchScrollOffsetRef.current = offset;
+            }}
+          />
+        );
+
+      case 'filter':
+        return (
+          <FilterScreen
+            onClose={() => setCurrentScreen(previousScreen)}
+            onApply={(newFilters) => {
+              setFilters({
+                priceRange: newFilters.priceRange || [0, 10000000],
+                categories: newFilters.categories || [],
+                rating: newFilters.rating || null,
+                onlyInStock: newFilters.onlyInStock || false,
+              });
+              setCurrentScreen(previousScreen);
+            }}
+            currentFilters={filters}
+            getFilteredCount={(tempFilters) => {
+              // Create a temporary filter function with the temp filters
+              const tempFilterState: FilterState = {
+                priceRange: tempFilters.priceRange || filters.priceRange,
+                categories: tempFilters.categories || filters.categories,
+                rating: tempFilters.rating !== undefined ? tempFilters.rating : filters.rating,
+                onlyInStock: tempFilters.onlyInStock !== undefined ? tempFilters.onlyInStock : filters.onlyInStock,
+              };
+
+              // Apply filters without changing state
+              return products.filter(product => {
+                if (searchQuery) {
+                  const query = searchQuery.toLowerCase().trim();
+                  if (!product.name.toLowerCase().includes(query)) {
+                    return false;
+                  }
+                }
+                if (product.price < tempFilterState.priceRange[0] || product.price > tempFilterState.priceRange[1]) {
+                  return false;
+                }
+                if (tempFilterState.categories.length > 0 && !tempFilterState.categories.includes(product.category)) {
+                  return false;
+                }
+                if (tempFilterState.rating !== null && product.rating < tempFilterState.rating) {
+                  return false;
+                }
+                if (tempFilterState.onlyInStock && product.stock === 'Out of Stock') {
+                  return false;
+                }
+                return true;
+              }).length;
+            }}
+            theme={theme}
+            categories={availableCategories}
+          />
+        );
+
+      case 'address-book':
+        return (
+          <AddressBook
+            onBack={() => handleTabChange('profile')}
+            theme={theme}
+            addresses={addresses}
+            onUpdateAddresses={setAddresses}
+            accessToken={authTokens?.accessToken}
+          />
+        );
+
+      case 'settings':
+        return (
+          <Settings
+            onBack={() => handleTabChange('profile')}
+            themeMode={themeMode}
+            onThemeModeChange={handleThemeModeChange}
+            onChangePassword={() => setCurrentScreen('change-password')}
+            onNavigateToLanguage={() => setCurrentScreen('language-selection')}
+            theme={theme}
+            isPushEnabled={isPushEnabled}
+            onTogglePush={handleTogglePush}
+            onResetOnboarding={handleResetOnboarding}
+          />
+        );
+
+      case 'language-selection':
+        return (
+          <LanguageSelection
+            onBack={() => setCurrentScreen('settings')}
+            isDarkMode={isDarkMode}
+          />
+        );
+
+      case 'support':
+        return <SupportCenter onBack={() => handleTabChange('profile')} theme={theme} />;
+
+      case 'wishlist':
+        return (
+          <Wishlist
+            items={wishlist}
+            onBack={() => handleTabChange('profile')}
+            onRemove={(id) => { void handleRemoveFavorite(id); }}
+            onProductClick={navigateToProduct}
+            theme={theme}
+          />
+        );
+
+      case 'change-password':
+        return (
+          <ChangePassword
+            onBack={() => setCurrentScreen('settings')}
+            theme={theme}
+            email={userProfile.email}
+            accessToken={authTokens?.accessToken}
+            onSuccess={() => setCurrentScreen('settings')}
+          />
+        );
+
+      default:
+        return (
+          <Home
+            onNavigate={(tab) => handleTabChange(tab as NavTab)}
+            onProductClick={navigateToProduct}
+            theme={theme}
+            products={products}
+            banners={banners}
+            onBannerPress={handleBannerPress}
+            initialScrollOffset={homeScrollOffsetRef.current}
+            onScrollPositionChange={handleHomeScrollPosition}
+          />
+        );
+    }
+  };
+
+  const isFullScreen = ['onboarding', 'product-detail', 'checkout', 'order-history', 'order-detail', 'notifications', 'search', 'filter', 'address-book', 'settings', 'support', 'wishlist', 'change-password', 'language-selection'].includes(currentScreen);
+  const showTopBar = !isFullScreen && currentScreen !== 'ai' && currentScreen !== 'profile' && currentScreen !== 'auth' && currentScreen !== 'onboarding';
+
+  // Show biometric lock screen if app is locked
+  if (isAppLocked) {
+    return (
+      <ThemeProvider value={{ theme, isDarkMode }}>
+        <BiometricLockScreen onUnlock={() => setIsAppLocked(false)} />
+      </ThemeProvider>
+    );
+  }
+
+  return (
+    <ThemeProvider value={{ theme, isDarkMode }}>
+      <ForegroundNotificationHandler />
+      <OfflineBanner visible={networkStatus.isConnected === false} />
+      <StatusBar
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+        backgroundColor={theme.surface}
+        translucent={true}
+      />
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <TopBar
+          title={currentScreen === 'cart' ? t('cart_title') : t('app_name')}
+          showSearch={currentScreen === 'home'}
+          onSearchClick={() => setCurrentScreen('search')}
+          onFilterClick={['home', 'catalog'].includes(currentScreen) ? undefined : openFilter}
+          onNotificationClick={openNotifications}
+          hasUnread={hasUnreadNotifications}
+          theme={theme}
+          visible={showTopBar}
+        />
+
+        <View style={[styles.content, { backgroundColor: theme.background }]}>
+          {/* Keep Catalog mounted when navigating to product-detail from catalog */}
+          {(currentScreen === 'catalog' || (currentScreen === 'product-detail' && previousScreen === 'catalog')) && (
+            <View
+              style={[
+                { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: currentScreen === 'catalog' ? 1 : 0 },
+                currentScreen !== 'catalog' && { opacity: 0 }
+              ]}
+              pointerEvents={currentScreen === 'catalog' ? 'auto' : 'none'}
+            >
+              <Catalog
+                onFilterClick={openFilter}
+                onProductClick={navigateToProduct}
+                applyFilters={applyFilters}
+                theme={theme}
+                products={products}
+                initialCategory={selectedCategory}
+                activeCategory={selectedCategory}
+                onActiveCategoryChange={setSelectedCategory}
+                searchQuery={catalogSearch}
+                onSearchQueryChange={setCatalogSearch}
+              />
+            </View>
+          )}
+          {(currentScreen === 'ai' || hasVisitedAi) && (
+            <View
+              style={[
+                { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: currentScreen === 'ai' ? 1 : 0 },
+                currentScreen !== 'ai' && { opacity: 0 }
+              ]}
+              pointerEvents={currentScreen === 'ai' ? 'auto' : 'none'}
+            >
+              <AIChat
+                theme={theme}
+                onNotificationClick={openNotifications}
+                accessToken={authTokens?.accessToken}
+                onAddToCart={handleAddToCart}
+                onRequireLogin={() => {
+                  openAuthScreen('login', 'ai');
+                }}
+                onOpenProduct={(productId) => {
+                  const target = products.find((p) => p.id === productId);
+                  if (target) {
+                    navigateToProduct(target);
+                  }
+                }}
+                messages={aiMessages}
+                onMessagesChange={handleAiMessagesChange}
+              />
+            </View>
+          )}
+          <React.Suspense fallback={<View style={{ flex: 1, backgroundColor: theme.background }} />}>
+            {currentScreen !== 'catalog' && renderScreen(currentScreen)}
+          </React.Suspense>
+        </View>
+
+        {!isFullScreen && (
+          <BottomNav
+            currentTab={currentTab}
+            onTabChange={handleTabChange}
+            cartCount={cartCount}
+            theme={theme}
+          />
+        )}
+      </View>
+    </ThemeProvider>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
+  },
+  content: {
+    flex: 1,
+    overflow: 'hidden',
+  },
+});
+
+export default App;
