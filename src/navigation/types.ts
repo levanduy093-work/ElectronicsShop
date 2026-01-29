@@ -7,12 +7,16 @@ import type { CompositeScreenProps } from '@react-navigation/native';
 // Stack Param Lists
 // ============================================================================
 
+export type RootStackParamList = {
+    MainTabs: NavigatorScreenParams<RootTabParamList>;
+    OrderDetail: { orderId: string };
+};
+
 export type HomeStackParamList = {
     Home: undefined;
     ProductDetail: { productId: string };
     Search: { initialQuery?: string };
     Notifications: undefined;
-    OrderDetail: { orderId: string };
     Filter: undefined;
 };
 
@@ -34,7 +38,6 @@ export type CartStackParamList = {
     Cart: undefined;
     Checkout: undefined;
     ProductDetail: { productId: string };
-    OrderDetail: { orderId: string };
     Notifications: undefined;
 };
 
@@ -43,7 +46,6 @@ export type ProfileStackParamList = {
     Auth: { mode?: 'login' | 'register' };
     Settings: undefined;
     OrderHistory: undefined;
-    OrderDetail: { orderId: string };
     AddressBook: undefined;
     Wishlist: undefined;
     SupportCenter: undefined;
@@ -121,8 +123,10 @@ export type SettingsScreenProps = CompositeScreenProps<
 export type ProductDetailScreenProps<T extends { ProductDetail: { productId: string } }> =
     NativeStackScreenProps<T, 'ProductDetail'>;
 
-export type OrderDetailScreenProps<T extends { OrderDetail: { orderId: string } }> =
-    NativeStackScreenProps<T, 'OrderDetail'>;
+export type OrderDetailScreenProps = CompositeScreenProps<
+    NativeStackScreenProps<RootStackParamList, 'OrderDetail'>,
+    BottomTabScreenProps<RootTabParamList>
+>;
 
 export type SearchScreenProps<T extends { Search: { initialQuery?: string } }> =
     NativeStackScreenProps<T, 'Search'>;

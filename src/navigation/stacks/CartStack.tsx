@@ -19,9 +19,6 @@ const CheckoutScreen = React.lazy(() =>
 const ProductDetailScreen = React.lazy(() =>
     import('../../screens/ProductDetail').then(m => ({ default: m.ProductDetail }))
 );
-const OrderDetailScreen = React.lazy(() =>
-    import('../../screens/OrderDetail').then(m => ({ default: m.OrderDetail }))
-);
 const NotificationsScreen = React.lazy(() =>
     import('../../screens/Notifications').then(m => ({ default: m.Notifications }))
 );
@@ -90,6 +87,7 @@ function CheckoutWrapper() {
                 onPlaceOrder={app?.placeOrder || (() => Promise.resolve())}
                 placingOrder={app?.isPlacingOrder || false}
                 onSuccess={(orderId) => {
+                    // @ts-ignore
                     navigation.navigate('OrderDetail', { orderId });
                 }}
                 addresses={app?.addresses || []}
@@ -159,31 +157,7 @@ function ProductDetailWrapper({ route }: { route: { params: { productId: string 
     );
 }
 
-// Wrapper for OrderDetail screen
-function OrderDetailWrapper({ route }: { route: { params: { orderId: string } } }) {
-    const navigation = useNavigation<NativeStackNavigationProp<CartStackParamList>>();
-    const { theme } = useTheme();
-    const app = useAppOptional();
 
-    const orderId = route.params.orderId;
-    const order = app?.orders.find(o => o.id === orderId);
-
-    return (
-        <Suspense fallback={<LoadingFallback />}>
-            <OrderDetailScreen
-                orderId={orderId}
-                onBack={() => navigation.goBack()}
-                order={order}
-                theme={theme}
-                products={app?.products || []}
-                onReorder={() => { }}
-                onNavigateToCart={() => navigation.popToTop()}
-                onRefreshOrder={() => app?.refreshOrderDetail(orderId)}
-                accessToken={app?.authTokens?.accessToken}
-            />
-        </Suspense>
-    );
-}
 
 export function CartStack() {
     return (
@@ -198,7 +172,6 @@ export function CartStack() {
             <Stack.Screen name="Cart" component={CartWrapper} />
             <Stack.Screen name="Checkout" component={CheckoutWrapper} />
             <Stack.Screen name="ProductDetail" component={ProductDetailWrapper} />
-            <Stack.Screen name="OrderDetail" component={OrderDetailWrapper} />
             <Stack.Screen name="Notifications" component={NotificationsWrapper} />
         </Stack.Navigator>
     );

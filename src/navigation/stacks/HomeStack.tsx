@@ -21,9 +21,6 @@ const SearchScreenComponent = React.lazy(() =>
 const NotificationsScreen = React.lazy(() =>
     import('../../screens/Notifications').then(m => ({ default: m.Notifications }))
 );
-const OrderDetailScreen = React.lazy(() =>
-    import('../../screens/OrderDetail').then(m => ({ default: m.OrderDetail }))
-);
 const FilterScreenComponent = React.lazy(() =>
     import('../../screens/FilterScreen').then(m => ({ default: m.FilterScreen }))
 );
@@ -77,8 +74,13 @@ function HomeWrapper() {
                 banners={app?.banners || []}
                 onNavigate={handleNavigate}
                 onProductClick={handleProductClick}
-                onBannerPress={() => { }}
-                onSelectCategory={app?.setFilters ? (cat: string) => { } : () => { }}
+                onSelectCategory={(cat: string) => {
+                    // @ts-ignore
+                    navigation.navigate('CatalogTab', {
+                        screen: 'Catalog',
+                        params: { category: cat },
+                    });
+                }}
                 onRefreshProducts={app?.loadProducts || (() => Promise.resolve())}
                 isLoading={app?.isLoadingProducts || false}
                 error={app?.productsError || null}
@@ -170,31 +172,7 @@ function NotificationsWrapper() {
     );
 }
 
-// Wrapper component for OrderDetail screen
-function OrderDetailWrapper({ route }: { route: { params: { orderId: string } } }) {
-    const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
-    const { theme } = useTheme();
-    const app = useAppOptional();
 
-    const orderId = route.params.orderId;
-    const order = app?.orders.find(o => o.id === orderId);
-
-    return (
-        <Suspense fallback={<LoadingFallback />}>
-            <OrderDetailScreen
-                orderId={orderId}
-                onBack={() => navigation.goBack()}
-                order={order}
-                theme={theme}
-                products={app?.products || []}
-                onReorder={() => { }}
-                onNavigateToCart={app?.navigateToCart || (() => { })}
-                onRefreshOrder={() => app?.refreshOrderDetail(orderId)}
-                accessToken={app?.authTokens?.accessToken}
-            />
-        </Suspense>
-    );
-}
 
 import { filterProducts } from '../../utils/filterUtils';
 
@@ -241,7 +219,6 @@ export function HomeStack() {
             <Stack.Screen name="Search" component={SearchWrapper} />
             <Stack.Screen name="Filter" component={FilterWrapper} />
             <Stack.Screen name="Notifications" component={NotificationsWrapper} />
-            <Stack.Screen name="OrderDetail" component={OrderDetailWrapper} />
         </Stack.Navigator>
     );
 }
