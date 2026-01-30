@@ -31,7 +31,7 @@ export async function getCachedBanners(): Promise<any[] | null> {
   try {
     const cached = await AsyncStorage.getItem(CACHE_KEYS.BANNERS);
     const timestampStr = await AsyncStorage.getItem(CACHE_KEYS.BANNERS_TIMESTAMP);
-    
+
     if (!cached || !timestampStr) {
       return null;
     }
@@ -69,7 +69,7 @@ export async function getCachedProducts(): Promise<any[] | null> {
   try {
     const cached = await AsyncStorage.getItem(CACHE_KEYS.PRODUCTS);
     const timestampStr = await AsyncStorage.getItem(CACHE_KEYS.PRODUCTS_TIMESTAMP);
-    
+
     if (!cached || !timestampStr) {
       return null;
     }
@@ -90,15 +90,4 @@ export async function getCachedProducts(): Promise<any[] | null> {
   }
 }
 
-export async function clearCache(): Promise<void> {
-  try {
-    await AsyncStorage.multiRemove([
-      CACHE_KEYS.BANNERS,
-      CACHE_KEYS.PRODUCTS,
-      CACHE_KEYS.BANNERS_TIMESTAMP,
-      CACHE_KEYS.PRODUCTS_TIMESTAMP,
-    ]);
-  } catch (error) {
-    console.warn('Failed to clear cache:', error);
-  }
-}
+

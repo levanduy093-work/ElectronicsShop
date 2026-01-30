@@ -1,13 +1,13 @@
 import { Product } from '../types';
 
-export const normalizeText = (value?: string) =>
+const normalizeText = (value?: string) =>
     (value || '')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
         .trim();
 
-export const fuzzyMatch = (haystack: string, needle: string) => {
+const fuzzyMatch = (haystack: string, needle: string) => {
     const h = normalizeText(haystack);
     const n = normalizeText(needle);
     if (!n) return true;
@@ -20,7 +20,7 @@ export const fuzzyMatch = (haystack: string, needle: string) => {
     return tokens.every(t => words.some(w => w.startsWith(t)));
 };
 
-export const categoryAliases: Record<string, string[]> = {
+const categoryAliases: Record<string, string[]> = {
     capacitor: ['tu dien', 'tụ điện', 'tụ điện hóa', 'tudien'],
     resistor: ['dien tro', 'điện trở', 'trở'],
     microcontroller: ['vi dieu khien', 'vi điều khiển', 'controller'],
@@ -44,7 +44,7 @@ export interface FilterOptions {
 /**
  * Validates if a product matches the search query and filters.
  */
-export const isProductMatch = (
+const isProductMatch = (
     product: Product,
     searchQuery: string,
     filters: FilterOptions

@@ -72,6 +72,17 @@ function ProductDetailWrapper({ route }: { route: { params: { productId: string 
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { theme } = useTheme();
     const app = useAppOptional();
+    const handleNavigateToCart = () => {
+        navigation.reset({
+            index: 0,
+            routes: [
+                {
+                    name: 'MainTabs',
+                    params: { screen: 'CartTab', params: { screen: 'Cart' } },
+                },
+            ],
+        });
+    };
 
     const productId = route.params.productId;
     const product = app?.products.find(p => p.id === productId);
@@ -97,7 +108,7 @@ function ProductDetailWrapper({ route }: { route: { params: { productId: string 
                 relatedProducts={app?.relatedProducts || []}
                 onProductClick={(p) => navigation.push('ProductDetail', { productId: p.id })}
                 cartItemCount={app?.cartItems.length || 0}
-                onNavigateToCart={app?.navigateToCart || (() => { })}
+                onNavigateToCart={handleNavigateToCart}
             />
         </Suspense>
     );

@@ -59,7 +59,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
                 />
                 <View style={[styles.menuDivider, { backgroundColor: t.border }]} />
                 <MenuItem
-                    icon="help-circle"
+                    icon="headset"
                     label={translate('support_center')}
                     onPress={onNavigateToSupport}
                     theme={t}

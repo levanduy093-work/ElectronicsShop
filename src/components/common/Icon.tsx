@@ -56,6 +56,8 @@ const iconMap: Record<string, string> = {
   'credit-card': 'credit-card',
   'settings': 'cog',
   'help-circle': 'help-circle',
+  'lifebuoy': 'lifebuoy',
+  'headset': 'headset',
   'log-out': 'logout',
   'tune': 'tune',
   'briefcase': 'briefcase',

@@ -480,9 +480,7 @@ export function getPublicBanners() {
   return getJson<ApiBanner[]>('/banners/public');
 }
 
-export function getProductById(id: string) {
-  return getJson<ApiProduct>(`/products/${id}`);
-}
+
 
 export function getRelatedProducts(id: string) {
   return getJson<ApiProduct[]>(`/products/${id}/related`).catch(err => {

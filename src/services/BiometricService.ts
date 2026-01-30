@@ -83,9 +83,4 @@ export async function isBiometricLockEnabled(): Promise<boolean> {
 /**
  * Lấy icon name phù hợp với loại biometric
  */
-export function getBiometricIcon(biometryType: BiometryType | null): string {
-    if (biometryType === 'FaceID') {
-        return 'scan-face';
-    }
-    return 'fingerprint';
-}
+
