@@ -432,13 +432,6 @@ export function AIChat({
         </View>
       </KeyboardAvoidingView>
 
-      {isSending && (
-        <View style={styles.sendingOverlay}>
-          <ActivityIndicator size="small" color={theme.primary} />
-          <Text style={[styles.sendingText, { color: theme.muted }]}>Đang gửi...</Text>
-        </View>
-      )}
-
     </View>
 
   );
@@ -516,20 +509,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 2,
-  },
-  sendingOverlay: {
-    position: 'absolute',
-    right: 16,
-    bottom: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(0,0,0,0.04)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  sendingText: {
-    fontSize: 12,
   },
 });
