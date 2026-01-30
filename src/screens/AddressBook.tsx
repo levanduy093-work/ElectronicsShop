@@ -48,18 +48,6 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
     return true;
   }, [translate]);
 
-  // Cache-first load
-  useEffect(() => {
-    loadLocalAddresses().then((cached) => {
-      if (cached && cached.length > 0) {
-        setLocalAddresses(cached);
-        if (onUpdateAddresses) {
-          onUpdateAddresses(cached);
-        }
-      }
-    });
-  }, [onUpdateAddresses]);
-
   // Real-time updates via Socket
   useEffect(() => {
     const handleAddressUpdate = (updatedAddresses: Address[]) => {
@@ -78,36 +66,12 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
     };
   }, [onUpdateAddresses]);
 
-  // Fetch addresses from API on mount if accessToken is available
+  // Sync local state with props when props change
   useEffect(() => {
-    const loadAddresses = async () => {
-      if (!accessToken) return;
-      if (hasFetchedRef.current) return; // Already fetched
-      if (!ensureOnline()) return;
-
-      hasFetchedRef.current = true;
-      setIsLoading(true);
-      try {
-        const fetchedAddresses = await getAddresses(accessToken);
-        setLocalAddresses(fetchedAddresses);
-        saveAddresses(fetchedAddresses); // Save to cache
-        if (onUpdateAddresses) {
-          onUpdateAddresses(fetchedAddresses);
-        }
-      } catch (error: any) {
-        console.warn('Failed to fetch addresses', error);
-        hasFetchedRef.current = false; // Allow retry on error
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (accessToken) {
-      loadAddresses();
-    } else if (addresses) {
+    if (addresses) {
       setLocalAddresses(addresses);
     }
-  }, [accessToken, addresses, ensureOnline, onUpdateAddresses]);
+  }, [addresses]);
 
   const handleSetDefault = async (id: string) => {
     const index = addressList.findIndex(addr => addr.id === id);

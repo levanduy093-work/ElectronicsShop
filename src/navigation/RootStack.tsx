@@ -199,8 +199,17 @@ function CheckoutWrapper() {
                 theme={theme}
                 onPlaceOrder={app?.placeOrder || (() => Promise.resolve())}
                 placingOrder={app?.isPlacingOrder || false}
-                onSuccess={(orderId) => {
-                    navigation.navigate('OrderDetail', { orderId });
+                onSuccess={() => {
+                    // After successful checkout, return user to Home tab (matches button label)
+                    navigation.reset({
+                        index: 0,
+                        routes: [
+                            {
+                                name: 'MainTabs',
+                                params: { screen: 'HomeTab', params: { screen: 'Home' } },
+                            },
+                        ],
+                    });
                 }}
                 addresses={app?.addresses || []}
                 onAddAddress={() => { }}

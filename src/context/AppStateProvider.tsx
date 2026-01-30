@@ -1,5 +1,5 @@
 import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AppState, AppStateStatus, Linking, useColorScheme } from 'react-native';
+import { Alert, AppState, AppStateStatus, Linking, useColorScheme, InteractionManager } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 
@@ -10,7 +10,7 @@ import { AppProvider, AppContextValue } from './AppContext';
 import { useToast } from '../components/common/ToastProvider';
 import { useNetworkStatus } from '../utils/network';
 import { extractCategoriesFromProducts } from '../utils/product';
-import { cacheBanners, getCachedBanners, cacheProducts, getCachedProducts } from '../utils/cache';
+import { cacheBanners, getCachedBanners, cacheProducts, getCachedProducts, cacheManager } from '../utils/cache';
 
 import {
     ApiNotification,
@@ -43,8 +43,10 @@ import {
     UploadImageFile,
     fetchMyCart,
     upsertCart,
+    getReviews,
 } from '../services/api';
 import { socketService } from '../services/socket';
+import { prefetchService } from '../services/prefetchService';
 import {
     requestUserPermission,
     getFcmToken,
@@ -475,54 +477,92 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     // ========================================================================
     // Data loading functions
     // ========================================================================
-    const loadProducts = useCallback(async (options?: { useCache?: boolean; onlyCache?: boolean }) => {
+    const loadProducts = useCallback(async (options?: { useCache?: boolean; onlyCache?: boolean; limit?: number }) => {
         setIsLoadingProducts(true);
         setProductsError(null);
 
         const isOffline = networkStatus.isConnected === false;
+        // Construct cache key based on limit
+        const cacheSuffix = options?.limit ? `_limit_${options.limit}` : '_all';
+
         if (isOffline || options?.useCache || options?.onlyCache) {
-            const cached = await getCachedProducts();
+            const cached = await getCachedProducts(); // currently this gets 'all' or 'default' key
             if (cached && cached.length > 0) {
-                const mapped = cached.map(mapApiProductToUi);
-                setProducts(mapped);
-                productsRef.current = mapped;
-                setIsLoadingProducts(false);
-                if (isOffline) {
-                    setProductsError('Đang hiển thị dữ liệu đã lưu. Kết nối mạng đã bị ngắt.');
+                let displayed = cached.map(mapApiProductToUi);
+                if (options?.limit) {
+                    displayed = displayed.slice(0, options.limit);
                 }
-                return mapped;
-            }
-            if (options?.onlyCache) {
-                setIsLoadingProducts(false);
-                return undefined;
+
+                setProducts(prev => {
+                    // If we are loading partial, only update if we don't have enough data
+                    if (options?.limit && prev.length > options.limit) return prev;
+                    return displayed;
+                });
+
+                if (options?.onlyCache) {
+                    productsRef.current = displayed;
+                    setIsLoadingProducts(false);
+                    return undefined;
+                }
             }
         }
 
         try {
-            const result = await getProducts();
+            const result = await getProducts({ limit: options?.limit });
             const mapped = result.map(mapApiProductToUi);
-            setProducts(mapped);
+
+            // If we fetched the full list, cache it.
+            // If we fetched partial, we might not want to overwrite the full cache 
+            // unless we handle merging. For simplicity, we only cache if full list 
+            // OR if cache is empty.
+            if (!options?.limit) {
+                await cacheProducts(result);
+            }
+
+            setProducts(prev => {
+                // If we fetched partial, append or replace?
+                // If it's partial, it's usually page 1.
+                if (options?.limit) {
+                    // Start partial, we just replace. The full fetch will come later.
+                    // But if we already have MORE data (full list), we shouldn't shrink it back to 10
+                    if (prev.length > (options.limit || 0)) return prev;
+                }
+                return mapped;
+            });
             productsRef.current = mapped;
-            await cacheProducts(result);
+
+            // Background prefetch reviews only if we really fetched products
+            if (result.length > 0) {
+                InteractionManager.runAfterInteractions(() => {
+                    const topProducts = result.slice(0, 10);
+                    topProducts.forEach(p => {
+                        prefetchService.addTask(`reviews-${p._id}`, () => getReviews(p._id));
+                    });
+                });
+            }
+
             setProductsError(null);
             return mapped;
         } catch (error: any) {
             const errorMessage = error?.message || 'Không thể tải sản phẩm';
-            console.warn('AppStateProvider - Failed to load products', errorMessage);
-            const cached = await getCachedProducts();
-            if (cached && cached.length > 0) {
-                const mapped = cached.map(mapApiProductToUi);
-                setProducts(mapped);
-                productsRef.current = mapped;
-                setProductsError('Đang hiển thị dữ liệu đã lưu. ' + errorMessage);
-            } else {
-                setProductsError(errorMessage);
+
+            // Only warn if we have no products at all
+            if (products.length === 0) {
+                console.warn('AppStateProvider - Failed to load products', errorMessage);
+                // Try fallback to cache again
+                const cached = await getCachedProducts();
+                if (cached && cached.length > 0) {
+                    setProducts(cached.map(mapApiProductToUi));
+                    setProductsError('Đang hiển thị dữ liệu đã lưu. ' + errorMessage);
+                } else {
+                    setProductsError(errorMessage);
+                }
             }
             return undefined;
         } finally {
             setIsLoadingProducts(false);
         }
-    }, [networkStatus.isConnected]);
+    }, [networkStatus.isConnected, products.length]);
 
     const loadBanners = useCallback(async (options?: { useCache?: boolean }) => {
         const isOffline = networkStatus.isConnected === false;
@@ -550,12 +590,38 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
 
     const loadOrders = useCallback(async (tokenOverride?: string, options?: { silent?: boolean }) => {
         const token = tokenOverride || authTokensRef.current?.accessToken;
+        const currentUid = userId || 'me';
         if (!token) return;
 
         const showSpinner = !options?.silent;
-        if (showSpinner) setIsRefreshingOrders(true);
+        const cacheKey = `orders-${currentUid}`;
+
+        if (showSpinner) {
+            // Try cache first
+            try {
+                const cachedDocs = await cacheManager.get<ApiOrder[]>(cacheKey);
+                if (cachedDocs) {
+                    const mapped = cachedDocs
+                        .map(o => mapApiOrderToUi(o, productsRef.current, t))
+                        .sort((a, b) => {
+                            const dateA = new Date(a.createdAt || a.date).getTime();
+                            const dateB = new Date(b.createdAt || b.date).getTime();
+                            return dateB - dateA;
+                        });
+                    setOrders(mapped);
+                    // If we have cache, don't show spinner, just update in background
+                } else {
+                    setIsRefreshingOrders(true);
+                }
+            } catch (e) {
+                setIsRefreshingOrders(true);
+            }
+        }
+
         try {
             const result = await apiGetOrders(token);
+            await cacheManager.set(cacheKey, result); // Cache raw API response
+
             const mapped = result
                 .map(o => mapApiOrderToUi(o, productsRef.current, t))
                 .sort((a, b) => {
@@ -565,17 +631,29 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
                 });
             setOrders(mapped);
         } catch (error: any) {
+            // Only warn if we didn't have cached data (if we had cache, user likely didn't notice)
             console.warn('AppStateProvider - Failed to load orders', error?.message || error);
         } finally {
             if (showSpinner) setIsRefreshingOrders(false);
         }
-    }, [t]);
+    }, [t, userId]);
 
     const loadFavorites = async (tokenOverride?: string) => {
         const token = tokenOverride || authTokensRef.current?.accessToken;
+        const currentUid = userId || 'me';
         if (!token) return;
+
+        const cacheKey = `favorites-${currentUid}`;
+        try {
+            const cached = await cacheManager.get<ApiProduct[]>(cacheKey);
+            if (cached) {
+                setWishlist(cached.map(mapApiProductToUi));
+            }
+        } catch { }
+
         try {
             const result = await apiGetFavorites(token);
+            await cacheManager.set(cacheKey, result);
             const mapped = result.map(mapApiProductToUi);
             setWishlist(mapped);
         } catch (error: any) {
@@ -585,9 +663,20 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
 
     const loadVouchers = async (tokenOverride?: string) => {
         const token = tokenOverride || authTokensRef.current?.accessToken;
+        const currentUid = userId || 'me';
         if (!token) return;
+
+        const cacheKey = `vouchers-${currentUid}`;
+        try {
+            const cached = await cacheManager.get<ApiVoucher[]>(cacheKey);
+            if (cached) {
+                setVouchers(cached.map(mapApiVoucherToUi));
+            }
+        } catch { }
+
         try {
             const result = await getMyVouchers(token);
+            await cacheManager.set(cacheKey, result);
             const mapped = result.map(mapApiVoucherToUi);
             setVouchers(mapped);
         } catch (error: any) {
@@ -597,9 +686,27 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
 
     const loadAddresses = async (tokenOverride?: string) => {
         const token = tokenOverride || authTokensRef.current?.accessToken;
+        const currentUid = userId || 'me';
         if (!token) return;
+
+        const cacheKey = `addresses-${currentUid}`;
+        try {
+            // For addresses, we store the FrontendAddress[] directly? 
+            // No, api returns BackendAddress[] usually, but getAddresses maps them.
+            // Let's cache the API result (BackendAddress[]) if we could, 
+            // but `getAddresses` returns FrontendAddress[].
+            // To simplify, let's cache the frontend object since it's what we use.
+            // Wait, cacheManager stores whatever we pass.
+            const cached = await cacheManager.get<Address[]>(cacheKey);
+            if (cached) {
+                setAddresses(cached);
+            }
+        } catch { }
+
         try {
             const result = await getAddresses(token);
+            // Verify result type
+            await cacheManager.set(cacheKey, result);
             setAddresses(result);
         } catch (error: any) {
             console.warn('AppStateProvider - Failed to load addresses', error?.message || error);
@@ -1114,10 +1221,25 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     }, [isRestoringAuth, isLoggedIn, authTokens?.accessToken, loadUserProfile]);
 
     // Load products and banners when online
+    // Load products and banners when online
     useEffect(() => {
         if (networkStatus.isConnected) {
-            loadProducts().catch(() => { });
-            loadBanners().catch(() => { });
+            const initLoad = async () => {
+                // 1. Load fast/essential data first
+                await Promise.all([
+                    loadBanners({ useCache: true }).catch(() => { }),
+                    // Load only first 10 products to unblock UI
+                    loadProducts({ useCache: true, limit: 10 }).catch(() => { }),
+                ]);
+
+                // 2. Load the rest in background after a short delay
+                setTimeout(() => {
+                    InteractionManager.runAfterInteractions(() => {
+                        loadProducts().catch(() => { });
+                    });
+                }, 1000);
+            };
+            initLoad();
         }
     }, [networkStatus.isConnected, loadProducts, loadBanners]);
 

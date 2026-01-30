@@ -472,8 +472,14 @@ async function deleteJson<TResponse>(
   });
 }
 
-export function getProducts() {
-  return getJson<ApiProduct[]>('/products');
+export function getProducts(params?: { limit?: number; skip?: number }) {
+  const query = params
+    ? `?${new URLSearchParams({
+      ...(params.limit ? { limit: String(params.limit) } : {}),
+      ...(params.skip ? { skip: String(params.skip) } : {}),
+    }).toString()}`
+    : '';
+  return getJson<ApiProduct[]>(`/products${query}`);
 }
 
 export function getPublicBanners() {

@@ -13,6 +13,7 @@ import { ApiReview, createReview, getReviews, uploadImage, UploadImageFile } fro
 import { socketService } from '../services/socket';
 import { ProductCard } from '../components/ui/ProductCard';
 import { downloadDatasheetPdf } from '../utils/fileDownload';
+import { cacheManager } from '../utils/cache';
 import { APP_LINK_DOMAIN as ENV_APP_LINK_DOMAIN, APP_LINK_SCHEME as ENV_APP_LINK_SCHEME } from '@env';
 
 interface ProductDetailProps {
@@ -183,16 +184,41 @@ export function ProductDetail({
   }, [onReviewStatsChange]);
 
   const fetchReviews = useCallback(async () => {
-    setReviewsLoading(true);
+    // Only show loading spinner if we don't have cached data yet
+    let hasCached = false;
+    const cacheKey = `reviews-${product.id}`;
+
+    try {
+      const cached = await cacheManager.get<ApiReview[]>(cacheKey);
+      if (cached) {
+        setReviews(cached);
+        const avg = cached.length > 0 ? cached.reduce((sum, r) => sum + (r.rating || 0), 0) / cached.length : 0;
+        onReviewStatsChangeRef.current?.(product.id, { averageRating: avg, reviewCount: cached.length });
+        setReviewsFetched(true);
+        hasCached = true;
+      }
+    } catch (e) {
+      // ignore cache error
+    }
+
+    if (!hasCached) {
+      setReviewsLoading(true);
+    }
+
     try {
       const data = await getReviews(product.id);
       setReviews(data);
+      await cacheManager.set(cacheKey, data);
+
       const avg =
         data.length > 0 ? data.reduce((sum, r) => sum + (r.rating || 0), 0) / data.length : 0;
       onReviewStatsChangeRef.current?.(product.id, { averageRating: avg, reviewCount: data.length });
       setReviewsFetched(true);
     } catch (error: any) {
-      console.warn('ProductDetail - Failed to load reviews', error?.message || error);
+      // If we have cached data, suppress the error for the user, just log it
+      if (!hasCached) {
+        console.warn('ProductDetail - Failed to load reviews', error?.message || error);
+      }
     } finally {
       setReviewsLoading(false);
     }

@@ -21,13 +21,10 @@ interface CheckoutProps {
   onBack: () => void;
   onSuccess?: (orderId: string) => void;
   onPlaceOrder?: (params: {
-    address?: Address;
-    paymentMethod: string;
-    shippingFee: number;
     items: CartItem[];
-    totalAmount: number;
-    subTotal: number;
-    discount?: number;
+    totals: { subTotal: number; shippingFee: number; discount: number; total: number };
+    paymentMethod: string;
+    shippingAddress?: Address;
   }) => Promise<{ id?: string; code?: string; paymentUrl?: string } | void>;
   onCheckPaymentStatus?: (orderId: string) => Promise<'paid' | 'failed' | 'pending' | undefined>;
   placingOrder?: boolean;
@@ -186,13 +183,10 @@ export function Checkout({
       setIsSubmitting(true);
       try {
         const created = await onPlaceOrder({
-          address: selectedAddress,
-          paymentMethod: selectedPaymentOption?.name || 'cod',
-          shippingFee,
           items: cartItems,
-          totalAmount: total,
-          subTotal,
-          discount,
+          totals: { subTotal, shippingFee, discount, total },
+          paymentMethod: selectedPaymentOption?.name || 'cod',
+          shippingAddress: selectedAddress,
         });
         const newId = created?.code || created?.id || fallbackCode;
         setOrderId(newId);
