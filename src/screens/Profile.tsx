@@ -71,18 +71,15 @@ export function Profile({
       ...(avatarFile ? { avatarFile } : {}),
     };
 
-    try {
-      if (onUpdateProfile) {
-        const ok = await onUpdateProfile(updatedProfile);
-        if (ok === false) {
-          showToast(translate('update_failed'), 'error');
-          return;
-        }
-      }
-      setShowEditModal(false);
-      showToast(translate('update_profile_success'), 'success');
-    } catch (err: any) {
-      showToast(err?.message || translate('update_failed'), 'error');
+    // Optimistic UX: close modal & toast success immediately, send request in background
+    setShowEditModal(false);
+    showToast(translate('update_profile_success'), 'success');
+
+    if (onUpdateProfile) {
+      Promise.resolve(onUpdateProfile(updatedProfile)).catch((err: any) => {
+        console.warn('Profile - update profile failed', err);
+        showToast(err?.message || translate('update_failed'), 'error');
+      });
     }
   };
 
