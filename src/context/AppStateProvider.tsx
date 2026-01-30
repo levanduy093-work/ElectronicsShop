@@ -824,6 +824,11 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
             persistAuthState(tokens, nextProfile, nextUserId).catch(() => { });
             return nextProfile;
         });
+
+        // Sync FCM token to backend after login
+        if (tokens?.accessToken) {
+            getFcmToken(tokens.accessToken).catch(() => { });
+        }
     }, [userId]);
 
     const handleAuthFailure = useCallback(() => {
@@ -840,6 +845,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         setAddresses(DEFAULT_ADDRESSES);
         setCartItems([]);
         void clearPersistedAuthState();
+        deleteFcmToken().catch(() => { });
     }, []);
 
     const login = useCallback((data: AuthResponse) => {
@@ -1318,6 +1324,35 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
             onAuthFailure: handleAuthFailure,
         });
     }, [handleAuthFailure, syncAuthTokens]);
+
+    // FCM Setup
+    useEffect(() => {
+        const setupFcm = async () => {
+            const enabled = await requestUserPermission();
+            if (enabled) {
+                const token = await getFcmToken(authTokensRef.current?.accessToken);
+                if (token) {
+                    hasRegisteredFcmRef.current = true;
+                }
+            }
+        };
+
+        if (isPushEnabled) {
+            setupFcm();
+
+            // Subscribe to token refresh
+            const unsubscribe = subscribeToFcmTokenRefresh(authTokensRef.current?.accessToken);
+            fcmRefreshUnsubRef.current = unsubscribe;
+        }
+
+        return () => {
+            if (fcmRefreshUnsubRef.current) {
+                // @ts-ignore - type mismatch in library vs usage sometimes, but safe to call if function
+                fcmRefreshUnsubRef.current();
+                fcmRefreshUnsubRef.current = null;
+            }
+        };
+    }, [isPushEnabled]);
 
     // ========================================================================
     // Context value
