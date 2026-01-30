@@ -60,6 +60,6 @@ const ProfileStatCard: React.FC<ProfileStatCardProps> = ({ value, label, onPress
         activeOpacity={0.7}
     >
         <Text className="text-2xl font-bold mb-1" style={{ color: t.text }}>{value}</Text>
-        <Text className="text-xs" style={{ color: t.muted }}>{label}</Text>
+        <Text className="text-sm" style={{ color: t.muted }}>{label}</Text>
     </TouchableOpacity>
 );

@@ -596,11 +596,11 @@ export function ProductDetail({
                 <AppIcon name="star" size={16} color="#FBBF24" />
                 <Text className="text-sm font-medium" style={{ color: theme.text }}>{derivedAverageRating.toFixed(1)}</Text>
               </View>
-              <Text className="text-sm text-gray-300">|</Text>
-              <Text className="text-sm text-gray-500" style={{ color: theme.muted }}>{derivedReviewCount} {t('reviews')}</Text>
-              <Text className="text-sm text-gray-300">|</Text>
+              <View className="w-px h-3" style={{ backgroundColor: theme.border }} />
+              <Text className="text-base font-medium" style={{ color: theme.muted }}>{derivedReviewCount} {t('reviews')}</Text>
+              <View className="w-px h-3" style={{ backgroundColor: theme.border }} />
               <Text
-                className="text-sm font-medium"
+                className="text-base font-medium"
                 style={{ color: isOutOfStock ? '#DC2626' : '#10B981' }}
               >
                 {availableStock !== undefined
@@ -632,7 +632,7 @@ export function ProductDetail({
                     className="px-4 py-2 rounded-full border mr-2"
                     activeOpacity={0.7}
                   >
-                    <Text className="text-sm font-medium" style={{ color: selectedOption === option ? theme.primary : theme.text }}>
+                    <Text className="text-base font-medium" style={{ color: selectedOption === option ? theme.primary : theme.text }}>
                       {option}
                     </Text>
                   </TouchableOpacity>
@@ -658,7 +658,7 @@ export function ProductDetail({
                       className="px-4 py-2 rounded-full border mr-2"
                       activeOpacity={0.7}
                     >
-                      <Text className="text-sm font-medium" style={{ color: selectedClassification === classification ? theme.primary : theme.text }}>
+                      <Text className="text-base font-medium" style={{ color: selectedClassification === classification ? theme.primary : theme.text }}>
                         {classification}
                       </Text>
                     </TouchableOpacity>
@@ -694,12 +694,14 @@ export function ProductDetail({
           <View className="min-h-[150px]">
             {activeTab === 'desc' && (
               <View>
-                <Text className="text-sm leading-6 mb-6" style={{ color: theme.text }}>{product.description}</Text>
+                <Text className="text-base leading-7 mb-6" style={{ color: theme.text }}>{product.description}</Text>
                 <View className="flex-row p-4 rounded-xl gap-3" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
-                  <AppIcon name="shield-check" size={24} color={theme.primary} />
+                  <View className="w-10 h-10 rounded-full justify-center items-center" style={{ backgroundColor: !isDarkMode ? '#F0FDF4' : theme.surface }}>
+                    <AppIcon name="shield-check" size={24} color={theme.primary} />
+                  </View>
                   <View className="flex-1">
-                    <Text className="text-base font-semibold mb-1" style={{ color: theme.text }}>Cam kết chính hãng</Text>
-                    <Text className="text-sm" style={{ color: theme.primary }}>
+                    <Text className="text-base font-bold mb-1" style={{ color: theme.text }}>Cam kết chính hãng</Text>
+                    <Text className="text-base" style={{ color: theme.primary }}>
                       Sản phẩm được kiểm tra kỹ lưỡng bởi đội ngũ kỹ thuật ElectroAI.
                     </Text>
                   </View>
@@ -723,8 +725,8 @@ export function ProductDetail({
 
                   return (
                     <View key={key} className="flex-row justify-between py-3 border-b items-start" style={{ borderBottomColor: theme ? '#F3F4F6' : '#333' }}>
-                      <Text className="text-sm max-w-[40%]" style={{ color: theme.muted }}>{key}</Text>
-                      <Text className="text-sm font-medium flex-1 text-right ml-3" style={{ color: theme.text }}>
+                      <Text className="text-base max-w-[40%]" style={{ color: theme.muted }}>{key}</Text>
+                      <Text className="text-base font-medium flex-1 text-right ml-3" style={{ color: theme.text }}>
                         {displayValue}
                       </Text>
                     </View>
@@ -828,11 +830,11 @@ export function ProductDetail({
                           ))}
                         </View>
                       </View>
-                      <Text className="text-xs" style={{ color: theme.muted }}>
+                      <Text className="text-sm" style={{ color: theme.muted }}>
                         {formatReviewDate(r.updatedAt || r.createdAt)}
                       </Text>
                     </View>
-                    {r.comment ? <Text className="text-sm leading-5" style={{ color: theme.text }}>{r.comment}</Text> : null}
+                    {r.comment ? <Text className="text-base leading-6" style={{ color: theme.text }}>{r.comment}</Text> : null}
                     {r.images && r.images.length > 0 && (
                       <View className="flex-row flex-wrap mt-2">
                         {r.images
@@ -900,15 +902,15 @@ export function ProductDetail({
                           <AppIcon name={file.icon} size={18} color={theme.primary} />
                         </View>
                         <View>
-                          <Text className="font-semibold text-sm" style={{ color: theme.text }}>{file.name}</Text>
-                          <Text className="text-xs mt-0.5" style={{ color: theme.muted }}>{file.desc}</Text>
+                          <Text className="font-semibold text-base" style={{ color: theme.text }}>{file.name}</Text>
+                          <Text className="text-sm mt-0.5" style={{ color: theme.muted }}>{file.desc}</Text>
                         </View>
                       </View>
                       <AppIcon name="download" size={20} color={theme.primary} />
                     </TouchableOpacity>
                   ))
                 ) : (
-                  <Text className="text-xs mt-0.5" style={{ color: theme.muted }}>
+                  <Text className="text-sm mt-0.5" style={{ color: theme.muted }}>
                     Sản phẩm này chưa có datasheet.
                   </Text>
                 )}

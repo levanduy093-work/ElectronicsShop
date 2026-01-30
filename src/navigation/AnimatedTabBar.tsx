@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     tabLabel: {
-        fontSize: 10,
+        fontSize: 11,
         fontWeight: '500',
         color: '#9CA3AF',
     },
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
         }),
     },
     specialLabel: {
-        fontSize: 10,
+        fontSize: 11,
         fontWeight: 'bold',
         color: '#9CA3AF',
         marginTop: 4,

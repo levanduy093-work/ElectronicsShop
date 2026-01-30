@@ -79,7 +79,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
                 activeOpacity={0.7}
             >
                 <AppIcon name="log-out" size={18} color="#EF4444" />
-                <Text className="text-sm font-medium" style={{ color: '#EF4444' }}>{translate('logout')}</Text>
+                <Text className="text-base font-medium" style={{ color: '#EF4444' }}>{translate('logout')}</Text>
             </TouchableOpacity>
         </View>
     );
@@ -99,7 +99,7 @@ function MenuItem({ icon, label, onPress, theme }: { icon: string; label: string
                 >
                     <AppIcon name={icon} size={16} color={theme.primary} />
                 </View>
-                <Text className="text-sm font-medium" style={{ color: theme.text }}>{label}</Text>
+                <Text className="text-base font-medium" style={{ color: theme.text }}>{label}</Text>
             </View>
             <AppIcon name="chevron-right" size={16} color={theme.muted} />
         </TouchableOpacity>

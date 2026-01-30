@@ -131,7 +131,7 @@ export function Profile({
           theme={t}
         />
 
-        <Text className="text-center text-xs mt-8 mb-4" style={{ color: t.muted }}>Version 1.0.0 (Build 2024)</Text>
+        <Text className="text-center text-sm mt-8 mb-4" style={{ color: t.muted }}>Version 1.0.0 (Build 2024)</Text>
       </ScrollView>
 
       {/* Vouchers Modal */}
