@@ -83,7 +83,6 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                             theme={theme}
                             onPress={() => {
                                 onSelectCategory(cat.name);
-                                onNavigate('catalog');
                             }}
                         />
                     ))

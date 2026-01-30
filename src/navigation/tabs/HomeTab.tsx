@@ -20,6 +20,10 @@ export function HomeTab() {
         } else if (screen === 'ai') {
             // @ts-ignore
             navigation.navigate('MainTabs', { screen: 'AITab' });
+        } else if (screen === 'catalog') {
+            // Jump to Catalog tab without a specific category (used by See All)
+            // @ts-ignore
+            navigation.navigate('MainTabs', { screen: 'CatalogTab' });
         }
     };
 

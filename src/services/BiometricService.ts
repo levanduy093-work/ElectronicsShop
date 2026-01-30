@@ -10,6 +10,7 @@ export interface BiometricStatus {
     isSupported: boolean;
     biometryType: BiometryType | null;
     displayName: string;
+    error?: string;
 }
 
 /**
@@ -32,6 +33,7 @@ export async function checkBiometricSupport(): Promise<BiometricStatus> {
             isSupported: result.available,
             biometryType: result.biometryType || null,
             displayName,
+            error: result.error,
         };
     } catch (error) {
         console.warn('Biometric check error:', error);
@@ -39,6 +41,7 @@ export async function checkBiometricSupport(): Promise<BiometricStatus> {
             isSupported: false,
             biometryType: null,
             displayName: '',
+            error: JSON.stringify(error),
         };
     }
 }

@@ -284,7 +284,7 @@ export function Settings({
                     <Text style={[styles.settingSubtle, { color: theme.muted }]}>
                       {biometricStatus?.isSupported
                         ? t('biometric_lock_desc')
-                        : t('biometric_not_supported')}
+                        : (biometricStatus?.error || t('biometric_not_supported'))}
                     </Text>
                   </View>
                 </View>
