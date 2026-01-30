@@ -472,6 +472,61 @@ export function ProductDetail({
 
   return (
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
+      {/* Safe Area Header */}
+      <View
+        className="flex-row items-center justify-between px-4 pb-2 border-b"
+        style={{
+          paddingTop: Math.max(insets.top, 0),
+          backgroundColor: theme.surface,
+          borderBottomColor: theme.border,
+          height: Platform.OS === 'ios' ? insets.top + 48 : insets.top + 56,
+          zIndex: 50,
+        }}
+      >
+        <TouchableOpacity
+          onPress={onBack}
+          className="w-10 h-10 rounded-full justify-center items-center"
+          activeOpacity={0.7}
+        >
+          <AppIcon name="arrow-left" size={24} color={theme.text} />
+        </TouchableOpacity>
+
+        <View className="flex-row gap-2">
+          <TouchableOpacity
+            onPress={handleShare}
+            className="w-10 h-10 rounded-full justify-center items-center"
+            activeOpacity={0.7}
+          >
+            <AppIcon name="share2" size={22} color={theme.muted} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleHeartClick}
+            className="w-10 h-10 rounded-full justify-center items-center"
+            activeOpacity={0.7}
+          >
+            <AppIcon
+              name="heart"
+              size={22}
+              color={isFavorite ? "#EF4444" : theme.muted}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={onNavigateToCart}
+            className="w-10 h-10 rounded-full justify-center items-center"
+            activeOpacity={0.7}
+          >
+            <AppIcon name="shopping-cart" size={22} color={theme.muted} />
+            {cartItemCount > 0 && (
+              <View className="absolute top-1 right-1 bg-red-500 rounded-full min-w-[18px] h-4.5 justify-center items-center px-1">
+                <Text className="text-white text-[9px] font-bold">
+                  {cartItemCount > 99 ? '99+' : cartItemCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
@@ -479,12 +534,6 @@ export function ProductDetail({
       >
         {/* Product Image Gallery */}
         <View className="w-full aspect-square bg-[#F5F5F5] justify-center items-center relative overflow-hidden">
-          {/* Spacer to keep content clear of status bar/notch */}
-          <View
-            pointerEvents="none"
-            className="w-full"
-            style={{ height: insets.top + 8, backgroundColor: theme.background }}
-          />
           <ScrollView
             horizontal
             pagingEnabled
@@ -520,65 +569,6 @@ export function ProductDetail({
             </View>
           )}
 
-          <View className="absolute left-3 right-3 flex-row justify-between items-center z-10 px-1" style={{ top: insets.top + 8 }}>
-            <TouchableOpacity
-              onPress={onBack}
-              className="w-10 h-10 rounded-full justify-center items-center shadow-sm"
-              style={{
-                backgroundColor: theme.surface,
-                shadowOpacity: !isDarkMode ? 0.12 : 0.3,
-              }}
-              activeOpacity={0.7}
-            >
-              <AppIcon name="arrow-left" size={24} color={theme.text} />
-            </TouchableOpacity>
-            <View className="flex-row gap-2">
-              <TouchableOpacity
-                onPress={handleShare}
-                className="w-10 h-10 rounded-full justify-center items-center shadow-sm"
-                style={{
-                  backgroundColor: theme.surface,
-                  shadowOpacity: !isDarkMode ? 0.12 : 0.3,
-                }}
-                activeOpacity={0.7}
-              >
-                <AppIcon name="share2" size={24} color={theme.text} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleHeartClick}
-                className="w-10 h-10 rounded-full justify-center items-center shadow-sm"
-                style={{
-                  backgroundColor: theme.surface,
-                  shadowOpacity: !isDarkMode ? 0.12 : 0.3,
-                }}
-                activeOpacity={0.7}
-              >
-                <AppIcon
-                  name="heart"
-                  size={24}
-                  color={isFavorite ? "#EF4444" : theme.text}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={onNavigateToCart}
-                className="w-10 h-10 rounded-full justify-center items-center shadow-sm"
-                style={{
-                  backgroundColor: theme.surface,
-                  shadowOpacity: !isDarkMode ? 0.12 : 0.3,
-                }}
-                activeOpacity={0.7}
-              >
-                <AppIcon name="shopping-cart" size={24} color={theme.text} />
-                {cartItemCount > 0 && (
-                  <View className="absolute -top-1 -right-1 bg-red-500 rounded-full min-w-[20px] h-5 justify-center items-center px-1 border-2" style={{ borderColor: theme.surface }}>
-                    <Text className="text-white text-[10px] font-bold">
-                      {cartItemCount > 99 ? '99+' : cartItemCount}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
           {product.stock !== 'In Stock' && (
             <View className="absolute bottom-10 left-4 bg-black/70 px-3 py-1 rounded-xl">
               <Text className="text-white text-xs font-medium">
