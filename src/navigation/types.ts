@@ -12,7 +12,7 @@ export type RootStackParamList = {
     // Shared detail screens
     ProductDetail: { productId: string };
     Search: { initialQuery?: string };
-    Filter: undefined;
+    Filter: { type?: 'global' | 'catalog' };
     Notifications: undefined;
     // Cart flow
     Checkout: undefined;

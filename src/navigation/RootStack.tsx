@@ -88,7 +88,7 @@ function SearchWrapper({ route }: { route: { params?: { initialQuery?: string } 
         <SearchScreenComponent
             onBack={() => navigation.goBack()}
             onProductClick={(p) => navigation.navigate('ProductDetail', { productId: p.id })}
-            onFilterClick={() => navigation.navigate('Filter')}
+            onFilterClick={() => navigation.navigate('Filter', { type: 'global' })}
             initialQuery={route.params?.initialQuery || ''}
             onQueryChange={app?.setSearchQuery}
             theme={theme}
@@ -101,23 +101,29 @@ function SearchWrapper({ route }: { route: { params?: { initialQuery?: string } 
     );
 }
 
-function FilterWrapper() {
+function FilterWrapper({ route }: { route: { params: { type?: 'global' | 'catalog' } } }) {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { theme } = useTheme();
     const app = useAppOptional();
+    const isCatalog = route.params?.type === 'catalog';
 
     const getFilteredCount = React.useCallback((filters: any) => {
         if (!app?.products) return 0;
-        return filterProducts(app.products, app.searchQuery || '', filters).length;
-    }, [app?.products, app?.searchQuery]);
+        const query = isCatalog ? app.catalogSearchQuery : app.searchQuery;
+        return filterProducts(app.products, query || '', filters).length;
+    }, [app?.products, app?.searchQuery, app?.catalogSearchQuery, isCatalog]);
 
     return (
         <FilterScreenComponent
             onClose={() => navigation.goBack()}
             onApply={(filters) => {
-                app?.setFilters(filters);
+                if (isCatalog) {
+                    app?.setCatalogFilters(filters);
+                } else {
+                    app?.setFilters(filters);
+                }
             }}
-            currentFilters={app?.filters}
+            currentFilters={isCatalog ? app?.catalogFilters : app?.filters}
             theme={theme}
             categories={app?.availableCategories || []}
             getFilteredCount={getFilteredCount}
@@ -272,6 +278,7 @@ function SettingsWrapper() {
             isPushEnabled={app?.isPushEnabled || false}
             onTogglePush={app?.setIsPushEnabled ? () => app.setIsPushEnabled(!app.isPushEnabled) : undefined}
             onResetOnboarding={handleResetOnboarding}
+            onBiometricChange={app?.setIsBiometricEnabled}
         />
     );
 }

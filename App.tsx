@@ -15,8 +15,6 @@ import { darkTheme, lightTheme, ThemeProvider } from './src/theme';
 import { useToast, ToastProvider } from './src/components/common/ToastProvider';
 import { useNetworkStatus } from './src/utils/network';
 import { OfflineBanner } from './src/components/common/OfflineBanner';
-import { BiometricLockScreen } from './src/components/auth/BiometricLockScreen';
-import { isBiometricLockEnabled } from './src/services/BiometricService';
 import { Onboarding } from './src/screens/Onboarding';
 
 import {
@@ -54,11 +52,6 @@ function AppContent() {
     const theme = isDarkMode ? darkTheme : lightTheme;
     const networkStatus = useNetworkStatus();
 
-    // Biometric lock state
-    const [isAppLocked, setIsAppLocked] = useState(false);
-    const isBiometricEnabledRef = React.useRef(false);
-    const pendingUnlockRef = React.useRef(false);
-
     // Onboarding state
     const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
     const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
@@ -85,38 +78,8 @@ function AppContent() {
             } finally {
                 setIsCheckingOnboarding(false);
             }
-
-            // Check biometric setting
-            const enabled = await isBiometricLockEnabled();
-            isBiometricEnabledRef.current = enabled;
-            if (enabled) {
-                setIsAppLocked(true);
-            }
         };
         init();
-
-        // Handle app state changes for biometric lock
-        const handleAppStateChange = (nextAppState: AppStateStatus) => {
-            if (nextAppState === 'inactive' || nextAppState === 'background') {
-                if (isBiometricEnabledRef.current) {
-                    setIsAppLocked(true);
-                    pendingUnlockRef.current = false;
-                }
-            } else if (nextAppState === 'active') {
-                if (pendingUnlockRef.current) {
-                    setIsAppLocked(false);
-                    pendingUnlockRef.current = false;
-                }
-            }
-        };
-
-        const subscription = AppState.addEventListener('change', handleAppStateChange);
-
-        if (AppState.currentState !== 'active' && isBiometricEnabledRef.current) {
-            setIsAppLocked(true);
-        }
-
-        return () => subscription.remove();
     }, []);
 
     // Handle onboarding complete
@@ -174,19 +137,6 @@ function AppContent() {
             <AppStateProvider>
                 <AppNavigator />
             </AppStateProvider>
-
-            {isAppLocked && (
-                <View style={StyleSheet.absoluteFill}>
-                    <BiometricLockScreen onUnlock={() => {
-                        if (AppState.currentState === 'active') {
-                            setIsAppLocked(false);
-                            pendingUnlockRef.current = false;
-                        } else {
-                            pendingUnlockRef.current = true;
-                        }
-                    }} />
-                </View>
-            )}
         </ThemeProvider>
     );
 }

@@ -284,20 +284,20 @@ export function SearchScreen({
           <AppIcon name="arrow-left" size={24} color={t.muted} />
         </TouchableOpacity>
         <View
-          className="flex-1 flex-row items-center h-10 px-3 rounded-xl border shadow-sm"
+          className="flex-1 flex-row items-center h-11 px-3 rounded-xl border shadow-sm"
           style={{
             backgroundColor: t.background,
             borderColor: t.border,
             shadowOpacity: t === lightTheme ? 0.05 : 0
           }}
         >
-          <AppIcon name="search" size={18} color={t.muted} style={{ marginRight: 8 }} />
+          <AppIcon name="search" size={20} color={t.muted} style={{ marginRight: 8 }} />
           <TextInput
             value={query}
             onChangeText={(text) => updateQuery(text, false)}
             onSubmitEditing={handleSearchSubmit}
             placeholder={translate('searchProductComponent')}
-            className="flex-1 text-sm"
+            className="flex-1 text-base"
             style={{ color: t.text }}
             placeholderTextColor={t.muted}
             autoFocus
@@ -336,7 +336,7 @@ export function SearchScreen({
       >
         {query ? (
           <View className="p-4">
-            <Text className="text-sm font-semibold mb-4" style={{ color: t.muted }}>{translate('search_results', { count: filteredProducts.length })}</Text>
+            <Text className="text-base font-semibold mb-4" style={{ color: t.muted }}>{translate('search_results', { count: filteredProducts.length })}</Text>
             {filteredProducts.length > 0 ? (
               <View className="flex-row flex-wrap gap-4 justify-between">
                 {filteredProducts.map(p => (
@@ -353,7 +353,7 @@ export function SearchScreen({
                 <View className="w-16 h-16 rounded-full justify-center items-center mb-4" style={{ backgroundColor: t.surface }}>
                   <AppIcon name="search" size={32} color={t.muted} />
                 </View>
-                <Text className="text-sm" style={{ color: t.muted }}>{translate('no_search_results')}</Text>
+                <Text className="text-base" style={{ color: t.muted }}>{translate('no_search_results')}</Text>
               </View>
             )}
           </View>
@@ -362,13 +362,13 @@ export function SearchScreen({
             {/* Recent Searches */}
             <View className="gap-3">
               <View className="flex-row items-center justify-between mb-3 gap-2">
-                <Text className="text-sm font-bold" style={{ color: t.text }}>{translate('recent_searches')}</Text>
+                <Text className="text-base font-bold" style={{ color: t.text }}>{translate('recent_searches')}</Text>
                 {recentSearches.length > 0 && (
                   <TouchableOpacity
                     onPress={handleClearHistory}
                     activeOpacity={0.7}
                   >
-                    <Text className="text-xs" style={{ color: t.primary }}>{translate('clear_history')}</Text>
+                    <Text className="text-base font-medium" style={{ color: t.primary }}>{translate('clear_history')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -383,8 +383,8 @@ export function SearchScreen({
                         style={{ backgroundColor: t.surface, borderColor: t.border }}
                         activeOpacity={0.7}
                       >
-                        <AppIcon name="clock" size={14} color={t.muted} />
-                        <Text className="text-[13px]" style={{ color: t.text }}>{term}</Text>
+                        <AppIcon name="clock" size={16} color={t.muted} />
+                        <Text className="text-base" style={{ color: t.text }}>{term}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -394,33 +394,33 @@ export function SearchScreen({
                       className="mt-2 py-2 items-center"
                       activeOpacity={0.7}
                     >
-                      <Text className="text-sm font-semibold" style={{ color: t.primary }}>
+                      <Text className="text-base font-semibold" style={{ color: t.primary }}>
                         {isRecentSearchesExpanded ? translate('collapse') : translate('see_more')}
                       </Text>
                     </TouchableOpacity>
                   )}
                 </>
               ) : (
-                <Text className="text-sm italic p-2" style={{ color: t.muted }}>{translate('no_search_history')}</Text>
+                <Text className="text-base italic p-2" style={{ color: t.muted }}>{translate('no_search_history')}</Text>
               )}
             </View>
 
             {/* Trending */}
             <View className="gap-3">
               <View className="flex-row items-center mb-3 gap-2">
-                <AppIcon name="trending-up" size={16} color={t.primary} />
-                <Text className="text-sm font-bold" style={{ color: t.text }}>{translate('popular_searches')}</Text>
+                <AppIcon name="trending-up" size={20} color={t.primary} />
+                <Text className="text-base font-bold" style={{ color: t.text }}>{translate('popular_searches')}</Text>
               </View>
               <View className="flex-row flex-wrap gap-2">
                 {trendingSearches.map((tag) => (
                   <TouchableOpacity
                     key={tag}
                     onPress={() => updateQuery(tag, true)}
-                    className="px-3 py-1.5 rounded-lg border"
+                    className="px-3 py-2 rounded-lg border"
                     style={{ backgroundColor: t.surface, borderColor: t.border }}
                     activeOpacity={0.7}
                   >
-                    <Text className="text-sm" style={{ color: t.text }}>{tag}</Text>
+                    <Text className="text-base" style={{ color: t.text }}>{tag}</Text>
                   </TouchableOpacity>
                 ))}
               </View>

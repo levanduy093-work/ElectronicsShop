@@ -1,5 +1,5 @@
 import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AppState, AppStateStatus, Linking, useColorScheme, InteractionManager } from 'react-native';
+import { Alert, AppState, AppStateStatus, Linking, useColorScheme, InteractionManager, StyleSheet, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 
@@ -53,7 +53,8 @@ import {
     subscribeToFcmTokenRefresh,
     deleteFcmToken,
 } from '../services/fcm';
-import { isBiometricLockEnabled } from '../services/BiometricService';
+import { isBiometricLockEnabled, setBiometricEnabled as apiSetBiometricEnabled } from '../services/BiometricService';
+import { BiometricLockScreen } from '../components/auth/BiometricLockScreen';
 
 // ============================================================================
 // Storage Keys
@@ -467,6 +468,62 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         onlyInStock: false,
     });
     const [searchQuery, setSearchQuery] = useState('');
+    const [catalogFilters, setCatalogFilters] = useState<FilterState>({
+        priceRange: [0, 10000000],
+        categories: [],
+        rating: null,
+        onlyInStock: false,
+    });
+    const [catalogSearchQuery, setCatalogSearchQuery] = useState('');
+    const [isBiometricEnabled, setIsBiometricEnabledState] = useState(false);
+    const [isAppLocked, setIsAppLocked] = useState(false);
+    const isBiometricEnabledRef = useRef(false);
+    const pendingUnlockRef = useRef(false);
+
+    const setIsBiometricEnabled = useCallback(async (enabled: boolean) => {
+        setIsBiometricEnabledState(enabled);
+        isBiometricEnabledRef.current = enabled;
+        await apiSetBiometricEnabled(enabled);
+    }, []);
+
+    // Initial biometric check
+    useEffect(() => {
+        const checkBiometric = async () => {
+            const enabled = await isBiometricLockEnabled();
+            setIsBiometricEnabledState(enabled);
+            isBiometricEnabledRef.current = enabled;
+            if (enabled) {
+                setIsAppLocked(true);
+            }
+        };
+        checkBiometric();
+    }, []);
+
+    // AppState handling for biometric lock
+    useEffect(() => {
+        const handleAppStateChange = (nextAppState: AppStateStatus) => {
+            if (nextAppState === 'inactive' || nextAppState === 'background') {
+                if (isBiometricEnabledRef.current) {
+                    setIsAppLocked(true);
+                    pendingUnlockRef.current = false;
+                }
+            } else if (nextAppState === 'active') {
+                if (pendingUnlockRef.current) {
+                    setIsAppLocked(false);
+                    pendingUnlockRef.current = false;
+                }
+            }
+        };
+
+        const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+        // Synchronous initial check if app starts in background/inactive
+        if (AppState.currentState !== 'active' && isBiometricEnabledRef.current) {
+            setIsAppLocked(true);
+        }
+
+        return () => subscription.remove();
+    }, []);
 
     // Available categories
     const availableCategories = useMemo(() => {
@@ -1428,6 +1485,10 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         searchQuery,
         setSearchQuery,
         availableCategories,
+        catalogFilters,
+        setCatalogFilters,
+        catalogSearchQuery,
+        setCatalogSearchQuery,
 
         // Theme
         themeMode,
@@ -1436,6 +1497,8 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         // Settings
         isPushEnabled,
         setIsPushEnabled,
+        isBiometricEnabled,
+        setIsBiometricEnabled,
 
         // Network
         networkStatus,
@@ -1455,8 +1518,11 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         addresses,
         aiMessages,
         filters, searchQuery, availableCategories,
+        catalogFilters, catalogSearchQuery,
         themeMode, handleThemeModeChange,
         isPushEnabled,
+        isBiometricEnabled,
+        setIsBiometricEnabled,
         networkStatus,
         navigateToProduct, navigateToCart, requireLogin,
     ]);
@@ -1464,6 +1530,18 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     return (
         <AppProvider value={contextValue}>
             {children}
+            {isAppLocked && (
+                <View style={StyleSheet.absoluteFill}>
+                    <BiometricLockScreen onUnlock={() => {
+                        if (AppState.currentState === 'active') {
+                            setIsAppLocked(false);
+                            pendingUnlockRef.current = false;
+                        } else {
+                            pendingUnlockRef.current = true;
+                        }
+                    }} />
+                </View>
+            )}
         </AppProvider>
     );
 }

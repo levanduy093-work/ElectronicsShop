@@ -31,8 +31,8 @@ export function CatalogTab() {
     const hasUnread = (app?.notifications || []).some(n => !n.read);
 
     const applyFilters = React.useCallback((products: any[]) => {
-        return filterProducts(products, app?.searchQuery || '', app?.filters || {});
-    }, [app?.filters, app?.searchQuery]);
+        return filterProducts(products, app?.catalogSearchQuery || '', app?.catalogFilters || {});
+    }, [app?.catalogFilters, app?.catalogSearchQuery]);
 
     return (
         <ScreenLayout
@@ -46,10 +46,10 @@ export function CatalogTab() {
                 products={app?.products || []}
                 initialCategory={initialCategory}
                 onProductClick={(p) => navigation.navigate('ProductDetail', { productId: p.id })}
-                onFilterClick={() => navigation.navigate('Filter')}
-                searchQuery={app?.searchQuery || ''}
-                onSearchQueryChange={app?.setSearchQuery}
-                filters={app?.filters}
+                onFilterClick={() => navigation.navigate('Filter', { type: 'catalog' })}
+                searchQuery={app?.catalogSearchQuery || ''}
+                onSearchQueryChange={app?.setCatalogSearchQuery}
+                filters={app?.catalogFilters}
                 applyFilters={applyFilters}
                 isLoading={app?.isLoadingProducts || false}
                 onRefresh={app?.loadProducts || (() => Promise.resolve())}

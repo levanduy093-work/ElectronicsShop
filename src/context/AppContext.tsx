@@ -77,6 +77,15 @@ export interface AppContextValue {
     searchQuery: string;
     setSearchQuery: (query: string) => void;
     availableCategories: string[];
+    catalogFilters: {
+        priceRange: [number, number];
+        categories: string[];
+        rating: number | null;
+        onlyInStock: boolean;
+    };
+    setCatalogFilters: (filters: any) => void;
+    catalogSearchQuery: string;
+    setCatalogSearchQuery: (query: string) => void;
 
     // Theme
     themeMode: 'light' | 'dark' | 'system';
@@ -85,6 +94,8 @@ export interface AppContextValue {
     // Settings
     isPushEnabled: boolean;
     setIsPushEnabled: (enabled: boolean) => void;
+    isBiometricEnabled: boolean;
+    setIsBiometricEnabled: (enabled: boolean) => void;
 
     // Network
     networkStatus: { isConnected: boolean | null };

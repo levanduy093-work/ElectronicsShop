@@ -116,19 +116,19 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
         <TouchableOpacity onPress={onClose} className="p-2" activeOpacity={0.7}>
           <AppIcon name="close" size={24} color={t.muted} />
         </TouchableOpacity>
-        <Text className="text-lg font-bold" style={{ color: t.text }}>{translate('search_filter')}</Text>
+        <Text className="text-xl font-bold" style={{ color: t.text }}>{translate('search_filter')}</Text>
         <TouchableOpacity onPress={handleReset} activeOpacity={0.7}>
-          <Text className="text-sm font-medium" style={{ color: t.primary }}>{translate('clear_all') || translate('reset')}</Text>
+          <Text className="text-base font-medium" style={{ color: t.primary }}>{translate('clear_all') || translate('reset')}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView className="flex-1 p-4" style={{ backgroundColor: t.background }} showsVerticalScrollIndicator={false}>
         {/* Price Range */}
         <View className="mb-8">
-          <Text className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: t.muted }}>{translate('price_range')}</Text>
+          <Text className="text-sm font-bold uppercase tracking-wider mb-4" style={{ color: t.muted }}>{translate('price_range')}</Text>
           <View className="flex-row items-center gap-4 mb-4">
             <View className="flex-1 p-3 rounded-xl border" style={{ backgroundColor: t.surface, borderColor: t.border }}>
-              <Text className="text-xs mb-1" style={{ color: t.muted }}>{translate('minimum')}</Text>
+              <Text className="text-sm mb-1" style={{ color: t.muted }}>{translate('minimum')}</Text>
               <View className="flex-row items-center gap-1.5">
                 <TextInput
                   value={formatNumber(priceMinInput)}
@@ -136,15 +136,15 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
                   placeholder="0"
                   placeholderTextColor={t.muted}
                   keyboardType="numeric"
-                  className="text-base font-medium p-0"
+                  className="text-lg font-medium p-0"
                   style={{ color: t.text }}
                 />
-                <Text className="text-sm" style={{ color: t.muted }}>₫</Text>
+                <Text className="text-base" style={{ color: t.muted }}>₫</Text>
               </View>
             </View>
             <View className="w-4 h-0.5" style={{ backgroundColor: '#D1D5DB' }} />
             <View className="flex-1 p-3 rounded-xl border" style={{ backgroundColor: t.surface, borderColor: t.border }}>
-              <Text className="text-xs mb-1" style={{ color: t.muted }}>{translate('maximum')}</Text>
+              <Text className="text-sm mb-1" style={{ color: t.muted }}>{translate('maximum')}</Text>
               <View className="flex-row items-center gap-1.5">
                 <TextInput
                   value={formatNumber(priceMaxInput)}
@@ -152,10 +152,10 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
                   placeholder={formatNumber(PRICE_MAX.toString())}
                   placeholderTextColor={t.muted}
                   keyboardType="numeric"
-                  className="text-base font-medium p-0"
+                  className="text-lg font-medium p-0"
                   style={{ color: t.text }}
                 />
-                <Text className="text-sm" style={{ color: t.muted }}>₫</Text>
+                <Text className="text-base" style={{ color: t.muted }}>₫</Text>
               </View>
             </View>
           </View>
@@ -165,10 +165,10 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
         {categories.length > 0 && (
           <View className="mb-8">
             <View className="flex-row items-center justify-between">
-              <Text className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: t.muted }}>{translate('categories')}</Text>
+              <Text className="text-sm font-bold uppercase tracking-wider mb-4" style={{ color: t.muted }}>{translate('categories')}</Text>
               {categories.length > 6 && (
                 <TouchableOpacity onPress={() => setShowAllCategories(!showAllCategories)} activeOpacity={0.7}>
-                  <Text className="text-[13px] font-semibold" style={{ color: t.primary }}>
+                  <Text className="text-base font-semibold" style={{ color: t.primary }}>
                     {showAllCategories ? translate('collapse') : translate('see_more')}
                   </Text>
                 </TouchableOpacity>
@@ -192,7 +192,7 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
                     }}
                     activeOpacity={0.7}
                   >
-                    <Text className="text-[13px] font-semibold" style={{ color: isSelected ? '#FFFFFF' : t.text }}>
+                    <Text className="text-base font-semibold" style={{ color: isSelected ? '#FFFFFF' : t.text }}>
                       {cat}
                     </Text>
                   </TouchableOpacity>
@@ -204,7 +204,7 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
 
         {/* Rating */}
         <View className="mb-8">
-          <Text className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: t.muted }}>{translate('ratings')}</Text>
+          <Text className="text-sm font-bold uppercase tracking-wider mb-4" style={{ color: t.muted }}>{translate('ratings')}</Text>
           <View className="gap-2">
             {[5, 4, 3].map((star) => (
               <TouchableOpacity
@@ -214,24 +214,24 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
                 activeOpacity={0.7}
               >
                 <View
-                  className="w-5 h-5 rounded border-2 justify-center items-center"
+                  className="w-6 h-6 rounded border-2 justify-center items-center"
                   style={{
                     borderColor: rating === star ? t.primary : t.border,
                     backgroundColor: rating === star ? t.primary : 'transparent'
                   }}
                 >
-                  {rating === star && <AppIcon name="check" size={12} color="#FFFFFF" />}
+                  {rating === star && <AppIcon name="check" size={14} color="#FFFFFF" />}
                 </View>
                 <View className="flex-row items-center gap-1">
                   {[...Array(5)].map((_, i) => (
                     <AppIcon
                       key={i}
                       name="star"
-                      size={16}
+                      size={20}
                       color={i < star ? "#FBBF24" : t.border}
                     />
                   ))}
-                  <Text className="text-sm ml-2" style={{ color: t.text }}>{translate('and_up')}</Text>
+                  <Text className="text-base ml-2" style={{ color: t.text }}>{translate('and_up')}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -240,9 +240,9 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
 
         {/* Other Options */}
         <View className="mb-8">
-          <Text className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: t.muted }}>{translate('other')}</Text>
+          <Text className="text-sm font-bold uppercase tracking-wider mb-4" style={{ color: t.muted }}>{translate('other')}</Text>
           <View className="flex-row justify-between items-center py-2">
-            <Text className="text-sm font-medium" style={{ color: t.text }}>{translate('only_in_stock_products')}</Text>
+            <Text className="text-base font-medium" style={{ color: t.text }}>{translate('only_in_stock_products')}</Text>
             <Switch
               value={onlyInStock}
               onValueChange={setOnlyInStock}
@@ -268,7 +268,7 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
           style={{ backgroundColor: t.primary }}
           activeOpacity={0.8}
         >
-          <Text className="text-white text-base font-bold">{translate('apply_with_results', { count: filteredCount })}</Text>
+          <Text className="text-white text-lg font-bold">{translate('apply_with_results', { count: filteredCount })}</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
