@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, Platform, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, StatusBar, AppState, AppStateStatus } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { BiometricIcon } from '../common/BiometricIcon';
@@ -24,13 +24,30 @@ export function BiometricLockScreen({ onUnlock }: BiometricLockScreenProps) {
     }, []);
 
     useEffect(() => {
-        // Auto-trigger biometric prompt on mount (with small delay to ensure UI is ready)
-        const timer = setTimeout(() => {
-            if (!hasUnlockedRef.current) {
-                handleAuthenticate();
+        const handleAppStateChange = (nextAppState: AppStateStatus) => {
+            // Reset local unlock status if app backgrounds
+            if (nextAppState === 'inactive' || nextAppState === 'background') {
+                hasUnlockedRef.current = false;
             }
-        }, 300);
-        return () => clearTimeout(timer);
+
+            // Only trigger biometric prompt when app becomes active
+            if (nextAppState === 'active' && !hasUnlockedRef.current) {
+                // Short delay to ensure UI is ready
+                setTimeout(handleAuthenticate, 300);
+            }
+        };
+
+        const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+        // Initial trigger if active on mount
+        if (AppState.currentState === 'active' && !hasUnlockedRef.current) {
+            setTimeout(handleAuthenticate, 300);
+        }
+
+        return () => {
+            subscription.remove();
+            hasUnlockedRef.current = false; // Reset on unmount
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -45,7 +62,11 @@ export function BiometricLockScreen({ onUnlock }: BiometricLockScreenProps) {
 
         try {
             const success = await authenticateBiometric(t('biometric_auth_prompt'));
-            if (success && !hasUnlockedRef.current) {
+            // Check if app is not in background before finalizing unlock
+            // 'inactive' is expected on iOS while FaceID prompt is showing or dismissing
+            const isWindowVisible = AppState.currentState === 'active' || AppState.currentState === 'inactive';
+
+            if (success && !hasUnlockedRef.current && isWindowVisible) {
                 hasUnlockedRef.current = true;
                 onUnlock();
             } else if (!success) {
