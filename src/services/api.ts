@@ -285,6 +285,8 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
+const DEFAULT_TIMEOUT = 45000; // 45 seconds
+
 async function requestJson<TResponse>(
   path: string,
   options: RequestOptions,
@@ -294,10 +296,15 @@ async function requestJson<TResponse>(
   // Check network status before making request
   const networkStatus = getCurrentNetworkStatus();
   if (networkStatus.isConnected === false) {
-    const errorMessage = 'Không có kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn.';
+    const errorMessage =
+      (typeof i18n?.t === 'function' && i18n.t('noNetworkConnection')) ||
+      'Không có kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn.';
     console.warn(`API request failed (offline): ${path} - ${errorMessage}`);
     throw new Error(errorMessage);
   }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
 
   let response;
   try {
@@ -308,14 +315,26 @@ async function requestJson<TResponse>(
         ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
       },
       ...(options.body ? { body: JSON.stringify(options.body) } : {}),
+      signal: controller.signal,
     });
   } catch (error: any) {
+    if (error.name === 'AbortError') {
+      const timeoutMsg =
+        (typeof i18n?.t === 'function' && i18n.t('requestTimeout')) ||
+        'Kết nối không ổn định. Vui lòng thử lại.';
+      console.warn(`API request timeout: ${path}`);
+      throw new Error(timeoutMsg);
+    }
+
     const networkStatusAfterError = getCurrentNetworkStatus();
     if (networkStatusAfterError.isConnected === false) {
-      const errorMessage = 'Không có kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn.';
-      console.warn(`API request failed (offline): ${path} - ${errorMessage}`);
+      const errorMessage =
+        (typeof i18n?.t === 'function' && i18n.t('noNetworkConnection')) ||
+        'Không có kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn.';
+      console.warn(`API request failed (offline after error): ${path} - ${errorMessage}`);
       throw new Error(errorMessage);
     }
+
     const errorMsg =
       (typeof i18n?.t === 'function' && i18n.t('cannotConnectServer')) ||
       'Không thể kết nối tới máy chủ';
@@ -323,6 +342,8 @@ async function requestJson<TResponse>(
       `API request failed (network error): ${path} - ${error?.message || errorMsg}`,
     );
     throw new Error(errorMsg);
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   let data: any = null;

@@ -5,6 +5,7 @@ import {
   Alert,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  RefreshControl,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { HomeBanner, Product } from '../types';
@@ -132,6 +133,14 @@ export function Home({
       onScroll={handleScroll}
       scrollEventThrottle={16}
       contentOffset={{ x: 0, y: initialScrollOffset || 0 }}
+      refreshControl={
+        <RefreshControl
+          refreshing={isLoading}
+          onRefresh={onRefreshProducts}
+          colors={[resolvedTheme.primary]}
+          tintColor={resolvedTheme.primary}
+        />
+      }
     >
       <HomeBannerSection
         banners={banners}

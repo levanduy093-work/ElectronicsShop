@@ -6,14 +6,17 @@ import { useTheme } from '../../theme';
 
 interface OfflineBannerProps {
   visible: boolean;
+  isInternetReachable?: boolean | null;
 }
 
-export function OfflineBanner({ visible }: OfflineBannerProps) {
+export function OfflineBanner({ visible, isInternetReachable }: OfflineBannerProps) {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   // const t = theme || lightTheme;
   const slideAnim = React.useRef(new Animated.Value(-50)).current;
   const opacity = React.useRef(new Animated.Value(0)).current;
+
+  const isNoInternet = isInternetReachable === false;
 
   React.useEffect(() => {
     if (visible) {
@@ -53,7 +56,7 @@ export function OfflineBanner({ visible }: OfflineBannerProps) {
       style={[
         styles.container,
         {
-          top: Math.max(insets.top, 0),
+          top: Math.max(insets.top, 10),
           transform: [{ translateY: slideAnim }],
           opacity,
         },
@@ -67,8 +70,14 @@ export function OfflineBanner({ visible }: OfflineBannerProps) {
           },
         ]}
       >
-        <AppIcon name="wifi-off" size={18} color="#FFFFFF" />
-        <Text style={styles.text}>Không có kết nối mạng</Text>
+        <AppIcon
+          name={isNoInternet ? 'wifi-off' : 'cloud-off'}
+          size={18}
+          color="#FFFFFF"
+        />
+        <Text style={styles.text}>
+          {isNoInternet ? 'Không có quyền truy cập Internet' : 'Mất kết nối mạng'}
+        </Text>
       </View>
     </Animated.View>
   );

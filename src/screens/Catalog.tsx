@@ -9,6 +9,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../types';
@@ -36,6 +37,8 @@ interface CatalogProps {
   onActiveCategoryChange?: (category: string) => void;
   searchQuery?: string;
   onSearchQueryChange?: (query: string) => void;
+  isLoading?: boolean;
+  onRefresh?: () => void;
 }
 
 export function Catalog({
@@ -51,6 +54,8 @@ export function Catalog({
   searchQuery: controlledSearchQuery,
   onSearchQueryChange,
   filters,
+  isLoading = false,
+  onRefresh,
 }: CatalogProps) {
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState<string>(controlledCategory ?? initialCategory ?? 'All');
@@ -231,6 +236,14 @@ export function Catalog({
             maxToRenderPerBatch={10}
             windowSize={11}
             initialNumToRender={10}
+            refreshControl={
+              <RefreshControl
+                refreshing={isLoading}
+                onRefresh={onRefresh}
+                colors={[theme.primary]}
+                tintColor={theme.primary}
+              />
+            }
           />
         ) : (
           <View style={styles.emptyContainer}>
@@ -239,6 +252,16 @@ export function Catalog({
             </View>
             <Text style={styles.emptyText}>{t('product_not_found')}</Text>
             <Text style={styles.emptySubtext}>{t('try_different_keywords')}</Text>
+            {onRefresh && (
+              <TouchableOpacity
+                onPress={onRefresh}
+                style={[styles.retryButton, { backgroundColor: theme.primary }]}
+                activeOpacity={0.8}
+              >
+                <AppIcon name="refresh" size={18} color="#FFFFFF" />
+                <Text style={styles.retryButtonText}>Thử lại</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
@@ -351,5 +374,19 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: '#9CA3AF',
+    marginBottom: 20,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

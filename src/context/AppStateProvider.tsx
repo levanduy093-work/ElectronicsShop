@@ -481,11 +481,11 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         setIsLoadingProducts(true);
         setProductsError(null);
 
-        const isOffline = networkStatus.isConnected === false;
+        const isNoInternet = networkStatus.isConnected === false || networkStatus.isInternetReachable === false;
         // Construct cache key based on limit
         const cacheSuffix = options?.limit ? `_limit_${options.limit}` : '_all';
 
-        if (isOffline || options?.useCache || options?.onlyCache) {
+        if (isNoInternet || options?.useCache || options?.onlyCache) {
             const cached = await getCachedProducts(); // currently this gets 'all' or 'default' key
             if (cached && cached.length > 0) {
                 let displayed = cached.map(mapApiProductToUi);
@@ -546,7 +546,12 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         } catch (error: any) {
             const errorMessage = error?.message || 'Không thể tải sản phẩm';
 
-            // Only warn if we have no products at all
+            // Notify user of the failure via toast if it's not a silent load
+            if (!options?.onlyCache) {
+                showToast(errorMessage, 'error');
+            }
+
+            // If we have no products at all, show the empty state with error
             if (products.length === 0) {
                 console.warn('AppStateProvider - Failed to load products', errorMessage);
                 // Try fallback to cache again
@@ -565,8 +570,8 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     }, [networkStatus.isConnected, products.length]);
 
     const loadBanners = useCallback(async (options?: { useCache?: boolean }) => {
-        const isOffline = networkStatus.isConnected === false;
-        if (isOffline || options?.useCache) {
+        const isNoInternet = networkStatus.isConnected === false || networkStatus.isInternetReachable === false;
+        if (isNoInternet || options?.useCache) {
             const cached = await getCachedBanners();
             if (cached && cached.length > 0) {
                 setBanners(cached.map(mapApiBannerToUi));
@@ -580,7 +585,9 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
             setBanners(mapped);
             await cacheBanners(result);
         } catch (error: any) {
-            console.warn('AppStateProvider - Failed to load banners', error?.message || error);
+            const errorMessage = error?.message || t('cannot_load_banners') || 'Không thể tải biểu ngữ';
+            console.warn('AppStateProvider - Failed to load banners', errorMessage);
+            showToast(errorMessage, 'error');
             const cached = await getCachedBanners();
             if (cached && cached.length > 0) {
                 setBanners(cached.map(mapApiBannerToUi));
@@ -631,8 +638,11 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
                 });
             setOrders(mapped);
         } catch (error: any) {
-            // Only warn if we didn't have cached data (if we had cache, user likely didn't notice)
-            console.warn('AppStateProvider - Failed to load orders', error?.message || error);
+            const errorMessage = error?.message || 'Không thể tải đơn hàng';
+            console.warn('AppStateProvider - Failed to load orders', errorMessage);
+            if (!options?.silent) {
+                showToast(errorMessage, 'error');
+            }
         } finally {
             if (showSpinner) setIsRefreshingOrders(false);
         }

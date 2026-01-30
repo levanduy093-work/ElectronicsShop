@@ -50,6 +50,8 @@ export function CatalogTab() {
                     onSearchQueryChange={app?.setSearchQuery}
                     filters={app?.filters}
                     applyFilters={applyFilters}
+                    isLoading={app?.isLoadingProducts || false}
+                    onRefresh={app?.loadProducts || (() => Promise.resolve())}
                 />
             </Suspense>
         </ScreenLayout>

@@ -167,7 +167,10 @@ function AppContent() {
     return (
         <ThemeProvider value={{ theme, isDarkMode }}>
             <ForegroundNotificationHandler />
-            <OfflineBanner visible={networkStatus.isConnected === false} />
+            <OfflineBanner
+                visible={networkStatus.isConnected === false || networkStatus.isInternetReachable === false}
+                isInternetReachable={networkStatus.isInternetReachable}
+            />
             <StatusBar
                 barStyle={isDarkMode ? 'light-content' : 'dark-content'}
                 backgroundColor={theme.surface}
