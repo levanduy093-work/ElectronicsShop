@@ -234,11 +234,13 @@ export function Catalog({
             numColumns={2}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <ProductCard
-                product={item}
-                theme={theme}
-                onPress={() => handleProductPress(item)}
-              />
+              <View className="flex-1">
+                <ProductCard
+                  product={item}
+                  theme={theme}
+                  onPress={() => handleProductPress(item)}
+                />
+              </View>
             )}
             contentContainerStyle={{ paddingBottom: 96 }}
             columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 16 }}

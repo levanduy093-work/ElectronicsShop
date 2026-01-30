@@ -71,7 +71,7 @@ export function AddressForm({
     >
       <AppIcon name={icon} size={16} color={formData.type === type ? t.primary : t.muted} />
       <Text
-        className="text-sm font-medium"
+        className="text-base font-medium"
         style={{ color: formData.type === type ? t.primary : t.text }}
       >
         {label}
@@ -111,11 +111,11 @@ export function AddressForm({
       <ScrollView className="flex-1 p-4" contentContainerStyle={{ paddingBottom: 96 }} showsVerticalScrollIndicator={false}>
         <View className="rounded-2xl p-4 mb-4 gap-4" style={{ backgroundColor: t.card }}>
           <View className="gap-2">
-            <Text className="text-sm font-medium mb-1" style={{ color: t.text }}>{translate('full_name_label')}</Text>
+            <Text className="text-base font-medium mb-1" style={{ color: t.text }}>{translate('full_name_label')}</Text>
             <TextInput
               value={formData.name}
               onChangeText={text => setFormData({ ...formData, name: text })}
-              className="rounded-xl p-3 border text-sm"
+              className="rounded-xl p-3 border text-base"
               style={{ backgroundColor: t.surface, borderColor: t.border, color: t.text }}
               placeholder={translate('enter_name_placeholder')}
               placeholderTextColor={t.muted}
@@ -123,11 +123,11 @@ export function AddressForm({
           </View>
 
           <View className="gap-2">
-            <Text className="text-sm font-medium mb-1" style={{ color: t.text }}>{translate('phone_number_label')}</Text>
+            <Text className="text-base font-medium mb-1" style={{ color: t.text }}>{translate('phone_number_label')}</Text>
             <TextInput
               value={formData.phone}
               onChangeText={text => setFormData({ ...formData, phone: text })}
-              className="rounded-xl p-3 border text-sm"
+              className="rounded-xl p-3 border text-base"
               style={{ backgroundColor: t.surface, borderColor: t.border, color: t.text }}
               placeholder={translate('enterPhone')}
               keyboardType="phone-pad"
@@ -146,11 +146,11 @@ export function AddressForm({
           />
 
           <View className="gap-2">
-            <Text className="text-sm font-medium mb-1" style={{ color: t.text }}>{translate('detailed_address_label')}</Text>
+            <Text className="text-base font-medium mb-1" style={{ color: t.text }}>{translate('detailed_address_label')}</Text>
             <TextInput
               value={formData.detailedAddress}
               onChangeText={text => setFormData({ ...formData, detailedAddress: text })}
-              className="rounded-xl p-3 border text-sm"
+              className="rounded-xl p-3 border text-base"
               style={{ backgroundColor: t.surface, borderColor: t.border, color: t.text }}
               placeholder={translate('enterAddress')}
               placeholderTextColor={t.muted}
@@ -158,7 +158,7 @@ export function AddressForm({
           </View>
 
           <View className="gap-2">
-            <Text className="text-sm font-medium mb-1" style={{ color: t.text }}>{translate('address_type_label')}</Text>
+            <Text className="text-base font-medium mb-1" style={{ color: t.text }}>{translate('address_type_label')}</Text>
             <View className="flex-row gap-3">
               {renderTypeButton(translate('home') as AddressType, translate('home'), 'home')}
               {renderTypeButton(translate('office') as AddressType, translate('office'), 'briefcase')}
@@ -179,7 +179,7 @@ export function AddressForm({
             >
               {formData.isDefault && <AppIcon name="check" size={14} color="#FFFFFF" />}
             </View>
-            <Text className="text-sm" style={{ color: t.text }}>{translate('set_as_default_address')}</Text>
+            <Text className="text-base" style={{ color: t.text }}>{translate('set_as_default_address')}</Text>
           </TouchableOpacity>
         </View>
 

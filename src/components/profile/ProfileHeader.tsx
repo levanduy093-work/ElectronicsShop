@@ -73,7 +73,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         <AppIcon name="pencil" size={16} color={t.primary} />
                     </TouchableOpacity>
                 </View>
-                <Text className="text-sm" style={{ color: t.muted }}>{userProfile.email}</Text>
+                <Text className="text-base" style={{ color: t.muted }}>{userProfile.email}</Text>
             </View>
         </View>
     );

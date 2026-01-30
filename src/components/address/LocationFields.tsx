@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
     label: {
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: '500',
         marginBottom: 4,
     },
@@ -202,6 +202,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     selectText: {
-        fontSize: 14,
+        fontSize: 16,
     },
 });

@@ -58,9 +58,9 @@ export function ProductCard({ product, style, onPress, theme = lightTheme }: Pro
         )}
       </View>
 
-      <View className="flex-1 justify-between">
+      <View className="justify-between">
         <Text
-          className="text-sm font-medium text-gray-900 mb-1 leading-[18px] min-h-[36px]"
+          className="text-base font-medium text-gray-900 mb-1 leading-5 min-h-[40px]"
           style={{ color: theme.text }}
           numberOfLines={2}
         >
@@ -69,7 +69,7 @@ export function ProductCard({ product, style, onPress, theme = lightTheme }: Pro
 
         <View className="flex-row items-center gap-1 mb-2">
           <AppIcon name="star" size={12} color="#FBBF24" />
-          <Text className="text-xs text-gray-500" style={{ color: theme.muted }}>
+          <Text className="text-sm text-gray-500" style={{ color: theme.muted }}>
             {displayRating} ({displayReviewCount})
           </Text>
         </View>

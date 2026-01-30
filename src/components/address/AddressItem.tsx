@@ -34,8 +34,8 @@ export const AddressItem: React.FC<AddressItemProps> = ({
             <View className="flex-row justify-between items-start mb-2">
                 <View className="flex-row items-center gap-2 flex-1">
                     <Text className="text-base font-bold" style={{ color: t.text }}>{address.name}</Text>
-                    <Text className="text-sm" style={{ color: t.muted }}>|</Text>
-                    <Text className="text-sm" style={{ color: t.muted }}>{address.phone}</Text>
+                    <Text className="text-base" style={{ color: t.muted }}>|</Text>
+                    <Text className="text-base" style={{ color: t.muted }}>{address.phone}</Text>
                 </View>
                 {address.isDefault ? (
                     <View
@@ -59,7 +59,7 @@ export const AddressItem: React.FC<AddressItemProps> = ({
                 )}
             </View>
 
-            <Text className="text-sm leading-5 mb-3" style={{ color: t.text }}>{address.address}</Text>
+            <Text className="text-base leading-5 mb-3" style={{ color: t.text }}>{address.address}</Text>
 
             <View className="flex-row justify-between items-center pt-3 border-t" style={{ borderTopColor: '#F3F4F6' }}>
                 <View className="flex-row items-center gap-1 px-2 py-1 rounded" style={{ backgroundColor: t.surface }}>
@@ -68,7 +68,7 @@ export const AddressItem: React.FC<AddressItemProps> = ({
                         size={10}
                         color={t.muted}
                     />
-                    <Text className="text-xs" style={{ color: t.muted }}>
+                    <Text className="text-sm" style={{ color: t.muted }}>
                         {address.type === 'Nhà riêng' ? translate('home') : translate('office')}
                     </Text>
                 </View>
@@ -79,7 +79,7 @@ export const AddressItem: React.FC<AddressItemProps> = ({
                         activeOpacity={0.7}
                     >
                         <AppIcon name="edit" size={14} color={t.primary} />
-                        <Text className="text-sm font-medium" style={{ color: t.primary }}>{translate('edit')}</Text>
+                        <Text className="text-base font-medium" style={{ color: t.primary }}>{translate('edit')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         onPress={() => onDelete(address.id)}
@@ -87,7 +87,7 @@ export const AddressItem: React.FC<AddressItemProps> = ({
                         activeOpacity={0.7}
                     >
                         <AppIcon name="trash" size={14} color="#EF4444" />
-                        <Text className="text-sm font-medium" style={{ color: '#EF4444' }}>{translate('delete')}</Text>
+                        <Text className="text-base font-medium" style={{ color: '#EF4444' }}>{translate('delete')}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
