@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Platform, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import Clipboard from '@react-native-clipboard/clipboard';
@@ -63,24 +63,37 @@ export function SupportCenter({ onBack, theme }: SupportCenterProps) {
     showToast('Đã sao chép số điện thoại', 'success');
   };
 
+
   return (
-    <View style={[styles.container, { backgroundColor: t.background }]}>
+    <View className="flex-1" style={{ backgroundColor: t.background }}>
       <StatusBar
         barStyle={t === lightTheme ? 'dark-content' : 'light-content'}
         backgroundColor="transparent"
         translucent={true}
       />
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 0), backgroundColor: t.card, borderBottomColor: t.border }]}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
+      <View
+        className="flex-row items-center justify-between px-4 pb-3 border-b shadow-sm"
+        style={{
+          paddingTop: Math.max(insets.top, 0),
+          backgroundColor: t.card,
+          borderBottomColor: t.border,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+          elevation: 4,
+        }}
+      >
+        <TouchableOpacity onPress={onBack} className="p-2" activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: t.text }]}>{translate('support_center')}</Text>
+        <Text className="text-lg font-bold flex-1 ml-2" style={{ color: t.text }}>{translate('support_center')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={[styles.contentContainer, { backgroundColor: t.background }]}
+        className="flex-1"
+        contentContainerStyle={{ padding: 16, paddingBottom: 96, gap: 24, backgroundColor: t.background }}
         showsVerticalScrollIndicator={false}
       >
         <ContactOptions onOptionPress={openModal} theme={t} />
@@ -100,49 +113,3 @@ export function SupportCenter({ onBack, theme }: SupportCenterProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  backButton: {
-    padding: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-    flex: 1,
-    marginLeft: 8,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 16,
-    paddingBottom: 96,
-    gap: 24,
-  },
-});

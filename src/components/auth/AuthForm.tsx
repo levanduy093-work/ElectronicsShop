@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../../components/common/Icon';
 import { Theme } from '../../theme';
@@ -38,24 +38,25 @@ export const AuthForm: React.FC<AuthFormProps> = ({
 
     return (
         <>
-            <View style={styles.header}>
-                <Text style={[styles.brandTitle, { color: t.primary }]}>{translate('app_name')}</Text>
-                <Text style={[styles.subtitle, { color: t.muted }]}>
+            <View className="mb-8">
+                <Text className="text-4xl font-bold mb-2" style={{ color: t.primary }}>{translate('app_name')}</Text>
+                <Text className="text-base" style={{ color: t.muted }}>
                     {isRegister ? translate('create_account') : translate('welcome_back')}
                 </Text>
             </View>
 
-            <View style={styles.form}>
+            <View className="gap-4">
                 {isRegister && (
-                    <View style={styles.inputGroup}>
-                        <Text style={[styles.label, { color: t.text }]}>{translate('full_name')}</Text>
-                        <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]} pointerEvents="box-none">
-                            <AppIcon name="user" size={20} color={t.muted} style={styles.inputIcon} />
+                    <View className="gap-2">
+                        <Text className="text-sm font-medium" style={{ color: t.text }}>{translate('full_name')}</Text>
+                        <View className="flex-row items-center rounded-xl border px-3 h-12" style={{ backgroundColor: t.surface, borderColor: t.border }}>
+                            <AppIcon name="user" size={20} color={t.muted} style={{ marginRight: 12 }} />
                             <TextInput
+                                className="flex-1 text-sm h-full"
                                 placeholder={translate('enter_name_placeholder')}
                                 value={name}
                                 onChangeText={setName}
-                                style={[styles.input, { color: t.text }]}
+                                style={{ color: t.text }}
                                 placeholderTextColor={t.muted}
                                 editable={true}
                             />
@@ -63,15 +64,16 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                     </View>
                 )}
 
-                <View style={styles.inputGroup}>
-                    <Text style={[styles.label, { color: t.text }]}>{translate('email')}</Text>
-                    <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]} pointerEvents="box-none">
-                        <AppIcon name="mail" size={20} color={t.muted} style={styles.inputIcon} />
+                <View className="gap-2">
+                    <Text className="text-sm font-medium" style={{ color: t.text }}>{translate('email')}</Text>
+                    <View className="flex-row items-center rounded-xl border px-3 h-12" style={{ backgroundColor: t.surface, borderColor: t.border }}>
+                        <AppIcon name="mail" size={20} color={t.muted} style={{ marginRight: 12 }} />
                         <TextInput
+                            className="flex-1 text-sm h-full"
                             placeholder="example@email.com"
                             value={email}
                             onChangeText={setEmail}
-                            style={[styles.input, { color: t.text }]}
+                            style={{ color: t.text }}
                             keyboardType="email-address"
                             autoCapitalize="none"
                             placeholderTextColor={t.muted}
@@ -80,32 +82,33 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                     </View>
                 </View>
 
-                <View style={styles.inputGroup}>
-                    <View style={styles.labelRow}>
-                        <Text style={[styles.label, { color: t.text }]}>{translate('password')}</Text>
+                <View className="gap-2">
+                    <View className="flex-row justify-between items-center">
+                        <Text className="text-sm font-medium" style={{ color: t.text }}>{translate('password')}</Text>
                         {!isRegister && (
                             <TouchableOpacity
                                 onPress={onForgotPassword}
                                 activeOpacity={0.7}
                             >
-                                <Text style={[styles.forgotPassword, { color: t.primary }]}>{translate('forgot_password_link')}</Text>
+                                <Text className="text-sm font-medium" style={{ color: t.primary }}>{translate('forgot_password_link')}</Text>
                             </TouchableOpacity>
                         )}
                     </View>
-                    <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
-                        <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
+                    <View className="flex-row items-center rounded-xl border px-3 h-12" style={{ backgroundColor: t.surface, borderColor: t.border }}>
+                        <AppIcon name="lock" size={20} color={t.muted} style={{ marginRight: 12 }} />
                         <TextInput
+                            className="flex-1 text-sm h-full"
                             placeholder="••••••••"
                             value={password}
                             onChangeText={setPassword}
-                            style={[styles.input, { color: t.text }]}
+                            style={{ color: t.text }}
                             secureTextEntry={!showPassword}
                             placeholderTextColor={t.muted}
                             editable={true}
                         />
                         <TouchableOpacity
                             onPress={() => setShowPassword(!showPassword)}
-                            style={styles.eyeButton}
+                            className="p-1"
                             activeOpacity={0.7}
                         >
                             <AppIcon
@@ -119,29 +122,29 @@ export const AuthForm: React.FC<AuthFormProps> = ({
 
                 <TouchableOpacity
                     onPress={onSubmit}
+                    className="rounded-xl py-3.5 items-center mt-2 shadow-md elevation-4"
                     style={[
-                        styles.primaryButton,
                         { backgroundColor: t.primary },
                         isSubmitting && { opacity: 0.9 },
                     ]}
                     activeOpacity={0.8}
                     disabled={isSubmitting}
                 >
-                    <Text style={styles.primaryButtonText}>
+                    <Text className="text-white text-base font-bold">
                         {isSubmitting ? translate('processing') : isRegister ? translate('register') : translate('login')}
                     </Text>
                 </TouchableOpacity>
             </View>
 
-            <View style={styles.footer}>
-                <Text style={[styles.footerText, { color: t.muted }]}>
+            <View className="flex-row justify-center mt-6 gap-1">
+                <Text className="text-sm" style={{ color: t.muted }}>
                     {isRegister ? translate('already_have_account') : translate('not_have_account')}
                 </Text>
                 <TouchableOpacity
                     onPress={onToggleMode}
                     activeOpacity={0.7}
                 >
-                    <Text style={[styles.footerLink, { color: t.primary }]}>
+                    <Text className="text-sm font-bold" style={{ color: t.primary }}>
                         {isRegister ? translate('login') : translate('register_now')}
                     </Text>
                 </TouchableOpacity>
@@ -149,81 +152,3 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         </>
     );
 };
-
-const styles = StyleSheet.create({
-    header: {
-        marginBottom: 32,
-    },
-    brandTitle: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        marginBottom: 8,
-    },
-    subtitle: {
-        fontSize: 16,
-    },
-    form: {
-        gap: 16,
-    },
-    inputGroup: {
-        gap: 8,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    labelRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    forgotPassword: {
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    inputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderRadius: 12,
-        borderWidth: 1,
-        paddingHorizontal: 12,
-        height: 48,
-    },
-    inputIcon: {
-        marginRight: 12,
-    },
-    input: {
-        flex: 1,
-        fontSize: 14,
-    },
-    eyeButton: {
-        padding: 4,
-    },
-    primaryButton: {
-        borderRadius: 12,
-        paddingVertical: 14,
-        alignItems: 'center',
-        marginTop: 8,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    primaryButtonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    footer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        marginTop: 24,
-    },
-    footerText: {
-        fontSize: 14,
-    },
-    footerLink: {
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-});

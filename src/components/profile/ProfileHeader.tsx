@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { AppIcon } from '../../components/common/Icon';
 import { ImageWithFallback } from '../../components/common/ImageWithFallback';
 import { Theme, lightTheme } from '../../theme';
@@ -22,136 +22,59 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     theme: t,
 }) => {
     return (
-        <View style={[
-            styles.profileHeader,
-            {
+        <View
+            className="flex-row items-center gap-4 mb-8 p-4 rounded-3xl border shadow-sm elevation-2"
+            style={{
                 borderColor: t.border,
                 backgroundColor: t.card,
                 shadowOpacity: t === lightTheme ? 0.05 : 0,
                 elevation: t === lightTheme ? 2 : 0,
-            }
-        ]}>
-            <View style={styles.avatarWrapper}>
+            }}
+        >
+            <View className="relative">
                 <TouchableOpacity
                     onPress={() => userProfile.avatar && onViewAvatar(userProfile.avatar)}
-                    style={styles.avatarContainer}
+                    className="w-16 h-16 rounded-full border-2 p-0.5"
+                    style={{ borderColor: t.primary }}
                     activeOpacity={userProfile.avatar ? 0.8 : 1}
                     disabled={!userProfile.avatar}
                 >
                     {userProfile.avatar ? (
                         <ImageWithFallback
                             source={{ uri: userProfile.avatar }}
-                            style={styles.avatar}
+                            className="w-full h-full rounded-full"
                         />
                     ) : (
-                        <View style={[styles.avatarPlaceholder, { backgroundColor: t.surface }]}>
+                        <View
+                            className="w-full h-full rounded-full justify-center items-center"
+                            style={{ backgroundColor: t.surface }}
+                        >
                             <AppIcon name="user" size={32} color={t.muted} />
                         </View>
                     )}
                 </TouchableOpacity>
                 <TouchableOpacity
                     onPress={onEditProfile}
-                    style={[styles.editAvatarBadge, { backgroundColor: t.primary }]}
+                    className="absolute bottom-0 right-0 w-6 h-6 rounded-full justify-center items-center border-2 border-white"
+                    style={{ backgroundColor: t.primary }}
                     activeOpacity={0.8}
                 >
-                    <AppIcon name="camera" size={14} color="#FFFFFF" />
+                    <AppIcon name="camera" size={12} color="#FFFFFF" />
                 </TouchableOpacity>
             </View>
-            <View style={styles.profileInfo}>
-                <View style={styles.nameRow}>
-                    <Text style={[styles.profileName, { color: t.text }]}>{userProfile.name}</Text>
+            <View className="flex-1">
+                <View className="flex-row items-center gap-2 mb-1">
+                    <Text className="text-xl font-bold flex-1" style={{ color: t.text }}>{userProfile.name}</Text>
                     <TouchableOpacity
                         onPress={onEditProfile}
-                        style={styles.editNameButton}
+                        className="p-1"
                         activeOpacity={0.7}
                     >
                         <AppIcon name="pencil" size={16} color={t.primary} />
                     </TouchableOpacity>
                 </View>
-                <Text style={[styles.profileEmail, { color: t.muted }]}>{userProfile.email}</Text>
+                <Text className="text-sm" style={{ color: t.muted }}>{userProfile.email}</Text>
             </View>
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    profileHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-        marginBottom: 32,
-        padding: 16,
-        borderRadius: 16,
-        borderWidth: 1,
-        ...Platform.select({
-            ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.05,
-                shadowRadius: 4,
-            },
-            android: {
-                elevation: 2,
-            },
-        }),
-        borderColor: '#E5E7EB',
-    },
-    avatarWrapper: {
-        position: 'relative',
-    },
-    avatarContainer: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        borderWidth: 2,
-        borderColor: '#2563EB',
-        padding: 2,
-    },
-    avatar: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 30,
-    },
-    avatarPlaceholder: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 30,
-        backgroundColor: '#F3F4F6',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    editAvatarBadge: {
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: '#FFFFFF',
-    },
-    profileInfo: {
-        flex: 1,
-    },
-    nameRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 4,
-    },
-    profileName: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#111827',
-        flex: 1,
-    },
-    editNameButton: {
-        padding: 4,
-    },
-    profileEmail: {
-        fontSize: 14,
-        color: '#6B7280',
-    },
-});

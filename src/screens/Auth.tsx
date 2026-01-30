@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Theme, lightTheme, useTheme } from '../theme';
@@ -122,11 +122,16 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: t.background }]}
+      className="flex-1"
+      style={{ backgroundColor: t.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
-        contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomNavHeight + 24 }]}
+        contentContainerStyle={{
+          padding: 24,
+          paddingTop: 64,
+          paddingBottom: bottomNavHeight + 24
+        }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -153,13 +158,3 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 24,
-    paddingTop: 64,
-  },
-});

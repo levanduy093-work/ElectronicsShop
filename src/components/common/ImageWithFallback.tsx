@@ -1,15 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import { Image, View, StyleSheet, ImageProps, Text } from 'react-native';
+import { Image, View, ImageProps, Text } from 'react-native';
 
 interface ImageWithFallbackProps extends ImageProps {
   fallbackComponent?: React.ReactNode;
 }
 
-export function ImageWithFallback({ 
-  source, 
-  style, 
+export function ImageWithFallback({
+  source,
+  style,
   fallbackComponent,
-  ...props 
+  ...props
 }: ImageWithFallbackProps) {
   const [hasError, setHasError] = useState(false);
   const [isUsingProxy, setIsUsingProxy] = useState(false);
@@ -25,10 +25,10 @@ export function ImageWithFallback({
 
   if (hasError) {
     return (
-      <View style={[styles.fallback, style]}>
+      <View className="bg-[#F5F5F5] justify-center items-center" style={style}>
         {fallbackComponent || (
-          <View style={styles.errorContainer}>
-            <Text style={styles.placeholderText}>📷</Text>
+          <View className="w-full h-full justify-center items-center">
+            <Text className="text-5xl opacity-30">📷</Text>
           </View>
         )}
       </View>
@@ -51,21 +51,3 @@ export function ImageWithFallback({
     />
   );
 }
-
-const styles = StyleSheet.create({
-  fallback: {
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderText: {
-    fontSize: 48,
-    opacity: 0.3,
-  },
-});

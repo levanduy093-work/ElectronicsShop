@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  StyleSheet,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -140,16 +139,26 @@ export function Catalog({
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      className="flex-1"
+      style={{ backgroundColor: theme.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {/* Search Header */}
-      <View style={[styles.searchContainer, { backgroundColor: theme.background }]}>
-        <View style={[
-          styles.searchInputContainer,
-          { backgroundColor: theme.surface, shadowOpacity: theme === lightTheme ? 0.05 : 0, borderColor: theme.border, borderWidth: theme === lightTheme ? 0 : 1 }
-        ]}>
-          <AppIcon name="search" size={18} color={theme.muted} style={styles.searchIcon} />
+      <View className="px-4 py-2" style={{ backgroundColor: theme.background }}>
+        <View
+          className="flex-row items-center rounded-xl px-3 h-11"
+          style={{
+            backgroundColor: theme.surface,
+            shadowOpacity: theme === lightTheme ? 0.05 : 0,
+            borderColor: theme.border,
+            borderWidth: theme === lightTheme ? 0 : 1,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowRadius: 2,
+            elevation: 2,
+          }}
+        >
+          <AppIcon name="search" size={18} color={theme.muted} style={{ marginRight: 8 }} />
           <TextInput
             placeholder={t('searchComponents')}
             value={searchQuery}
@@ -157,12 +166,18 @@ export function Catalog({
               setSearchQuery(text);
               onSearchQueryChange?.(text);
             }}
-            style={[styles.searchInput, { color: theme.text }]}
+            className="flex-1 text-sm"
+            style={{ color: theme.text }}
             placeholderTextColor={theme.muted}
           />
           <TouchableOpacity
             onPress={onFilterClick}
-            style={[styles.filterButton, { backgroundColor: theme.background, borderColor: theme.border, borderWidth: theme === lightTheme ? 0 : 1 }]}
+            className="p-1.5 rounded-lg border"
+            style={{
+              backgroundColor: theme.background,
+              borderColor: theme.border,
+              borderWidth: theme === lightTheme ? 0 : 1
+            }}
             activeOpacity={0.7}
           >
             <AppIcon name="sliders-horizontal" size={16} color={theme.muted} />
@@ -171,51 +186,48 @@ export function Catalog({
       </View>
 
       {/* Category Tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoriesContainer}
-        style={styles.categoriesScroll}
-      >
-        {categories.map((cat) => {
-          const isActive = activeCategory === cat.name;
-          return (
-            <TouchableOpacity
-              key={cat.name}
-              onPress={() => {
-                setActiveCategory(cat.name);
-                onActiveCategoryChange?.(cat.name);
-              }}
-              style={[
-                styles.categoryTab,
-                {
+      <View className="max-h-[72px]">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 8, alignItems: 'center' }}
+        >
+          {categories.map((cat) => {
+            const isActive = activeCategory === cat.name;
+            return (
+              <TouchableOpacity
+                key={cat.name}
+                onPress={() => {
+                  setActiveCategory(cat.name);
+                  onActiveCategoryChange?.(cat.name);
+                }}
+                className={`flex-row items-center gap-2 px-4 py-2 rounded-full border mr-2`}
+                style={{
                   backgroundColor: isActive ? theme.text : theme.surface,
                   borderColor: isActive ? theme.text : theme.border,
-                }
-              ]}
-              activeOpacity={0.7}
-            >
-              <View style={styles.categoryTabContent}>
+                }}
+                activeOpacity={0.7}
+              >
                 <AppIcon
                   name={cat.icon}
                   size={16}
                   color={isActive ? theme.surface : theme.muted}
                 />
-                <Text style={[
-                  styles.categoryTabText,
-                  { color: isActive ? theme.surface : theme.muted }
-                ]}>
+                <Text
+                  className="text-sm font-medium"
+                  style={{ color: isActive ? theme.surface : theme.muted }}
+                >
                   {cat.name === 'All' ? t('all') : cat.name}
                 </Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       {/* Product Grid */}
-      <View style={styles.productsContainer}>
-        <Text style={[styles.productsCount, { color: theme.muted }]}>{t('products_count', { count: filteredProducts.length })}</Text>
+      <View className="flex-1 px-4">
+        <Text className="text-sm font-semibold mb-4" style={{ color: theme.muted }}>{t('products_count', { count: filteredProducts.length })}</Text>
         {filteredProducts.length > 0 ? (
           <FlatList
             data={filteredProducts}
@@ -228,8 +240,8 @@ export function Catalog({
                 onPress={() => handleProductPress(item)}
               />
             )}
-            contentContainerStyle={styles.productsGrid}
-            columnWrapperStyle={styles.productsRow}
+            contentContainerStyle={{ paddingBottom: 96 }}
+            columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 16 }}
             showsVerticalScrollIndicator={false}
             scrollEventThrottle={16}
             removeClippedSubviews={false}
@@ -246,20 +258,21 @@ export function Catalog({
             }
           />
         ) : (
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIcon}>
+          <View className="flex-1 justify-center items-center py-20">
+            <View className="w-16 h-16 rounded-full bg-gray-100 justify-center items-center mb-4">
               <AppIcon name="search" size={32} color="#9CA3AF" />
             </View>
-            <Text style={styles.emptyText}>{t('product_not_found')}</Text>
-            <Text style={styles.emptySubtext}>{t('try_different_keywords')}</Text>
+            <Text className="text-base font-medium text-gray-500 mb-1">{t('product_not_found')}</Text>
+            <Text className="text-sm text-gray-400 mb-5">{t('try_different_keywords')}</Text>
             {onRefresh && (
               <TouchableOpacity
                 onPress={onRefresh}
-                style={[styles.retryButton, { backgroundColor: theme.primary }]}
+                className="flex-row items-center gap-2 px-5 py-2.5 rounded-xl"
+                style={{ backgroundColor: theme.primary }}
                 activeOpacity={0.8}
               >
                 <AppIcon name="refresh" size={18} color="#FFFFFF" />
-                <Text style={styles.retryButtonText}>Thử lại</Text>
+                <Text className="text-white text-sm font-semibold">Thử lại</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -268,125 +281,3 @@ export function Catalog({
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
-  searchContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#F9FAFB',
-  },
-  searchInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 44,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#111827',
-  },
-  filterButton: {
-    padding: 6,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 8,
-  },
-  categoriesContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-    alignItems: 'center',
-  },
-  categoriesScroll: {
-    maxHeight: 72,
-  },
-  categoryTab: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginRight: 8,
-  },
-  categoryTabContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  categoryTabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#4B5563',
-  },
-  productsContainer: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  productsCount: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
-    marginBottom: 16,
-  },
-  productsGrid: {
-    paddingBottom: 96,
-  },
-  productsRow: {
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 80,
-  },
-  emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    marginBottom: 20,
-  },
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-});

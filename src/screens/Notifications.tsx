@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  StyleSheet,
   StatusBar,
   Platform,
   RefreshControl,
@@ -80,69 +79,79 @@ export function Notifications({
     }
   };
 
+
   return (
-    <View style={[styles.container, { backgroundColor: t.background }]}>
-      <StatusBar 
-        barStyle={t === lightTheme ? 'dark-content' : 'light-content'} 
+    <View className="flex-1" style={{ backgroundColor: t.background }}>
+      <StatusBar
+        barStyle={t === lightTheme ? 'dark-content' : 'light-content'}
         backgroundColor={t.surface}
         translucent={false}
       />
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 0), backgroundColor: t.surface, borderBottomColor: t.border }]}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
+      <View
+        className="flex-row items-center px-4 pb-4 border-b gap-4"
+        style={{
+          paddingTop: Math.max(insets.top, 0),
+          backgroundColor: t.surface,
+          borderBottomColor: t.border,
+          ...Platform.select({
+            android: {
+              elevation: 0,
+            },
+          }),
+        }}
+      >
+        <TouchableOpacity onPress={onBack} className="p-1" activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.muted} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: t.text }]}>{translate('notifications')}</Text>
+        <Text className="text-lg font-bold flex-1" style={{ color: t.text }}>{translate('notifications')}</Text>
         {hasUnreadNotifications && (
           <TouchableOpacity onPress={handleMarkAllAsRead} activeOpacity={0.7}>
-            <Text style={[styles.markAllRead, { color: t.primary }]}>{translate('mark_all_read')}</Text>
+            <Text className="text-sm font-medium" style={{ color: t.primary }}>{translate('mark_all_read')}</Text>
           </TouchableOpacity>
         )}
       </View>
 
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
+        className="flex-1"
+        contentContainerStyle={{ padding: 16, paddingBottom: 96 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={onRefresh || (() => {})}
+            onRefresh={onRefresh || (() => { })}
             tintColor={t.primary}
           />
         }
       >
         {notifications.map((item) => {
           const isExpanded = expandedId === item.id;
-          
+
           return (
-            <View key={item.id} style={styles.notificationCardWrapper}>
+            <View key={item.id} className="mb-3">
               <View
-                style={[
-                  styles.notificationCard,
-                  isExpanded && styles.notificationCardExpanded,
-                  item.read && !isExpanded && styles.notificationCardRead,
-                  {
-                    backgroundColor: item.read && !isExpanded ? t.surface : t.card,
-                    borderColor: item.read && !isExpanded ? 'transparent' : t.border,
-                    shadowOpacity: t === lightTheme && (!item.read || isExpanded) ? 0.08 : 0,
-                    elevation: t === lightTheme && (!item.read || isExpanded) ? 3 : 0,
-                  }
-                ]}
+                className={`flex-row gap-4 p-4 rounded-2xl border z-10 ${item.read && !isExpanded ? '' : 'shadow-sm elevation-2'}`}
+                style={{
+                  backgroundColor: item.read && !isExpanded ? t.surface : t.card,
+                  borderColor: item.read && !isExpanded ? 'transparent' : t.border,
+                  shadowOpacity: t === lightTheme && (!item.read || isExpanded) ? 0.08 : 0,
+                  elevation: t === lightTheme && (!item.read || isExpanded) ? 3 : 0,
+                  ...(isExpanded ? { borderColor: '#E5E7EB', shadowOpacity: 0.12 } : {}),
+                }}
               >
                 <TouchableOpacity
                   activeOpacity={0.9}
                   onPress={() => handleToggleNotification(item)}
-                  style={styles.cardContent}
+                  className="flex-row gap-4 flex-1"
                 >
-                  <View style={[styles.iconContainer, { backgroundColor: getBgColor(item.type) }]}>
+                  <View className="w-12 h-12 rounded-full justify-center items-center" style={{ backgroundColor: getBgColor(item.type) }}>
                     {getIcon(item.type)}
                   </View>
-                  <View style={styles.notificationContent}>
-                    <View style={styles.notificationHeader}>
-                      <Text style={[styles.notificationTitle, { color: isExpanded ? t.text : item.read ? t.muted : t.text }]}>
+                  <View className="flex-1 gap-1">
+                    <View className="flex-row justify-between items-start mb-1">
+                      <Text className="text-sm font-semibold flex-1" style={{ color: isExpanded ? t.text : item.read ? t.muted : t.text }}>
                         {item.title}
                       </Text>
-                      <View style={styles.headerMeta}>
-                        <Text style={[styles.notificationTime, { color: t.muted }]}>{item.time}</Text>
+                      <View className="flex-row items-center gap-1 ml-2">
+                        <Text className="text-[10px] ml-2" style={{ color: t.muted }}>{item.time}</Text>
                         <TouchableOpacity
                           onPress={(e) => {
                             e?.stopPropagation?.();
@@ -160,163 +169,24 @@ export function Notifications({
                       </View>
                     </View>
                     <Text
-                      style={[
-                        styles.notificationMessage,
-                        { color: isExpanded ? t.text : t.muted },
-                        isExpanded && styles.notificationMessageExpanded,
-                      ]}
+                      className={`text-sm leading-5 ${isExpanded ? 'mt-2' : ''}`}
+                      style={{ color: isExpanded ? t.text : t.muted }}
                       numberOfLines={isExpanded ? undefined : 2}
                     >
                       {item.message}
                     </Text>
                   </View>
-                  {!item.read && <View style={[styles.unreadDot, { backgroundColor: t.primary }]} />}
+                  {!item.read && <View className="w-2 h-2 rounded-full mt-2" style={{ backgroundColor: t.primary }} />}
                 </TouchableOpacity>
               </View>
             </View>
           );
         })}
 
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: t.muted }]}>{translate('all_notifications_viewed')}</Text>
+        <View className="items-center py-8">
+          <Text className="text-xs" style={{ color: t.muted }}>{translate('all_notifications_viewed')}</Text>
         </View>
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    gap: 16,
-    ...Platform.select({
-      android: {
-        elevation: 0,
-      },
-    }),
-  },
-  backButton: {
-    padding: 4,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-    flex: 1,
-  },
-  markAllRead: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#2563EB',
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 16,
-    paddingBottom: 96,
-  },
-  notificationCardWrapper: {
-    marginBottom: 12,
-  },
-  notificationCard: {
-    flexDirection: 'row',
-    gap: 16,
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-    zIndex: 2,
-  },
-  cardContent: {
-    flexDirection: 'row',
-    gap: 16,
-    flex: 1,
-  },
-  notificationCardExpanded: {
-    borderColor: '#E5E7EB',
-    shadowOpacity: 0.12,
-  },
-  notificationCardRead: {
-    backgroundColor: 'transparent',
-    borderColor: 'transparent',
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  notificationContent: {
-    flex: 1,
-    gap: 4,
-  },
-  notificationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 4,
-  },
-  headerMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginLeft: 8,
-  },
-  notificationTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
-    flex: 1,
-  },
-  notificationTitleRead: {
-    color: '#6B7280',
-  },
-  notificationTime: {
-    fontSize: 10,
-    color: '#9CA3AF',
-    marginLeft: 8,
-  },
-  notificationMessage: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
-  },
-  notificationMessageExpanded: {
-    marginTop: 8,
-  },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#2563EB',
-    marginTop: 8,
-  },
-  footer: {
-    alignItems: 'center',
-    paddingVertical: 32,
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-});

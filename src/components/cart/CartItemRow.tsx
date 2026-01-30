@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 
 import { AppIcon } from '../../components/common/Icon';
 import { ImageWithFallback } from '../../components/common/ImageWithFallback';
@@ -27,35 +27,55 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({
 
 
     return (
-        <View style={[styles.itemCard, { backgroundColor: t.card, borderColor: t.border, shadowOpacity: t === lightTheme ? 0.05 : 0, elevation: t === lightTheme ? 2 : 0 }]}>
+        <View
+            className="rounded-2xl p-4 flex-row gap-4 border shadow-sm"
+            style={{
+                backgroundColor: t.card,
+                borderColor: t.border,
+                shadowOpacity: t === lightTheme ? 0.05 : 0,
+                elevation: t === lightTheme ? 2 : 0
+            }}
+        >
             <ImageWithFallback
                 source={{ uri: item.image }}
-                style={styles.itemImage}
+                className="w-20 h-20 rounded-xl bg-gray-50"
                 resizeMode="cover"
             />
 
-            <View style={styles.itemContent}>
-                <View style={styles.itemHeader}>
-                    <Text style={[styles.itemName, { color: t.text }]} numberOfLines={2}>{item.name}</Text>
+            <View className="flex-1 justify-between">
+                <View className="flex-row justify-between items-start mb-1">
+                    <Text
+                        className="text-sm font-medium flex-1 mr-2"
+                        style={{ color: t.text }}
+                        numberOfLines={2}
+                    >
+                        {item.name}
+                    </Text>
                     <TouchableOpacity
                         onPress={() => onRemoveItem(item.id)}
-                        style={styles.removeButton}
+                        className="p-1"
                         activeOpacity={0.7}
                     >
                         <AppIcon name="trash" size={16} color={t.muted} />
                     </TouchableOpacity>
                 </View>
-                <Text style={[styles.itemCategory, { color: t.muted }]}>{item.category}</Text>
+                <Text
+                    className="text-xs mb-2"
+                    style={{ color: t.muted }}
+                >
+                    {item.category}
+                </Text>
                 {((item.options && item.options.length > 0) || (item.classifications && item.classifications.length > 0)) && (
-                    <View style={styles.optionsContainer}>
+                    <View className="flex-row flex-wrap gap-1.5 mb-2">
                         {item.options && item.options.length > 0 && (
                             <TouchableOpacity
                                 onPress={() => onEditOption(item)}
-                                style={[styles.optionTag, { backgroundColor: t.surface, borderColor: t.border }]}
+                                className="flex-row items-center px-2 py-1 rounded-md border"
+                                style={{ backgroundColor: t.surface, borderColor: t.border }}
                                 activeOpacity={0.7}
                             >
-                                <Text style={[styles.optionLabel, { color: t.muted }]}>Tùy chọn: </Text>
-                                <Text style={[styles.optionValue, { color: t.primary }]}>
+                                <Text className="text-[11px] font-medium" style={{ color: t.muted }}>Tùy chọn: </Text>
+                                <Text className="text-[11px] font-semibold" style={{ color: t.primary }}>
                                     {item.selectedOption || (item.options.length > 0 ? item.options[0] : '')}
                                 </Text>
                                 {item.options.length > 1 && (
@@ -66,11 +86,12 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({
                         {item.classifications && item.classifications.length > 0 && (
                             <TouchableOpacity
                                 onPress={() => onEditClassification(item)}
-                                style={[styles.optionTag, { backgroundColor: t.surface, borderColor: t.border }]}
+                                className="flex-row items-center px-2 py-1 rounded-md border"
+                                style={{ backgroundColor: t.surface, borderColor: t.border }}
                                 activeOpacity={0.7}
                             >
-                                <Text style={[styles.optionLabel, { color: t.muted }]}>Phân loại: </Text>
-                                <Text style={[styles.optionValue, { color: t.primary }]}>
+                                <Text className="text-[11px] font-medium" style={{ color: t.muted }}>Phân loại: </Text>
+                                <Text className="text-[11px] font-semibold" style={{ color: t.primary }}>
                                     {item.selectedClassification || (item.classifications.length > 0 ? item.classifications[0] : '')}
                                 </Text>
                                 {item.classifications.length > 1 && (
@@ -81,21 +102,31 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({
                     </View>
                 )}
 
-                <View style={styles.itemFooter}>
-                    <Text style={[styles.itemPrice, { color: t.primary }]}>{formatPrice(item.price)}</Text>
+                <View className="flex-row justify-between items-center">
+                    <Text className="text-base font-bold" style={{ color: t.primary }}>{formatPrice(item.price)}</Text>
 
-                    <View style={[styles.quantityContainer, { backgroundColor: t.surface }]}>
+                    <View
+                        className="flex-row items-center rounded-lg p-1 gap-3"
+                        style={{ backgroundColor: t.surface }}
+                    >
                         <TouchableOpacity
                             onPress={() => onUpdateQuantity(item.id, -1)}
-                            style={[styles.quantityButton, { backgroundColor: t.card, borderColor: t.border }]}
+                            className="w-6 h-6 justify-center items-center rounded-md border"
+                            style={{ backgroundColor: t.card, borderColor: t.border }}
                             activeOpacity={0.7}
                         >
                             <AppIcon name="minus" size={12} color={t.text} />
                         </TouchableOpacity>
-                        <Text style={[styles.quantityText, { color: t.text }]}>{item.quantity}</Text>
+                        <Text
+                            className="text-sm font-medium min-w-[16px] text-center"
+                            style={{ color: t.text }}
+                        >
+                            {item.quantity}
+                        </Text>
                         <TouchableOpacity
                             onPress={() => onUpdateQuantity(item.id, 1)}
-                            style={[styles.quantityButton, { backgroundColor: t.card, borderColor: t.border }]}
+                            className="w-6 h-6 justify-center items-center rounded-md border"
+                            style={{ backgroundColor: t.card, borderColor: t.border }}
                             activeOpacity={0.7}
                         >
                             <AppIcon name="plus" size={12} color={t.text} />
@@ -106,97 +137,3 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    itemCard: {
-        borderRadius: 16,
-        padding: 16,
-        flexDirection: 'row',
-        gap: 16,
-        borderWidth: 1,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowRadius: 2,
-    },
-    itemImage: {
-        width: 80,
-        height: 80,
-        borderRadius: 12,
-        backgroundColor: '#F9FAFB',
-    },
-    itemContent: {
-        flex: 1,
-        justifyContent: 'space-between',
-    },
-    itemHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 4,
-    },
-    itemName: {
-        fontSize: 14,
-        fontWeight: '500',
-        flex: 1,
-        marginRight: 8,
-    },
-    removeButton: {
-        padding: 4,
-    },
-    itemCategory: {
-        fontSize: 12,
-        marginBottom: 8,
-    },
-    optionsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 6,
-        marginBottom: 8,
-    },
-    optionTag: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
-        borderWidth: 1,
-    },
-    optionLabel: {
-        fontSize: 11,
-        fontWeight: '500',
-    },
-    optionValue: {
-        fontSize: 11,
-        fontWeight: '600',
-    },
-    itemFooter: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    itemPrice: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    quantityContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderRadius: 8,
-        padding: 4,
-        gap: 12,
-    },
-    quantityButton: {
-        width: 24,
-        height: 24,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: 6,
-        borderWidth: 1,
-    },
-    quantityText: {
-        fontSize: 14,
-        fontWeight: '500',
-        minWidth: 16,
-        textAlign: 'center',
-    },
-});

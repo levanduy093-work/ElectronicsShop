@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ScrollView, TouchableOpacity, StyleSheet, Text, StatusBar, Modal, Image } from 'react-native';
+import { View, ScrollView, TouchableOpacity, Text, StatusBar, Modal, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
@@ -91,21 +91,19 @@ export function Profile({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: t.background }]}>
+    <View className="flex-1" style={{ backgroundColor: t.background }}>
       <StatusBar
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={t.card}
         translucent={true}
       />
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[
-          styles.contentContainer,
-          {
-            paddingTop: Math.max(insets.top + 24, 40),
-            paddingBottom: Math.max(insets.bottom, 16) + 100,
-          }
-        ]}
+        className="flex-1"
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: Math.max(insets.top + 24, 40),
+          paddingBottom: Math.max(insets.bottom, 16) + 100,
+        }}
         showsVerticalScrollIndicator={false}
       >
         <ProfileHeader
@@ -133,7 +131,7 @@ export function Profile({
           theme={t}
         />
 
-        <Text style={[styles.version, { color: t.muted }]}>Version 1.0.0 (Build 2024)</Text>
+        <Text className="text-center text-xs mt-8 mb-4" style={{ color: t.muted }}>Version 1.0.0 (Build 2024)</Text>
       </ScrollView>
 
       {/* Vouchers Modal */}
@@ -163,16 +161,17 @@ export function Profile({
         animationType="fade"
         onRequestClose={() => setShowFullImageModal(false)}
       >
-        <View style={styles.fullImageModalOverlay}>
+        <View className="flex-1 bg-black/90 justify-center items-center">
           <TouchableOpacity
-            style={styles.fullImageModalBackdrop}
+            className="absolute inset-0"
             activeOpacity={1}
             onPress={() => setShowFullImageModal(false)}
           />
-          <View style={styles.fullImageModalContent}>
+          <View className="w-full h-full justify-center items-center">
             <TouchableOpacity
               onPress={() => setShowFullImageModal(false)}
-              style={[styles.fullImageCloseButton, { top: Math.max(insets.top + 20, 44) }]}
+              className="absolute right-5 z-10 p-2 rounded-xl bg-black/50"
+              style={{ top: Math.max(insets.top + 20, 44) }}
               activeOpacity={0.7}
             >
               <AppIcon name="close" size={28} color="#FFFFFF" />
@@ -180,7 +179,7 @@ export function Profile({
             {fullImageUri ? (
               <Image
                 source={{ uri: fullImageUri }}
-                style={styles.fullImage}
+                className="w-full h-full"
                 resizeMode="contain"
               />
             ) : null}
@@ -190,50 +189,3 @@ export function Profile({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingHorizontal: 16,
-  },
-  version: {
-    textAlign: 'center',
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 32,
-    marginBottom: 16,
-  },
-  fullImageModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullImageModalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  fullImageModalContent: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullImage: {
-    width: '100%',
-    height: '100%',
-  },
-  fullImageCloseButton: {
-    position: 'absolute',
-    right: 20,
-    zIndex: 10,
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-});

@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   ScrollView,
-  StyleSheet,
   Alert,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -140,8 +139,14 @@ export function Home({
   return (
     <ScrollView
       ref={scrollViewRef}
-      style={[styles.container, { backgroundColor: resolvedTheme.background }]}
-      contentContainerStyle={[styles.contentContainer, { backgroundColor: resolvedTheme.background }]}
+      className="flex-1 bg-transparent"
+      style={{ backgroundColor: resolvedTheme.background }}
+      contentContainerStyle={{
+        paddingBottom: 96,
+        paddingTop: 16,
+        paddingHorizontal: 16,
+        backgroundColor: resolvedTheme.background
+      }}
       showsVerticalScrollIndicator={false}
       onScroll={handleScroll}
       scrollEventThrottle={16}
@@ -186,15 +191,3 @@ export function Home({
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  contentContainer: {
-    paddingBottom: 96,
-    paddingTop: 16,
-    paddingHorizontal: 16,
-  },
-});

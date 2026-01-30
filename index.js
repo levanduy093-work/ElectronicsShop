@@ -11,6 +11,7 @@ import { getMessaging, setBackgroundMessageHandler } from '@react-native-firebas
 import App from './App';
 import { ToastProvider } from './src/components/common/ToastProvider';
 import { name as appName } from './app.json';
+import './global.css';
 
 try {
   setBackgroundMessageHandler(getMessaging(), async remoteMessage => {

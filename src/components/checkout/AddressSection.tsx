@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../../components/common/Icon';
 import { Address } from '../../types';
@@ -24,8 +24,13 @@ export const AddressSection: React.FC<AddressSectionProps> = ({
     const accentBg = t === lightTheme ? 'rgba(37,99,235,0.08)' : 'rgba(255,255,255,0.06)';
 
     return (
-        <View style={styles.stepContent}>
-            <Text style={[styles.stepTitle, { color: t.muted }]}>Địa chỉ nhận hàng</Text>
+        <View className="gap-4 pb-24">
+            <Text
+                className="text-xs font-bold uppercase tracking-wider"
+                style={{ color: t.muted }}
+            >
+                Địa chỉ nhận hàng
+            </Text>
 
             {addressList.map((addr) => {
                 const isSelected = addr.id === selectedAddressId;
@@ -34,28 +39,34 @@ export const AddressSection: React.FC<AddressSectionProps> = ({
                     <TouchableOpacity
                         key={addr.id}
                         onPress={() => onSelectAddress(addr.id)}
-                        style={[
-                            styles.addressCard,
-                            { backgroundColor: t.card, borderColor: isSelected ? t.primary : t.border },
-                            isSelected && styles.addressCardDefault,
-                        ]}
+                        className={`rounded-xl p-4 relative overflow-hidden transition-all ${isSelected ? 'border-2' : 'border'}`}
+                        style={{
+                            backgroundColor: t.card,
+                            borderColor: isSelected ? t.primary : t.border
+                        }}
                         activeOpacity={0.8}
                     >
                         {addr.isDefault && (
-                            <View style={[styles.defaultBadge, { backgroundColor: t.primary }]}>
-                                <Text style={styles.defaultBadgeText}>Mặc định</Text>
+                            <View
+                                className="absolute top-0 right-0 px-2 py-1 rounded-bl-lg"
+                                style={{ backgroundColor: t.primary }}
+                            >
+                                <Text className="text-white text-[10px] font-bold">Mặc định</Text>
                             </View>
                         )}
-                        <View style={styles.addressContent}>
-                            <View style={[styles.addressIcon, { backgroundColor: accentBg }]}>
+                        <View className="flex-row items-start gap-3">
+                            <View
+                                className="w-9 h-9 rounded-full justify-center items-center"
+                                style={{ backgroundColor: accentBg }}
+                            >
                                 <AppIcon name="map-pin" size={20} color={t.primary} />
                             </View>
-                            <View style={styles.addressInfo}>
-                                <Text style={[styles.addressType, { color: t.text }]}>
+                            <View className="flex-1 gap-1">
+                                <Text className="text-sm font-bold" style={{ color: t.text }}>
                                     {addr.type === 'Nhà riêng' ? translate('home') : translate('office')}
                                 </Text>
-                                <Text style={[styles.addressText, { color: t.text }]}>{addr.address}</Text>
-                                <Text style={[styles.addressPhone, { color: t.muted }]}>{contactLine}</Text>
+                                <Text className="text-sm leading-5" style={{ color: t.text }}>{addr.address}</Text>
+                                <Text className="text-xs" style={{ color: t.muted }}>{contactLine}</Text>
                             </View>
                         </View>
                     </TouchableOpacity>
@@ -63,89 +74,13 @@ export const AddressSection: React.FC<AddressSectionProps> = ({
             })}
 
             <TouchableOpacity
-                style={[styles.addAddressButton, { borderColor: t.border }]}
+                className="flex-row items-center justify-center p-4 border border-dashed rounded-xl mt-2"
+                style={{ borderColor: t.border }}
                 activeOpacity={0.7}
                 onPress={onAddAddress}
             >
-                <Text style={[styles.addAddressText, { color: t.text }]}>+ Thêm địa chỉ mới</Text>
+                <Text className="text-sm font-semibold" style={{ color: t.text }}>+ Thêm địa chỉ mới</Text>
             </TouchableOpacity>
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    stepContent: {
-        gap: 16,
-        paddingBottom: 96,
-    },
-    stepTitle: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    addressCard: {
-        borderRadius: 12,
-        borderWidth: 1,
-        padding: 16,
-        position: 'relative',
-        overflow: 'hidden',
-    },
-    addressCardDefault: {
-        borderWidth: 2,
-    },
-    defaultBadge: {
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderBottomLeftRadius: 8,
-    },
-    defaultBadgeText: {
-        color: '#FFFFFF',
-        fontSize: 10,
-        fontWeight: 'bold',
-    },
-    addressContent: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 12,
-    },
-    addressIcon: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    addressInfo: {
-        flex: 1,
-        gap: 4,
-    },
-    addressType: {
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-    addressText: {
-        fontSize: 14,
-        lineHeight: 20,
-    },
-    addressPhone: {
-        fontSize: 13,
-    },
-    addAddressButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-        borderWidth: 1,
-        borderStyle: 'dashed',
-        borderRadius: 12,
-        marginTop: 8,
-    },
-    addAddressText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-});

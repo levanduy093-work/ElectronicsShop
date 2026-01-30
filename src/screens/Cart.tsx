@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { CartItem, Voucher } from '../types';
@@ -115,15 +115,20 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpda
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: t.background }]}>
+    <View className="flex-1" style={{ backgroundColor: t.background }}>
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { backgroundColor: t.background }]}
+        className="flex-1"
+        contentContainerStyle={{
+          paddingBottom: 96,
+          paddingHorizontal: 16,
+          paddingTop: 16,
+          backgroundColor: t.background
+        }}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.title, { color: t.text }]}>{translate('cart_title_count', { count: items.length })}</Text>
+        <Text className="text-2xl font-bold mb-6" style={{ color: t.text }}>{translate('cart_title_count', { count: items.length })}</Text>
 
-        <View style={styles.itemsContainer}>
+        <View className="gap-4 mb-8">
           {items.map((item, index) => (
             <CartItemRow
               key={`${item.id}-${index}`}
@@ -191,28 +196,3 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpda
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 96,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 24,
-  },
-  itemsContainer: {
-    gap: 16,
-    marginBottom: 32,
-  },
-});

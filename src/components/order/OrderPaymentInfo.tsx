@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../../components/common/Icon';
 import { Theme, lightTheme } from '../../theme';
@@ -15,107 +15,46 @@ export const OrderPaymentInfo: React.FC<OrderPaymentInfoProps> = ({ payment, the
     const { t: translate } = useTranslation();
 
     return (
-        <View style={[
-            styles.card,
-            {
+        <View
+            className="rounded-2xl p-4 border shadow-sm"
+            style={{
                 backgroundColor: t.card,
                 borderColor: t.border,
                 shadowOpacity: t === lightTheme ? 0.05 : 0,
                 elevation: t === lightTheme ? 2 : 0,
-            }
-        ]}>
-            <View style={styles.cardHeader}>
+            }}
+        >
+            <View className="flex-row items-center gap-2 mb-3">
                 <AppIcon name="credit-card" size={18} color={t.primary} />
-                <Text style={[styles.cardTitle, { color: t.text }]}>{translate('payment')}</Text>
+                <Text className="text-base font-bold" style={{ color: t.text }}>{translate('payment')}</Text>
             </View>
 
-            <View style={styles.paymentDetails}>
-                <View style={styles.paymentRow}>
-                    <Text style={[styles.paymentLabel, { color: t.muted }]}>{translate('subtotal')}</Text>
-                    <Text style={[styles.paymentValue, { color: t.text }]}>{formatPrice(payment.subtotal)}</Text>
+            <View className="gap-2 mb-4">
+                <View className="flex-row justify-between mb-2">
+                    <Text className="text-sm" style={{ color: t.muted }}>{translate('subtotal')}</Text>
+                    <Text className="text-sm font-medium" style={{ color: t.text }}>{formatPrice(payment.subtotal)}</Text>
                 </View>
-                <View style={styles.paymentRow}>
-                    <Text style={[styles.paymentLabel, { color: t.muted }]}>{translate('shipping_fee')}</Text>
-                    <Text style={[styles.paymentValue, { color: t.text }]}>{formatPrice(payment.shippingFee)}</Text>
+                <View className="flex-row justify-between mb-2">
+                    <Text className="text-sm" style={{ color: t.muted }}>{translate('shipping_fee')}</Text>
+                    <Text className="text-sm font-medium" style={{ color: t.text }}>{formatPrice(payment.shippingFee)}</Text>
                 </View>
-                <View style={styles.paymentRow}>
-                    <Text style={[styles.paymentLabel, { color: t.muted }]}>{translate('discount')}</Text>
-                    <Text style={[styles.paymentValue, { color: '#10B981' }]}>
+                <View className="flex-row justify-between mb-2">
+                    <Text className="text-sm" style={{ color: t.muted }}>{translate('discount')}</Text>
+                    <Text className="text-sm font-medium text-emerald-500">
                         -{formatPrice(payment.discount)}
                     </Text>
                 </View>
-                <View style={[styles.totalRow, { borderTopColor: t.border }]}>
-                    <Text style={[styles.totalLabel, { color: t.text }]}>{translate('total_amount')}</Text>
-                    <Text style={[styles.totalValue, { color: t.primary }]}>{formatPrice(payment.total)}</Text>
+                <View className="flex-row justify-between items-center pt-2 border-t mt-2" style={{ borderTopColor: t.border }}>
+                    <Text className="text-base font-bold" style={{ color: t.text }}>{translate('total_amount')}</Text>
+                    <Text className="text-lg font-bold" style={{ color: t.primary }}>{formatPrice(payment.total)}</Text>
                 </View>
             </View>
 
-            <View style={[styles.paymentMethod, { backgroundColor: t.surface }]}>
-                <Text style={[styles.paymentMethodText, { color: t.muted }]}>
+            <View className="p-3 rounded-lg" style={{ backgroundColor: t.surface }}>
+                <Text className="text-sm text-center" style={{ color: t.muted }}>
                     {translate('payment_method')} {payment.method}
                 </Text>
             </View>
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    card: {
-        borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowRadius: 2,
-    },
-    cardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 12,
-    },
-    cardTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    paymentDetails: {
-        gap: 8,
-        marginBottom: 16,
-    },
-    paymentRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 8,
-    },
-    paymentLabel: {
-        fontSize: 14,
-    },
-    paymentValue: {
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    totalRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingTop: 8,
-        borderTopWidth: 1,
-        marginTop: 8,
-    },
-    totalLabel: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    totalValue: {
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    paymentMethod: {
-        padding: 12,
-        borderRadius: 8,
-    },
-    paymentMethodText: {
-        fontSize: 14,
-        textAlign: 'center',
-    },
-});

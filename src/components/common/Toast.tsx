@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
+import { View, Text, Animated, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from './Icon';
 import { lightTheme, useTheme } from '../../theme';
@@ -103,62 +103,37 @@ export function Toast({ message, type = 'success', duration = 2000, onHide, visi
 
   return (
     <Animated.View
-      style={[
-        styles.container,
-        {
-          // Push toast lower to avoid overlapping nav/back buttons
-          top: Math.max(insets.top, 0) + 48,
-          transform: [{ translateY }],
-          opacity,
-        },
-      ]}
+      className="absolute left-4 right-4 z-[9999] items-center"
+      style={{
+        // Push toast lower to avoid overlapping nav/back buttons
+        top: Math.max(insets.top, 0) + 48,
+        transform: [{ translateY }],
+        opacity,
+      }}
       pointerEvents="none"
     >
       <View
+        className="flex-row items-center px-4 py-3 rounded-xl gap-[10px]"
         style={[
-          styles.toast,
           {
             backgroundColor: getBackgroundColor(),
             shadowColor: isDarkMode ? '#000' : '#000',
             shadowOpacity: isDarkMode ? 0.5 : 0.15,
+            ...Platform.select({
+              ios: {
+                shadowOffset: { width: 0, height: 4 },
+                shadowRadius: 12,
+              },
+              android: {
+                elevation: 8,
+              },
+            }),
           },
         ]}
       >
         <AppIcon name={getIconName()} size={20} color={getIconColor()} />
-        <Text style={[styles.message, { color: t.text }]}>{message}</Text>
+        <Text className="text-sm font-medium flex-1" style={{ color: t.text }}>{message}</Text>
       </View>
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    zIndex: 9999,
-    alignItems: 'center',
-  },
-  toast: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 10,
-    ...Platform.select({
-      ios: {
-        shadowOffset: { width: 0, height: 4 },
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-  message: {
-    fontSize: 14,
-    fontWeight: '500',
-    flex: 1,
-  },
-});

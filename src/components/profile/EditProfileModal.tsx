@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput, Image, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, TextInput, Image, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../../components/common/Icon';
 import { Theme } from '../../theme';
@@ -117,75 +117,90 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             onRequestClose={onClose}
         >
             <KeyboardAvoidingView
-                style={styles.modalOverlay}
+                className="flex-1 bg-black/50 justify-end"
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
-                <View style={[styles.modalContent, { backgroundColor: t.card, borderColor: t.border }]}>
-                    <View style={styles.modalHeader}>
-                        <Text style={[styles.modalTitle, { color: t.text }]}>{translate('edit_profile')}</Text>
+                <View
+                    className="bg-white rounded-t-3xl border-t max-h-[80%] pb-4"
+                    style={{ backgroundColor: t.card, borderColor: t.border }}
+                >
+                    <View
+                        className="flex-row items-center justify-between p-4 border-b"
+                        style={{ borderBottomColor: t.border }}
+                    >
+                        <Text className="text-lg font-bold" style={{ color: t.text }}>{translate('edit_profile')}</Text>
                         <TouchableOpacity
                             onPress={onClose}
-                            style={styles.closeButton}
+                            className="p-1"
                             activeOpacity={0.7}
                         >
                             <AppIcon name="close" size={24} color={t.muted} />
                         </TouchableOpacity>
                     </View>
 
-                    <ScrollView style={styles.modalBody}>
-                        <View style={styles.inputGroup}>
-                            <Text style={[styles.inputLabel, { color: t.text }]}>{translate('name')}</Text>
+                    <ScrollView className="p-4">
+                        <View className="mb-5">
+                            <Text className="text-sm font-medium mb-2" style={{ color: t.text }}>{translate('name')}</Text>
                             <TextInput
                                 value={editingName}
                                 onChangeText={setEditingName}
-                                style={[styles.input, { backgroundColor: t.surface, borderColor: t.border, color: t.text }]}
+                                className="border rounded-lg px-3 py-2.5 text-base"
+                                style={{ backgroundColor: t.surface, borderColor: t.border, color: t.text }}
                                 placeholder={translate('enter_name_placeholder')}
                                 placeholderTextColor={t.muted}
                             />
                         </View>
 
-                        <View style={styles.inputGroup}>
-                            <Text style={[styles.inputLabel, { color: t.text }]}>{translate('avatar')}</Text>
+                        <View className="mb-5">
+                            <Text className="text-sm font-medium mb-2" style={{ color: t.text }}>{translate('avatar')}</Text>
                             {!showUrlInput ? (
                                 <>
-                                    <View style={styles.avatarPreviewContainer}>
+                                    <View className="flex-row items-center gap-4 mb-3">
                                         {editingAvatar ? (
                                             <TouchableOpacity
                                                 onPress={() => onViewFullImage(editingAvatar)}
                                                 activeOpacity={0.8}
                                             >
-                                                <Image source={{ uri: editingAvatar }} style={[styles.avatarPreview, { borderColor: t.border }]} />
+                                                <Image
+                                                    source={{ uri: editingAvatar }}
+                                                    className="w-20 h-20 rounded-full border"
+                                                    style={{ borderColor: t.border }}
+                                                />
                                             </TouchableOpacity>
                                         ) : (
-                                            <View style={[styles.avatarPreviewPlaceholder, { backgroundColor: t.surface, borderColor: t.border }]}>
+                                            <View
+                                                className="w-20 h-20 rounded-full border justify-center items-center"
+                                                style={{ backgroundColor: t.surface, borderColor: t.border }}
+                                            >
                                                 <AppIcon name="user" size={32} color={t.muted} />
                                             </View>
                                         )}
                                         <TouchableOpacity
                                             onPress={handlePickImage}
-                                            style={[styles.pickImageButton, { backgroundColor: t.primary }]}
+                                            className="flex-row items-center gap-2 px-4 py-2.5 rounded-lg"
+                                            style={{ backgroundColor: t.primary }}
                                             activeOpacity={0.8}
                                         >
                                             <AppIcon name="camera" size={18} color="#FFFFFF" />
-                                            <Text style={styles.pickImageText}>{translate('pick_image')}</Text>
+                                            <Text className="text-white text-sm font-medium">{translate('pick_image')}</Text>
                                         </TouchableOpacity>
                                     </View>
                                     {!launchImageLibrary && (
                                         <TouchableOpacity
                                             onPress={() => setShowUrlInput(true)}
-                                            style={styles.urlInputToggle}
+                                            className="py-2"
                                             activeOpacity={0.7}
                                         >
-                                            <Text style={[styles.urlInputToggleText, { color: t.primary }]}>{translate('or_enter_url')}</Text>
+                                            <Text className="text-sm" style={{ color: t.primary }}>{translate('or_enter_url')}</Text>
                                         </TouchableOpacity>
                                     )}
                                     {editingAvatar ? (
                                         <TouchableOpacity
                                             onPress={() => setEditingAvatar('')}
-                                            style={styles.removeImageButton}
+                                            className="py-2"
                                             activeOpacity={0.7}
                                         >
-                                            <Text style={[styles.removeImageText, { color: t.muted }]}>{translate('remove_image')}</Text>
+                                            <Text className="text-sm" style={{ color: t.muted }}>{translate('remove_image')}</Text>
                                         </TouchableOpacity>
                                     ) : null}
                                 </>
@@ -194,49 +209,54 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                     <TextInput
                                         value={avatarUrl}
                                         onChangeText={setAvatarUrl}
-                                        style={[styles.input, { backgroundColor: t.surface, borderColor: t.border, color: t.text }]}
+                                        className="border rounded-lg px-3 py-2.5 text-base"
+                                        style={{ backgroundColor: t.surface, borderColor: t.border, color: t.text }}
                                         placeholder={translate('or_enter_url')}
                                         placeholderTextColor={t.muted}
                                         autoCapitalize="none"
                                         keyboardType="url"
                                     />
-                                    <View style={styles.urlInputActions}>
+                                    <View className="flex-row justify-end gap-3 mt-2">
                                         <TouchableOpacity
                                             onPress={() => {
                                                 setShowUrlInput(false);
                                                 setAvatarUrl('');
                                             }}
-                                            style={[styles.urlActionButton, { borderColor: t.border }]}
+                                            className="px-4 py-2 rounded-md border"
+                                            style={{ borderColor: t.border }}
                                             activeOpacity={0.7}
                                         >
-                                            <Text style={[styles.urlActionText, { color: t.muted }]}>{translate('cancel')}</Text>
+                                            <Text className="text-sm font-medium" style={{ color: t.muted }}>{translate('cancel')}</Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             onPress={handleSaveUrl}
-                                            style={[styles.urlActionButton, { backgroundColor: t.primary }]}
+                                            className="px-4 py-2 rounded-md border border-transparent"
+                                            style={{ backgroundColor: t.primary }}
                                             activeOpacity={0.8}
                                         >
-                                            <Text style={[styles.urlActionText, { color: '#FFFFFF' }]}>{translate('save')}</Text>
+                                            <Text className="text-sm font-medium text-white">{translate('save')}</Text>
                                         </TouchableOpacity>
                                     </View>
                                 </View>
                             )}
                         </View>
 
-                        <View style={styles.modalActions}>
+                        <View className="flex-row gap-3 mt-3">
                             <TouchableOpacity
                                 onPress={onClose}
-                                style={[styles.modalButton, styles.cancelButton, { borderColor: t.border }]}
+                                className="flex-1 py-3 rounded-lg items-center justify-center border"
+                                style={{ borderColor: t.border }}
                                 activeOpacity={0.7}
                             >
-                                <Text style={[styles.modalButtonText, { color: t.muted }]}>{translate('cancel')}</Text>
+                                <Text className="text-base font-semibold" style={{ color: t.muted }}>{translate('cancel')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 onPress={handleSave}
-                                style={[styles.modalButton, styles.saveButton, { backgroundColor: t.primary }]}
+                                className="flex-1 py-3 rounded-lg items-center justify-center border border-transparent"
+                                style={{ backgroundColor: t.primary }}
                                 activeOpacity={0.8}
                             >
-                                <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>{translate('save')}</Text>
+                                <Text className="text-base font-semibold text-white">{translate('save')}</Text>
                             </TouchableOpacity>
                         </View>
                     </ScrollView>
@@ -246,137 +266,3 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     );
 };
 
-const styles = StyleSheet.create({
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        borderTopWidth: 1,
-        maxHeight: '80%',
-        paddingBottom: 16,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6',
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    closeButton: {
-        padding: 4,
-    },
-    modalBody: {
-        padding: 16,
-    },
-    inputGroup: {
-        marginBottom: 20,
-    },
-    inputLabel: {
-        fontSize: 14,
-        fontWeight: '500',
-        marginBottom: 8,
-    },
-    input: {
-        borderWidth: 1,
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        fontSize: 16,
-    },
-    avatarPreviewContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-        marginBottom: 12,
-    },
-    avatarPreview: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        borderWidth: 1,
-    },
-    avatarPreviewPlaceholder: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        borderWidth: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    pickImageButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 8,
-    },
-    pickImageText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    urlInputToggle: {
-        paddingVertical: 8,
-    },
-    urlInputToggleText: {
-        fontSize: 14,
-    },
-    removeImageButton: {
-        paddingVertical: 8,
-    },
-    removeImageText: {
-        fontSize: 14,
-    },
-    urlInputActions: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        gap: 12,
-        marginTop: 8,
-    },
-    urlActionButton: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 6,
-        borderWidth: 1,
-        borderColor: 'transparent',
-    },
-    urlActionText: {
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    modalActions: {
-        flexDirection: 'row',
-        gap: 12,
-        marginTop: 12,
-    },
-    modalButton: {
-        flex: 1,
-        paddingVertical: 12,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: 'transparent',
-    },
-    cancelButton: {
-        backgroundColor: 'transparent',
-    },
-    saveButton: {
-        // bg color set in component
-    },
-    modalButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-    },
-});

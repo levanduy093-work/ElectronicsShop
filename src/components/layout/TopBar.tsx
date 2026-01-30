@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../common/Icon';
 import { Theme, lightTheme, useTheme } from '../../theme';
@@ -35,34 +35,52 @@ function TopBarComponent({
   const topPadding = Math.max(insets.top, 0);
 
   return (
-    <View style={[
-      styles.container,
-      {
-        paddingTop: visible ? topPadding : 0,
-        backgroundColor: resolvedTheme.surface,
-        borderBottomColor: resolvedTheme.border,
-        opacity: visible ? 1 : 0,
-        height: visible ? undefined : 0,
-      }
-    ]}>
-      <View style={styles.content}>
-        <View style={styles.leftSection}>
+    <View
+      className="bg-white border-b border-gray-100 shadow-sm"
+      style={[
+        {
+          paddingTop: visible ? topPadding : 0,
+          backgroundColor: resolvedTheme.surface,
+          borderBottomColor: resolvedTheme.border,
+          opacity: visible ? 1 : 0,
+          height: visible ? undefined : 0,
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 4,
+            },
+            android: {
+              elevation: 4,
+            },
+          }),
+        }
+      ]}
+    >
+      <View className="h-14 flex-row items-center justify-between px-4">
+        <View className="flex-row items-center gap-3">
           <Image
             source={require('../../assets/images/logo.png')}
-            style={styles.logoImage}
+            className="w-8 h-8 rounded-lg"
             resizeMode="contain"
             fadeDuration={0}
             defaultSource={require('../../assets/images/logo.png')}
             onLoadEnd={() => { }}
           />
-          <Text style={[styles.title, { color: resolvedTheme.text }]}>{title}</Text>
+          <Text
+            className="text-lg font-semibold tracking-tight text-gray-900"
+            style={{ color: resolvedTheme.text, letterSpacing: -0.5 }}
+          >
+            {title}
+          </Text>
         </View>
 
-        <View style={styles.rightSection}>
+        <View className="flex-row items-center gap-4">
           {showSearch && (
             <TouchableOpacity
               onPress={onSearchClick}
-              style={styles.iconButton}
+              className="p-1"
               activeOpacity={0.7}
             >
               <AppIcon name="search" size={22} color={resolvedTheme.muted} />
@@ -71,7 +89,7 @@ function TopBarComponent({
           {onFilterClick && (
             <TouchableOpacity
               onPress={onFilterClick}
-              style={styles.iconButton}
+              className="p-1"
               activeOpacity={0.7}
             >
               <AppIcon name="filter" size={22} color={resolvedTheme.muted} />
@@ -80,7 +98,8 @@ function TopBarComponent({
           {onNewChat && (
             <TouchableOpacity
               onPress={onNewChat}
-              style={[styles.iconButton, styles.newChatButton, { backgroundColor: resolvedTheme.primary }]}
+              className="w-8 h-8 rounded-full justify-center items-center p-0"
+              style={{ backgroundColor: resolvedTheme.primary }}
               activeOpacity={0.8}
             >
               <AppIcon name="plus" size={16} color="#FFFFFF" />
@@ -89,17 +108,18 @@ function TopBarComponent({
 
           <TouchableOpacity
             onPress={onNotificationClick}
-            style={styles.iconButton}
+            className="p-1"
             activeOpacity={0.7}
           >
-            <View style={styles.notificationContainer}>
+            <View className="relative">
               <AppIcon name="bell" size={22} color={resolvedTheme.muted} />
               {hasUnread && (
                 <View
-                  style={[
-                    styles.notificationBadge,
-                    { backgroundColor: resolvedTheme.primary, borderColor: resolvedTheme.surface },
-                  ]}
+                  className="absolute top-0 right-0 w-2 h-2 rounded-full border-2 border-white"
+                  style={{
+                    backgroundColor: resolvedTheme.primary,
+                    borderColor: resolvedTheme.surface
+                  }}
                 />
               )}
             </View>
@@ -111,74 +131,3 @@ function TopBarComponent({
 }
 
 export const TopBar = memo(TopBarComponent);
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  content: {
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-  },
-  leftSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  logoImage: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    letterSpacing: -0.5,
-    color: '#111827',
-  },
-  rightSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  iconButton: {
-    padding: 4,
-  },
-  newChatButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  notificationContainer: {
-    position: 'relative',
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 8,
-    height: 8,
-    backgroundColor: '#EF4444',
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-});

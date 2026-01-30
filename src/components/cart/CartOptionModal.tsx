@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { AppIcon } from '../../components/common/Icon';
 import { Theme, lightTheme } from '../../theme';
 
@@ -33,39 +33,46 @@ export const CartOptionModal: React.FC<CartOptionModalProps> = ({
             animationType="slide"
             onRequestClose={onClose}
         >
-            <View style={[styles.modalOverlay, { backgroundColor: overlayBg }]}>
-                <View style={[styles.modalContent, { backgroundColor: t.card }]}>
-                    <View style={styles.modalHeader}>
-                        <Text style={[styles.modalTitle, { color: t.text }]}>{title}</Text>
+            <View
+                className="flex-1 justify-end"
+                style={{ backgroundColor: overlayBg }}
+            >
+                <View
+                    className="rounded-t-3xl max-h-[70%] pb-5"
+                    style={{ backgroundColor: t.card }}
+                >
+                    <View
+                        className="flex-row justify-between items-center p-5 border-b"
+                        style={{ borderBottomColor: t.border }}
+                    >
+                        <Text className="text-lg font-bold" style={{ color: t.text }}>{title}</Text>
                         <TouchableOpacity
                             onPress={onClose}
-                            style={styles.modalCloseButton}
+                            className="p-1"
                             activeOpacity={0.7}
                         >
                             <AppIcon name="close" size={24} color={t.text} />
                         </TouchableOpacity>
                     </View>
-                    <ScrollView style={styles.modalScrollView}>
+                    <ScrollView className="max-h-[400px]">
                         {options.map((option, index) => (
                             <TouchableOpacity
                                 key={index}
                                 onPress={() => onSelect(option)}
-                                style={[
-                                    styles.modalOptionItem,
-                                    {
-                                        backgroundColor: selectedOption === option ? accentBg : t.surface,
-                                        borderColor: selectedOption === option ? accentBorder : t.border,
-                                    }
-                                ]}
+                                className="flex-row justify-between items-center p-4 mx-4 my-1.5 rounded-xl border"
+                                style={{
+                                    backgroundColor: selectedOption === option ? accentBg : t.surface,
+                                    borderColor: selectedOption === option ? accentBorder : t.border,
+                                }}
                                 activeOpacity={0.7}
                             >
-                                <Text style={[
-                                    styles.modalOptionText,
-                                    {
+                                <Text
+                                    className="text-base"
+                                    style={{
                                         color: selectedOption === option ? accentBorder : t.text,
                                         fontWeight: selectedOption === option ? '600' : '400',
-                                    }
-                                ]}>
+                                    }}
+                                >
                                     {option}
                                 </Text>
                                 {selectedOption === option && (
@@ -79,47 +86,3 @@ export const CartOptionModal: React.FC<CartOptionModalProps> = ({
         </Modal>
     );
 };
-
-const styles = StyleSheet.create({
-    modalOverlay: {
-        flex: 1,
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        maxHeight: '70%',
-        paddingBottom: 20,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    modalCloseButton: {
-        padding: 4,
-    },
-    modalScrollView: {
-        maxHeight: 400,
-    },
-    modalOptionItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 16,
-        marginHorizontal: 16,
-        marginVertical: 6,
-        borderRadius: 12,
-        borderWidth: 1,
-    },
-    modalOptionText: {
-        fontSize: 16,
-    },
-});

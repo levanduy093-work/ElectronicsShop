@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Theme, lightTheme } from '../../theme';
 import { Order } from '../../types';
@@ -62,54 +62,55 @@ export const OrderTimeline: React.FC<OrderTimelineProps> = ({ order, theme: t })
 
     const statusInfo = getStatusFromTimeline(order);
 
+
     return (
-        <View style={[
-            styles.card,
-            {
+        <View
+            className="rounded-2xl p-4 border shadow-sm"
+            style={{
                 backgroundColor: t.card,
                 borderColor: t.border,
                 shadowOpacity: t === lightTheme ? 0.05 : 0,
                 elevation: t === lightTheme ? 2 : 0,
-            }
-        ]}>
-            <View style={styles.statusHeader}>
-                <Text style={[styles.orderId, { color: t.text }]}>{translate('order_id')} #{order.code || order.id}</Text>
+            }}
+        >
+            <View className="mb-3">
+                <Text className="text-base font-bold" style={{ color: t.text }}>{translate('order_id')} #{order.code || order.id}</Text>
             </View>
-            <View style={styles.statusBadgeContainer}>
-                <View style={[
-                    styles.statusBadge,
-                    {
+            <View className="mb-4 self-start">
+                <View
+                    className="px-3 py-1 rounded-xl"
+                    style={{
                         backgroundColor: statusInfo.bgColor,
-                    }
-                ]}>
-                    <Text style={[
-                        styles.statusBadgeText,
-                        { color: statusInfo.color }
-                    ]}>
+                    }}
+                >
+                    <Text
+                        className="text-xs font-medium"
+                        style={{ color: statusInfo.color }}
+                    >
                         {statusInfo.text}
                     </Text>
                 </View>
             </View>
 
-            <View style={[styles.timeline, { borderLeftColor: t.border }]}>
+            <View className="pl-2 border-l-2 gap-6" style={{ borderLeftColor: t.border }}>
                 {order.timeline.map((item, index) => (
-                    <View key={index} style={styles.timelineItem}>
-                        <View style={[
-                            styles.timelineDot,
-                            {
+                    <View key={index} className="flex-row items-start pl-4">
+                        <View
+                            className="absolute -left-2.5 w-4 h-4 rounded-full border-2"
+                            style={{
                                 borderColor: item.active ? t.primary : t.border,
                                 backgroundColor: item.active ? t.primary : t.surface,
-                            }
-                        ]} />
-                        <View style={styles.timelineContent}>
-                            <Text style={[
-                                styles.timelineTitle,
-                                { color: item.active ? t.text : t.muted },
-                            ]}>
+                            }}
+                        />
+                        <View className="flex-1">
+                            <Text
+                                className="text-sm font-medium mb-1"
+                                style={{ color: item.active ? t.text : t.muted }}
+                            >
                                 {item.title}
                             </Text>
                             {item.time && (
-                                <Text style={[styles.timelineTime, { color: t.muted }]}>{item.time}</Text>
+                                <Text className="text-xs" style={{ color: t.muted }}>{item.time}</Text>
                             )}
                         </View>
                     </View>
@@ -118,63 +119,3 @@ export const OrderTimeline: React.FC<OrderTimelineProps> = ({ order, theme: t })
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    card: {
-        borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowRadius: 2,
-    },
-    statusHeader: {
-        marginBottom: 12,
-    },
-    orderId: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    statusBadgeContainer: {
-        marginBottom: 16,
-        alignSelf: 'flex-start',
-    },
-    statusBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    statusBadgeText: {
-        fontSize: 12,
-        fontWeight: '500',
-    },
-    timeline: {
-        paddingLeft: 8,
-        borderLeftWidth: 2,
-        gap: 24,
-    },
-    timelineItem: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        paddingLeft: 16,
-    },
-    timelineDot: {
-        position: 'absolute',
-        left: -9,
-        width: 16,
-        height: 16,
-        borderRadius: 8,
-        borderWidth: 2,
-    },
-    timelineContent: {
-        flex: 1,
-    },
-    timelineTitle: {
-        fontSize: 14,
-        fontWeight: '500',
-        marginBottom: 4,
-    },
-    timelineTime: {
-        fontSize: 12,
-    },
-});

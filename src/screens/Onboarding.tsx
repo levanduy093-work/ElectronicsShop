@@ -5,7 +5,6 @@ import {
   FlatList,
   Image,
   Pressable,
-  StyleSheet,
   Text,
   View,
 } from 'react-native';
@@ -96,43 +95,61 @@ export function Onboarding({ onDone, onSkipToAuth, onSkipToHome, onSignUp }: Onb
 
   const renderSlide = ({ item }: { item: Slide }) => {
     return (
-      <View style={[styles.slide, { width: SCREEN_WIDTH }]}>
-        <View style={styles.headerRow}>
-          <View style={[styles.badge, { backgroundColor: item.accentMuted }]}>
-            <Text style={styles.badgeText}>{item.badge}</Text>
+      <View className="px-6 pt-2 pb-3" style={{ width: SCREEN_WIDTH }}>
+        <View className="flex-row justify-between items-center mb-4">
+          <View className="px-3.5 py-2 rounded-2xl" style={{ backgroundColor: item.accentMuted }}>
+            <Text className="text-white font-bold text-xs tracking-wider">{item.badge}</Text>
           </View>
           <Pressable onPress={onSkipToHome} hitSlop={14} accessibilityRole="button">
-            <Text style={[styles.skipText, { color: theme.muted }]}>{t('onboarding_skip')}</Text>
+            <Text className="text-sm font-semibold" style={{ color: theme.muted }}>{t('onboarding_skip')}</Text>
           </Pressable>
         </View>
 
-        <View style={styles.hero}>
-          <View style={[styles.blob, { backgroundColor: item.accentMuted, opacity: 0.18 }]} />
-          <View style={[styles.blobSecondary, { backgroundColor: item.accent, opacity: 0.12 }]} />
-          <View style={[styles.ring, { borderColor: item.accent }]} />
-          <View style={styles.logoCard}>
+        <View className="h-80 rounded-3xl overflow-hidden mb-7 justify-center bg-transparent">
+          <View className="absolute w-96 h-96 rounded-full -top-32 -left-16 transform -rotate-6" style={{ backgroundColor: item.accentMuted, opacity: 0.18 }} />
+          <View className="absolute w-[340px] h-[340px] rounded-full -bottom-36 -right-10 transform rotate-6" style={{ backgroundColor: item.accent, opacity: 0.12 }} />
+          <View className="absolute w-60 h-60 rounded-full border-[10px] self-center opacity-25" style={{ borderColor: item.accent }} />
+          <View
+            className="self-center flex-row items-center gap-2.5 px-4.5 py-3 rounded-2xl shadow-sm"
+            style={{
+              backgroundColor: '#FFFFFFCC',
+              shadowColor: '#000',
+              shadowOpacity: 0.08,
+              shadowRadius: 10,
+              shadowOffset: { width: 0, height: 4 },
+            }}
+          >
             <Image
               source={require('../assets/images/logo.png')}
-              style={styles.logo}
+              className="w-8 h-8"
               resizeMode="contain"
             />
-            <Text style={[styles.logoText, { color: theme.text }]}>{t('app_name')}</Text>
+            <Text className="font-extrabold text-lg" style={{ color: theme.text }}>{t('app_name')}</Text>
           </View>
-          <View style={[styles.featureCard, { backgroundColor: theme.surface }]}>
-            <View style={[styles.iconBadge, { backgroundColor: item.accent }]}>
+          <View
+            className="absolute bottom-7 left-4.5 right-4.5 p-4 rounded-2xl flex-row items-center gap-3 shadow-sm"
+            style={{
+              backgroundColor: theme.surface,
+              shadowColor: '#000',
+              shadowOpacity: 0.08,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 6 },
+            }}
+          >
+            <View className="w-11 h-11 rounded-xl items-center justify-center" style={{ backgroundColor: item.accent }}>
               <AppIcon name={item.icon as any} size={26} color="#fff" />
             </View>
-            <View style={styles.featureText}>
-              <Text style={[styles.featureTitle, { color: theme.text }]}>{item.highlight}</Text>
-              <Text style={[styles.featureSubtitle, { color: theme.muted }]}>{item.stats}</Text>
+            <View className="flex-1">
+              <Text className="text-base font-bold" style={{ color: theme.text }}>{item.highlight}</Text>
+              <Text className="mt-1 text-xs font-medium" style={{ color: theme.muted }}>{item.stats}</Text>
             </View>
             <AppIcon name="arrow-right" size={22} color={item.accent} />
           </View>
         </View>
 
-        <View style={styles.copy}>
-          <Text style={[styles.title, { color: theme.text }]}>{item.title}</Text>
-          <Text style={[styles.description, { color: theme.muted }]}>{item.description}</Text>
+        <View className="px-1">
+          <Text className="text-3xl font-extrabold mb-2.5 tracking-wide" style={{ color: theme.text }}>{item.title}</Text>
+          <Text className="text-base leading-6 font-medium" style={{ color: theme.muted }}>{item.description}</Text>
         </View>
       </View>
     );
@@ -149,14 +166,12 @@ export function Onboarding({ onDone, onSkipToAuth, onSkipToHome, onSignUp }: Onb
 
   return (
     <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: theme.background,
-          paddingTop: Math.max(insets.top, 24),
-          paddingBottom: insets.bottom ? insets.bottom + 10 : 20,
-        },
-      ]}
+      className="flex-1"
+      style={{
+        backgroundColor: theme.background,
+        paddingTop: Math.max(insets.top, 24),
+        paddingBottom: insets.bottom ? insets.bottom + 10 : 20,
+      }}
     >
       <Animated.FlatList
         ref={listRef}
@@ -177,13 +192,13 @@ export function Onboarding({ onDone, onSkipToAuth, onSkipToHome, onSignUp }: Onb
         scrollEventThrottle={16}
       />
 
-      <View style={[styles.bottom, { marginBottom: insets.bottom ? 0 : 6 }]}>
-        <View style={styles.pagination}>
+      <View className="px-6 pb-5 gap-3" style={{ marginBottom: insets.bottom ? 0 : 6 }}>
+        <View className="flex-row items-center justify-center gap-2">
           {slides.map((slide, index) => (
             <Animated.View
               key={slide.key}
-              style={[
-                styles.dot,
+              className="h-2.5 rounded-full"
+              style={
                 {
                   backgroundColor: theme.text,
                   opacity: progress[index],
@@ -192,57 +207,61 @@ export function Onboarding({ onDone, onSkipToAuth, onSkipToHome, onSignUp }: Onb
                     outputRange: [12, 32],
                     extrapolate: 'clamp',
                   }),
-                },
-              ]}
+                }
+              }
             />
           ))}
         </View>
 
         {activeIndex === slides.length - 1 ? (
-          <View style={styles.finalActions}>
-            <View style={styles.primaryActions}>
+          <View className="gap-3">
+            <View className="flex-row items-stretch gap-3">
               <Pressable
                 onPress={onSignUp || onSkipToAuth}
-                style={[styles.signUpBtn, { backgroundColor: slides[activeIndex]?.accent || theme.primary }]}
+                className="flex-1 py-3.5 rounded-xl items-center justify-center"
+                style={{ backgroundColor: slides[activeIndex]?.accent || theme.primary }}
                 android_ripple={{ color: '#ffffff20' }}
                 hitSlop={10}
                 accessibilityRole="button"
               >
-                <Text style={styles.signUpText}>{t('onboarding_sign_up')}</Text>
+                <Text className="text-white font-extrabold text-base">{t('onboarding_sign_up')}</Text>
               </Pressable>
               <Pressable
                 onPress={onSkipToAuth}
-                style={[styles.loginBtn, { borderColor: theme.border }]}
+                className="flex-1 py-3.5 rounded-xl border items-center justify-center"
+                style={{ borderColor: theme.border }}
                 android_ripple={{ color: theme.border }}
                 hitSlop={10}
                 accessibilityRole="button"
               >
-                <Text style={[styles.loginText, { color: theme.text }]}>{t('onboarding_login')}</Text>
+                <Text className="font-bold text-base" style={{ color: theme.text }}>{t('onboarding_login')}</Text>
               </Pressable>
             </View>
             <Pressable
               onPress={onSkipToHome}
-              style={[styles.guestBanner, { backgroundColor: theme.surface, borderColor: theme.border }]}
+              className="py-3.5 px-4 rounded-xl border items-center justify-center"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
               android_ripple={{ color: theme.border + '20' }}
               hitSlop={10}
               accessibilityRole="button"
             >
-              <Text style={[styles.guestText, { color: theme.muted }]}>{t('onboarding_continue_as_guest')}</Text>
-              <Text style={[styles.guestDesc, { color: theme.muted }]}>
+              <Text className="font-semibold text-sm mb-1" style={{ color: theme.muted }}>{t('onboarding_continue_as_guest')}</Text>
+              <Text className="text-xs text-center leading-4" style={{ color: theme.muted }}>
                 {t('onboarding_continue_as_guest_desc')}
               </Text>
             </Pressable>
           </View>
         ) : (
-          <View style={styles.singleAction}>
+          <View className="mt-2">
             <Pressable
               onPress={handleNext}
-              style={[styles.primaryBtnFull, { backgroundColor: slides[activeIndex]?.accent || theme.primary }]}
+              className="w-full py-3.5 rounded-xl items-center justify-center"
+              style={{ backgroundColor: slides[activeIndex]?.accent || theme.primary }}
               android_ripple={{ color: '#ffffff20' }}
               hitSlop={10}
               accessibilityRole="button"
             >
-              <Text style={styles.primaryText}>{t('onboarding_next')}</Text>
+              <Text className="text-white font-extrabold text-base">{t('onboarding_next')}</Text>
             </Pressable>
           </View>
         )}
@@ -251,219 +270,3 @@ export function Onboarding({ onDone, onSkipToAuth, onSkipToHome, onSignUp }: Onb
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  slide: {
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 12,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  badge: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 18,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 13,
-    letterSpacing: 0.4,
-  },
-  skipText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  hero: {
-    height: 320,
-    borderRadius: 28,
-    overflow: 'hidden',
-    marginBottom: 28,
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  blob: {
-    position: 'absolute',
-    width: 360,
-    height: 360,
-    borderRadius: 180,
-    top: -120,
-    left: -60,
-    transform: [{ rotate: '-6deg' }],
-  },
-  blobSecondary: {
-    position: 'absolute',
-    width: 340,
-    height: 340,
-    borderRadius: 170,
-    bottom: -140,
-    right: -40,
-    transform: [{ rotate: '8deg' }],
-  },
-  ring: {
-    position: 'absolute',
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    borderWidth: 10,
-    opacity: 0.24,
-    alignSelf: 'center',
-  },
-  logoCard: {
-    alignSelf: 'center',
-    backgroundColor: '#FFFFFFCC',
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  logo: {
-    width: 32,
-    height: 32,
-  },
-  logoText: {
-    fontWeight: '800',
-    fontSize: 17,
-  },
-  featureCard: {
-    position: 'absolute',
-    bottom: 28,
-    left: 18,
-    right: 18,
-    padding: 16,
-    borderRadius: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-  },
-  iconBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  featureText: {
-    flex: 1,
-  },
-  featureTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  featureSubtitle: {
-    marginTop: 4,
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  copy: {
-    paddingHorizontal: 4,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    marginBottom: 10,
-    letterSpacing: 0.2,
-  },
-  description: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '500',
-  },
-  bottom: {
-    paddingHorizontal: 24,
-    paddingBottom: 20,
-    gap: 12,
-  },
-  pagination: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  dot: {
-    height: 10,
-    borderRadius: 999,
-  },
-  singleAction: {
-    marginTop: 8,
-  },
-  primaryBtnFull: {
-    width: '100%',
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 15,
-  },
-  finalActions: {
-    gap: 12,
-  },
-  primaryActions: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: 12,
-  },
-  signUpBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  signUpText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 15,
-  },
-  loginBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loginText: {
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  guestBanner: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  guestText: {
-    fontWeight: '600',
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  guestDesc: {
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-});

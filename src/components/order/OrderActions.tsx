@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, Linking } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Theme } from '../../theme';
@@ -128,56 +128,50 @@ export const OrderActions: React.FC<OrderActionsProps> = ({
     };
 
     return (
-        <View style={[
-            styles.actions,
-            {
+        <View
+            className="flex-row p-4 border-t gap-3"
+            style={{
                 backgroundColor: t.surface,
                 borderTopColor: t.border,
                 paddingBottom: Math.max(insets.bottom, 16),
-            }
-        ]}>
+            }}
+        >
             <TouchableOpacity
-                style={[
-                    styles.supportButton,
-                    {
-                        borderColor: t.border,
-                        backgroundColor: t.card,
-                    }
-                ]}
+                className="flex-1 h-12 rounded-full justify-center items-center border"
+                style={{
+                    borderColor: t.border,
+                    backgroundColor: t.card,
+                }}
                 activeOpacity={0.7}
                 onPress={onOpenSupport}
             >
-                <Text style={[styles.supportButtonText, { color: t.text }]}>{translate('contact_support')}</Text>
+                <Text className="text-base font-bold" style={{ color: t.text }}>{translate('contact_support')}</Text>
             </TouchableOpacity>
             {isPendingPayment && isVnpayOrder && onPayAgain ? (
                 <TouchableOpacity
-                    style={[
-                        styles.reorderButton,
-                        {
-                            backgroundColor: isPayingAgain ? t.border : t.primary,
-                        }
-                    ]}
+                    className="flex-1 h-12 rounded-full justify-center items-center"
+                    style={{
+                        backgroundColor: isPayingAgain ? t.border : t.primary,
+                    }}
                     activeOpacity={0.8}
                     onPress={handlePayAgain}
                     disabled={isPayingAgain}
                 >
-                    <Text style={[styles.reorderButtonText, { color: isPayingAgain ? t.muted : '#FFFFFF' }]}>
+                    <Text className="text-base font-bold" style={{ color: isPayingAgain ? t.muted : '#FFFFFF' }}>
                         {isPayingAgain ? translate('processing') : translate('payAgain')}
                     </Text>
                 </TouchableOpacity>
             ) : (
                 <TouchableOpacity
-                    style={[
-                        styles.reorderButton,
-                        {
-                            backgroundColor: isReordering ? t.border : t.primary,
-                        }
-                    ]}
+                    className="flex-1 h-12 rounded-full justify-center items-center"
+                    style={{
+                        backgroundColor: isReordering ? t.border : t.primary,
+                    }}
                     activeOpacity={0.8}
                     onPress={handleReorder}
                     disabled={isReordering}
                 >
-                    <Text style={[styles.reorderButtonText, { color: isReordering ? t.muted : '#FFFFFF' }]}>
+                    <Text className="text-base font-bold" style={{ color: isReordering ? t.muted : '#FFFFFF' }}>
                         {isReordering ? translate('processing') : translate('reorder')}
                     </Text>
                 </TouchableOpacity>
@@ -185,35 +179,3 @@ export const OrderActions: React.FC<OrderActionsProps> = ({
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    actions: {
-        flexDirection: 'row',
-        padding: 16,
-        borderTopWidth: 1,
-        gap: 12,
-    },
-    supportButton: {
-        flex: 1,
-        height: 48,
-        borderRadius: 24,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1,
-    },
-    supportButtonText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    reorderButton: {
-        flex: 1,
-        height: 48,
-        borderRadius: 24,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    reorderButtonText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-});

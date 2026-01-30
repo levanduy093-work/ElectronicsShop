@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Animated, Dimensions, StyleSheet, ViewToken } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Animated, Dimensions, ViewToken } from 'react-native';
 import { HomeBanner } from '../../types';
 import { ImageWithFallback } from '../common/ImageWithFallback';
 import { useTranslation } from 'react-i18next';
@@ -43,24 +43,36 @@ const BannerCard = ({
             onPress={onPress}
             style={{ width: sliderWidth, paddingHorizontal: 4 }}
         >
-            <Animated.View style={[styles.bannerContainer, animatedStyle]}>
+            <Animated.View
+                className="w-full aspect-[2] rounded-2xl overflow-hidden mb-3 shadow-md bg-gray-100" // Added bg-gray-100 as placeholder
+                style={[
+                    {
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 8,
+                        elevation: 4,
+                    },
+                    animatedStyle
+                ]}
+            >
                 <ImageWithFallback
                     source={{ uri: item.imageUrl }}
-                    style={styles.bannerImage}
+                    className="w-full h-full"
                     resizeMode="cover"
                 />
-                <View style={styles.bannerOverlay}>
-                    <Text style={styles.bannerBadge}>New Arrival</Text>
-                    <Text style={styles.bannerTitle} numberOfLines={2}>
+                <View className="absolute inset-0 p-6 bg-black/40 justify-end">
+                    <Text className="text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-2">New Arrival</Text>
+                    <Text className="text-white text-2xl font-bold mb-1" numberOfLines={2}>
                         {item.title}
                     </Text>
                     {item.subtitle && (
-                        <Text style={styles.bannerSubtitle} numberOfLines={1}>
+                        <Text className="text-white/80 text-sm mb-4" numberOfLines={1}>
                             {item.subtitle}
                         </Text>
                     )}
-                    <View style={styles.bannerButton}>
-                        <Text style={styles.bannerButtonText}>
+                    <View className="bg-white px-4 py-2 rounded-[20px] self-start">
+                        <Text className="text-black text-sm font-semibold">
                             {item.ctaLabel || 'Shop Now'}
                         </Text>
                     </View>
@@ -133,14 +145,14 @@ export const HomeBannerSection: React.FC<HomeBannerSectionProps> = ({
     }, [sliderBanners.length]);
 
     return (
-        <View style={styles.bannerSection}>
+        <View className="mb-8">
             <AnimatedFlatList
                 ref={bannerListRef}
                 data={sliderBanners}
                 keyExtractor={(item) => item.id}
                 horizontal
                 pagingEnabled
-                style={styles.bannerList}
+                style={{ flexGrow: 0 }}
                 showsHorizontalScrollIndicator={false}
                 snapToInterval={sliderWidth}
                 snapToAlignment="start"
@@ -148,7 +160,7 @@ export const HomeBannerSection: React.FC<HomeBannerSectionProps> = ({
                 getItemLayout={(_, index) => ({ length: sliderWidth, offset: sliderWidth * index, index })}
                 onViewableItemsChanged={onViewableItemsChanged}
                 viewabilityConfig={viewabilityConfig}
-                contentContainerStyle={styles.bannerListContent}
+                contentContainerStyle={{ paddingHorizontal: 0 }}
                 scrollEventThrottle={16}
                 onScroll={bannerScrollHandler}
                 renderItem={({ item, index }) => (
@@ -161,14 +173,11 @@ export const HomeBannerSection: React.FC<HomeBannerSectionProps> = ({
                 )}
             />
             {sliderBanners.length > 1 && (
-                <View style={styles.bannerPager}>
+                <View className="flex-row justify-center items-center gap-2 mt-2">
                     {sliderBanners.map((item, index) => (
                         <View
                             key={item.id}
-                            style={[
-                                styles.bannerPagerDot,
-                                index === currentBannerIndex ? styles.bannerPagerDotActive : undefined,
-                            ]}
+                            className={`w-2 h-2 rounded-full ${index === currentBannerIndex ? 'bg-blue-600' : 'bg-gray-200'}`}
                         />
                     ))}
                 </View>
@@ -176,88 +185,3 @@ export const HomeBannerSection: React.FC<HomeBannerSectionProps> = ({
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    bannerSection: {
-        marginBottom: 32,
-    },
-    bannerList: {
-        flexGrow: 0,
-    },
-    bannerListContent: {
-        paddingHorizontal: 0,
-    },
-    bannerContainer: {
-        width: '100%',
-        aspectRatio: 2,
-        borderRadius: 16,
-        overflow: 'hidden',
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    bannerImage: {
-        width: '100%',
-        height: '100%',
-    },
-    bannerOverlay: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: 0,
-        bottom: 0,
-        padding: 24,
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
-        justifyContent: 'flex-end',
-    },
-    bannerBadge: {
-        color: '#60A5FA',
-        fontSize: 10,
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-        marginBottom: 8,
-    },
-    bannerTitle: {
-        color: '#FFFFFF',
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 4,
-    },
-    bannerSubtitle: {
-        color: 'rgba(255, 255, 255, 0.8)',
-        fontSize: 14,
-        marginBottom: 16,
-    },
-    bannerButton: {
-        backgroundColor: '#FFFFFF',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        alignSelf: 'flex-start',
-    },
-    bannerButtonText: {
-        color: '#000000',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    bannerPager: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 8,
-        marginTop: 8,
-    },
-    bannerPagerDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: '#E5E7EB',
-    },
-    bannerPagerDotActive: {
-        backgroundColor: '#2563EB',
-    },
-});

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform, Linking, AppState } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Platform, Linking, AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
@@ -365,31 +365,37 @@ export function Checkout({
   const currentStepIndex = steps.findIndex(s => s.id === step);
   const effectiveStepIndex = currentStepIndex === -1 ? steps.length - 1 : currentStepIndex;
 
+
   return (
-    <View style={[styles.container, { backgroundColor: t.background }]}>
+    <View className="flex-1" style={{ backgroundColor: t.background }}>
       <StatusBar
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={t.card}
         translucent={false}
       />
-      <View style={[
-        styles.header,
-        {
+      <View
+        className="flex-row items-center justify-between px-4 pb-4 border-b shadow-sm"
+        style={{
           backgroundColor: t.card,
           borderBottomColor: t.border,
           paddingTop: Math.max(insets.top, 0),
-        }
-      ]}>
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+          elevation: 4,
+        }}
+      >
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: t.text }]}>{translate('payment')}</Text>
+        <Text className="text-lg font-bold flex-1 ml-3" style={{ color: t.text }}>{translate('payment')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       {/* Progress */}
-      <View style={[styles.progressContainer, { backgroundColor: t.background }]}>
-        <View style={[styles.progressLine, { backgroundColor: lineBg }]} />
+      <View className="flex-row justify-between px-8 py-6 relative" style={{ backgroundColor: t.background }}>
+        <View className="absolute top-1/2 left-10 right-10 h-0.5 z-0" style={{ backgroundColor: lineBg }} />
         {steps.map((s, idx) => {
           const isActive = s.id === step;
           const isCompleted = effectiveStepIndex > idx;
@@ -397,26 +403,28 @@ export function Checkout({
           return (
             <TouchableOpacity
               key={s.id}
-              style={[styles.progressStep, { backgroundColor: t.background }]}
+              className="items-center z-10 px-2"
               onPress={() => setStep(s.id as Step)}
+              style={{ backgroundColor: t.background, gap: 8 }}
               activeOpacity={0.8}
             >
-              <View style={[
-                styles.progressCircle,
-                { backgroundColor: t.surface, borderColor: t.border },
-                (isActive || isCompleted) && { backgroundColor: t.primary, borderColor: t.primary },
-              ]}>
+              <View
+                className="w-10 h-10 rounded-full border-2 justify-center items-center"
+                style={{
+                  borderColor: isActive || isCompleted ? t.primary : '#D1D5DB',
+                  backgroundColor: isActive || isCompleted ? t.primary : '#FFFFFF',
+                }}
+              >
                 <AppIcon
                   name={s.icon}
                   size={18}
                   color={(isActive || isCompleted) ? '#FFFFFF' : t.muted}
                 />
               </View>
-              <Text style={[
-                styles.progressLabel,
-                { color: t.muted },
-                (isActive || isCompleted) && { color: t.primary },
-              ]}>
+              <Text
+                className="text-[10px] font-bold uppercase"
+                style={{ color: isActive || isCompleted ? t.primary : t.muted }}
+              >
                 {s.title}
               </Text>
             </TouchableOpacity>
@@ -426,7 +434,8 @@ export function Checkout({
 
       {/* Content */}
       <ScrollView
-        style={styles.content}
+        className="flex-1 px-4"
+        style={{ backgroundColor: 'transparent' }}
         contentContainerStyle={{ paddingBottom: 120, backgroundColor: t.background }}
         showsVerticalScrollIndicator={false}
       >
@@ -441,29 +450,33 @@ export function Checkout({
         )}
 
         {step === 'shipping' && (
-          <View style={styles.stepContent}>
-            <Text style={[styles.stepTitle, { color: t.muted }]}>Phương thức vận chuyển</Text>
+          <View className="gap-4 pb-24">
+            <Text className="text-xs font-bold uppercase tracking-wider" style={{ color: t.muted }}>Phương thức vận chuyển</Text>
 
             {shippingOptions.map((opt, i) => (
               <TouchableOpacity
                 key={i}
                 onPress={() => setSelectedShipping(i)}
-                style={[
-                  styles.optionCard,
-                  { backgroundColor: t.card, borderColor: t.border },
-                  selectedShipping === i && { borderColor: t.primary, borderWidth: 2 },
-                ]}
+                className="flex-row items-start p-4 rounded-xl border gap-3"
+                style={{
+                  backgroundColor: t.card,
+                  borderColor: selectedShipping === i ? t.primary : t.border,
+                  borderWidth: selectedShipping === i ? 2 : 1,
+                }}
                 activeOpacity={0.7}
               >
-                <View style={[styles.radio, { borderColor: t.border }]}>
-                  {selectedShipping === i && <View style={[styles.radioSelected, { backgroundColor: t.primary }]} />}
+                <View
+                  className="w-5 h-5 rounded-full border-2 justify-center items-center mt-0.5"
+                  style={{ borderColor: t.border }}
+                >
+                  {selectedShipping === i && <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.primary }} />}
                 </View>
-                <View style={styles.optionContent}>
-                  <View style={styles.optionHeader}>
-                    <Text style={[styles.optionName, { color: t.text }]}>{opt.name}</Text>
-                    <Text style={[styles.optionPrice, { color: t.primary }]}>{formatPrice(opt.price)}</Text>
+                <View className="flex-1">
+                  <View className="flex-row justify-between items-center mb-1">
+                    <Text className="text-sm font-semibold" style={{ color: t.text }}>{opt.name}</Text>
+                    <Text className="text-sm font-bold" style={{ color: t.primary }}>{formatPrice(opt.price)}</Text>
                   </View>
-                  <Text style={[styles.optionDesc, { color: t.muted }]}>{opt.desc}</Text>
+                  <Text className="text-[13px] leading-5" style={{ color: t.muted }}>{opt.desc}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -491,21 +504,29 @@ export function Checkout({
       </ScrollView>
 
       {/* Footer Action */}
-      <View style={[
-        styles.footer,
-        {
+      <View
+        className="absolute bottom-0 left-0 right-0 pt-4 px-4 border-t"
+        style={{
           backgroundColor: t.card,
           borderTopColor: t.border,
           paddingBottom: Math.max(insets.bottom, 16),
-        }
-      ]}>
+        }}
+      >
         <TouchableOpacity
           onPress={handleNext}
-          style={[styles.nextButton, { backgroundColor: t.primary, shadowColor: t.primary }]}
+          className="h-[50px] rounded-full flex-row justify-center items-center gap-2 shadow-sm"
+          style={{
+            backgroundColor: t.primary,
+            shadowColor: t.primary,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 4
+          }}
           activeOpacity={0.8}
           disabled={isSubmitting || placingOrder}
         >
-          <Text style={styles.nextButtonText}>
+          <Text className="text-white text-base font-bold">
             {step === 'payment' ? translate('payAmount', { amount: formatPrice(total) }) : translate('continue')}
           </Text>
           {step !== 'payment' && <AppIcon name="chevron-right" size={20} color="#FFFFFF" />}
@@ -514,157 +535,3 @@ export function Checkout({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-    flex: 1,
-    marginLeft: 12,
-  },
-  progressContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-    position: 'relative',
-  },
-  progressLine: {
-    position: 'absolute',
-    top: '50%',
-    left: 40,
-    right: 40,
-    height: 2,
-    backgroundColor: '#E5E7EB',
-    zIndex: 0,
-  },
-  progressStep: {
-    alignItems: 'center',
-    gap: 8,
-    zIndex: 1,
-    paddingHorizontal: 8,
-  },
-  progressCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#D1D5DB',
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  progressLabel: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-    color: '#9CA3AF',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 16,
-    backgroundColor: 'transparent',
-  },
-  stepContent: {
-    gap: 16,
-    paddingBottom: 96,
-  },
-  stepTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  optionCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 12,
-  },
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  radioSelected: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  optionContent: {
-    flex: 1,
-  },
-  optionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  optionName: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  optionPrice: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  optionDesc: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingTop: 16,
-    paddingHorizontal: 16,
-    borderTopWidth: 1,
-  },
-  nextButton: {
-    height: 50,
-    borderRadius: 25,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  nextButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});

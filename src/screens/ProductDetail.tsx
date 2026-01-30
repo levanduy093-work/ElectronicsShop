@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Share, useWindowDimensions, Modal, TextInput, Image, Animated, Easing, KeyboardAvoidingView, Platform, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Share, useWindowDimensions, Modal, TextInput, Image, Animated, Easing, KeyboardAvoidingView, Platform, Linking } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -471,21 +471,27 @@ export function ProductDetail({
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View className="flex-1" style={{ backgroundColor: theme.background }}>
       <ScrollView
-        style={styles.scrollView}
+        className="flex-1"
         showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="never"
       >
         {/* Product Image Gallery */}
-        <View style={styles.imageContainer}>
+        <View className="w-full aspect-square bg-[#F5F5F5] justify-center items-center relative overflow-hidden">
+          {/* Spacer to keep content clear of status bar/notch */}
+          <View
+            pointerEvents="none"
+            className="w-full"
+            style={{ height: insets.top + 8, backgroundColor: theme.background }}
+          />
           <ScrollView
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             onScroll={handleGalleryScroll}
             scrollEventThrottle={16}
-            style={styles.galleryScroll}
+            className="w-full h-full"
             contentInsetAdjustmentBehavior="never"
             decelerationRate="fast"
             snapToInterval={slideWidth}
@@ -495,7 +501,7 @@ export function ProductDetail({
               <View key={index} style={{ width: slideWidth, height: slideWidth, justifyContent: 'center', alignItems: 'center' }}>
                 <ImageWithFallback
                   source={{ uri: img }}
-                  style={styles.image}
+                  className="w-[75%] h-[75%]"
                   resizeMode="contain"
                 />
               </View>
@@ -503,56 +509,48 @@ export function ProductDetail({
           </ScrollView>
 
           {productImages.length > 1 && (
-            <View style={styles.pagination}>
+            <View className="absolute bottom-4 flex-row self-center gap-2">
               {productImages.map((_, index) => (
                 <View
                   key={index}
-                  style={[
-                    styles.paginationDot,
-                    { backgroundColor: index === activeImageIndex ? theme.primary : theme.border }
-                  ]}
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: index === activeImageIndex ? theme.primary : theme.border }}
                 />
               ))}
             </View>
           )}
 
-          <View style={[styles.headerOverlay, { top: insets.top + 8 }]}>
+          <View className="absolute left-3 right-3 flex-row justify-between items-center z-10 px-1" style={{ top: insets.top + 8 }}>
             <TouchableOpacity
               onPress={onBack}
-              style={[
-                styles.headerButton,
-                {
-                  backgroundColor: theme.surface,
-                  shadowOpacity: !isDarkMode ? 0.12 : 0.3,
-                }
-              ]}
+              className="w-10 h-10 rounded-full justify-center items-center shadow-sm"
+              style={{
+                backgroundColor: theme.surface,
+                shadowOpacity: !isDarkMode ? 0.12 : 0.3,
+              }}
               activeOpacity={0.7}
             >
               <AppIcon name="arrow-left" size={24} color={theme.text} />
             </TouchableOpacity>
-            <View style={styles.headerRight}>
+            <View className="flex-row gap-2">
               <TouchableOpacity
                 onPress={handleShare}
-                style={[
-                  styles.headerButton,
-                  {
-                    backgroundColor: theme.surface,
-                    shadowOpacity: !isDarkMode ? 0.12 : 0.3,
-                  }
-                ]}
+                className="w-10 h-10 rounded-full justify-center items-center shadow-sm"
+                style={{
+                  backgroundColor: theme.surface,
+                  shadowOpacity: !isDarkMode ? 0.12 : 0.3,
+                }}
                 activeOpacity={0.7}
               >
                 <AppIcon name="share2" size={24} color={theme.text} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleHeartClick}
-                style={[
-                  styles.headerButton,
-                  {
-                    backgroundColor: theme.surface,
-                    shadowOpacity: !isDarkMode ? 0.12 : 0.3,
-                  }
-                ]}
+                className="w-10 h-10 rounded-full justify-center items-center shadow-sm"
+                style={{
+                  backgroundColor: theme.surface,
+                  shadowOpacity: !isDarkMode ? 0.12 : 0.3,
+                }}
                 activeOpacity={0.7}
               >
                 <AppIcon
@@ -563,19 +561,17 @@ export function ProductDetail({
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={onNavigateToCart}
-                style={[
-                  styles.headerButton,
-                  {
-                    backgroundColor: theme.surface,
-                    shadowOpacity: !isDarkMode ? 0.12 : 0.3,
-                  }
-                ]}
+                className="w-10 h-10 rounded-full justify-center items-center shadow-sm"
+                style={{
+                  backgroundColor: theme.surface,
+                  shadowOpacity: !isDarkMode ? 0.12 : 0.3,
+                }}
                 activeOpacity={0.7}
               >
                 <AppIcon name="shopping-cart" size={24} color={theme.text} />
                 {cartItemCount > 0 && (
-                  <View style={[styles.badgeContainer, { borderColor: theme.surface }]}>
-                    <Text style={styles.badgeText}>
+                  <View className="absolute -top-1 -right-1 bg-red-500 rounded-full min-w-[20px] h-5 justify-center items-center px-1 border-2" style={{ borderColor: theme.surface }}>
+                    <Text className="text-white text-[10px] font-bold">
                       {cartItemCount > 99 ? '99+' : cartItemCount}
                     </Text>
                   </View>
@@ -584,40 +580,38 @@ export function ProductDetail({
             </View>
           </View>
           {product.stock !== 'In Stock' && (
-            <View style={styles.stockBadge}>
-              <Text style={styles.stockText}>
+            <View className="absolute bottom-10 left-4 bg-black/70 px-3 py-1 rounded-xl">
+              <Text className="text-white text-xs font-medium">
                 {product.stock === 'Low Stock' ? t('lowStock') : t('out_of_stock')}
               </Text>
             </View>
           )}
         </View>
 
-        <View style={styles.content}>
+        <View className="p-4 bg-transparent">
           {/* Title & Price */}
-          <View style={styles.titleSection}>
-            <View style={styles.titleRow}>
-              <Text style={[styles.title, { color: theme.text }]} numberOfLines={2}>{product.name}</Text>
-              <View style={styles.priceColumn}>
-                <Text style={[styles.price, { color: theme.primary }]}>{formatPrice(product.price)}</Text>
+          <View className="mb-6">
+            <View className="flex-row justify-between items-start mb-3 gap-4">
+              <Text className="flex-1 text-xl font-bold leading-7" style={{ color: theme.text }} numberOfLines={2}>{product.name}</Text>
+              <View className="items-end">
+                <Text className="text-2xl font-bold" style={{ color: theme.primary }}>{formatPrice(product.price)}</Text>
                 {product.originalPrice && (
-                  <Text style={[styles.originalPrice, { color: theme.muted }]}>{formatPrice(product.originalPrice)}</Text>
+                  <Text className="text-sm line-through mt-1" style={{ color: theme.muted }}>{formatPrice(product.originalPrice)}</Text>
                 )}
               </View>
             </View>
 
-            <View style={styles.ratingRow}>
-              <View style={styles.ratingContainer}>
+            <View className="flex-row items-center gap-4">
+              <View className="flex-row items-center gap-1">
                 <AppIcon name="star" size={16} color="#FBBF24" />
-                <Text style={[styles.ratingText, { color: theme.text }]}>{derivedAverageRating.toFixed(1)}</Text>
+                <Text className="text-sm font-medium" style={{ color: theme.text }}>{derivedAverageRating.toFixed(1)}</Text>
               </View>
-              <Text style={styles.separator}>|</Text>
-              <Text style={[styles.reviewsText, { color: theme.muted }]}>{derivedReviewCount} {t('reviews')}</Text>
-              <Text style={styles.separator}>|</Text>
+              <Text className="text-sm text-gray-300">|</Text>
+              <Text className="text-sm text-gray-500" style={{ color: theme.muted }}>{derivedReviewCount} {t('reviews')}</Text>
+              <Text className="text-sm text-gray-300">|</Text>
               <Text
-                style={[
-                  styles.soldText,
-                  { color: isOutOfStock ? '#DC2626' : '#10B981' },
-                ]}
+                className="text-sm font-medium"
+                style={{ color: isOutOfStock ? '#DC2626' : '#10B981' }}
               >
                 {availableStock !== undefined
                   ? availableStock > 0
@@ -634,26 +628,21 @@ export function ProductDetail({
 
           {/* Options */}
           {productOptions.length > 0 && (
-            <View style={styles.variantSection}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Tùy chọn</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.variantList}>
+            <View className="mb-6">
+              <Text className="text-base font-bold mb-3" style={{ color: theme.text }}>Tùy chọn</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                 {productOptions.map((option, i) => (
                   <TouchableOpacity
                     key={i}
                     onPress={() => setSelectedOption(option)}
-                    style={[
-                      styles.variantChip,
-                      {
-                        borderColor: selectedOption === option ? theme.primary : theme.border,
-                        backgroundColor: selectedOption === option ? (theme === ctxTheme ? '#EFF6FF' : 'rgba(37,99,235,0.2)') : theme.surface,
-                      }
-                    ]}
+                    style={{
+                      borderColor: selectedOption === option ? theme.primary : theme.border,
+                      backgroundColor: selectedOption === option ? (theme === ctxTheme ? '#EFF6FF' : 'rgba(37,99,235,0.2)') : theme.surface,
+                    }}
+                    className="px-4 py-2 rounded-full border mr-2"
                     activeOpacity={0.7}
                   >
-                    <Text style={[
-                      styles.variantText,
-                      { color: selectedOption === option ? theme.primary : theme.text }
-                    ]}>
+                    <Text className="text-sm font-medium" style={{ color: selectedOption === option ? theme.primary : theme.text }}>
                       {option}
                     </Text>
                   </TouchableOpacity>
@@ -663,56 +652,48 @@ export function ProductDetail({
           )}
 
           {/* Classifications */}
-          {productClassifications.length > 0 && (
-            <View style={styles.variantSection}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Phân loại</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.variantList}>
-                {productClassifications.map((classification, i) => (
-                  <TouchableOpacity
-                    key={i}
-                    onPress={() => setSelectedClassification(classification)}
-                    style={[
-                      styles.variantChip,
-                      {
+          {
+            productClassifications.length > 0 && (
+              <View className="mb-6">
+                <Text className="text-base font-bold mb-3" style={{ color: theme.text }}>Phân loại</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  {productClassifications.map((classification, i) => (
+                    <TouchableOpacity
+                      key={i}
+                      onPress={() => setSelectedClassification(classification)}
+                      style={{
                         borderColor: selectedClassification === classification ? theme.primary : theme.border,
                         backgroundColor: selectedClassification === classification ? (theme === ctxTheme ? '#EFF6FF' : 'rgba(37,99,235,0.2)') : theme.surface,
-                      }
-                    ]}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[
-                      styles.variantText,
-                      { color: selectedClassification === classification ? theme.primary : theme.text }
-                    ]}>
-                      {classification}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+                      }}
+                      className="px-4 py-2 rounded-full border mr-2"
+                      activeOpacity={0.7}
+                    >
+                      <Text className="text-sm font-medium" style={{ color: selectedClassification === classification ? theme.primary : theme.text }}>
+                        {classification}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )
+          }
 
           {/* Tabs */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
             {(['desc', 'specs', 'reviews', 'datasheet'] as const).map((tab) => (
               <TouchableOpacity
                 key={tab}
                 onPress={() => setActiveTab(tab)}
-                style={[
-                  styles.tab,
-                  {
-                    borderColor: activeTab === tab ? theme.primary : 'transparent',
-                    backgroundColor: activeTab === tab ? theme.card : 'transparent',
-                  }
-                ]}
+                style={{
+                  borderColor: activeTab === tab ? theme.primary : 'transparent',
+                  backgroundColor: activeTab === tab ? theme.card : 'transparent',
+                }}
+                className="px-4 py-2 rounded-lg border mr-2"
                 activeOpacity={0.7}
               >
-                <Text style={[
-                  styles.tabText,
-                  {
-                    color: activeTab === tab ? theme.primary : theme.muted,
-                  }
-                ]}>
+                <Text className="text-sm font-medium" style={{
+                  color: activeTab === tab ? theme.primary : theme.muted,
+                }}>
                   {tab === 'desc' ? 'Mô tả' : tab === 'specs' ? 'Thông số' : tab === 'reviews' ? 'Đánh giá' : 'Datasheet'}
                 </Text>
               </TouchableOpacity>
@@ -720,15 +701,15 @@ export function ProductDetail({
           </ScrollView>
 
           {/* Tab Content */}
-          <View style={styles.tabContent}>
+          <View className="min-h-[150px]">
             {activeTab === 'desc' && (
               <View>
-                <Text style={[styles.description, { color: theme.text }]}>{product.description}</Text>
-                <View style={[styles.guaranteeCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <Text className="text-sm leading-6 mb-6" style={{ color: theme.text }}>{product.description}</Text>
+                <View className="flex-row p-4 rounded-xl gap-3" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
                   <AppIcon name="shield-check" size={24} color={theme.primary} />
-                  <View style={styles.guaranteeContent}>
-                    <Text style={[styles.guaranteeTitle, { color: theme.text }]}>Cam kết chính hãng</Text>
-                    <Text style={[styles.guaranteeText, { color: theme.primary }]}>
+                  <View className="flex-1">
+                    <Text className="text-base font-semibold mb-1" style={{ color: theme.text }}>Cam kết chính hãng</Text>
+                    <Text className="text-sm" style={{ color: theme.primary }}>
                       Sản phẩm được kiểm tra kỹ lưỡng bởi đội ngũ kỹ thuật ElectroAI.
                     </Text>
                   </View>
@@ -737,7 +718,7 @@ export function ProductDetail({
             )}
 
             {activeTab === 'specs' && (
-              <View style={styles.specsContainer}>
+              <View className="gap-0">
                 {Object.entries(product.specs).map(([key, value]) => {
                   let displayValue = '';
                   if (Array.isArray(value)) {
@@ -751,9 +732,9 @@ export function ProductDetail({
                   }
 
                   return (
-                    <View key={key} style={styles.specRow}>
-                      <Text style={[styles.specKey, { color: theme.muted }]}>{key}</Text>
-                      <Text style={[styles.specValue, { color: theme.text }]}>
+                    <View key={key} className="flex-row justify-between py-3 border-b items-start" style={{ borderBottomColor: theme ? '#F3F4F6' : '#333' }}>
+                      <Text className="text-sm max-w-[40%]" style={{ color: theme.muted }}>{key}</Text>
+                      <Text className="text-sm font-medium flex-1 text-right ml-3" style={{ color: theme.text }}>
                         {displayValue}
                       </Text>
                     </View>
@@ -763,18 +744,17 @@ export function ProductDetail({
             )}
 
             {activeTab === 'reviews' && (
-              <View style={styles.reviewsContainer}>
+              <View className="gap-4">
                 {/* ... Review UI existing code ... */}
-                <View style={[
-                  styles.ratingSummary,
-                  {
+                <View className="flex-row rounded-2xl p-4 gap-4 border"
+                  style={{
                     backgroundColor: theme.card,
                     borderColor: theme.border,
-                  }
-                ]}>
-                  <View style={styles.ratingScore}>
-                    <Text style={[styles.ratingScoreText, { color: theme.text }]}>{derivedAverageRating.toFixed(1)}</Text>
-                    <View style={styles.ratingStarsRow}>
+                  }}
+                >
+                  <View className="items-center w-[120px] gap-1.5">
+                    <Text className="text-3xl font-bold" style={{ color: theme.text }}>{derivedAverageRating.toFixed(1)}</Text>
+                    <View className="flex-row gap-0.5">
                       {Array.from({ length: 5 }).map((_, idx) => (
                         <AppIcon
                           key={idx}
@@ -784,19 +764,19 @@ export function ProductDetail({
                         />
                       ))}
                     </View>
-                    <Text style={[styles.ratingCount, { color: theme.muted }]}>{derivedReviewCount} {t('reviews')}</Text>
+                    <Text className="text-xs" style={{ color: theme.muted }}>{derivedReviewCount} {t('reviews')}</Text>
                   </View>
-                  <View style={styles.ratingBars}>
+                  <View className="flex-1 gap-2.5 justify-center">
                     {[5, 4, 3, 2, 1].map((star) => (
-                      <View key={star} style={styles.ratingBarRow}>
-                        <Text style={[styles.starLabel, { color: theme.muted }]}>{star}</Text>
-                        <View style={[styles.barTrack, { backgroundColor: theme.border }]}>
-                          <View style={[
-                            styles.barFill,
-                            {
+                      <View key={star} className="flex-row items-center gap-2">
+                        <Text className="w-3.5 text-center" style={{ color: theme.muted }}>{star}</Text>
+                        <View className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.border }}>
+                          <View className="h-2 rounded-full"
+                            style={{
+                              backgroundColor: '#FBBF24',
                               width: derivedReviewCount ? `${(ratingCounts[star] || 0) / derivedReviewCount * 100}%` : '0%',
-                            }
-                          ]} />
+                            }}
+                          />
                         </View>
                         <AppIcon name="star" size={14} color="#FBBF24" />
                       </View>
@@ -808,25 +788,25 @@ export function ProductDetail({
                   activeOpacity={0.8}
                   onPress={handleWriteReview}
                   style={[
-                    styles.writeReviewButton,
                     {
                       borderColor: theme.primary,
                       backgroundColor: theme.surface,
                     }
                   ]}
+                  className="flex-row items-center justify-center gap-2 border rounded-xl py-2.5"
                 >
                   <AppIcon name="edit" size={18} color={theme.primary} />
-                  <Text style={[styles.writeReviewText, { color: theme.primary }]}>
+                  <Text className="font-semibold" style={{ color: theme.primary }}>
                     {reviews.find(r => r.userId === currentUserId) ? t('editReview') : t('writeReview')}
                   </Text>
                 </TouchableOpacity>
 
                 {reviewsLoading && (
-                  <Text style={[styles.reviewsText, { color: theme.muted, paddingVertical: 8 }]}>{t('loading_reviews')}</Text>
+                  <Text className="text-sm text-gray-500" style={{ color: theme.muted, paddingVertical: 8 }}>{t('loading_reviews')}</Text>
                 )}
 
                 {reviewsFetched && reviews.length === 0 && !reviewsLoading && (
-                  <Text style={[styles.reviewsText, { color: theme.muted, paddingVertical: 8 }]}>
+                  <Text className="text-sm text-gray-500" style={{ color: theme.muted, paddingVertical: 8 }}>
                     {t('no_reviews_yet')}
                   </Text>
                 )}
@@ -834,22 +814,20 @@ export function ProductDetail({
                 {reviews.map((r) => (
                   <View
                     key={r._id || r.productId + r.userId + (r.comment || '')}
-                    style={[
-                      styles.reviewCard,
-                      {
-                        borderBottomColor: theme.border,
-                      }
-                    ]}
+                    style={{
+                      borderBottomColor: theme.border,
+                    }}
+                    className="py-3 border-b gap-2"
                   >
-                    <View style={styles.reviewHeader}>
-                      <View style={[styles.avatarPlaceholder, { backgroundColor: theme.surface }]}>
+                    <View className="flex-row items-center gap-3">
+                      <View className="w-10 h-10 rounded-full justify-center items-center" style={{ backgroundColor: theme.surface }}>
                         <AppIcon name="user" size={20} color={theme.muted} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={[styles.reviewName, { color: theme.text }]}>
+                        <Text className="font-bold text-sm" style={{ color: theme.text }}>
                           {r.userName || 'Khách hàng'}
                         </Text>
-                        <View style={styles.ratingStarsRow}>
+                        <View className="flex-row gap-0.5">
                           {Array.from({ length: 5 }).map((_, idx) => (
                             <AppIcon
                               key={idx}
@@ -860,13 +838,13 @@ export function ProductDetail({
                           ))}
                         </View>
                       </View>
-                      <Text style={[styles.reviewDate, { color: theme.muted }]}>
+                      <Text className="text-xs" style={{ color: theme.muted }}>
                         {formatReviewDate(r.updatedAt || r.createdAt)}
                       </Text>
                     </View>
-                    {r.comment ? <Text style={[styles.reviewComment, { color: theme.text }]}>{r.comment}</Text> : null}
+                    {r.comment ? <Text className="text-sm leading-5" style={{ color: theme.text }}>{r.comment}</Text> : null}
                     {r.images && r.images.length > 0 && (
-                      <View style={styles.reviewImagesRow}>
+                      <View className="flex-row flex-wrap mt-2">
                         {r.images
                           .slice(0, expandedReviews[r._id || r.productId] ? r.images.length : 4)
                           .map((img, idx) => {
@@ -876,16 +854,14 @@ export function ProductDetail({
                             return (
                               <Wrapper
                                 key={img + idx}
-                                style={[
-                                  styles.reviewImageWrapper,
-                                  {
-                                    width: reviewImageSize,
-                                    height: reviewImageSize,
-                                    marginRight: (idx + 1) % 4 === 0 ? 0 : 8,
-                                    marginBottom: 8,
-                                    backgroundColor: theme.surface,
-                                  },
-                                ]}
+                                style={{
+                                  width: reviewImageSize,
+                                  height: reviewImageSize,
+                                  marginRight: (idx + 1) % 4 === 0 ? 0 : 8,
+                                  marginBottom: 8,
+                                  backgroundColor: theme.surface,
+                                }}
+                                className="rounded-xl overflow-hidden relative"
                                 activeOpacity={0.8}
                                 onPress={
                                   showOverlay
@@ -895,12 +871,12 @@ export function ProductDetail({
                               >
                                 <ImageWithFallback
                                   source={{ uri: img }}
-                                  style={styles.reviewImage}
+                                  className="w-full h-full"
                                   resizeMode="cover"
                                 />
                                 {showOverlay && (
-                                  <View style={styles.reviewImageOverlay}>
-                                    <Text style={styles.reviewImageOverlayText}>+{extra}</Text>
+                                  <View className="absolute inset-0 bg-black/45 justify-center items-center">
+                                    <Text className="text-white font-bold text-base">+{extra}</Text>
                                   </View>
                                 )}
                               </Wrapper>
@@ -914,40 +890,35 @@ export function ProductDetail({
             )}
 
             {activeTab === 'datasheet' && (
-              <View style={styles.datasheetContainer}>
+              <View className="gap-3">
                 {hasDatasheet && datasheetFiles.length > 0 ? (
                   datasheetFiles.map((file) => (
                     <TouchableOpacity
                       key={file.id}
                       activeOpacity={0.8}
-                      style={[
-                        styles.dataCard,
-                        {
-                          backgroundColor: theme.card,
-                          borderColor: theme.border,
-                        }
-                      ]}
+                      style={{
+                        backgroundColor: theme.card,
+                        borderColor: theme.border,
+                      }}
+                      className="flex-row items-center justify-between rounded-xl p-3 border"
                       onPress={() => handleDownloadDatasheet(file.url, `${product.code || product.id || 'datasheet'}.pdf`)}
                     >
-                      <View style={styles.dataLeft}>
-                        <View style={[
-                          styles.dataIcon,
-                          {
-                            backgroundColor: !isDarkMode ? '#EFF6FF' : theme.surface,
-                          }
-                        ]}>
+                      <View className="flex-row items-center gap-3 flex-1">
+                        <View className="w-9 h-9 rounded-lg justify-center items-center" style={{
+                          backgroundColor: !isDarkMode ? '#EFF6FF' : theme.surface,
+                        }}>
                           <AppIcon name={file.icon} size={18} color={theme.primary} />
                         </View>
                         <View>
-                          <Text style={[styles.dataName, { color: theme.text }]}>{file.name}</Text>
-                          <Text style={[styles.dataDesc, { color: theme.muted }]}>{file.desc}</Text>
+                          <Text className="font-semibold text-sm" style={{ color: theme.text }}>{file.name}</Text>
+                          <Text className="text-xs mt-0.5" style={{ color: theme.muted }}>{file.desc}</Text>
                         </View>
                       </View>
                       <AppIcon name="download" size={20} color={theme.primary} />
                     </TouchableOpacity>
                   ))
                 ) : (
-                  <Text style={[styles.dataDesc, { color: theme.muted }]}>
+                  <Text className="text-xs mt-0.5" style={{ color: theme.muted }}>
                     Sản phẩm này chưa có datasheet.
                   </Text>
                 )}
@@ -956,24 +927,26 @@ export function ProductDetail({
           </View>
 
           {/* Related Products */}
-          {relatedProducts.length > 0 && (
-            <View style={styles.relatedSection}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Sản phẩm tương tự</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {relatedProducts.map(p => (
-                  <View key={p.id} style={styles.relatedCardWrapper}>
-                    <ProductCard
-                      product={p}
-                      theme={theme}
-                      onPress={() => onProductClick?.(p)}
-                    />
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-        </View>
-      </ScrollView>
+          {
+            relatedProducts.length > 0 && (
+              <View className="mt-6 mb-10">
+                <Text className="text-base font-bold mb-3" style={{ color: theme.text }}>Sản phẩm tương tự</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {relatedProducts.map(p => (
+                    <View key={p.id} className="mr-4 w-[170px]">
+                      <ProductCard
+                        product={p}
+                        theme={theme}
+                        onPress={() => onProductClick?.(p)}
+                      />
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )
+          }
+        </View >
+      </ScrollView >
 
       <Modal
         visible={showReviewModal}
@@ -982,13 +955,13 @@ export function ProductDetail({
         onRequestClose={handleCloseModal}
       >
         <KeyboardAvoidingView
-          style={styles.modalBackdrop}
+          className="flex-1 bg-black/35 justify-center items-center p-4"
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View style={[styles.modalCard, { backgroundColor: theme.surface }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>{t('writeReview')}</Text>
+          <View className="w-full rounded-2xl p-4" style={{ backgroundColor: theme.surface }}>
+            <Text className="text-lg font-bold mb-3" style={{ color: theme.text }}>{t('writeReview')}</Text>
 
-            <View style={styles.ratingSelector}>
+            <View className="flex-row gap-2 mb-3">
               {[1, 2, 3, 4, 5].map((star) => (
                 <TouchableOpacity key={star} onPress={() => setReviewRating(star)} activeOpacity={0.7}>
                   <AppIcon
@@ -1005,43 +978,46 @@ export function ProductDetail({
               onChangeText={setReviewContent}
               placeholder="Chia sẻ cảm nhận của bạn..."
               placeholderTextColor={theme.muted}
-              style={[styles.reviewInput, { color: theme.text, borderColor: theme.border }]}
+              style={{ color: theme.text, borderColor: theme.border }}
+              className="min-h-[100px] border rounded-xl p-3 text-top mb-3"
               multiline
               maxLength={400}
             />
 
-            <View style={styles.uploadRow}>
+            <View className="flex-row flex-wrap gap-3 mb-3">
               {reviewImages.map((uri) => (
-                <View key={uri} style={[styles.uploadPreview, { borderColor: theme.border }]}>
-                  <Image source={{ uri }} style={styles.uploadImage} />
-                  <TouchableOpacity style={styles.removeBadge} onPress={() => handleRemoveImage(uri)} activeOpacity={0.7}>
-                    <Text style={styles.removeBadgeText}>×</Text>
+                <View key={uri} className="w-16 h-16 rounded-xl overflow-hidden border relative" style={{ borderColor: theme.border }}>
+                  <Image source={{ uri }} className="w-full h-full" />
+                  <TouchableOpacity className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 justify-center items-center" onPress={() => handleRemoveImage(uri)} activeOpacity={0.7}>
+                    <Text className="text-white text-xs font-bold">×</Text>
                   </TouchableOpacity>
                 </View>
               ))}
 
               {reviewImages.length < 4 && (
                 <TouchableOpacity
-                  style={[styles.uploadAdd, { borderColor: theme.border }]}
+                  style={{ borderColor: theme.border }}
+                  className="border border-dashed rounded-xl py-3 px-3.5 flex-row items-center gap-2"
                   onPress={handlePickImages}
                   activeOpacity={0.8}
                 >
                   <AppIcon name="camera" size={18} color={theme.primary} />
-                  <Text style={[styles.uploadAddText, { color: theme.primary }]}>Thêm ảnh</Text>
+                  <Text className="text-sm font-semibold" style={{ color: theme.primary }}>Thêm ảnh</Text>
                 </TouchableOpacity>
               )}
             </View>
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={[styles.modalButton, styles.modalCancel]} onPress={handleCloseModal} activeOpacity={0.8}>
-                <Text style={[styles.modalButtonText, { color: theme.muted }]}>Đóng</Text>
+            <View className="flex-row justify-end gap-3">
+              <TouchableOpacity className="py-2.5 px-4 rounded-xl" style={{ backgroundColor: 'transparent' }} onPress={handleCloseModal} activeOpacity={0.8}>
+                <Text className="fontSize-14 font-semibold" style={{ color: theme.muted }}>Đóng</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, styles.modalSubmit, { backgroundColor: theme.primary }]}
+                className="py-2.5 px-4 rounded-xl flex-1 items-center"
+                style={{ backgroundColor: theme.primary }}
                 onPress={handleSubmitReview}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Gửi</Text>
+                <Text className="fontSize-14 font-semibold" style={{ color: '#FFFFFF' }}>Gửi</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1054,28 +1030,30 @@ export function ProductDetail({
         animationType="fade"
         onRequestClose={() => setShowDatasheetModal(false)}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, styles.datasheetModal, { backgroundColor: theme.surface }]}>
-            <View style={styles.modalSuccessIcon}>
+        <View className="flex-1 bg-black/35 justify-center items-center p-4">
+          <View className="w-full rounded-2xl p-4 items-center max-w-[340px]" style={{ backgroundColor: theme.surface }}>
+            <View className="w-20 h-20 rounded-full bg-emerald-50 justify-center items-center mb-4">
               <AppIcon name="check-circle" size={48} color="#10B981" />
             </View>
-            <Text style={[styles.modalTitle, { color: theme.text, textAlign: 'center' }]}>
+            <Text className="text-lg font-bold mb-3" style={{ color: theme.text, textAlign: 'center' }}>
               Đã tải datasheet
             </Text>
-            <Text style={[styles.modalDescription, { color: theme.muted }]}>
+            <Text className="text-sm text-center mb-6 leading-5 px-2" style={{ color: theme.muted }}>
               File đã được lưu, bạn có muốn mở ngay không?
             </Text>
 
-            <View style={styles.modalActions}>
+            <View className="flex-row justify-end gap-3">
               <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonClose, { backgroundColor: theme.border }]}
+                className="py-2.5 px-4 rounded-xl flex-1 items-center justify-center"
+                style={{ backgroundColor: theme.border }}
                 onPress={() => setShowDatasheetModal(false)}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.modalButtonText, { color: theme.text }]}>Đóng</Text>
+                <Text className="fontSize-14 font-semibold" style={{ color: theme.text }}>Đóng</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonOpen, { backgroundColor: theme.primary }]}
+                className="py-2.5 px-4 rounded-xl flex-1 items-center justify-center shadow-sm"
+                style={{ backgroundColor: theme.primary }}
                 onPress={() => {
                   setShowDatasheetModal(false);
                   if (downloadedPath) {
@@ -1086,7 +1064,7 @@ export function ProductDetail({
                 }}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Mở</Text>
+                <Text className="fontSize-14 font-semibold" style={{ color: '#FFFFFF' }}>Mở</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1099,49 +1077,52 @@ export function ProductDetail({
         animationType="fade"
         onRequestClose={() => setShowPermissionModal(false)}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, styles.datasheetModal, { backgroundColor: theme.surface }]}>
-            <View style={[styles.modalSuccessIcon, { backgroundColor: '#FEF2F2' }]}>
+        <View className="flex-1 bg-black/35 justify-center items-center p-4">
+          <View className="w-full rounded-2xl p-4 items-center max-w-[340px]" style={{ backgroundColor: theme.surface }}>
+            <View className="w-20 h-20 rounded-full bg-emerald-50 justify-center items-center mb-4" style={{ backgroundColor: '#FEF2F2' }}>
               <AppIcon name="shield-check" size={48} color="#EF4444" />
             </View>
-            <Text style={[styles.modalTitle, { color: theme.text, textAlign: 'center' }]}>
+            <Text className="text-lg font-bold mb-3" style={{ color: theme.text, textAlign: 'center' }}>
               Cần quyền lưu trữ
             </Text>
-            <Text style={[styles.modalDescription, { color: theme.muted }]}>
+            <Text className="text-sm text-center mb-6 leading-5 px-2" style={{ color: theme.muted }}>
               {permissionStatus === 'blocked'
                 ? 'Bạn đã tắt quyền lưu trữ. Vui lòng vào Cài đặt để cấp lại quyền cho ứng dụng.'
                 : 'Ứng dụng cần quyền lưu trữ để tải datasheet về thiết bị của bạn.'}
             </Text>
 
-            <View style={styles.modalActions}>
+            <View className="flex-row justify-end gap-3">
               <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonClose, { backgroundColor: theme.border }]}
+                className="py-2.5 px-4 rounded-xl flex-1 items-center justify-center"
+                style={{ backgroundColor: theme.border }}
                 onPress={() => setShowPermissionModal(false)}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.modalButtonText, { color: theme.text }]}>Hủy</Text>
+                <Text className="fontSize-14 font-semibold" style={{ color: theme.text }}>Hủy</Text>
               </TouchableOpacity>
               {permissionStatus === 'blocked' ? (
                 <TouchableOpacity
-                  style={[styles.modalButton, styles.modalButtonOpen, { backgroundColor: theme.primary }]}
+                  className="py-2.5 px-4 rounded-xl flex-1 items-center justify-center shadow-sm"
+                  style={{ backgroundColor: theme.primary }}
                   onPress={() => {
                     setShowPermissionModal(false);
                     Linking.openSettings();
                   }}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Cài đặt</Text>
+                  <Text className="fontSize-14 font-semibold" style={{ color: '#FFFFFF' }}>Cài đặt</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
-                  style={[styles.modalButton, styles.modalButtonOpen, { backgroundColor: theme.primary }]}
+                  className="py-2.5 px-4 rounded-xl flex-1 items-center justify-center shadow-sm"
+                  style={{ backgroundColor: theme.primary }}
                   onPress={() => {
                     setShowPermissionModal(false);
                     handleDownloadDatasheet(String(product.datasheet), `${product.code || product.id || 'datasheet'}.pdf`);
                   }}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Thử lại</Text>
+                  <Text className="fontSize-14 font-semibold" style={{ color: '#FFFFFF' }}>Thử lại</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -1150,32 +1131,30 @@ export function ProductDetail({
       </Modal>
 
       {/* Bottom Action Bar */}
-      <View style={[
-        styles.actionBar,
-        {
+      <View className="flex-row items-center p-4 border-t gap-3"
+        style={{
           backgroundColor: theme.surface,
           borderTopColor: theme.border,
           paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 36) : Math.max(insets.bottom, 16),
-        }
-      ]}>
-        <View style={[
-          styles.quantityContainer,
-          {
+        }}
+      >
+        <View className="flex-row items-center rounded-xl p-1 gap-3"
+          style={{
             backgroundColor: theme.card,
-          }
-        ]}>
+          }}
+        >
           <TouchableOpacity
             onPress={() => setQuantity(prev => Math.max(1, Math.min(maxQuantity, prev - 1)))}
-            style={styles.quantityButton}
+            className="w-10 h-10 justify-center items-center rounded-lg"
             activeOpacity={0.7}
             disabled={quantity <= 1}
           >
             <AppIcon name="minus" size={20} color={quantity <= 1 ? theme.muted : theme.text} />
           </TouchableOpacity>
-          <Text style={[styles.quantityText, { color: theme.text }]}>{quantity}</Text>
+          <Text className="text-lg font-semibold min-w-[32px] text-center" style={{ color: theme.text }}>{quantity}</Text>
           <TouchableOpacity
             onPress={() => setQuantity(prev => Math.min(maxQuantity, prev + 1))}
-            style={styles.quantityButton}
+            className="w-10 h-10 justify-center items-center rounded-lg"
             activeOpacity={0.7}
             disabled={quantity >= maxQuantity}
           >
@@ -1189,15 +1168,13 @@ export function ProductDetail({
 
         <TouchableOpacity
           onPress={handleAddToCart}
-          style={[
-            styles.addToCartButton,
-            { backgroundColor: isOutOfStock ? theme.border : theme.primary },
-          ]}
+          className="flex-1 flex-row items-center justify-center rounded-xl py-3.5 gap-2"
+          style={{ backgroundColor: isOutOfStock ? theme.border : theme.primary }}
           activeOpacity={0.8}
           disabled={isOutOfStock}
         >
           <AppIcon name="shopping-cart" size={20} color="#FFFFFF" />
-          <Text style={[styles.addToCartText, { color: isOutOfStock ? theme.muted : '#FFFFFF' }]}>
+          <Text className="text-white text-base font-bold" style={{ color: isOutOfStock ? theme.muted : '#FFFFFF' }}>
             Thêm vào giỏ
           </Text>
         </TouchableOpacity>
@@ -1205,641 +1182,24 @@ export function ProductDetail({
 
       {/* Animation Flying Item */}
       <Animated.View
-        style={[
-          styles.flyingItem,
-          {
-            opacity: animOpacity,
-            transform: [
-              { translateX: animItem.x },
-              { translateY: animItem.y },
-              { scale: animScale },
-            ],
-          },
-        ]}
+        className="absolute top-1/2 left-1/2 w-20 h-20 -mt-10 -ml-10 z-[9999] rounded-full overflow-hidden bg-white shadow-lg border-2 border-white"
+        style={{
+          opacity: animOpacity,
+          transform: [
+            { translateX: animItem.x },
+            { translateY: animItem.y },
+            { scale: animScale },
+          ],
+        }}
         pointerEvents="none"
       >
         <ImageWithFallback
           source={{ uri: product.image }}
-          style={styles.flyingImage}
+          className="w-full h-full"
           resizeMode="cover"
         />
       </Animated.View>
-    </View>
+    </View >
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  headerOverlay: {
-    position: 'absolute',
-    left: 12,
-    right: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    zIndex: 5,
-    paddingHorizontal: 4,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  imageContainer: {
-    width: '100%',
-    aspectRatio: 1,
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  galleryScroll: {
-    width: '100%',
-    height: '100%',
-  },
-  pagination: {
-    position: 'absolute',
-    bottom: 16,
-    flexDirection: 'row',
-    alignSelf: 'center',
-    gap: 8,
-  },
-  paginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  image: {
-    width: '75%',
-    height: '75%',
-  },
-  stockBadge: {
-    position: 'absolute',
-    bottom: 40, // Moved up to clear pagination
-    left: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  stockText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  content: {
-    padding: 16,
-    backgroundColor: 'transparent',
-  },
-  titleSection: {
-    marginBottom: 24,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-    gap: 16,
-  },
-  title: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
-    lineHeight: 28,
-  },
-  priceColumn: {
-    alignItems: 'flex-end',
-  },
-  price: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2563EB',
-  },
-  originalPrice: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    textDecorationLine: 'line-through',
-    marginTop: 4,
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  ratingText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#111827',
-  },
-  separator: {
-    fontSize: 14,
-    color: '#D1D5DB',
-  },
-  reviewsText: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  soldText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#10B981',
-  },
-  variantSection: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  variantList: {
-    gap: 8,
-  },
-  variantChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginRight: 8,
-  },
-  variantText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  tabsContainer: {
-    marginBottom: 24,
-  },
-  tab: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    marginRight: 8,
-  },
-  tabActive: {
-    borderColor: 'transparent',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  tabTextActive: {
-    color: 'transparent',
-  },
-  tabContent: {
-    minHeight: 150,
-  },
-  description: {
-    fontSize: 14,
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  guaranteeCard: {
-    flexDirection: 'row',
-    backgroundColor: '#EFF6FF',
-    padding: 16,
-    borderRadius: 12,
-    gap: 12,
-  },
-  guaranteeContent: {
-    flex: 1,
-  },
-  guaranteeTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E40AF',
-    marginBottom: 4,
-  },
-  guaranteeText: {
-    fontSize: 14,
-    color: '#3B82F6',
-  },
-  specsContainer: {
-    gap: 0,
-  },
-  specRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    alignItems: 'flex-start',
-  },
-  specKey: {
-    fontSize: 14,
-    color: '#6B7280',
-    maxWidth: '40%',
-  },
-  specValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#111827',
-    flex: 1,
-    textAlign: 'right',
-    marginLeft: 12,
-  },
-  reviewsContainer: {
-    gap: 16,
-  },
-  ratingSummary: {
-    flexDirection: 'row',
-    borderRadius: 16,
-    padding: 16,
-    gap: 16,
-    borderWidth: 1,
-  },
-  ratingScore: {
-    alignItems: 'center',
-    width: 120,
-    gap: 6,
-  },
-  ratingScoreText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-  },
-  ratingStarsRow: {
-    flexDirection: 'row',
-    gap: 2,
-  },
-  ratingCount: {
-    fontSize: 12,
-  },
-  ratingBars: {
-    flex: 1,
-    gap: 10,
-    justifyContent: 'center',
-  },
-  ratingBarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  starLabel: {
-    width: 14,
-    textAlign: 'center',
-  },
-  barTrack: {
-    flex: 1,
-    height: 8,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: 8,
-    backgroundColor: '#FBBF24',
-    borderRadius: 999,
-  },
-  writeReviewButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 10,
-  },
-  writeReviewText: {
-    fontWeight: '600',
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  modalCard: {
-    width: '100%',
-    borderRadius: 16,
-    padding: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 12,
-  },
-  ratingSelector: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  reviewInput: {
-    minHeight: 100,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    textAlignVertical: 'top',
-    marginBottom: 12,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-  },
-  modalButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-  },
-  modalCancel: {
-    backgroundColor: 'transparent',
-  },
-  modalSubmit: {
-    backgroundColor: '#2563EB',
-    flex: 1,
-    alignItems: 'center',
-  },
-  modalButtonClose: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E5E7EB',
-  },
-  modalButtonOpen: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  datasheetModal: {
-    padding: 24,
-    alignItems: 'center',
-    maxWidth: 340,
-  },
-  modalSuccessIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#ECFDF5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalDescription: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 20,
-    paddingHorizontal: 10,
-  },
-  modalButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  uploadRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 12,
-  },
-  uploadAdd: {
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  uploadAddText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  uploadPreview: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    position: 'relative',
-  },
-  uploadImage: {
-    width: '100%',
-    height: '100%',
-  },
-  removeBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  removeBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  reviewCard: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    gap: 8,
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  avatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  reviewName: {
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  reviewDate: {
-    fontSize: 12,
-  },
-  reviewComment: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  reviewImagesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 8,
-  },
-  reviewImageWrapper: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  reviewImage: {
-    width: '100%',
-    height: '100%',
-  },
-  reviewImageOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  reviewImageOverlayText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  datasheetContainer: {
-    gap: 12,
-  },
-  dataCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-  },
-  dataLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  dataIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dataName: {
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  dataDesc: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  actionBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderTopWidth: 1,
-    gap: 12,
-  },
-  quantityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    padding: 4,
-    gap: 12,
-  },
-  quantityButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  quantityText: {
-    fontSize: 18,
-    fontWeight: '600',
-    minWidth: 32,
-    textAlign: 'center',
-  },
-  addToCartButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    paddingVertical: 14,
-    gap: 8,
-  },
-  addToCartText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  flyingItem: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    width: 80,
-    height: 80,
-    marginTop: -40,
-    marginLeft: -40,
-    zIndex: 9999,
-    borderRadius: 40,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  flyingImage: {
-    width: '100%',
-    height: '100%',
-  },
-  badgeContainer: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: '#EF4444',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 2,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  relatedSection: {
-    marginTop: 24,
-    marginBottom: 40,
-  },
-  relatedCardWrapper: {
-    marginRight: 16,
-    width: 170, // Slightly smaller than half screen
-  },
-});

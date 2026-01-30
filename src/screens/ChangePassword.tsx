@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Platform, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, ScrollView } from 'react-native';
+import { Platform, StatusBar, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
@@ -108,209 +108,135 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
     }
   };
 
+
   const renderInput = (label: string, value: string, onChange: (text: string) => void, secureKey: keyof typeof secure, error?: string) => (
-    <View style={styles.inputGroup}>
-      <Text style={[styles.label, { color: t.text }]}>{label}</Text>
-      <View style={[styles.inputWrapper, { backgroundColor: t.surface, borderColor: error ? '#EF4444' : t.border }]}>
+    <View className="gap-2">
+      <Text className="text-sm font-semibold" style={{ color: t.text }}>{label}</Text>
+      <View
+        className="flex-row items-center border rounded-xl px-3"
+        style={{ backgroundColor: t.surface, borderColor: error ? '#EF4444' : t.border }}
+      >
         <TextInput
           value={value}
           onChangeText={onChange}
           placeholder="••••••••"
           placeholderTextColor={t.muted}
           secureTextEntry={secure[secureKey]}
-          style={[styles.input, { color: t.text }]}
+          className="flex-1 py-3 text-sm"
+          style={{ color: t.text }}
         />
         <TouchableOpacity onPress={() => setSecure(prev => ({ ...prev, [secureKey]: !prev[secureKey] }))} activeOpacity={0.7}>
           <AppIcon name={secure[secureKey] ? 'eye-off' : 'eye'} size={18} color={t.muted} />
         </TouchableOpacity>
       </View>
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {error ? <Text className="text-xs text-red-500">{error}</Text> : null}
     </View>
   );
 
   const renderOtpInput = () => (
-    <View style={styles.inputGroup}>
-      <View style={styles.otpHeader}>
-        <Text style={[styles.label, { color: t.text }]}>{translate('verify_otp')}</Text>
+    <View className="gap-2">
+      <View className="flex-row justify-between items-center">
+        <Text className="text-sm font-semibold" style={{ color: t.text }}>{translate('verify_otp')}</Text>
         <TouchableOpacity
           onPress={handleSendOtp}
-          style={[styles.otpButton, { borderColor: t.primary, backgroundColor: t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)' }]}
+          className="py-1.5 px-3 rounded-full border"
+          style={{ borderColor: t.primary, backgroundColor: t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)' }}
           activeOpacity={0.8}
         >
-          <Text style={[styles.otpButtonText, { color: t.primary }]}>{sendingOtp ? translate('sending') : translate('send_code')}</Text>
+          <Text className="text-xs font-bold" style={{ color: t.primary }}>{sendingOtp ? translate('sending') : translate('send_code')}</Text>
         </TouchableOpacity>
       </View>
-      <Text style={[styles.helper, { color: t.muted, marginTop: -4, marginBottom: 6 }]}>
+      <Text className="text-[13px] -mt-1 mb-1.5" style={{ color: t.muted }}>
         {translate('otp_will_sent_to', { email: maskEmail(email) })}
       </Text>
-      <View style={[styles.inputWrapper, { backgroundColor: t.surface, borderColor: errors.otp ? '#EF4444' : t.border }]}>
+      <View
+        className="flex-row items-center border rounded-xl px-3"
+        style={{ backgroundColor: t.surface, borderColor: errors.otp ? '#EF4444' : t.border }}
+      >
         <TextInput
           value={otp}
           onChangeText={setOtp}
           placeholder={translate('enter_otp_code')}
           placeholderTextColor={t.muted}
           keyboardType="number-pad"
-          style={[styles.input, { color: t.text }]}
+          className="flex-1 py-3 text-sm"
+          style={{ color: t.text }}
           maxLength={6}
         />
       </View>
-      {errors.otp ? <Text style={styles.errorText}>{errors.otp}</Text> : null}
+      {errors.otp ? <Text className="text-xs text-red-500">{errors.otp}</Text> : null}
     </View>
   );
 
   return (
-    <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: t.background }]} 
+    <KeyboardAvoidingView
+      className="flex-1"
+      style={{ backgroundColor: t.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar 
-        barStyle={t === lightTheme ? 'dark-content' : 'light-content'} 
+      <StatusBar
+        barStyle={t === lightTheme ? 'dark-content' : 'light-content'}
         backgroundColor={t.surface}
         translucent={true}
       />
-      <View style={[
-        styles.header,
-        { paddingTop: Math.max(insets.top, 0), backgroundColor: t.surface, borderBottomColor: t.border }
-      ]}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
+      <View
+        className="flex-row items-center justify-between px-4 pb-3 border-b shadow-sm"
+        style={{
+          paddingTop: Math.max(insets.top, 0),
+          backgroundColor: t.surface,
+          borderBottomColor: t.border,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+          elevation: 4,
+        }}
+      >
+        <TouchableOpacity onPress={onBack} className="p-2" activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: t.text }]}>{translate('change_password_title')}</Text>
+        <Text className="text-lg font-bold flex-1 ml-2" style={{ color: t.text }}>{translate('change_password_title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView 
-        style={[styles.content, { backgroundColor: t.background }]}
+      <ScrollView
+        className="flex-1"
+        style={{ backgroundColor: t.background }}
         contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.helper, { color: t.muted }]}>
+        <Text className="text-[13px] mb-2" style={{ color: t.muted }}>
           {translate('change_password_helper')}
         </Text>
 
-        <View style={[styles.formCard, { backgroundColor: t.card, borderColor: t.border }]}>
+        <View
+          className="rounded-2xl border p-4 gap-3"
+          style={{ backgroundColor: t.card, borderColor: t.border }}
+        >
           {renderInput(translate('currentPassword'), oldPassword, setOldPassword, 'old', errors.old)}
           {renderInput(translate('newPassword'), newPassword, setNewPassword, 'next', errors.next)}
           {renderInput(translate('confirmNewPassword'), confirmPassword, setConfirmPassword, 'confirm', errors.confirm)}
           {renderOtpInput()}
 
           <TouchableOpacity
-          onPress={handleSubmit}
-          style={[
-            styles.saveButton,
-            { backgroundColor: t.primary, shadowColor: t.primary },
-            saving && { opacity: 0.9 },
-          ]}
-          activeOpacity={0.8}
-          disabled={saving}
-        >
-          <Text style={styles.saveButtonText}>{saving ? translate('updating') : translate('update')}</Text>
-        </TouchableOpacity>
-      </View>
+            onPress={handleSubmit}
+            className="w-full py-3.5 rounded-xl items-center mt-2 shadow-sm"
+            style={{
+              backgroundColor: t.primary,
+              shadowColor: t.primary,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 3,
+              elevation: 3,
+              opacity: saving ? 0.9 : 1
+            }}
+            activeOpacity={0.8}
+            disabled={saving}
+          >
+            <Text className="text-base font-bold text-white">{saving ? translate('updating') : translate('update')}</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  backButton: {
-    padding: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-    flex: 1,
-    marginLeft: 8,
-  },
-  content: {
-    flex: 1,
-  },
-  helper: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
-  otpHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  otpButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  otpButtonText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  formCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    gap: 12,
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    backgroundColor: '#F9FAFB',
-  },
-  input: {
-    flex: 1,
-    paddingVertical: 12,
-    fontSize: 14,
-  },
-  errorText: {
-    color: '#EF4444',
-    fontSize: 12,
-  },
-  saveButton: {
-    marginTop: 8,
-    backgroundColor: '#2563EB',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from './Icon';
 import { useTheme } from '../../theme';
@@ -53,61 +53,29 @@ export function OfflineBanner({ visible, isInternetReachable }: OfflineBannerPro
 
   return (
     <Animated.View
-      style={[
-        styles.container,
-        {
-          top: Math.max(insets.top, 10),
-          transform: [{ translateY: slideAnim }],
-          opacity,
-        },
-      ]}
+      className="absolute left-0 right-0 z-[10000] px-4 items-center"
+      style={{
+        top: Math.max(insets.top, 10),
+        transform: [{ translateY: slideAnim }],
+        opacity,
+      }}
     >
       <View
-        style={[
-          styles.banner,
-          {
-            backgroundColor: isDarkMode ? '#DC2626' : '#EF4444',
-          },
-        ]}
+        className="flex-row items-center px-4 py-2.5 rounded-lg gap-2 shadow-sm"
+        style={{
+          backgroundColor: isDarkMode ? '#DC2626' : '#EF4444',
+          elevation: 5,
+        }}
       >
         <AppIcon
           name={isNoInternet ? 'wifi-off' : 'cloud-off'}
           size={18}
           color="#FFFFFF"
         />
-        <Text style={styles.text}>
+        <Text className="text-white text-sm font-medium">
           {isNoInternet ? 'Không có quyền truy cập Internet' : 'Mất kết nối mạng'}
         </Text>
       </View>
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    zIndex: 10000,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-  },
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  text: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-});

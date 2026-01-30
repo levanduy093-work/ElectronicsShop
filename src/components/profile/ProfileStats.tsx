@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Theme, lightTheme } from '../../theme';
 
@@ -21,58 +21,45 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
     const { t: translate } = useTranslation();
 
     return (
-        <View style={[styles.statsContainer, { backgroundColor: t.card, borderColor: t.border }]}>
-            <TouchableOpacity
+        <View
+            className="flex-row gap-3 mb-6 rounded-2xl border p-1"
+            style={{ backgroundColor: t.card, borderColor: t.border }}
+        >
+            <ProfileStatCard
+                value={orderCount}
+                label={translate('orders')}
                 onPress={onNavigateToOrders}
-                style={[styles.statCard, { backgroundColor: t.card, borderColor: t.border, shadowOpacity: t === lightTheme ? 0.05 : 0 }]}
-                activeOpacity={0.7}
-            >
-                <Text style={[styles.statValue, { color: t.text }]}>{orderCount}</Text>
-                <Text style={[styles.statLabel, { color: t.muted }]}>{translate('orders')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+                theme={t}
+            />
+            <ProfileStatCard
+                value={voucherCount}
+                label={translate('voucher')}
                 onPress={onShowVouchers}
-                style={[styles.statCard, { backgroundColor: t.card, borderColor: t.border, shadowOpacity: t === lightTheme ? 0.05 : 0 }]}
-                activeOpacity={0.7}
-            >
-                <Text style={[styles.statValue, { color: t.text }]}>{voucherCount}</Text>
-                <Text style={[styles.statLabel, { color: t.muted }]}>{translate('voucher')}</Text>
-            </TouchableOpacity>
+                theme={t}
+            />
         </View>
     );
 };
 
-const styles = StyleSheet.create({
-    statsContainer: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 24,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-        padding: 4,
-    },
-    statCard: {
-        flex: 1,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        padding: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 2,
-        borderWidth: 1,
-        borderColor: 'transparent',
-    },
-    statValue: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#111827',
-        marginBottom: 4,
-    },
-    statLabel: {
-        fontSize: 12,
-        color: '#6B7280',
-    },
-});
+interface ProfileStatCardProps {
+    value: number;
+    label: string;
+    onPress: () => void;
+    theme: Theme;
+}
+
+const ProfileStatCard: React.FC<ProfileStatCardProps> = ({ value, label, onPress, theme: t }) => (
+    <TouchableOpacity
+        onPress={onPress}
+        className="flex-1 rounded-2xl p-4 shadow-sm elevation-2 border"
+        style={{
+            backgroundColor: t.card,
+            borderColor: t.border,
+            shadowOpacity: t === lightTheme ? 0.05 : 0
+        }}
+        activeOpacity={0.7}
+    >
+        <Text className="text-2xl font-bold mb-1" style={{ color: t.text }}>{value}</Text>
+        <Text className="text-xs" style={{ color: t.muted }}>{label}</Text>
+    </TouchableOpacity>
+);

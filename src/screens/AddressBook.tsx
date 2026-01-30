@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, StatusBar, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, StatusBar, Platform, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
@@ -251,41 +251,60 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
     );
   }
 
+
   return (
-    <View style={[styles.container, { backgroundColor: t.background }]}>
+    <View className="flex-1" style={{ backgroundColor: t.background }}>
       <StatusBar
         barStyle={t === lightTheme ? 'dark-content' : 'light-content'}
         backgroundColor="transparent"
         translucent={true}
       />
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 0), backgroundColor: t.card, borderBottomColor: t.border }]}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
+      <View
+        className="flex-row items-center justify-between px-4 pb-3 border-b"
+        style={{
+          paddingTop: Math.max(insets.top, 0),
+          backgroundColor: t.card,
+          borderBottomColor: t.border,
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 4,
+            },
+            android: {
+              elevation: 4,
+            },
+          }),
+        }}
+      >
+        <TouchableOpacity onPress={onBack} className="p-2" activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: t.text }]}>{translate('address_book')}</Text>
+        <Text className="text-lg font-bold flex-1 ml-2" style={{ color: t.text }}>{translate('address_book')}</Text>
         <TouchableOpacity onPress={openAddForm} activeOpacity={0.7}>
           <AppIcon name="plus" size={24} color={t.primary} />
         </TouchableOpacity>
       </View>
 
       {isOffline && (
-        <View style={[styles.offlineBanner, { backgroundColor: t.surface, borderColor: t.border }]}>
+        <View className="flex-row items-center gap-1.5 px-3 py-2.5 border-b" style={{ backgroundColor: t.surface, borderColor: t.border }}>
           <AppIcon name="wifi-off" size={14} color={t.muted} />
-          <Text style={[styles.offlineText, { color: t.muted }]}>
+          <Text className="text-xs font-medium" style={{ color: t.muted }}>
             {translate('no_internet')}
           </Text>
         </View>
       )}
 
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={[styles.contentContainer, { backgroundColor: t.background }]}
+        className="flex-1"
+        contentContainerStyle={{ padding: 16, paddingBottom: 96, backgroundColor: t.background }}
         showsVerticalScrollIndicator={false}
       >
         {isLoading && addressList.length === 0 ? (
-          <View style={styles.loadingContainer}>
+          <View className="flex-1 justify-center items-center py-10">
             <ActivityIndicator size="large" color={t.primary} />
-            <Text style={[styles.loadingText, { color: t.muted }]}>{translate('loading_addresses')}</Text>
+            <Text className="mt-3 text-sm" style={{ color: t.muted }}>{translate('loading_addresses')}</Text>
           </View>
         ) : (
           addressList.map((addr) => (
@@ -302,98 +321,14 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
 
         <TouchableOpacity
           onPress={openAddForm}
-          style={[styles.addButton, { borderColor: t.border }]}
+          className="flex-row items-center justify-center gap-2 py-4 border-2 border-dashed rounded-xl mt-2"
+          style={{ borderColor: t.border }}
           activeOpacity={0.7}
         >
           <AppIcon name="plus" size={20} color={t.muted} />
-          <Text style={[styles.addButtonText, { color: t.text }]}>{translate('addNewAddress')}</Text>
+          <Text className="text-sm font-medium" style={{ color: t.text }}>{translate('addNewAddress')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-    flex: 1,
-    marginLeft: 8,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 16,
-    paddingBottom: 96,
-  },
-  offlineBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-  },
-  offlineText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
-    marginTop: 8,
-  },
-  addButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6B7280',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#6B7280',
-  },
-});

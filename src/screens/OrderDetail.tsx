@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
@@ -88,31 +88,43 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
     }
   }, [orderId, onRefreshOrder]);
 
+
   return (
-    <View style={[styles.container, { backgroundColor: t.background }]}>
+    <View className="flex-1" style={{ backgroundColor: t.background }}>
       <StatusBar
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={t.surface}
         translucent={true}
       />
-      <View style={[
-        styles.header,
-        {
+      <View
+        className="flex-row items-center justify-between px-4 pb-3 border-b shadow-sm"
+        style={{
           paddingTop: Math.max(insets.top, 0),
           backgroundColor: t.surface,
           borderBottomColor: t.border,
-        }
-      ]}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
+          ...Platform.select({
+            android: {
+              elevation: 4,
+            },
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 4,
+            }
+          }),
+        }}
+      >
+        <TouchableOpacity onPress={onBack} className="p-2" activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.muted} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: t.text }]}>{translate('order_details')}</Text>
+        <Text className="text-lg font-bold flex-1 ml-2" style={{ color: t.text }}>{translate('order_details')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={[styles.contentContainer, { backgroundColor: t.background }]}
+        className="flex-1"
+        contentContainerStyle={{ padding: 16, paddingBottom: 96, gap: 16, backgroundColor: t.background }}
         showsVerticalScrollIndicator={false}
       >
         {/* Status Card */}
@@ -149,45 +161,3 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  backButton: {
-    padding: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    flex: 1,
-    marginLeft: 8,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 16,
-    paddingBottom: 96,
-    gap: 16,
-  },
-});

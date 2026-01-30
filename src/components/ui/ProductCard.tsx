@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../../types';
 import { ImageWithFallback } from '../common/ImageWithFallback';
@@ -28,46 +28,65 @@ export function ProductCard({ product, style, onPress, theme = lightTheme }: Pro
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.8}
+      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100"
       style={[
-        styles.container,
-        { backgroundColor: theme.card, borderColor: theme.border, shadowOpacity: theme === lightTheme ? 0.04 : 0 },
+        {
+          width: cardWidth,
+          backgroundColor: theme.card,
+          borderColor: theme.border,
+          shadowOpacity: theme === lightTheme ? 0.04 : 0,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowRadius: 8,
+          elevation: 2,
+        },
         style
       ]}
     >
-      <View style={styles.imageContainer}>
+      <View className="w-full aspect-square bg-[#F9FAFB] rounded-xl overflow-hidden mb-3 relative">
         <ImageWithFallback
           source={{ uri: product.image }}
-          style={styles.image}
+          className="w-full h-full"
           resizeMode="cover"
         />
         {product.stock !== 'In Stock' && (
-          <View style={styles.stockBadge}>
-            <Text style={styles.stockText}>
+          <View className="absolute top-2 left-2 bg-black/60 px-2 py-1 rounded-xl">
+            <Text className="text-white text-[10px] font-medium">
               {product.stock === 'Low Stock' ? t('lowStock') : t('out_of_stock')}
             </Text>
           </View>
         )}
       </View>
 
-      <View style={styles.content}>
-        <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>
+      <View className="flex-1 justify-between">
+        <Text
+          className="text-sm font-medium text-gray-900 mb-1 leading-[18px] min-h-[36px]"
+          style={{ color: theme.text }}
+          numberOfLines={2}
+        >
           {product.name}
         </Text>
 
-        <View style={styles.ratingContainer}>
+        <View className="flex-row items-center gap-1 mb-2">
           <AppIcon name="star" size={12} color="#FBBF24" />
-          <Text style={[styles.rating, { color: theme.muted }]}>
+          <Text className="text-xs text-gray-500" style={{ color: theme.muted }}>
             {displayRating} ({displayReviewCount})
           </Text>
         </View>
 
-        <View style={styles.priceContainer}>
+        <View className="mt-auto">
           {product.originalPrice && (
-            <Text style={[styles.originalPrice, { color: theme.muted }]}>
+            <Text
+              className="text-[10px] text-gray-400 line-through mb-0.5"
+              style={{ color: theme.muted }}
+            >
               {formatPrice(product.originalPrice)}
             </Text>
           )}
-          <Text style={[styles.price, { color: theme.primary }]}>
+          <Text
+            className="text-base font-bold text-blue-600"
+            style={{ color: theme.primary }}
+          >
             {formatPrice(product.price)}
           </Text>
         </View>
@@ -75,82 +94,3 @@ export function ProductCard({ product, style, onPress, theme = lightTheme }: Pro
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    width: cardWidth,
-  },
-  imageContainer: {
-    width: '100%',
-    aspectRatio: 1,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 12,
-    position: 'relative',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  stockBadge: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  stockText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '500',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  name: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#111827',
-    marginBottom: 4,
-    lineHeight: 18,
-    minHeight: 36,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 8,
-  },
-  rating: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  priceContainer: {
-    marginTop: 'auto',
-  },
-  originalPrice: {
-    fontSize: 10,
-    color: '#9CA3AF',
-    textDecorationLine: 'line-through',
-    marginBottom: 2,
-  },
-  price: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2563EB',
-  },
-});

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { BiometricIcon } from '../common/BiometricIcon';
@@ -57,39 +57,49 @@ export function BiometricLockScreen({ onUnlock }: BiometricLockScreenProps) {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <View className="flex-1 justify-start items-center" style={{ backgroundColor: theme.background }}>
             <StatusBar
                 barStyle={isDarkMode ? 'light-content' : 'dark-content'}
                 backgroundColor={theme.background}
             />
-            <View style={[styles.content, { paddingTop: insets.top + 100 }]}>
-                <View style={[styles.iconContainer, { backgroundColor: theme.primary + '20' }]}>
+            <View className="items-center px-8" style={{ paddingTop: insets.top + 100 }}>
+                <View
+                    className="w-[120px] h-[120px] rounded-full justify-center items-center mb-8"
+                    style={{ backgroundColor: theme.primary + '20' }}
+                >
                     <BiometricIcon type={biometricStatus?.biometryType || null} size={64} color={theme.primary} />
                 </View>
 
-                <Text style={[styles.title, { color: theme.text }]}>
+                <Text className="text-2xl font-bold mb-2 text-center" style={{ color: theme.text }}>
                     {t('biometric_app_locked')}
                 </Text>
 
-                <Text style={[styles.subtitle, { color: theme.muted }]}>
+                <Text className="text-base text-center mb-4" style={{ color: theme.muted }}>
                     {biometricStatus?.displayName
                         ? t('biometric_unlock_with', { method: biometricStatus.displayName })
                         : t('biometric_auth_prompt')}
                 </Text>
 
                 {authFailed && (
-                    <Text style={[styles.errorText, { color: '#EF4444' }]}>
+                    <Text className="text-sm text-center mb-4 text-red-500">
                         {t('biometric_auth_failed')}
                     </Text>
                 )}
 
                 <TouchableOpacity
-                    style={[styles.unlockButton, { backgroundColor: theme.primary }]}
+                    className="flex-row items-center justify-center py-4 px-8 rounded-2xl gap-3 mt-6 shadow-sm elevation-8"
+                    style={{
+                        backgroundColor: theme.primary,
+                        shadowColor: '#2563EB',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 8,
+                    }}
                     onPress={handleAuthenticate}
                     activeOpacity={0.8}
                 >
                     <BiometricIcon type={biometricStatus?.biometryType || null} size={24} color="#FFFFFF" />
-                    <Text style={styles.unlockButtonText}>
+                    <Text className="text-white text-base font-semibold">
                         {biometricStatus?.displayName
                             ? t('biometric_unlock_btn', { method: biometricStatus.displayName })
                             : t('biometric_unlock')}
@@ -99,65 +109,3 @@ export function BiometricLockScreen({ onUnlock }: BiometricLockScreenProps) {
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'flex-start',
-        alignItems: 'center',
-    },
-    content: {
-        alignItems: 'center',
-        paddingHorizontal: 32,
-    },
-    iconContainer: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 32,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    subtitle: {
-        fontSize: 16,
-        textAlign: 'center',
-        marginBottom: 16,
-    },
-    errorText: {
-        fontSize: 14,
-        textAlign: 'center',
-        marginBottom: 16,
-    },
-    unlockButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
-        paddingHorizontal: 32,
-        borderRadius: 16,
-        gap: 12,
-        marginTop: 24,
-        ...Platform.select({
-            ios: {
-                shadowColor: '#2563EB',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-            },
-            android: {
-                elevation: 8,
-            },
-        }),
-    },
-    unlockButtonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-});
