@@ -32,7 +32,7 @@ export function CartTab() {
                 onRemoveItem={app?.removeFromCart || (() => { })}
                 onUpdateItemOptions={app?.updateCartItemOptions || (() => { })}
                 onCheckout={() => navigation.navigate('Checkout')}
-                onExplore={() => { }}
+                onExplore={() => navigation.navigate('MainTabs', { screen: 'HomeTab' })}
                 vouchers={app?.vouchers || []}
                 appliedVoucher={app?.appliedVoucher || null}
                 onVoucherChange={app?.setAppliedVoucher || (() => { })}
