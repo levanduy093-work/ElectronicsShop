@@ -97,16 +97,12 @@ function AppContent() {
 
         // Handle app state changes for biometric lock
         const handleAppStateChange = (nextAppState: AppStateStatus) => {
-            // Lock immediately when app becomes inactive (iOS swipe up) or background (Android/iOS)
-            // Use ref synchronously to avoid async delay during state transition
             if (nextAppState === 'inactive' || nextAppState === 'background') {
                 if (isBiometricEnabledRef.current) {
                     setIsAppLocked(true);
-                    // If we were about to unlock but user swiped away, cancel the unlock
                     pendingUnlockRef.current = false;
                 }
             } else if (nextAppState === 'active') {
-                // If we had a successful auth while inactive (iOS FaceID), finally unlock now
                 if (pendingUnlockRef.current) {
                     setIsAppLocked(false);
                     pendingUnlockRef.current = false;
@@ -116,8 +112,6 @@ function AppContent() {
 
         const subscription = AppState.addEventListener('change', handleAppStateChange);
 
-        // Defensive: Check if we are already inactive/background on mount
-        // Important for cases where app is launched or resumed into background
         if (AppState.currentState !== 'active' && isBiometricEnabledRef.current) {
             setIsAppLocked(true);
         }
@@ -125,59 +119,76 @@ function AppContent() {
         return () => subscription.remove();
     }, []);
 
-    return () => subscription.remove();
-}, []);
+    // Handle onboarding complete
+    const handleOnboardingComplete = useCallback(async () => {
+        try {
+            await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+        } catch (error) {
+            console.warn('Failed to persist onboarding state', error);
+        } finally {
+            setHasSeenOnboarding(true);
+        }
+    }, []);
 
-// Handle onboarding complete
-const handleOnboardingComplete = useCallback(async () => {
-    try {
-        await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
-    } catch (error) {
-        console.warn('Failed to persist onboarding state', error);
-    } finally {
-        <ThemeProvider value={{ theme, isDarkMode }}>
-            <View style={[styles.container, { backgroundColor: theme.background }]} />
-        </ThemeProvider>
-    );
-}
+    // Show loading while checking onboarding
+    if (isCheckingOnboarding) {
+        return (
+            <ThemeProvider value={{ theme, isDarkMode }}>
+                <View style={[styles.container, { backgroundColor: theme.background }]} />
+            </ThemeProvider>
+        );
+    }
 
-// Show onboarding if not seen
-if (!hasSeenOnboarding) {
+    // Show onboarding if not seen
+    if (!hasSeenOnboarding) {
+        return (
+            <ThemeProvider value={{ theme, isDarkMode }}>
+                <StatusBar
+                    barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+                    backgroundColor={theme.surface}
+                    translucent={true}
+                />
+                <Onboarding
+                    onDone={handleOnboardingComplete}
+                    onSkipToAuth={handleOnboardingComplete}
+                    onSkipToHome={handleOnboardingComplete}
+                    onSignUp={handleOnboardingComplete}
+                />
+            </ThemeProvider>
+        );
+    }
+
+    // Main app with navigation
     return (
         <ThemeProvider value={{ theme, isDarkMode }}>
+            <ForegroundNotificationHandler />
+            <OfflineBanner
+                visible={networkStatus.isConnected === false || networkStatus.isInternetReachable === false}
+                isInternetReachable={networkStatus.isInternetReachable}
+            />
             <StatusBar
                 barStyle={isDarkMode ? 'light-content' : 'dark-content'}
                 backgroundColor={theme.surface}
                 translucent={true}
             />
-            <Onboarding
-                onDone={handleOnboardingComplete}
-                onSkipToAuth={handleOnboardingComplete}
-                onSkipToHome={handleOnboardingComplete}
-                onSignUp={handleOnboardingComplete}
-            />
+            <AppStateProvider>
+                <AppNavigator />
+            </AppStateProvider>
+
+            {isAppLocked && (
+                <View style={StyleSheet.absoluteFill}>
+                    <BiometricLockScreen onUnlock={() => {
+                        if (AppState.currentState === 'active') {
+                            setIsAppLocked(false);
+                            pendingUnlockRef.current = false;
+                        } else {
+                            pendingUnlockRef.current = true;
+                        }
+                    }} />
+                </View>
+            )}
         </ThemeProvider>
     );
-}
-
-// Main app with navigation
-return (
-    <ThemeProvider value={{ theme, isDarkMode }}>
-        <ForegroundNotificationHandler />
-        <OfflineBanner
-            visible={networkStatus.isConnected === false || networkStatus.isInternetReachable === false}
-            isInternetReachable={networkStatus.isInternetReachable}
-        />
-        <StatusBar
-            barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-            backgroundColor={theme.surface}
-            translucent={true}
-        />
-        <AppStateProvider>
-            <AppNavigator />
-        </AppStateProvider>
-    </ThemeProvider>
-);
 }
 
 // Root App component with providers
