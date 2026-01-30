@@ -1059,7 +1059,11 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         try {
             if (isVnpay) {
                 const paymentResult = await createVnpayPayment(payload, authTokensRef.current.accessToken);
-                return { id: paymentResult.order, code, paymentUrl: paymentResult.paymentUrl };
+                const orderId =
+                    (paymentResult?.order as any)?._id ||
+                    (paymentResult?.order as any)?.id ||
+                    (paymentResult?.order as any)?._id?.toString?.();
+                return { id: orderId || code, code, paymentUrl: paymentResult.paymentUrl };
             } else {
                 const result = await apiCreateOrder(payload, authTokensRef.current.accessToken);
                 const mapped = mapApiOrderToUi(result, productsRef.current, t);

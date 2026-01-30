@@ -27,6 +27,7 @@ import { SupportCenter as SupportCenterScreen } from '../screens/SupportCenter';
 import { ChangePassword as ChangePasswordScreen } from '../screens/ChangePassword';
 import { LanguageSelection as LanguageSelectionScreen } from '../screens/LanguageSelection';
 import { filterProducts } from '../utils/filterUtils';
+import { getOrderById } from '../services/api';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -147,6 +148,22 @@ function CheckoutWrapper() {
     const { theme } = useTheme();
     const app = useAppOptional();
 
+    const handleCheckPaymentStatus = React.useCallback(async (orderId: string) => {
+        const token = app?.authTokens?.accessToken;
+        const isMongoId = typeof orderId === 'string' && orderId.length === 24;
+        if (!token || !orderId || !isMongoId) return undefined;
+        try {
+            const order = await getOrderById(orderId, token);
+            const status = (order.paymentStatus || '').toLowerCase();
+            if (status === 'paid') return 'paid';
+            if (status === 'failed' || order.isCancelled) return 'failed';
+            return 'pending';
+        } catch (error) {
+            console.warn('CheckoutWrapper - check payment failed', error);
+            return undefined;
+        }
+    }, [app?.authTokens?.accessToken]);
+
     return (
         <CheckoutScreen
             onBack={() => navigation.goBack()}
@@ -171,6 +188,7 @@ function CheckoutWrapper() {
             onUpdateAddresses={app?.updateAddresses || (() => { })}
             accessToken={app?.authTokens?.accessToken}
             voucher={app?.appliedVoucher || null}
+            onCheckPaymentStatus={handleCheckPaymentStatus}
         />
     );
 }

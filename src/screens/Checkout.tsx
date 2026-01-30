@@ -263,15 +263,13 @@ export function Checkout({
         setPaymentError('failed');
         showToast(translate('payment_failed'), 'error');
       } else {
-        setPollCount(prev => {
-          const next = prev + 1;
-          if (next >= 10) {
-            setPaymentError('timeout');
-          } else {
-            showToast(translate('paymentProcessing'), 'info');
-          }
-          return next;
-        });
+        let nextCount = 0;
+        setPollCount(prev => (nextCount = prev + 1));
+        if (nextCount >= 10) {
+          setPaymentError('timeout');
+        } else if (nextCount > 0) {
+          showToast(translate('paymentProcessing'), 'info');
+        }
       }
     } catch (error: any) {
       setPaymentError('error');

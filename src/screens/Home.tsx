@@ -59,6 +59,7 @@ export function Home({
   const [visibleCount, setVisibleCount] = React.useState(initialVisibleCount || 10);
   const scrollViewRef = React.useRef<ScrollView>(null);
   const hasRestoredScroll = React.useRef(false);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
 
   React.useEffect(() => {
     if (initialVisibleCount !== undefined && initialVisibleCount !== visibleCount) {
@@ -124,6 +125,18 @@ export function Home({
     onScrollPositionChange?.(event.nativeEvent.contentOffset.y);
   };
 
+  const handleRefresh = React.useCallback(async () => {
+    if (!onRefreshProducts || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await onRefreshProducts();
+    } catch (error) {
+      console.warn('Home - refresh failed', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [onRefreshProducts, isRefreshing]);
+
   return (
     <ScrollView
       ref={scrollViewRef}
@@ -135,8 +148,8 @@ export function Home({
       contentOffset={{ x: 0, y: initialScrollOffset || 0 }}
       refreshControl={
         <RefreshControl
-          refreshing={isLoading}
-          onRefresh={onRefreshProducts}
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
           colors={[resolvedTheme.primary]}
           tintColor={resolvedTheme.primary}
         />
