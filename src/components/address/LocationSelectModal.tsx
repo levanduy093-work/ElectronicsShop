@@ -70,7 +70,17 @@ export function LocationSelectModal({
                             onChangeText={setQuery}
                             placeholder={t('search')}
                             placeholderTextColor={theme.muted}
-                            style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+                            style={[
+                                styles.input,
+                                {
+                                    backgroundColor: theme.surface,
+                                    borderColor: theme.border,
+                                    color: theme.text,
+                                    textAlignVertical: 'center',
+                                    includeFontPadding: false,
+                                    paddingVertical: 0,
+                                }
+                            ]}
                         />
                     </View>
                     {loading ? (

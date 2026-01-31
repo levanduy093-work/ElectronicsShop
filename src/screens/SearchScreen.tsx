@@ -297,8 +297,13 @@ export function SearchScreen({
             onChangeText={(text) => updateQuery(text, false)}
             onSubmitEditing={handleSearchSubmit}
             placeholder={translate('searchProductComponent')}
-            className="flex-1 text-base"
-            style={{ color: t.text }}
+            className="flex-1 text-base p-0"
+            style={{
+              color: t.text,
+              textAlignVertical: 'center',
+              includeFontPadding: false,
+              paddingVertical: 0,
+            }}
             placeholderTextColor={t.muted}
             autoFocus
             returnKeyType="search"

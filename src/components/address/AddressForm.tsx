@@ -115,8 +115,16 @@ export function AddressForm({
             <TextInput
               value={formData.name}
               onChangeText={text => setFormData({ ...formData, name: text })}
-              className="rounded-xl p-3 border text-base"
-              style={{ backgroundColor: t.surface, borderColor: t.border, color: t.text }}
+              className="rounded-xl px-3 border text-base"
+              style={{
+                backgroundColor: t.surface,
+                borderColor: t.border,
+                color: t.text,
+                height: 48,
+                textAlignVertical: 'center',
+                includeFontPadding: false,
+                paddingVertical: 0,
+              }}
               placeholder={translate('enter_name_placeholder')}
               placeholderTextColor={t.muted}
             />
@@ -127,8 +135,16 @@ export function AddressForm({
             <TextInput
               value={formData.phone}
               onChangeText={text => setFormData({ ...formData, phone: text })}
-              className="rounded-xl p-3 border text-base"
-              style={{ backgroundColor: t.surface, borderColor: t.border, color: t.text }}
+              className="rounded-xl px-3 border text-base"
+              style={{
+                backgroundColor: t.surface,
+                borderColor: t.border,
+                color: t.text,
+                height: 48,
+                textAlignVertical: 'center',
+                includeFontPadding: false,
+                paddingVertical: 0,
+              }}
               placeholder={translate('enterPhone')}
               keyboardType="phone-pad"
               placeholderTextColor={t.muted}
@@ -150,8 +166,16 @@ export function AddressForm({
             <TextInput
               value={formData.detailedAddress}
               onChangeText={text => setFormData({ ...formData, detailedAddress: text })}
-              className="rounded-xl p-3 border text-base"
-              style={{ backgroundColor: t.surface, borderColor: t.border, color: t.text }}
+              className="rounded-xl px-3 border text-base"
+              style={{
+                backgroundColor: t.surface,
+                borderColor: t.border,
+                color: t.text,
+                height: 48,
+                textAlignVertical: 'center',
+                includeFontPadding: false,
+                paddingVertical: 0,
+              }}
               placeholder={translate('enterAddress')}
               placeholderTextColor={t.muted}
             />

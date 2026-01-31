@@ -52,11 +52,16 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                         <View className="flex-row items-center rounded-xl border px-3 h-12" style={{ backgroundColor: t.surface, borderColor: t.border }}>
                             <AppIcon name="user" size={20} color={t.muted} style={{ marginRight: 12 }} />
                             <TextInput
-                                className="flex-1 text-sm h-full"
+                                className="flex-1 text-sm h-full p-0"
                                 placeholder={translate('enter_name_placeholder')}
                                 value={name}
                                 onChangeText={setName}
-                                style={{ color: t.text }}
+                                style={{
+                                    color: t.text,
+                                    textAlignVertical: 'center',
+                                    includeFontPadding: false,
+                                    paddingVertical: 0,
+                                }}
                                 placeholderTextColor={t.muted}
                                 editable={true}
                             />
@@ -69,11 +74,16 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                     <View className="flex-row items-center rounded-xl border px-3 h-12" style={{ backgroundColor: t.surface, borderColor: t.border }}>
                         <AppIcon name="mail" size={20} color={t.muted} style={{ marginRight: 12 }} />
                         <TextInput
-                            className="flex-1 text-sm h-full"
+                            className="flex-1 text-sm h-full p-0"
                             placeholder="example@email.com"
                             value={email}
                             onChangeText={setEmail}
-                            style={{ color: t.text }}
+                            style={{
+                                color: t.text,
+                                textAlignVertical: 'center',
+                                includeFontPadding: false,
+                                paddingVertical: 0,
+                            }}
                             keyboardType="email-address"
                             autoCapitalize="none"
                             placeholderTextColor={t.muted}
@@ -97,11 +107,16 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                     <View className="flex-row items-center rounded-xl border px-3 h-12" style={{ backgroundColor: t.surface, borderColor: t.border }}>
                         <AppIcon name="lock" size={20} color={t.muted} style={{ marginRight: 12 }} />
                         <TextInput
-                            className="flex-1 text-sm h-full"
+                            className="flex-1 text-sm h-full p-0"
                             placeholder="••••••••"
                             value={password}
                             onChangeText={setPassword}
-                            style={{ color: t.text }}
+                            style={{
+                                color: t.text,
+                                textAlignVertical: 'center',
+                                includeFontPadding: false,
+                                paddingVertical: 0,
+                            }}
                             secureTextEntry={!showPassword}
                             placeholderTextColor={t.muted}
                             editable={true}

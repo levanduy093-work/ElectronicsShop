@@ -144,8 +144,16 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                             <TextInput
                                 value={editingName}
                                 onChangeText={setEditingName}
-                                className="border rounded-lg px-3 py-2.5 text-base"
-                                style={{ backgroundColor: t.surface, borderColor: t.border, color: t.text }}
+                                className="border rounded-lg px-3 text-base"
+                                style={{
+                                    backgroundColor: t.surface,
+                                    borderColor: t.border,
+                                    color: t.text,
+                                    height: 48,
+                                    textAlignVertical: 'center',
+                                    includeFontPadding: false,
+                                    paddingVertical: 0,
+                                }}
                                 placeholder={translate('enter_name_placeholder')}
                                 placeholderTextColor={t.muted}
                             />
@@ -209,8 +217,16 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                     <TextInput
                                         value={avatarUrl}
                                         onChangeText={setAvatarUrl}
-                                        className="border rounded-lg px-3 py-2.5 text-base"
-                                        style={{ backgroundColor: t.surface, borderColor: t.border, color: t.text }}
+                                        className="border rounded-lg px-3 text-base"
+                                        style={{
+                                            backgroundColor: t.surface,
+                                            borderColor: t.border,
+                                            color: t.text,
+                                            height: 48,
+                                            textAlignVertical: 'center',
+                                            includeFontPadding: false,
+                                            paddingVertical: 0,
+                                        }}
                                         placeholder={translate('or_enter_url')}
                                         placeholderTextColor={t.muted}
                                         autoCapitalize="none"

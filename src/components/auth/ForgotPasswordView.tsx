@@ -147,7 +147,15 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBack, 
                                     placeholder="example@email.com"
                                     value={email}
                                     onChangeText={setEmail}
-                                    style={[styles.input, { color: t.text }]}
+                                    style={[
+                                        styles.input,
+                                        {
+                                            color: t.text,
+                                            textAlignVertical: 'center',
+                                            includeFontPadding: false,
+                                            paddingVertical: 0,
+                                        }
+                                    ]}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
                                     placeholderTextColor={t.muted}
@@ -229,7 +237,15 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBack, 
                                     placeholder="••••••••"
                                     value={newPassword}
                                     onChangeText={setNewPassword}
-                                    style={[styles.input, { color: t.text }]}
+                                    style={[
+                                        styles.input,
+                                        {
+                                            color: t.text,
+                                            textAlignVertical: 'center',
+                                            includeFontPadding: false,
+                                            paddingVertical: 0,
+                                        }
+                                    ]}
                                     secureTextEntry
                                     placeholderTextColor={t.muted}
                                     editable={true}
@@ -245,7 +261,15 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBack, 
                                     placeholder="••••••••"
                                     value={confirmPassword}
                                     onChangeText={setConfirmPassword}
-                                    style={[styles.input, { color: t.text }]}
+                                    style={[
+                                        styles.input,
+                                        {
+                                            color: t.text,
+                                            textAlignVertical: 'center',
+                                            includeFontPadding: false,
+                                            paddingVertical: 0,
+                                        }
+                                    ]}
                                     secureTextEntry
                                     placeholderTextColor={t.muted}
                                     editable={true}

@@ -166,8 +166,13 @@ export function Catalog({
               setSearchQuery(text);
               onSearchQueryChange?.(text);
             }}
-            className="flex-1 text-sm"
-            style={{ color: theme.text }}
+            className="flex-1 text-sm p-0"
+            style={{
+              color: theme.text,
+              textAlignVertical: 'center',
+              includeFontPadding: false,
+              paddingVertical: 0,
+            }}
             placeholderTextColor={theme.muted}
           />
           <TouchableOpacity
