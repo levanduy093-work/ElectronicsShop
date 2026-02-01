@@ -588,9 +588,17 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
             });
             productsRef.current = mapped;
 
-            // Background prefetch reviews only if we really fetched products
+            // Background prefetch reviews when idle
             if (result.length > 0) {
-                InteractionManager.runAfterInteractions(() => {
+                const runPrefetch = (callback: () => void) => {
+                    if (typeof requestIdleCallback === 'function') {
+                        requestIdleCallback(callback);
+                    } else {
+                        setTimeout(callback, 1);
+                    }
+                };
+
+                runPrefetch(() => {
                     const topProducts = result.slice(0, 10);
                     topProducts.forEach(p => {
                         prefetchService.addTask(`reviews-${p._id}`, () => getReviews(p._id));

@@ -53,8 +53,16 @@ class PrefetchService {
 
         this.isRunning = true;
 
-        // Use InteractionManager to run tasks only after animations/interactions are done
-        InteractionManager.runAfterInteractions(async () => {
+        // Use requestIdleCallback to run tasks when the thread is idle
+        const runTask = (callback: () => void) => {
+            if (typeof requestIdleCallback === 'function') {
+                requestIdleCallback(callback);
+            } else {
+                setTimeout(callback, 1);
+            }
+        };
+
+        runTask(async () => {
             while (this.queue.length > 0) {
                 const task = this.queue.shift();
                 if (!task) break;
