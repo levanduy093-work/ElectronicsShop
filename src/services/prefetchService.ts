@@ -1,4 +1,4 @@
-import { InteractionManager } from 'react-native';
+
 import { cacheManager } from '../utils/cache';
 
 type Fetcher<T> = () => Promise<T>;

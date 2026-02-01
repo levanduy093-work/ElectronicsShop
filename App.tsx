@@ -4,15 +4,10 @@
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { StatusBar, StyleSheet, View, useColorScheme, AppState, AppStateStatus, LogBox } from 'react-native';
+import { StatusBar, StyleSheet, View, useColorScheme, AppState, AppStateStatus } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
-
-// Ignore specific deprecation warnings that come from libraries
-LogBox.ignoreLogs([
-    'SafeAreaView has been deprecated',
-]);
 
 import { AppStateProvider } from './src/context';
 import { AppNavigator } from './src/navigation';

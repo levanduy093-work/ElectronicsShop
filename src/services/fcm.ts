@@ -7,8 +7,6 @@ import {
   onMessage as onMessageModular,
   onNotificationOpenedApp as onNotificationOpenedAppModular,
   onTokenRefresh as onTokenRefreshModular,
-  isDeviceRegisteredForRemoteMessages,
-  registerDeviceForRemoteMessages,
   requestPermission as requestPermissionModular,
 } from '@react-native-firebase/messaging';
 import { PermissionsAndroid, Platform } from 'react-native';
@@ -44,25 +42,13 @@ export async function requestUserPermission() {
   return false;
 }
 
-async function ensureDeviceRegistered() {
-  const messaging = getMessaging();
-  try {
-    const registered = isDeviceRegisteredForRemoteMessages(messaging);
-    if (!registered) {
-      // Needed mostly on Android or when auto-registration disabled
-      await registerDeviceForRemoteMessages(messaging);
-    }
-  } catch (err) {
-    console.warn('FCM registration check failed (ignored):', err);
-  }
-  return messaging;
-}
-
 export async function getFcmToken(accessToken?: string) {
   try {
-    const messaging = await ensureDeviceRegistered();
+    const messaging = getMessaging();
     const token = await getFcmTokenModular(messaging);
-    console.log('FCM Token:', token);
+    if (__DEV__ && token) {
+      console.log('FCM Token (dev only):', token.slice(0, 20) + '...');
+    }
     if (token && accessToken) {
       try {
         await updateFcmToken(token, accessToken);
@@ -95,7 +81,7 @@ export function subscribeToFcmTokenRefresh(accessToken?: string) {
 
 export async function deleteFcmToken() {
   try {
-    const messaging = await ensureDeviceRegistered();
+    const messaging = getMessaging();
     await deleteFcmTokenModular(messaging);
     console.log('FCM token deleted');
   } catch (error) {

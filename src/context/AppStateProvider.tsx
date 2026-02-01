@@ -1,5 +1,5 @@
 import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AppState, AppStateStatus, Linking, useColorScheme, InteractionManager, StyleSheet, View } from 'react-native';
+import { Alert, AppState, AppStateStatus, Linking, useColorScheme, StyleSheet, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 
@@ -1319,7 +1319,15 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
 
                 // 2. Load the rest in background after a short delay
                 setTimeout(() => {
-                    InteractionManager.runAfterInteractions(() => {
+                    const runTask = (callback: () => void) => {
+                        if (typeof requestIdleCallback === 'function') {
+                            requestIdleCallback(callback);
+                        } else {
+                            setTimeout(callback, 1);
+                        }
+                    };
+
+                    runTask(() => {
                         loadProducts().catch(() => { });
                     });
                 }, 1000);

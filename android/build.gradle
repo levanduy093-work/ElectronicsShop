@@ -1,3 +1,13 @@
+// Auto-create local.properties from ANDROID_HOME if it doesn't exist (gitignored, missing on fresh clone)
+def localPropertiesFile = rootProject.file("local.properties")
+if (!localPropertiesFile.exists()) {
+    def sdkDir = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
+    if (sdkDir != null && !sdkDir.isEmpty()) {
+        localPropertiesFile.text = "sdk.dir=${sdkDir.replace('\\', '/')}\n"
+        println "Created local.properties with sdk.dir=$sdkDir"
+    }
+}
+
 buildscript {
     ext {
         buildToolsVersion = "36.0.0"

@@ -1,0 +1,14 @@
+diff --git a/shared/build.gradle.kts b/shared/build.gradle.kts
+index 0000000..1111111 100644
+--- a/shared/build.gradle.kts
++++ b/shared/build.gradle.kts
+@@ -20,6 +20,8 @@ repositories { mavenCentral() }
+ 
+ dependencies {
+   implementation(libs.gson)
+   implementation(libs.guava)
++  // compileOnly ensures shared-testutil is built before shared (fixes composite build order)
++  compileOnly(project(":shared-testutil"))
+   testImplementation(libs.junit)
+   testImplementation(libs.assertj)
+   testImplementation(project(":shared-testutil"))

@@ -2,10 +2,17 @@
  * @format
  */
 
+import { AppRegistry, LogBox } from 'react-native';
+
+// Ignore SafeAreaView deprecation (use react-native-safe-area-context instead)
+LogBox.ignoreLogs([
+  'SafeAreaView has been deprecated',
+  'SafeAreaView',
+]);
+
 import { enableScreens } from 'react-native-screens';
 enableScreens();
 
-import { AppRegistry } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { getMessaging, setBackgroundMessageHandler } from '@react-native-firebase/messaging';
 import App from './App';
