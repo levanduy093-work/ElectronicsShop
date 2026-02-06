@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, View, Text, TextInput, TouchableOpacity, Alert, Image, Platform } from 'react-native';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { ScrollView, View, Text, TextInput, TouchableOpacity, Alert, Image, Platform, Modal, Animated } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
@@ -59,6 +59,8 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
     const insets = useSafeAreaInsets();
     const app = useAppOptional();
     const [images, setImages] = useState<{ id: string; uri: string; uploadedUrl?: string; uploading?: boolean }[]>([]);
+    const [successVisible, setSuccessVisible] = useState(false);
+    const successAnim = useRef(new Animated.Value(0)).current;
 
     const parseNumberString = (value: string) => {
         const digits = (value || '').replace(/[^\d]/g, '');
@@ -268,10 +270,9 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
             const uploadedImages = await uploadAllImages();
             if (uploadedImages.length) payload.images = uploadedImages;
             await createProductMutation.mutateAsync(payload);
-            Alert.alert(t('admin_success', 'Thành công'), t('admin_product_created', 'Sản phẩm đã được tạo'));
+            setSuccessVisible(true);
             reset();
             setImages([]);
-            onBack();
         } catch (error: any) {
             Alert.alert(t('admin_error', 'Lỗi'), error?.message || t('admin_create_failed', 'Không thể tạo sản phẩm'));
         }
@@ -293,6 +294,23 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
             </View>
         );
     }
+
+    useEffect(() => {
+        if (successVisible) {
+            Animated.spring(successAnim, {
+                toValue: 1,
+                useNativeDriver: true,
+                tension: 65,
+                friction: 11,
+            }).start();
+        } else {
+            Animated.timing(successAnim, {
+                toValue: 0,
+                duration: 180,
+                useNativeDriver: true,
+            }).start();
+        }
+    }, [successVisible, successAnim]);
 
     const renderInput = (
         name: keyof FormValues,
@@ -453,6 +471,73 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
                     </Text>
                 </TouchableOpacity>
             </ScrollView>
+
+            <Modal
+                visible={successVisible}
+                transparent
+                animationType="none"
+                onRequestClose={() => setSuccessVisible(false)}
+            >
+                <View className="flex-1 justify-center items-center bg-black/50">
+                    <TouchableOpacity
+                        className="absolute inset-0"
+                        activeOpacity={1}
+                        onPress={() => setSuccessVisible(false)}
+                    />
+                    <Animated.View
+                        className="w-4/5 rounded-3xl p-6 items-center shadow-lg"
+                        style={{
+                            backgroundColor: theme.card,
+                            transform: [
+                                {
+                                    scale: successAnim.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [0.9, 1],
+                                    }),
+                                },
+                                {
+                                    translateY: successAnim.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [50, 0],
+                                    }),
+                                },
+                            ],
+                            opacity: successAnim,
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.1,
+                            shadowRadius: 10,
+                            elevation: 8,
+                        }}
+                    >
+                        <View
+                            className="w-16 h-16 rounded-full justify-center items-center mb-4"
+                            style={{ backgroundColor: 'rgba(16,185,129,0.15)' }}
+                        >
+                            <AppIcon name="check-circle" size={32} color="#10B981" />
+                        </View>
+                        <Text className="text-xl font-bold mb-2 text-center" style={{ color: theme.text }}>
+                            {t('admin_product_saved_title', 'Thêm sản phẩm thành công')}
+                        </Text>
+                        <Text className="text-sm mb-6 text-center" style={{ color: theme.muted }}>
+                            {t('admin_product_saved_body', 'Sản phẩm đã được lưu vào hệ thống.')}
+                        </Text>
+                        <TouchableOpacity
+                            className="w-full py-3 rounded-xl items-center"
+                            style={{ backgroundColor: theme.primary }}
+                            onPress={() => {
+                                setSuccessVisible(false);
+                                onBack();
+                            }}
+                            activeOpacity={0.8}
+                        >
+                            <Text className="text-white text-base font-bold">
+                                {t('admin_ok', 'OK')}
+                            </Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };

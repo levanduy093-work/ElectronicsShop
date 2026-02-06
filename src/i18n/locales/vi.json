@@ -493,5 +493,8 @@
   "admin_options_too_long": "Tuỳ chọn quá dài",
   "admin_classifications_too_long": "Phân loại quá dài",
   "admin_specs_too_long": "Thông số quá dài",
-  "admin_add_product_menu": "Admin: Thêm sản phẩm"
+  "admin_add_product_menu": "Admin: Thêm sản phẩm",
+  "admin_product_saved_title": "Thêm sản phẩm thành công",
+  "admin_product_saved_body": "Sản phẩm đã được lưu vào hệ thống.",
+  "admin_ok": "OK"
 }

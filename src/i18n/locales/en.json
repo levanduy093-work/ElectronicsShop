@@ -493,5 +493,8 @@
   "admin_options_too_long": "Options are too long",
   "admin_classifications_too_long": "Classifications are too long",
   "admin_specs_too_long": "Specifications are too long",
-  "admin_add_product_menu": "Admin: Add product"
+  "admin_add_product_menu": "Admin: Add product",
+  "admin_product_saved_title": "Product added successfully",
+  "admin_product_saved_body": "The product has been saved to the system.",
+  "admin_ok": "OK"
 }
