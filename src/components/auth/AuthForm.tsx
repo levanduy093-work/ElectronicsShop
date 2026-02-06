@@ -64,7 +64,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
             email: '',
             password: '',
         },
-        mode: 'onTouched',
+        mode: 'onSubmit',
     });
 
     useEffect(() => {

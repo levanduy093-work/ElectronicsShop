@@ -75,7 +75,7 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
       confirmPassword: '',
       otp: '',
     },
-    mode: 'onTouched',
+    mode: 'onSubmit',
   });
 
   const handleSubmitForm = handleSubmit(async (values) => {

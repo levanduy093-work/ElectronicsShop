@@ -61,13 +61,13 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBack, 
     const emailForm = useForm<EmailFormValues>({
         resolver: zodResolver(emailSchema),
         defaultValues: { email: '' },
-        mode: 'onTouched',
+        mode: 'onSubmit',
     });
 
     const passwordForm = useForm<PasswordFormValues>({
         resolver: zodResolver(passwordSchema),
         defaultValues: { newPassword: '', confirmPassword: '' },
-        mode: 'onTouched',
+        mode: 'onSubmit',
     });
 
     const emailValue = emailForm.watch('email');
