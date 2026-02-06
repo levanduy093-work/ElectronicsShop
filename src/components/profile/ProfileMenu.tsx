@@ -11,6 +11,8 @@ interface ProfileMenuProps {
     onNavigateToSettings: () => void;
     onNavigateToSupport: () => void;
     onLogout: () => void;
+    onNavigateToAdmin?: () => void;
+    isAdmin?: boolean;
     theme: Theme;
 }
 
@@ -21,6 +23,8 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
     onNavigateToSettings,
     onNavigateToSupport,
     onLogout,
+    onNavigateToAdmin,
+    isAdmin = false,
     theme: t,
 }) => {
     const { t: translate } = useTranslation();
@@ -70,6 +74,17 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
                     onPress={onNavigateToSupport}
                     theme={t}
                 />
+                {isAdmin && (
+                    <>
+                        <View className="h-px mx-4" style={{ backgroundColor: t.border }} />
+                        <MenuItem
+                            icon="plus-circle"
+                            label="Admin: Thêm sản phẩm"
+                            onPress={onNavigateToAdmin}
+                            theme={t}
+                        />
+                    </>
+                )}
             </View>
 
             <TouchableOpacity

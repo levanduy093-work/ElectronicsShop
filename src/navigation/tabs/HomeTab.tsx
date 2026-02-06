@@ -6,11 +6,14 @@ import { useAppOptional } from '../../context';
 import { useTheme } from '../../theme';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { Home as HomeScreen } from '../../screens/Home';
+import { useProductsQuery, useBannersQuery } from '../../hooks/useCatalogQueries';
 
 export function HomeTab() {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { theme } = useTheme();
     const app = useAppOptional();
+    const productsQuery = useProductsQuery(app?.products);
+    const bannersQuery = useBannersQuery(app?.banners);
 
     const handleNavigate = (screen: string) => {
         if (screen === 'search') {
@@ -43,8 +46,8 @@ export function HomeTab() {
         >
             <HomeScreen
                 theme={theme}
-                products={app?.products || []}
-                banners={app?.banners || []}
+                products={productsQuery.data || []}
+                banners={bannersQuery.data || []}
                 onNavigate={handleNavigate}
                 onProductClick={handleProductClick}
                 onSelectCategory={(cat: string) => {
@@ -54,8 +57,8 @@ export function HomeTab() {
                         params: { screen: 'Catalog', params: { category: cat } },
                     });
                 }}
-                onRefreshProducts={app?.loadProducts || (() => Promise.resolve())}
-                isLoading={app?.isLoadingProducts || false}
+                onRefreshProducts={() => productsQuery.refetch()}
+                isLoading={productsQuery.isLoading || productsQuery.isFetching}
                 error={app?.productsError || null}
                 isOffline={app?.networkStatus.isConnected === false}
             />

@@ -34,6 +34,26 @@ export type ApiProduct = {
   updatedAt?: string;
 };
 
+export type CreateProductInput = {
+  name: string;
+  code?: string;
+  category?: string;
+  description?: string;
+  images?: string[];
+  specs?: Record<string, string>;
+  options?: string[];
+  classifications?: string[];
+  price: {
+    originalPrice: number;
+    salePrice: number;
+  };
+  averageRating?: number;
+  reviewCount?: number;
+  saleCount?: number;
+  stock?: number;
+  datasheet?: string;
+};
+
 export type ApiReview = {
   _id: string;
   productId: string;
@@ -509,6 +529,10 @@ export function getProducts(params?: { limit?: number; skip?: number }) {
   return getJson<ApiProduct[]>(`/products${query}`);
 }
 
+export function getProductById(id: string) {
+  return getJson<ApiProduct>(`/products/${id}`);
+}
+
 export function getPublicBanners() {
   return getJson<ApiBanner[]>('/banners/public');
 }
@@ -521,6 +545,10 @@ export function getRelatedProducts(id: string) {
     console.warn('getRelatedProducts fallback:', err?.message || err);
     return [];
   });
+}
+
+export function createProduct(data: CreateProductInput, token: string) {
+  return postJson<ApiProduct>('/products', data, { token });
 }
 
 export function getFavorites(token: string) {

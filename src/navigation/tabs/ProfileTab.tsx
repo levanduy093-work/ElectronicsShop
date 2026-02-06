@@ -37,6 +37,7 @@ export function ProfileTab() {
         <ProfileScreen
             theme={theme}
             userProfile={app?.userProfile || { name: '', email: '', avatar: '' }}
+            isAdmin={app?.isAdmin || false}
             orderCount={app?.orders?.length || 0}
             vouchers={app?.vouchers || []}
             onLogout={app?.logout || (() => { })}
@@ -45,6 +46,7 @@ export function ProfileTab() {
             onNavigateToWishlist={() => navigation.navigate('Wishlist')}
             onNavigateToAddress={() => navigation.navigate('AddressBook')}
             onNavigateToSupport={() => navigation.navigate('SupportCenter')}
+            onNavigateToAdmin={() => navigation.navigate('AdminAddProduct')}
             onUpdateProfile={app?.updateProfile ? async (data) => {
                 try {
                     await app.updateProfile(data);
@@ -56,4 +58,3 @@ export function ProfileTab() {
         />
     );
 }
-

@@ -2,6 +2,7 @@ import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } f
 import { Alert, AppState, AppStateStatus, Linking, useColorScheme, StyleSheet, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Product, CartItem, Order, Voucher, HomeBanner, ChatMessage, Address } from '../types';
 import { PRODUCTS, CATEGORIES } from '../constants/data';
@@ -10,6 +11,7 @@ import { AppProvider, AppContextValue } from './AppContext';
 import { useToast } from '../components/common/ToastProvider';
 import { useNetworkStatus } from '../utils/network';
 import { extractCategoriesFromProducts } from '../utils/product';
+import { mapApiProductToUi, mapApiBannerToUi } from '../utils/mappers';
 import { cacheBanners, getCachedBanners, cacheProducts, getCachedProducts, cacheManager } from '../utils/cache';
 
 import {
@@ -20,7 +22,6 @@ import {
     ApiCart,
     ApiCartItem,
     AuthResponse,
-    ApiBanner,
     addFavorite,
     configureApiAuth,
     createOrder as apiCreateOrder,
@@ -44,6 +45,8 @@ import {
     fetchMyCart,
     upsertCart,
     getReviews,
+    createProduct as apiCreateProduct,
+    CreateProductInput,
 } from '../services/api';
 import { socketService } from '../services/socket';
 import { prefetchService } from '../services/prefetchService';
@@ -69,6 +72,7 @@ const DEFAULT_PROFILE = {
     name: "Nguyễn Văn A",
     email: "nguyenva@example.com",
     avatar: "",
+    role: undefined as string | undefined,
 };
 
 // ============================================================================
@@ -135,44 +139,6 @@ type UiNotification = {
     time: string;
     read: boolean;
     sendAt?: string;
-};
-
-const mapApiProductToUi = (product: ApiProduct): Product => {
-    const stockNumber = product.stock ?? 0;
-    const stockLabel = stockNumber <= 0 ? 'Out of Stock' : stockNumber < 5 ? 'Low Stock' : 'In Stock';
-    const price = product.price?.salePrice ?? product.price?.originalPrice ?? 0;
-    const originalPrice = product.price?.originalPrice || undefined;
-    const specs: Record<string, string> = {};
-    if (product.specs) {
-        Object.entries(product.specs).forEach(([k, v]) => {
-            if (v) specs[k] = v as string;
-        });
-    }
-    const normalizedImages = (product.images || []).map(img => (img || '').trim()).filter(Boolean);
-    const primaryImage = normalizedImages.find(() => true) || 'https://images.unsplash.com/photo-1581093588401-99b6fa-2?auto=format&fit=crop&w=600&q=80';
-    return {
-        id: product._id,
-        name: product.name,
-        price,
-        salePrice: product.price?.salePrice,
-        originalPrice,
-        rating: product.averageRating ?? 0,
-        averageRating: product.averageRating ?? 0,
-        reviews: product.reviewCount ?? 0,
-        reviewCount: product.reviewCount ?? 0,
-        image: primaryImage,
-        images: normalizedImages,
-        category: product.category || 'Khác',
-        stock: stockLabel,
-        stockQuantity: stockNumber,
-        description: product.description || '',
-        specs,
-        code: product.code,
-        saleCount: product.saleCount,
-        datasheet: product.datasheet,
-        options: product.options,
-        classifications: product.classifications,
-    };
 };
 
 const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS, t?: (key: string) => string): Order => {
@@ -260,18 +226,6 @@ const mapApiVoucherToUi = (voucher: ApiVoucher): Voucher => {
     };
 };
 
-const mapApiBannerToUi = (banner: ApiBanner): HomeBanner => ({
-    id: banner._id,
-    title: banner.title,
-    subtitle: banner.subtitle,
-    imageUrl: banner.imageUrl,
-    ctaLabel: banner.ctaLabel,
-    ctaLink: banner.ctaLink,
-    ctaProductId: banner.productId,
-    isActive: banner.isActive,
-    order: banner.order,
-});
-
 const mapApiNotificationToUi = (item: ApiNotification, t?: (key: string, options?: any) => string): UiNotification => {
     const fallbackDate = item.deliveredAt || item.readAt || item.updatedAt || new Date().toISOString();
     const sendAt = item.sendAt || item.createdAt || fallbackDate;
@@ -304,6 +258,49 @@ const mapCartItemToApi = (item: CartItem): ApiCartItem => {
         category: item.category,
         image: item.image,
     };
+};
+
+const pickMostRecentCart = (carts: ApiCart[] = []) => {
+    if (!carts.length) return undefined;
+    if (carts.length === 1) return carts[0];
+    return [...carts].sort((a, b) => {
+        const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+        const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+        return timeB - timeA;
+    })[0];
+};
+
+const mapApiCartToUi = (cart: ApiCart, products: Product[]): CartItem[] => {
+    const fallbackImage = 'https://images.unsplash.com/photo-1581093588401-99b6fa-2?auto=format&fit=crop&w=600&q=80';
+    return (cart.items || []).map((item) => {
+        const productMatch = products.find(p => p.id === item.productId);
+        const baseProduct: Product = productMatch || {
+            id: item.productId,
+            name: item.name || 'Product',
+            price: item.price || 0,
+            originalPrice: item.price || 0,
+            salePrice: item.price || 0,
+            rating: 0,
+            reviews: 0,
+            image: item.image || fallbackImage,
+            images: item.image ? [item.image] : undefined,
+            category: item.category || 'Khác',
+            stock: 'In Stock',
+            stockQuantity: undefined,
+            description: '',
+            specs: {},
+        };
+
+        return {
+            ...baseProduct,
+            id: item.productId,
+            name: item.name || baseProduct.name,
+            price: item.price ?? baseProduct.salePrice ?? baseProduct.price ?? 0,
+            image: item.image || baseProduct.image,
+            category: item.category || baseProduct.category,
+            quantity: item.quantity,
+        };
+    });
 };
 
 // ============================================================================
@@ -429,6 +426,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     const [authTokens, setAuthTokens] = useState<{ accessToken: string; refreshToken: string } | null>(null);
     const [userId, setUserId] = useState<string | null>(null);
     const [userProfile, setUserProfile] = useState(DEFAULT_PROFILE);
+    const [userRole, setUserRole] = useState<string | undefined>(undefined);
     const authTokensRef = useRef<{ accessToken: string; refreshToken: string } | null>(null);
     const [isRestoringAuth, setIsRestoringAuth] = useState(true);
     const hasFetchedCartRef = useRef(false);
@@ -530,6 +528,201 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         const base = (CATEGORIES.length ? CATEGORIES : extractCategoriesFromProducts(products)).map(c => c.name);
         return Array.from(new Set(base.filter(Boolean)));
     }, [products]);
+
+    const queryClient = useQueryClient();
+    const isAuthed = Boolean(isLoggedIn && authTokens?.accessToken);
+    const currentUserKey = userId || 'me';
+    const isOffline = networkStatus.isConnected === false || networkStatus.isInternetReachable === false;
+
+    const ordersQuery = useQuery({
+        queryKey: ['orders', currentUserKey],
+        enabled: isAuthed,
+        queryFn: async () => {
+            const token = authTokensRef.current?.accessToken || authTokens?.accessToken;
+            if (!token) return [];
+            const cacheKey = `orders-${currentUserKey}`;
+            if (isOffline) {
+                const cached = await cacheManager.get<ApiOrder[]>(cacheKey);
+                if (cached) return cached;
+            }
+            const result = await apiGetOrders(token);
+            await cacheManager.set(cacheKey, result);
+            return result;
+        },
+        refetchInterval: isAuthed && !isOffline ? 30000 : false,
+    });
+
+    const favoritesQuery = useQuery({
+        queryKey: ['favorites', currentUserKey],
+        enabled: isAuthed,
+        queryFn: async () => {
+            const token = authTokensRef.current?.accessToken || authTokens?.accessToken;
+            if (!token) return [];
+            const cacheKey = `favorites-${currentUserKey}`;
+            if (isOffline) {
+                const cached = await cacheManager.get<ApiProduct[]>(cacheKey);
+                if (cached) return cached;
+            }
+            const result = await apiGetFavorites(token);
+            await cacheManager.set(cacheKey, result);
+            return result;
+        },
+    });
+
+    const addressesQuery = useQuery({
+        queryKey: ['addresses', currentUserKey],
+        enabled: isAuthed,
+        queryFn: async () => {
+            const token = authTokensRef.current?.accessToken || authTokens?.accessToken;
+            if (!token) return [];
+            const cacheKey = `addresses-${currentUserKey}`;
+            if (isOffline) {
+                const cached = await cacheManager.get<Address[]>(cacheKey);
+                if (cached) return cached;
+            }
+            const result = await getAddresses(token);
+            await cacheManager.set(cacheKey, result);
+            return result;
+        },
+    });
+
+    const cartQuery = useQuery({
+        queryKey: ['cart', currentUserKey],
+        enabled: isAuthed,
+        queryFn: async () => {
+            const token = authTokensRef.current?.accessToken || authTokens?.accessToken;
+            if (!token) return [];
+            const cacheKey = `cart-${currentUserKey}`;
+            if (isOffline) {
+                const cached = await cacheManager.get<ApiCart[]>(cacheKey);
+                if (cached) return cached;
+            }
+            const result = await fetchMyCart(token);
+            await cacheManager.set(cacheKey, result);
+            return result;
+        },
+    });
+
+    const favoritesMutation = useMutation({
+        mutationFn: async (params: { productId: string; action: 'add' | 'remove' }) => {
+            const token = authTokensRef.current?.accessToken;
+            if (!token) return;
+            if (params.action === 'add') {
+                return addFavorite(params.productId, token);
+            }
+            return removeFavorite(params.productId, token);
+        },
+        onMutate: ({ productId, action }) => {
+            const previous = queryClient.getQueryData<ApiProduct[]>(['favorites', currentUserKey]) || [];
+            let next: ApiProduct[] = previous;
+            if (action === 'add') {
+                const product = productsRef.current.find(p => p.id === productId);
+                if (product) {
+                    // Map UI product back to minimal API shape for cache consistency
+                    const apiLike: ApiProduct = {
+                        _id: product.id,
+                        name: product.name,
+                        price: { originalPrice: product.originalPrice ?? product.price, salePrice: product.salePrice ?? product.price },
+                        stock: product.stockQuantity,
+                        category: product.category,
+                        description: product.description,
+                        images: product.images,
+                        specs: product.specs,
+                        code: product.code,
+                        averageRating: product.averageRating,
+                        reviewCount: product.reviewCount,
+                        saleCount: product.saleCount,
+                        datasheet: product.datasheet,
+                        options: product.options,
+                        classifications: product.classifications,
+                    } as ApiProduct;
+                    next = [apiLike, ...previous.filter(p => p._id !== productId)];
+                }
+            } else {
+                next = previous.filter(p => p._id !== productId);
+            }
+            queryClient.setQueryData(['favorites', currentUserKey], next);
+            setWishlist(next.map(mapApiProductToUi));
+            return { previous };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['favorites', currentUserKey] });
+        },
+        onError: (_error, _vars, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(['favorites', currentUserKey], context.previous);
+                setWishlist(context.previous.map(mapApiProductToUi));
+            }
+            queryClient.invalidateQueries({ queryKey: ['favorites', currentUserKey] });
+        },
+    });
+
+    const syncCartMutation = useMutation({
+        mutationFn: async (params: { items: ApiCartItem[]; totals: ReturnType<typeof computeCartTotals>; cartId?: string | null }) => {
+            const token = authTokensRef.current?.accessToken;
+            if (!token) return null;
+            return upsertCart(params.items, token, params.cartId || null, params.totals);
+        },
+        onSuccess: (result) => {
+            if (result?._id) {
+                cartIdRef.current = result._id;
+            }
+        },
+    });
+
+    useEffect(() => {
+        if (!isAuthed) return;
+        if (ordersQuery.data) {
+            const mapped = ordersQuery.data
+                .map(o => mapApiOrderToUi(o, productsRef.current, t))
+                .sort((a, b) => {
+                    const dateA = new Date(a.createdAt || a.date).getTime();
+                    const dateB = new Date(b.createdAt || b.date).getTime();
+                    return dateB - dateA;
+                });
+            setOrders(mapped);
+        }
+    }, [ordersQuery.data, isAuthed, t, products]);
+
+    useEffect(() => {
+        if (!isAuthed) return;
+        if (favoritesQuery.data) {
+            setWishlist(favoritesQuery.data.map(mapApiProductToUi));
+        }
+    }, [favoritesQuery.data, isAuthed]);
+
+    useEffect(() => {
+        if (!isAuthed) return;
+        if (addressesQuery.data) {
+            setAddresses(addressesQuery.data);
+        }
+    }, [addressesQuery.data, isAuthed]);
+
+    useEffect(() => {
+        if (!isAuthed) return;
+        if (!cartQuery.data) return;
+        if (hasFetchedCartRef.current) return;
+        if (cartQuery.data.length === 0) {
+            cartIdRef.current = null;
+            setCartItems([]);
+            hasFetchedCartRef.current = true;
+            return;
+        }
+        const activeCart = pickMostRecentCart(cartQuery.data);
+        if (!activeCart) return;
+        cartIdRef.current = activeCart._id;
+        const mapped = mapApiCartToUi(activeCart, productsRef.current);
+        setCartItems(mapped);
+        hasFetchedCartRef.current = true;
+    }, [cartQuery.data, isAuthed, products]);
+
+    useEffect(() => {
+        if (!isAuthed) {
+            setIsRefreshingOrders(false);
+            return;
+        }
+        setIsRefreshingOrders(ordersQuery.isFetching);
+    }, [ordersQuery.isFetching, isAuthed]);
 
     // ========================================================================
     // Data loading functions
@@ -634,6 +827,28 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         }
     }, [networkStatus.isConnected, products.length]);
 
+    const handleCreateProduct = useCallback(async (payload: CreateProductInput) => {
+        const token = authTokensRef.current?.accessToken;
+        const role = userRole || userProfile.role;
+        if (!token) {
+            showToast(t('login_required') || 'Vui lòng đăng nhập', 'info');
+            throw new Error('not_authenticated');
+        }
+        if (role !== 'admin') {
+            showToast('Chỉ admin mới được phép tạo sản phẩm', 'error');
+            throw new Error('not_admin');
+        }
+
+        const result = await apiCreateProduct(payload, token);
+        const mapped = mapApiProductToUi(result);
+        setProducts(prev => {
+            const next = [mapped, ...prev.filter(p => p.id !== mapped.id)];
+            productsRef.current = next;
+            return next;
+        });
+        return mapped;
+    }, [showToast, t, userProfile.role, userRole]);
+
     const loadBanners = useCallback(async (options?: { useCache?: boolean }) => {
         const isNoInternet = networkStatus.isConnected === false || networkStatus.isInternetReachable === false;
         if (isNoInternet || options?.useCache) {
@@ -660,80 +875,14 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         }
     }, [networkStatus.isConnected]);
 
-    const loadOrders = useCallback(async (tokenOverride?: string, options?: { silent?: boolean }) => {
-        const token = tokenOverride || authTokensRef.current?.accessToken;
-        const currentUid = userId || 'me';
-        if (!token) return;
+    const loadOrders = useCallback(async (_tokenOverride?: string, _options?: { silent?: boolean }) => {
+        if (!isAuthed) return;
+        await ordersQuery.refetch();
+    }, [ordersQuery.refetch, isAuthed]);
 
-        const showSpinner = !options?.silent;
-        const cacheKey = `orders-${currentUid}`;
-
-        if (showSpinner) {
-            // Try cache first
-            try {
-                const cachedDocs = await cacheManager.get<ApiOrder[]>(cacheKey);
-                if (cachedDocs) {
-                    const mapped = cachedDocs
-                        .map(o => mapApiOrderToUi(o, productsRef.current, t))
-                        .sort((a, b) => {
-                            const dateA = new Date(a.createdAt || a.date).getTime();
-                            const dateB = new Date(b.createdAt || b.date).getTime();
-                            return dateB - dateA;
-                        });
-                    setOrders(mapped);
-                    // If we have cache, don't show spinner, just update in background
-                } else {
-                    setIsRefreshingOrders(true);
-                }
-            } catch (e) {
-                setIsRefreshingOrders(true);
-            }
-        }
-
-        try {
-            const result = await apiGetOrders(token);
-            await cacheManager.set(cacheKey, result); // Cache raw API response
-
-            const mapped = result
-                .map(o => mapApiOrderToUi(o, productsRef.current, t))
-                .sort((a, b) => {
-                    const dateA = new Date(a.createdAt || a.date).getTime();
-                    const dateB = new Date(b.createdAt || b.date).getTime();
-                    return dateB - dateA;
-                });
-            setOrders(mapped);
-        } catch (error: any) {
-            const errorMessage = error?.message || 'Không thể tải đơn hàng';
-            console.warn('AppStateProvider - Failed to load orders', errorMessage);
-            if (!options?.silent) {
-                showToast(errorMessage, 'error');
-            }
-        } finally {
-            if (showSpinner) setIsRefreshingOrders(false);
-        }
-    }, [t, userId]);
-
-    const loadFavorites = async (tokenOverride?: string) => {
-        const token = tokenOverride || authTokensRef.current?.accessToken;
-        const currentUid = userId || 'me';
-        if (!token) return;
-
-        const cacheKey = `favorites-${currentUid}`;
-        try {
-            const cached = await cacheManager.get<ApiProduct[]>(cacheKey);
-            if (cached) {
-                setWishlist(cached.map(mapApiProductToUi));
-            }
-        } catch { }
-
-        try {
-            const result = await apiGetFavorites(token);
-            await cacheManager.set(cacheKey, result);
-            const mapped = result.map(mapApiProductToUi);
-            setWishlist(mapped);
-        } catch (error: any) {
-            console.warn('AppStateProvider - Failed to load favorites', error?.message || error);
-        }
+    const loadFavorites = async (_tokenOverride?: string) => {
+        if (!isAuthed) return;
+        await favoritesQuery.refetch();
     };
 
     const loadVouchers = async (tokenOverride?: string) => {
@@ -759,33 +908,9 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         }
     };
 
-    const loadAddresses = async (tokenOverride?: string) => {
-        const token = tokenOverride || authTokensRef.current?.accessToken;
-        const currentUid = userId || 'me';
-        if (!token) return;
-
-        const cacheKey = `addresses-${currentUid}`;
-        try {
-            // For addresses, we store the FrontendAddress[] directly? 
-            // No, api returns BackendAddress[] usually, but getAddresses maps them.
-            // Let's cache the API result (BackendAddress[]) if we could, 
-            // but `getAddresses` returns FrontendAddress[].
-            // To simplify, let's cache the frontend object since it's what we use.
-            // Wait, cacheManager stores whatever we pass.
-            const cached = await cacheManager.get<Address[]>(cacheKey);
-            if (cached) {
-                setAddresses(cached);
-            }
-        } catch { }
-
-        try {
-            const result = await getAddresses(token);
-            // Verify result type
-            await cacheManager.set(cacheKey, result);
-            setAddresses(result);
-        } catch (error: any) {
-            console.warn('AppStateProvider - Failed to load addresses', error?.message || error);
-        }
+    const loadAddresses = async (_tokenOverride?: string) => {
+        if (!isAuthed) return;
+        await addressesQuery.refetch();
     };
 
     const loadUserProfile = useCallback(async (tokenOverride?: string, options?: { silent?: boolean }) => {
@@ -800,12 +925,16 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
                         ...(result.name ? { name: result.name } : {}),
                         ...(result.email ? { email: result.email } : {}),
                         ...(result.avatar ? { avatar: result.avatar } : {}),
+                        ...(result.role ? { role: result.role } : {}),
                     };
                     if (authTokensRef.current) {
                         persistAuthState(authTokensRef.current as any, updated, result._id || userId).catch(() => { });
                     }
                     return updated;
                 });
+                if (result.role) {
+                    setUserRole(result.role);
+                }
                 if (result._id && result._id !== userId) {
                     setUserId(result._id);
                 }
@@ -846,7 +975,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         }
     }, [syncNotificationsFromApi]);
 
-    const fetchOrderDetail = async (orderId: string) => {
+    const fetchOrderDetail = useCallback(async (orderId: string) => {
         const token = authTokensRef.current?.accessToken;
         if (!token) return;
         try {
@@ -864,14 +993,62 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         } catch (error: any) {
             console.warn('AppStateProvider - Failed to fetch order detail', error?.message || error);
         }
-    };
+    }, [t]);
+
+    useEffect(() => {
+        socketService.connect();
+        if (!isAuthed) return;
+        const handler = (payload: any) => {
+            const collection = payload?.collection;
+            if (!collection) return;
+
+            if (collection === 'notifications') {
+                loadNotifications(undefined, { silent: true });
+            }
+
+            if (collection === 'orders') {
+                if (selectedOrderId) {
+                    fetchOrderDetail(selectedOrderId);
+                }
+                loadOrders(undefined, { silent: true });
+            }
+        };
+
+        socketService.on('db_change', handler);
+        return () => {
+            socketService.off('db_change', handler);
+        };
+    }, [isAuthed, selectedOrderId, loadNotifications, loadOrders, fetchOrderDetail]);
+
+    useEffect(() => {
+        if (!isAuthed || isOffline) return;
+
+        const notificationInterval = setInterval(() => {
+            if (AppState.currentState !== 'active') return;
+            loadNotifications(undefined, { silent: true });
+        }, 60000);
+
+        const orderInterval = setInterval(() => {
+            if (AppState.currentState !== 'active') return;
+            if (selectedOrderId) {
+                fetchOrderDetail(selectedOrderId);
+            } else {
+                loadOrders(undefined, { silent: true });
+            }
+        }, 30000);
+
+        return () => {
+            clearInterval(notificationInterval);
+            clearInterval(orderInterval);
+        };
+    }, [isAuthed, isOffline, selectedOrderId, loadNotifications, loadOrders, fetchOrderDetail]);
 
     // ========================================================================
     // Auth functions
     // ========================================================================
     const syncAuthTokens = useCallback((
         tokens: { accessToken: string; refreshToken: string },
-        user?: { name?: string; email?: string; avatar?: string; _id?: string },
+        user?: { name?: string; email?: string; avatar?: string; _id?: string; role?: string },
         userIdOverride?: string | null,
     ) => {
         authTokensRef.current = tokens;
@@ -885,10 +1062,14 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
                 ...(user?.name ? { name: user.name } : {}),
                 ...(user?.email ? { email: user.email } : {}),
                 ...(user?.avatar ? { avatar: user.avatar } : {}),
+                ...(user?.role ? { role: user.role } : {}),
             };
             persistAuthState(tokens, nextProfile, nextUserId).catch(() => { });
             return nextProfile;
         });
+        if (user?.role) {
+            setUserRole(user.role);
+        }
 
         // Sync FCM token to backend after login
         if (tokens?.accessToken) {
@@ -903,6 +1084,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         cartIdRef.current = null;
         hasFetchedCartRef.current = false;
         setUserProfile(DEFAULT_PROFILE);
+        setUserRole(undefined);
         setUserId(null);
         setVouchers([]);
         setNotifications([]);
@@ -1046,17 +1228,8 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         if (!token) return;
 
         const isFav = wishlist.some(item => item.id === productId);
-        if (isFav) {
-            setWishlist(prev => prev.filter(item => item.id !== productId));
-            removeFavorite(productId, token).catch(() => { });
-        } else {
-            const product = productsRef.current.find(p => p.id === productId);
-            if (product) {
-                setWishlist(prev => [...prev, product]);
-                addFavorite(productId, token).catch(() => { });
-            }
-        }
-    }, [wishlist]);
+        favoritesMutation.mutate({ productId, action: isFav ? 'remove' : 'add' });
+    }, [wishlist, favoritesMutation]);
 
     const isFavorite = useCallback((productId: string) => {
         return wishlist.some(item => item.id === productId);
@@ -1071,7 +1244,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
 
     const refreshOrderDetail = useCallback(async (orderId: string) => {
         await fetchOrderDetail(orderId);
-    }, []);
+    }, [fetchOrderDetail]);
 
     const placeOrder = useCallback(async (params: {
         items: CartItem[];
@@ -1150,46 +1323,39 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
 
     const markNotificationRead = useCallback(async (id: string) => {
         if (!authTokensRef.current?.accessToken) return;
+        const previous = notifications;
         setNotifications(prev => prev.map(item => (item.id === id ? { ...item, read: true } : item)));
         try {
             const result = await apiMarkNotificationRead(id, authTokensRef.current.accessToken);
             syncNotificationsFromApi(result);
         } catch (error: any) {
+            setNotifications(previous);
             console.warn('AppStateProvider - Failed to mark notification read', error?.message || error);
         }
-    }, [syncNotificationsFromApi]);
+    }, [notifications, syncNotificationsFromApi]);
 
     const markAllNotificationsRead = useCallback(async () => {
         if (!authTokensRef.current?.accessToken) return;
+        const previous = notifications;
+        setNotifications(prev => prev.map(item => ({ ...item, read: true })));
         try {
             const result = await apiMarkAllNotificationsRead(authTokensRef.current.accessToken);
             syncNotificationsFromApi(result);
         } catch (error: any) {
+            setNotifications(previous);
             console.warn('AppStateProvider - Failed to mark all notifications read', error?.message || error);
         }
-    }, [syncNotificationsFromApi]);
+    }, [notifications, syncNotificationsFromApi]);
 
     // ========================================================================
     // Profile functions
     // ========================================================================
-    const updateProfile = useCallback(async (data: Partial<typeof userProfile> & { avatarFile?: UploadImageFile }) => {
-        const optimisticAvatar = data.avatar || data.avatarFile?.uri || userProfile.avatar;
-        const optimisticProfile = {
-            ...userProfile,
-            ...(data.name ? { name: data.name } : {}),
-            ...(data.email ? { email: data.email } : {}),
-            ...(optimisticAvatar ? { avatar: optimisticAvatar } : {}),
-        };
-        setUserProfile(optimisticProfile);
-        if (authTokensRef.current) {
-            persistAuthState(authTokensRef.current as any, optimisticProfile, userId).catch(() => { });
-        }
+    const profileMutation = useMutation({
+        mutationFn: async (data: Partial<typeof userProfile> & { avatarFile?: UploadImageFile }) => {
+            const accessToken = authTokensRef.current?.accessToken;
+            if (!accessToken) return null;
 
-        const accessToken = authTokensRef.current?.accessToken;
-        if (!accessToken) return;
-
-        try {
-            let avatarToUpdate = optimisticAvatar;
+            let avatarToUpdate = data.avatar;
 
             if (data.avatarFile?.uri) {
                 const uploadResult = await uploadImage(data.avatarFile, {
@@ -1205,10 +1371,30 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
                 ...(avatarToUpdate ? { avatar: avatarToUpdate } : {}),
             };
 
-            if (!Object.keys(payload).length) return;
+            if (!Object.keys(payload).length) return null;
 
             const result = await apiUpdateProfile(payload, authTokensRef.current?.accessToken || accessToken);
-            const updatedUser = result.user || payload;
+            return result.user || payload;
+        },
+    });
+
+    const updateProfile = useCallback(async (data: Partial<typeof userProfile> & { avatarFile?: UploadImageFile }) => {
+        const previousProfile = userProfile;
+        const optimisticAvatar = data.avatar || data.avatarFile?.uri || userProfile.avatar;
+        const optimisticProfile = {
+            ...userProfile,
+            ...(data.name ? { name: data.name } : {}),
+            ...(data.email ? { email: data.email } : {}),
+            ...(optimisticAvatar ? { avatar: optimisticAvatar } : {}),
+        };
+        setUserProfile(optimisticProfile);
+        if (authTokensRef.current) {
+            persistAuthState(authTokensRef.current as any, optimisticProfile, userId).catch(() => { });
+        }
+
+        try {
+            const updatedUser = await profileMutation.mutateAsync(data);
+            if (!updatedUser) return;
             setUserProfile(prev => {
                 const next = { ...prev, ...updatedUser };
                 if (authTokensRef.current) {
@@ -1217,9 +1403,13 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
                 return next;
             });
         } catch (error: any) {
+            setUserProfile(previousProfile);
+            if (authTokensRef.current) {
+                persistAuthState(authTokensRef.current as any, previousProfile, userId).catch(() => { });
+            }
             console.warn('AppStateProvider - Failed to update profile', error?.message || error);
         }
-    }, [userProfile, userId]);
+    }, [userProfile, userId, profileMutation]);
 
     // ========================================================================
     // Theme functions
@@ -1359,10 +1549,11 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
             try {
                 const payloadItems = cartItems.map(mapCartItemToApi);
                 const totals = computeCartTotals(cartItems);
-                const result = await upsertCart(payloadItems, token, cartIdRef.current, totals);
-                if (result?._id) {
-                    cartIdRef.current = result._id;
-                }
+                await syncCartMutation.mutateAsync({
+                    items: payloadItems,
+                    totals,
+                    cartId: cartIdRef.current,
+                });
             } catch (error) {
                 console.warn('AppStateProvider - Failed to sync cart to backend', error);
             }
@@ -1373,7 +1564,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
                 clearTimeout(cartSyncTimeoutRef.current);
             }
         };
-    }, [cartItems, authTokens?.accessToken]);
+    }, [cartItems, authTokens?.accessToken, syncCartMutation]);
 
     // Load user data when logged in
     useEffect(() => {
@@ -1455,10 +1646,13 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         authTokens,
         userId,
         userProfile,
+        userRole,
+        isAdmin: (userRole || userProfile.role) === 'admin',
         login,
         logout: handleAuthFailure,
         updateProfile,
         loadUserProfile,
+        createProduct: handleCreateProduct,
 
         // Wishlist
         wishlist,
@@ -1526,7 +1720,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     }), [
         products, relatedProducts, banners, isLoadingProducts, productsError, loadProducts,
         cartItems, addToCart, updateCartQuantity, removeFromCart, updateCartItemOptions,
-        isLoggedIn, authTokens, userId, userProfile, login, handleAuthFailure, updateProfile, loadUserProfile,
+        isLoggedIn, authTokens, userId, userProfile, userRole, handleCreateProduct, login, handleAuthFailure, updateProfile, loadUserProfile,
         wishlist, toggleFavorite, isFavorite,
         orders, selectedOrderId, isPlacingOrder, isRefreshingOrders, placeOrder, refreshOrders, refreshOrderDetail,
         vouchers, appliedVoucher,

@@ -76,15 +76,10 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
   const orderData = order || DEFAULT_ORDER;
   const [supportModalVisible, setSupportModalVisible] = useState(false);
 
-  // Auto-refresh order when component mounts or orderId changes
+  // Refresh order when component mounts or orderId changes
   useEffect(() => {
     if (onRefreshOrder && orderId) {
       onRefreshOrder(orderId);
-      // Set up polling to refresh order every 30 seconds
-      const interval = setInterval(() => {
-        onRefreshOrder(orderId);
-      }, 30000);
-      return () => clearInterval(interval);
     }
   }, [orderId, onRefreshOrder]);
 

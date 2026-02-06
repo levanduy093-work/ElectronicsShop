@@ -1,5 +1,6 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import type { Product, CartItem, Order, Voucher, HomeBanner, ChatMessage, Address } from '../types';
+import type { CreateProductInput } from '../services/api';
 
 // ============================================================================
 // App Context Types
@@ -25,11 +26,14 @@ export interface AppContextValue {
     isLoggedIn: boolean;
     authTokens: { accessToken: string; refreshToken: string } | null;
     userId: string | null;
-    userProfile: { name: string; email: string; avatar: string };
+    userProfile: { name: string; email: string; avatar: string; role?: string };
+    userRole?: string;
+    isAdmin: boolean;
     login: (response: any) => void;
     logout: () => void;
     updateProfile: (data: any) => Promise<void>;
     loadUserProfile: (tokenOverride?: string, options?: { silent?: boolean }) => Promise<void>;
+    createProduct: (payload: CreateProductInput) => Promise<Product>;
 
     // Wishlist
     wishlist: Product[];

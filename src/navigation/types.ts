@@ -26,6 +26,7 @@ export type RootStackParamList = {
     SupportCenter: undefined;
     ChangePassword: undefined;
     LanguageSelection: undefined;
+    AdminAddProduct: undefined;
 };
 
 // ============================================================================

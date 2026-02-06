@@ -9,12 +9,14 @@ import { useTheme } from '../../theme';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { filterProducts } from '../../utils/filterUtils';
 import { Catalog as CatalogScreen } from '../../screens/Catalog';
+import { useProductsQuery } from '../../hooks/useCatalogQueries';
 
 export function CatalogTab() {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const route = useRoute<RouteProp<RootTabParamList, 'CatalogTab'>>();
     const { theme } = useTheme();
     const app = useAppOptional();
+    const productsQuery = useProductsQuery(app?.products);
 
     // Derive requested category from navigation params (supports direct or nested shape)
     const initialCategory = React.useMemo(() => {
@@ -43,7 +45,7 @@ export function CatalogTab() {
         >
             <CatalogScreen
                 theme={theme}
-                products={app?.products || []}
+                products={productsQuery.data || []}
                 initialCategory={initialCategory}
                 onProductClick={(p) => navigation.navigate('ProductDetail', { productId: p.id })}
                 onFilterClick={() => navigation.navigate('Filter', { type: 'catalog' })}
@@ -51,8 +53,8 @@ export function CatalogTab() {
                 onSearchQueryChange={app?.setCatalogSearchQuery}
                 filters={app?.catalogFilters}
                 applyFilters={applyFilters}
-                isLoading={app?.isLoadingProducts || false}
-                onRefresh={app?.loadProducts || (() => Promise.resolve())}
+                isLoading={productsQuery.isLoading || productsQuery.isFetching}
+                onRefresh={() => productsQuery.refetch()}
             />
         </ScreenLayout>
     );

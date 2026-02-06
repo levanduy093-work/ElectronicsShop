@@ -1,23 +1,26 @@
-import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Share, useWindowDimensions, Modal, TextInput, Image, Animated, Easing, KeyboardAvoidingView, Platform, Linking } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Product } from '../types';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
 import { formatPrice } from '../utils';
 import { useTheme } from '../theme';
 import { useToast } from '../components/common/ToastProvider';
-import { ApiReview, createReview, getReviews, uploadImage, UploadImageFile } from '../services/api';
+import { ApiReview, createReview, getProductById, getReviews, uploadImage, UploadImageFile } from '../services/api';
 import { socketService } from '../services/socket';
 import { ProductCard } from '../components/ui/ProductCard';
 import { downloadDatasheetPdf } from '../utils/fileDownload';
 import { cacheManager } from '../utils/cache';
+import { mapApiProductToUi } from '../utils/mappers';
 import { APP_LINK_DOMAIN as ENV_APP_LINK_DOMAIN, APP_LINK_SCHEME as ENV_APP_LINK_SCHEME } from '@env';
 
 interface ProductDetailProps {
-  product: Product;
+  productId: string;
+  product?: Product;
   onBack: () => void;
   onAddToCart: (product: Product, quantity: number, selectedOption?: string, selectedClassification?: string) => boolean | void;
   isFavorite: boolean;
@@ -36,7 +39,8 @@ interface ProductDetailProps {
 }
 
 export function ProductDetail({
-  product,
+  productId,
+  product: initialProduct,
   onBack,
   onAddToCart,
   isFavorite,
@@ -56,9 +60,27 @@ export function ProductDetail({
   const { width, height } = useWindowDimensions();
   const slideWidth = Math.max(width, 1);
   const [quantity, setQuantity] = useState(1);
-  const hasDatasheet = !!(product.datasheet && String(product.datasheet).trim());
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'desc' | 'specs' | 'reviews' | 'datasheet'>('desc');
   const insets = useSafeAreaInsets();
+  const { theme: baseTheme, isDarkMode } = useTheme();
+  const theme = injectedTheme || baseTheme;
+
+  const productQuery = useQuery({
+    queryKey: ['product', productId],
+    queryFn: async () => mapApiProductToUi(await getProductById(productId)),
+    enabled: Boolean(productId),
+    initialData: initialProduct,
+    staleTime: 60_000,
+  });
+
+  const product = productQuery.data ?? initialProduct;
+  const activeProductId = product?.id ?? productId;
+  const hasDatasheet = !!(product?.datasheet && String(product?.datasheet).trim());
+
+  if (!product) {
+    return <View style={{ flex: 1, backgroundColor: theme.background }} />;
+  }
 
   // Animation values
   const animItem = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
@@ -89,7 +111,7 @@ export function ProductDetail({
     if (productClassifications.length > 0 && selectedClassification === null) {
       setSelectedClassification(productClassifications[0]);
     }
-  }, [product.id, productOptions, productClassifications, selectedOption, selectedClassification]);
+  }, [activeProductId, productOptions, productClassifications, selectedOption, selectedClassification]);
 
   const runAddToCartAnimation = (callback: () => void) => {
     animItem.setValue({ x: 0, y: 0 });
@@ -133,8 +155,6 @@ export function ProductDetail({
 
   const [expandedReviews, setExpandedReviews] = useState<Record<string, boolean>>({});
   const reviewImageSize = (slideWidth - 16 * 2 - 8 * 3) / 4;
-  const { theme: ctxTheme, isDarkMode } = useTheme();
-  const theme = injectedTheme || ctxTheme;
   const { showToast } = useToast();
   const { t } = useTranslation();
   const isOutOfStock =
@@ -142,17 +162,44 @@ export function ProductDetail({
     (product.stockQuantity !== undefined && product.stockQuantity <= 0);
   const availableStock = product.stockQuantity;
   const maxQuantity = availableStock !== undefined ? Math.max(0, availableStock) : Number.MAX_SAFE_INTEGER;
-  const [reviews, setReviews] = useState<ApiReview[]>([]);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewContent, setReviewContent] = useState('');
   const [reviewImages, setReviewImages] = useState<string[]>([]);
-  const [reviewsFetched, setReviewsFetched] = useState(false);
   const [showDatasheetModal, setShowDatasheetModal] = useState(false);
   const [downloadedPath, setDownloadedPath] = useState<string | null>(null);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<'denied' | 'blocked'>('denied');
+
+  const reviewsQuery = useQuery({
+    queryKey: ['reviews', activeProductId],
+    queryFn: async () => {
+      const data = await getReviews(activeProductId);
+      await cacheManager.set(`reviews-${activeProductId}`, data);
+      return data;
+    },
+    enabled: Boolean(activeProductId),
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    let isActive = true;
+    const loadCached = async () => {
+      if (!activeProductId) return;
+      const cached = await cacheManager.get<ApiReview[]>(`reviews-${activeProductId}`);
+      if (cached && cached.length > 0 && isActive) {
+        queryClient.setQueryData(['reviews', activeProductId], cached);
+      }
+    };
+    void loadCached();
+    return () => {
+      isActive = false;
+    };
+  }, [activeProductId, queryClient]);
+
+  const reviews = reviewsQuery.data ?? [];
+  const reviewsLoading = reviewsQuery.isLoading && reviews.length === 0;
+  const reviewsFetched = reviewsQuery.data !== undefined;
   const ratingCounts = reviews.reduce(
     (acc, r) => {
       acc[r.rating] = (acc[r.rating] || 0) + 1;
@@ -172,8 +219,8 @@ export function ProductDetail({
   const appLinkScheme = ENV_APP_LINK_SCHEME || 'electronicsshop';
 
   const buildShareLinks = () => {
-    const universalLink = appLinkHost ? `https://${appLinkHost}/product/${product.id}` : '';
-    const deepLink = `${appLinkScheme}://product/${product.id}`;
+    const universalLink = appLinkHost ? `https://${appLinkHost}/product/${activeProductId}` : '';
+    const deepLink = `${appLinkScheme}://product/${activeProductId}`;
     return { universalLink, deepLink };
   };
 
@@ -183,60 +230,23 @@ export function ProductDetail({
     onReviewStatsChangeRef.current = onReviewStatsChange;
   }, [onReviewStatsChange]);
 
-  const fetchReviews = useCallback(async () => {
-    // Only show loading spinner if we don't have cached data yet
-    let hasCached = false;
-    const cacheKey = `reviews-${product.id}`;
-
-    try {
-      const cached = await cacheManager.get<ApiReview[]>(cacheKey);
-      if (cached) {
-        setReviews(cached);
-        const avg = cached.length > 0 ? cached.reduce((sum, r) => sum + (r.rating || 0), 0) / cached.length : 0;
-        onReviewStatsChangeRef.current?.(product.id, { averageRating: avg, reviewCount: cached.length });
-        setReviewsFetched(true);
-        hasCached = true;
-      }
-    } catch (e) {
-      // ignore cache error
-    }
-
-    if (!hasCached) {
-      setReviewsLoading(true);
-    }
-
-    try {
-      const data = await getReviews(product.id);
-      setReviews(data);
-      await cacheManager.set(cacheKey, data);
-
-      const avg =
-        data.length > 0 ? data.reduce((sum, r) => sum + (r.rating || 0), 0) / data.length : 0;
-      onReviewStatsChangeRef.current?.(product.id, { averageRating: avg, reviewCount: data.length });
-      setReviewsFetched(true);
-    } catch (error: any) {
-      // If we have cached data, suppress the error for the user, just log it
-      if (!hasCached) {
-        console.warn('ProductDetail - Failed to load reviews', error?.message || error);
-      }
-    } finally {
-      setReviewsLoading(false);
-    }
-  }, [product.id]);
+  useEffect(() => {
+    if (!reviewsFetched) return;
+    const avg =
+      reviews.length > 0 ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length : 0;
+    onReviewStatsChangeRef.current?.(activeProductId, { averageRating: avg, reviewCount: reviews.length });
+  }, [activeProductId, reviews, reviewsFetched]);
 
   useEffect(() => {
-    setReviewsFetched(false);
-    setActiveImageIndex(0); // Reset gallery
-    fetchReviews();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product.id]); // Only re-fetch when product changes, not when fetchReviews reference changes
+    setActiveImageIndex(0);
+  }, [activeProductId]);
 
   useEffect(() => {
     const handler = (payload: any) => {
       if (payload?.collection === 'reviews') {
         const doc = payload.fullDocument || {};
-        if (`${doc.productId}` === `${product.id}`) {
-          fetchReviews();
+        if (`${doc.productId}` === `${activeProductId}`) {
+          queryClient.invalidateQueries({ queryKey: ['reviews', activeProductId] });
         }
       }
     };
@@ -244,7 +254,7 @@ export function ProductDetail({
     return () => {
       socketService.off('db_change');
     };
-  }, [product.id, fetchReviews]);
+  }, [activeProductId, queryClient]);
 
   const formatReviewDate = (value?: string) => {
     if (!value) return '';
@@ -342,7 +352,7 @@ export function ProductDetail({
     const tempId = `temp-${Date.now()}`;
     const optimisticReview: ApiReview = {
       _id: tempId,
-      productId: product.id,
+      productId: activeProductId,
       userId: currentUserId || 'me',
       userName: currentUserName || t('you'),
       rating: reviewRating,
@@ -351,11 +361,11 @@ export function ProductDetail({
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setReviews(prev => {
+    queryClient.setQueryData<ApiReview[]>(['reviews', activeProductId], (prev = []) => {
       const next = [optimisticReview, ...prev];
       const avg =
         next.length > 0 ? next.reduce((sum, r) => sum + (r.rating || 0), 0) / next.length : 0;
-      onReviewStatsChange?.(product.id, { averageRating: avg, reviewCount: next.length });
+      onReviewStatsChange?.(activeProductId, { averageRating: avg, reviewCount: next.length });
       return next;
     });
 
@@ -379,16 +389,18 @@ export function ProductDetail({
             };
             const res = await uploadImage(file, {
               token: accessToken,
-              folder: `electronics-shop/reviews/${product.id}/${currentUserId || 'guest'}`,
+              folder: `electronics-shop/reviews/${activeProductId}/${currentUserId || 'guest'}`,
             });
             return res?.secure_url || res?.url || uri;
           }),
         );
 
-        await createReview(product.id, reviewRating, content, uploadedUrls.filter(Boolean), accessToken);
-        fetchReviews();
+        await createReview(activeProductId, reviewRating, content, uploadedUrls.filter(Boolean), accessToken);
+        await queryClient.invalidateQueries({ queryKey: ['reviews', activeProductId] });
       } catch (error: any) {
-        setReviews(prev => prev.filter(r => r._id !== tempId));
+        queryClient.setQueryData<ApiReview[]>(['reviews', activeProductId], (prev = []) =>
+          prev.filter(r => r._id !== tempId),
+        );
         showToast(error?.message || t('cannotSendReview'), 'error');
       }
     };
@@ -627,7 +639,7 @@ export function ProductDetail({
                     onPress={() => setSelectedOption(option)}
                     style={{
                       borderColor: selectedOption === option ? theme.primary : theme.border,
-                      backgroundColor: selectedOption === option ? (theme === ctxTheme ? '#EFF6FF' : 'rgba(37,99,235,0.2)') : theme.surface,
+                          backgroundColor: selectedOption === option ? (theme === baseTheme ? '#EFF6FF' : 'rgba(37,99,235,0.2)') : theme.surface,
                     }}
                     className="px-4 py-2 rounded-full border mr-2"
                     activeOpacity={0.7}
@@ -653,7 +665,7 @@ export function ProductDetail({
                       onPress={() => setSelectedClassification(classification)}
                       style={{
                         borderColor: selectedClassification === classification ? theme.primary : theme.border,
-                        backgroundColor: selectedClassification === classification ? (theme === ctxTheme ? '#EFF6FF' : 'rgba(37,99,235,0.2)') : theme.surface,
+                          backgroundColor: selectedClassification === classification ? (theme === baseTheme ? '#EFF6FF' : 'rgba(37,99,235,0.2)') : theme.surface,
                       }}
                       className="px-4 py-2 rounded-full border mr-2"
                       activeOpacity={0.7}
@@ -1194,4 +1206,3 @@ export function ProductDetail({
     </View >
   );
 }
-

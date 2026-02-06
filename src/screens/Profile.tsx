@@ -27,11 +27,13 @@ interface ProfileProps {
   onNavigateToSettings?: () => void;
   onNavigateToSupport?: () => void;
   onNavigateToWishlist?: () => void;
+  onNavigateToAdmin?: () => void;
   onLogout?: () => void;
   userProfile?: UserProfile;
   onUpdateProfile?: (data: Partial<UserProfile> & { avatarFile?: UploadImageFile }) => Promise<boolean> | void;
   theme?: Theme;
   vouchers?: Voucher[];
+  isAdmin?: boolean;
 }
 
 export function Profile({
@@ -41,11 +43,13 @@ export function Profile({
   onNavigateToSettings,
   onNavigateToSupport,
   onNavigateToWishlist,
+  onNavigateToAdmin,
   onLogout,
   userProfile = { name: "Nguyễn Văn A", email: "nguyenva@example.com", avatar: "" },
   onUpdateProfile,
   theme,
   vouchers,
+  isAdmin = false,
 }: ProfileProps) {
   const { t: translate } = useTranslation();
   const [showVouchers, setShowVouchers] = useState(false);
@@ -128,6 +132,8 @@ export function Profile({
           onNavigateToSettings={() => onNavigateToSettings?.()}
           onNavigateToSupport={() => onNavigateToSupport?.()}
           onLogout={() => onLogout?.()}
+          onNavigateToAdmin={isAdmin ? onNavigateToAdmin : undefined}
+          isAdmin={isAdmin}
           theme={t}
         />
 

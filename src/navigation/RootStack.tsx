@@ -1,5 +1,4 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -26,8 +25,10 @@ import { Wishlist as WishlistScreen } from '../screens/Wishlist';
 import { SupportCenter as SupportCenterScreen } from '../screens/SupportCenter';
 import { ChangePassword as ChangePasswordScreen } from '../screens/ChangePassword';
 import { LanguageSelection as LanguageSelectionScreen } from '../screens/LanguageSelection';
+import { AdminAddProduct as AdminAddProductScreen } from '../screens/AdminAddProduct';
 import { filterProducts } from '../utils/filterUtils';
 import { getOrderById } from '../services/api';
+import { useProductsQuery } from '../hooks/useCatalogQueries';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -54,12 +55,9 @@ function ProductDetailWrapper({ route }: { route: { params: { productId: string 
     const productId = route.params.productId;
     const product = app?.products.find(p => p.id === productId);
 
-    if (!product) {
-        return <View style={[styles.loading, { backgroundColor: theme.background }]} />;
-    }
-
     return (
         <ProductDetailScreen
+            productId={productId}
             product={product}
             onBack={() => navigation.goBack()}
             onAddToCart={app?.addToCart || (() => { })}
@@ -83,6 +81,7 @@ function SearchWrapper({ route }: { route: { params?: { initialQuery?: string } 
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { theme } = useTheme();
     const app = useAppOptional();
+    const productsQuery = useProductsQuery(app?.products);
 
     return (
         <SearchScreenComponent
@@ -92,7 +91,7 @@ function SearchWrapper({ route }: { route: { params?: { initialQuery?: string } 
             initialQuery={route.params?.initialQuery || ''}
             onQueryChange={app?.setSearchQuery}
             theme={theme}
-            products={app?.products || []}
+            products={productsQuery.data || []}
             userId={app?.userId || undefined}
             isLoggedIn={app?.isLoggedIn || false}
             accessToken={app?.authTokens?.accessToken}
@@ -207,6 +206,13 @@ function OrderDetailWrapper({ route }: { route: { params: { orderId: string } } 
     const orderId = route.params.orderId;
     const order = app?.orders?.find(o => o.id === orderId);
 
+    useEffect(() => {
+        app?.setSelectedOrderId?.(orderId);
+        return () => {
+            app?.setSelectedOrderId?.(null);
+        };
+    }, [app, orderId]);
+
     return (
         <OrderDetailScreen
             orderId={orderId}
@@ -246,6 +252,20 @@ function AuthWrapper({ route }: { route: { params?: { mode?: 'login' | 'register
             }}
             theme={theme}
             initialMode={route.params?.mode || 'login'}
+        />
+    );
+}
+
+function AdminAddProductWrapper() {
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const { theme } = useTheme();
+    const app = useAppOptional();
+
+    return (
+        <AdminAddProductScreen
+            onBack={() => navigation.goBack()}
+            onCreate={(payload) => app?.createProduct ? app.createProduct(payload) : Promise.reject(new Error('Not available'))}
+            isAdmin={app?.isAdmin || false}
         />
     );
 }
@@ -400,6 +420,7 @@ export function RootStack({ cartCount = 0 }: RootStackProps) {
             <Stack.Screen name="Checkout" component={CheckoutWrapper} />
             <Stack.Screen name="OrderDetail" component={OrderDetailWrapper} />
             <Stack.Screen name="Auth" component={AuthWrapper} />
+            <Stack.Screen name="AdminAddProduct" component={AdminAddProductWrapper} />
             <Stack.Screen name="Settings" component={SettingsWrapper} />
             <Stack.Screen name="OrderHistory" component={OrderHistoryWrapper} />
             <Stack.Screen name="AddressBook" component={AddressBookWrapper} />
@@ -410,11 +431,3 @@ export function RootStack({ cartCount = 0 }: RootStackProps) {
         </Stack.Navigator>
     );
 }
-
-const styles = StyleSheet.create({
-    loading: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-});

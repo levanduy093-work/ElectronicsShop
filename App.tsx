@@ -8,6 +8,7 @@ import { StatusBar, StyleSheet, View, useColorScheme, AppState, AppStateStatus }
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { AppStateProvider } from './src/context';
 import { AppNavigator } from './src/navigation';
@@ -25,6 +26,15 @@ import './src/i18n';
 
 const ONBOARDING_STORAGE_KEY = 'electronicsshop/onboarding_seen';
 const THEME_MODE_STORAGE_KEY = 'electronicsshop/theme_mode';
+
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 30_000,
+            refetchOnWindowFocus: false,
+        },
+    },
+});
 
 // Foreground notification handler component
 const ForegroundNotificationHandler = () => {
@@ -145,9 +155,11 @@ function AppContent() {
 function App(): React.JSX.Element {
     return (
         <GestureHandlerRootView style={styles.container}>
-            <ToastProvider>
-                <AppContent />
-            </ToastProvider>
+            <QueryClientProvider client={queryClient}>
+                <ToastProvider>
+                    <AppContent />
+                </ToastProvider>
+            </QueryClientProvider>
         </GestureHandlerRootView>
     );
 }
