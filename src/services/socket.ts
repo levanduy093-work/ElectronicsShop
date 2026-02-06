@@ -28,13 +28,21 @@ const isLocalHost = (url?: string) => !!url && /localhost|127\.0\.0\.1/.test(url
 const envApi = cleanHost(ENV_API_URL);
 const deviceHost = cleanHost(API_DEVICE_HOST);
 const fallbackHost = resolveHost();
+const isSimulatorHost = (host?: string) =>
+  host === 'localhost' ||
+  host === '127.0.0.1' ||
+  host === '10.0.2.2' ||
+  host === '10.0.3.2';
+const runningOnSimulator = isSimulatorHost(fallbackHost);
 
 const pickSocketUrl = () => {
   // 1) Prefer API URL when it is not pointing to localhost
   if (envApi && !isLocalHost(envApi.origin)) return envApi.origin;
 
-  // 2) Device host override (default port 3000 if missing)
-  if (deviceHost) return deviceHost.port ? deviceHost.origin : `${deviceHost.origin}:3000`;
+  // 2) Device host override (default port 3000 if missing) for real devices only
+  if (deviceHost && !runningOnSimulator) {
+    return deviceHost.port ? deviceHost.origin : `${deviceHost.origin}:3000`;
+  }
 
   // 3) Use API URL even if local (works on simulators)
   if (envApi) return envApi.origin;

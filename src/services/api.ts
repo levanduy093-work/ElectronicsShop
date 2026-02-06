@@ -221,13 +221,19 @@ const isLocalHost = (url?: string) => !!url && /localhost|127\.0\.0\.1/.test(url
 const envHost = cleanHost(ENV_API_URL);
 const deviceHost = cleanHost(API_DEVICE_HOST);
 const fallbackHost = resolveApiHost();
+const isSimulatorHost = (host?: string) =>
+  host === 'localhost' ||
+  host === '127.0.0.1' ||
+  host === '10.0.2.2' ||
+  host === '10.0.3.2';
+const runningOnSimulator = isSimulatorHost(fallbackHost);
 
 const pickBaseUrl = () => {
   // 1) Use non-local env URL if provided
   if (envHost && !isLocalHost(envHost.origin)) return envHost.origin;
 
-  // 2) If env is local or missing, but device host override is set, use it (default port 3000 if none)
-  if (deviceHost) {
+  // 2) If env is local or missing, and device host override is set, use it for real devices only
+  if (deviceHost && !runningOnSimulator) {
     return deviceHost.port ? deviceHost.origin : `${deviceHost.origin}:3000`;
   }
 
