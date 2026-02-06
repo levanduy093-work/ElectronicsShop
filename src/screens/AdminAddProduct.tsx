@@ -78,10 +78,26 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
         const tr = (key: string, fallback: string) => t(key) || fallback;
         return z
             .object({
-                name: z.string().trim().min(1, tr('admin_product_name_required', 'Tên sản phẩm là bắt buộc')).max(200, tr('admin_too_long', 'Nội dung quá dài')),
-                category: z.string().trim().min(1, tr('admin_category_required', 'Danh mục là bắt buộc')).max(120, tr('admin_too_long', 'Nội dung quá dài')),
-                code: z.string().trim().min(1, tr('admin_code_required', 'Mã sản phẩm là bắt buộc')).max(120, tr('admin_too_long', 'Nội dung quá dài')),
-                description: z.string().trim().min(1, tr('admin_description_required', 'Mô tả là bắt buộc')).max(2000, tr('admin_too_long', 'Nội dung quá dài')),
+                name: z
+                    .string()
+                    .trim()
+                    .min(1, tr('admin_product_name_required', 'Tên sản phẩm không được để trống'))
+                    .max(200, tr('admin_product_name_too_long', 'Tên sản phẩm quá dài')),
+                category: z
+                    .string()
+                    .trim()
+                    .min(1, tr('admin_category_required', 'Danh mục không được để trống'))
+                    .max(120, tr('admin_category_too_long', 'Danh mục quá dài')),
+                code: z
+                    .string()
+                    .trim()
+                    .min(1, tr('admin_code_required', 'Mã sản phẩm không được để trống'))
+                    .max(120, tr('admin_code_too_long', 'Mã sản phẩm quá dài')),
+                description: z
+                    .string()
+                    .trim()
+                    .min(1, tr('admin_description_required', 'Mô tả không được để trống'))
+                    .max(2000, tr('admin_description_too_long', 'Mô tả quá dài')),
                 datasheet: z
                     .string()
                     .trim()
@@ -91,21 +107,35 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
                 originalPrice: z
                     .string()
                     .trim()
-                    .min(1, tr('admin_original_price_required', 'Giá gốc là bắt buộc'))
+                    .min(1, tr('admin_original_price_required', 'Giá gốc không được để trống'))
                     .refine((v) => Number.isFinite(parseNumberString(v)), tr('admin_original_price_invalid', 'Giá gốc không hợp lệ')),
                 salePrice: z
                     .string()
                     .trim()
-                    .min(1, tr('admin_sale_price_required', 'Giá bán là bắt buộc'))
+                    .min(1, tr('admin_sale_price_required', 'Giá bán không được để trống'))
                     .refine((v) => Number.isFinite(parseNumberString(v)), tr('admin_sale_price_invalid', 'Giá bán không hợp lệ')),
                 stock: z
                     .coerce.number()
                     .min(0, tr('admin_stock_invalid', 'Tồn kho không hợp lệ'))
                     .refine((v) => Number.isInteger(v), tr('admin_stock_integer', 'Tồn kho phải là số nguyên')),
-                imagesCount: z.coerce.number().min(1, tr('admin_images_required', 'Vui lòng thêm ít nhất 1 ảnh')),
-                options: z.string().trim().max(500, tr('admin_too_long', 'Nội dung quá dài')).optional().or(z.literal('').transform(() => undefined)),
-                classifications: z.string().trim().max(500, tr('admin_too_long', 'Nội dung quá dài')).optional().or(z.literal('').transform(() => undefined)),
-                specs: z.string().trim().min(1, tr('admin_specs_required', 'Thông số là bắt buộc')).max(2000, tr('admin_too_long', 'Nội dung quá dài')),
+                imagesCount: z.coerce.number().min(1, tr('admin_images_required', 'Ảnh không được để trống')),
+                options: z
+                    .string()
+                    .trim()
+                    .max(500, tr('admin_options_too_long', 'Tuỳ chọn quá dài'))
+                    .optional()
+                    .or(z.literal('').transform(() => undefined)),
+                classifications: z
+                    .string()
+                    .trim()
+                    .max(500, tr('admin_classifications_too_long', 'Phân loại quá dài'))
+                    .optional()
+                    .or(z.literal('').transform(() => undefined)),
+                specs: z
+                    .string()
+                    .trim()
+                    .min(1, tr('admin_specs_required', 'Thông số không được để trống'))
+                    .max(2000, tr('admin_specs_too_long', 'Thông số quá dài')),
             })
             .superRefine((data, ctx) => {
                 const original = parseNumberString(data.originalPrice);
@@ -267,7 +297,7 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
     const renderInput = (
         name: keyof FormValues,
         label: string,
-        props?: { multiline?: boolean; keyboardType?: 'default' | 'numeric'; placeholder?: string; format?: 'currency' },
+        props?: { multiline?: boolean; keyboardType?: 'default' | 'numeric'; placeholder?: string; format?: 'currency'; minRows?: number },
     ) => (
         <View className="mb-4">
             <Text className="text-sm font-medium mb-2" style={{ color: theme.text }}>{label}</Text>
@@ -300,7 +330,7 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
                             lineHeight: props?.multiline ? 18 : undefined,
                         }}
                         multiline={props?.multiline}
-                        numberOfLines={props?.multiline ? 3 : 1}
+                        numberOfLines={props?.multiline ? (props?.minRows || 3) : 1}
                         keyboardType={props?.keyboardType === 'numeric' ? 'numeric' : 'default'}
                     />
                 )}
@@ -410,7 +440,7 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
                     placeholder: t('admin_classifications_placeholder', 'Ví dụ: 10A, 20A, 30A'),
                 })}
                 {renderInput('specs', t('admin_specs', 'Thông số (mỗi dòng dạng key:value)'), { multiline: true, placeholder: t('admin_specs_placeholder', 'power:10W\nvoltage:5V') })}
-                {renderInput('description', t('admin_description', 'Mô tả'), { multiline: true })}
+                {renderInput('description', t('admin_description', 'Mô tả'), { multiline: true, minRows: 5 })}
 
                 <TouchableOpacity
                     onPress={handleSubmit(onSubmit)}
