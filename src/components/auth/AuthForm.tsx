@@ -1,18 +1,21 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useForm, Controller } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { AppIcon } from '../../components/common/Icon';
 import { Theme } from '../../theme';
 
+type AuthFormValues = {
+    name: string;
+    email: string;
+    password: string;
+};
+
 interface AuthFormProps {
     isRegister: boolean;
-    email: string;
-    setEmail: (val: string) => void;
-    password: string;
-    setPassword: (val: string) => void;
-    name: string;
-    setName: (val: string) => void;
-    onSubmit: () => void;
+    onSubmit: (values: AuthFormValues) => void;
     onForgotPassword: () => void;
     onToggleMode: () => void;
     isSubmitting: boolean;
@@ -21,12 +24,6 @@ interface AuthFormProps {
 
 export const AuthForm: React.FC<AuthFormProps> = ({
     isRegister,
-    email,
-    setEmail,
-    password,
-    setPassword,
-    name,
-    setName,
     onSubmit,
     onForgotPassword,
     onToggleMode,
@@ -35,6 +32,44 @@ export const AuthForm: React.FC<AuthFormProps> = ({
 }) => {
     const { t: translate } = useTranslation();
     const [showPassword, setShowPassword] = useState(false);
+    const schema = useMemo(() => {
+        return z.object({
+            name: z.string(),
+            email: z
+                .string()
+                .trim()
+                .min(1, translate('enter_email'))
+                .email(translate('invalid_email')),
+            password: z.string().min(8, translate('password_min_length')),
+        }).superRefine((data, ctx) => {
+            if (isRegister && !data.name.trim()) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: translate('enter_name'),
+                    path: ['name'],
+                });
+            }
+        });
+    }, [isRegister, translate]);
+
+    const {
+        control,
+        handleSubmit,
+        formState: { errors },
+        reset,
+    } = useForm<AuthFormValues>({
+        resolver: zodResolver(schema),
+        defaultValues: {
+            name: '',
+            email: '',
+            password: '',
+        },
+        mode: 'onTouched',
+    });
+
+    useEffect(() => {
+        reset({ name: '', email: '', password: '' });
+    }, [isRegister, reset]);
 
     return (
         <>
@@ -51,21 +86,31 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                         <Text className="text-sm font-medium" style={{ color: t.text }}>{translate('full_name')}</Text>
                         <View className="flex-row items-center rounded-xl border px-3 h-12" style={{ backgroundColor: t.surface, borderColor: t.border }}>
                             <AppIcon name="user" size={20} color={t.muted} style={{ marginRight: 12 }} />
-                            <TextInput
-                                className="flex-1 text-sm h-full p-0"
-                                placeholder={translate('enter_name_placeholder')}
-                                value={name}
-                                onChangeText={setName}
-                                style={{
-                                    color: t.text,
-                                    textAlignVertical: 'center',
-                                    includeFontPadding: false,
-                                    paddingVertical: 0,
-                                }}
-                                placeholderTextColor={t.muted}
-                                editable={true}
+                            <Controller
+                                control={control}
+                                name="name"
+                                render={({ field: { onChange, onBlur, value } }) => (
+                                    <TextInput
+                                        className="flex-1 text-sm h-full p-0"
+                                        placeholder={translate('enter_name_placeholder')}
+                                        value={value}
+                                        onChangeText={onChange}
+                                        onBlur={onBlur}
+                                        style={{
+                                            color: t.text,
+                                            textAlignVertical: 'center',
+                                            includeFontPadding: false,
+                                            paddingVertical: 0,
+                                        }}
+                                        placeholderTextColor={t.muted}
+                                        editable={!isSubmitting}
+                                    />
+                                )}
                             />
                         </View>
+                        {errors.name ? (
+                            <Text className="text-xs text-red-500">{errors.name.message}</Text>
+                        ) : null}
                     </View>
                 )}
 
@@ -73,23 +118,33 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                     <Text className="text-sm font-medium" style={{ color: t.text }}>{translate('email')}</Text>
                     <View className="flex-row items-center rounded-xl border px-3 h-12" style={{ backgroundColor: t.surface, borderColor: t.border }}>
                         <AppIcon name="mail" size={20} color={t.muted} style={{ marginRight: 12 }} />
-                        <TextInput
-                            className="flex-1 text-sm h-full p-0"
-                            placeholder="example@email.com"
-                            value={email}
-                            onChangeText={setEmail}
-                            style={{
-                                color: t.text,
-                                textAlignVertical: 'center',
-                                includeFontPadding: false,
-                                paddingVertical: 0,
-                            }}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            placeholderTextColor={t.muted}
-                            editable={true}
+                        <Controller
+                            control={control}
+                            name="email"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <TextInput
+                                    className="flex-1 text-sm h-full p-0"
+                                    placeholder="example@email.com"
+                                    value={value}
+                                    onChangeText={onChange}
+                                    onBlur={onBlur}
+                                    style={{
+                                        color: t.text,
+                                        textAlignVertical: 'center',
+                                        includeFontPadding: false,
+                                        paddingVertical: 0,
+                                    }}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                    placeholderTextColor={t.muted}
+                                    editable={!isSubmitting}
+                                />
+                            )}
                         />
                     </View>
+                    {errors.email ? (
+                        <Text className="text-xs text-red-500">{errors.email.message}</Text>
+                    ) : null}
                 </View>
 
                 <View className="gap-2">
@@ -106,20 +161,27 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                     </View>
                     <View className="flex-row items-center rounded-xl border px-3 h-12" style={{ backgroundColor: t.surface, borderColor: t.border }}>
                         <AppIcon name="lock" size={20} color={t.muted} style={{ marginRight: 12 }} />
-                        <TextInput
-                            className="flex-1 text-sm h-full p-0"
-                            placeholder="••••••••"
-                            value={password}
-                            onChangeText={setPassword}
-                            style={{
-                                color: t.text,
-                                textAlignVertical: 'center',
-                                includeFontPadding: false,
-                                paddingVertical: 0,
-                            }}
-                            secureTextEntry={!showPassword}
-                            placeholderTextColor={t.muted}
-                            editable={true}
+                        <Controller
+                            control={control}
+                            name="password"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <TextInput
+                                    className="flex-1 text-sm h-full p-0"
+                                    placeholder="••••••••"
+                                    value={value}
+                                    onChangeText={onChange}
+                                    onBlur={onBlur}
+                                    style={{
+                                        color: t.text,
+                                        textAlignVertical: 'center',
+                                        includeFontPadding: false,
+                                        paddingVertical: 0,
+                                    }}
+                                    secureTextEntry={!showPassword}
+                                    placeholderTextColor={t.muted}
+                                    editable={!isSubmitting}
+                                />
+                            )}
                         />
                         <TouchableOpacity
                             onPress={() => setShowPassword(!showPassword)}
@@ -133,10 +195,13 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                             />
                         </TouchableOpacity>
                     </View>
+                    {errors.password ? (
+                        <Text className="text-xs text-red-500">{errors.password.message}</Text>
+                    ) : null}
                 </View>
 
                 <TouchableOpacity
-                    onPress={onSubmit}
+                    onPress={handleSubmit(onSubmit)}
                     className="rounded-xl py-3.5 items-center mt-2 shadow-md elevation-4"
                     style={[
                         { backgroundColor: t.primary },

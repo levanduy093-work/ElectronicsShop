@@ -27,10 +27,6 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingRegister, setPendingRegister] = useState<{
     email: string;
@@ -44,28 +40,19 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
 
   const bottomNavHeight = 80 + Math.max(insets.bottom, 16);
 
-  const handleSubmit = async () => {
-    if (!email || !password) {
-      showToast(translate('fill_all_info'), 'error');
-      return;
-    }
-    if (password.length < 8) {
-      showToast(translate('password_min_length'), 'error');
-      return;
-    }
+  const handleSubmit = async (values: { name: string; email: string; password: string }) => {
+    const cleanedEmail = values.email.trim().toLowerCase();
+    const cleanedName = values.name.trim();
+    const password = values.password;
 
     if (isRegister) {
-      if (!name) {
-        showToast(translate('enter_name'), 'error');
-        return;
-      }
       setIsSubmitting(true);
       try {
-        await sendRegisterOtp(name.trim(), email.trim().toLowerCase(), password);
+        await sendRegisterOtp(cleanedName, cleanedEmail, password);
         setPendingRegister({
-          email: email.trim().toLowerCase(),
+          email: cleanedEmail,
           password,
-          name: name.trim(),
+          name: cleanedName,
         });
         setIsVerifyingEmail(true);
         showToast(translate('otp_sent'), 'success');
@@ -77,7 +64,7 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
     } else {
       setIsSubmitting(true);
       try {
-        const result = await login(email.trim().toLowerCase(), password);
+        const result = await login(cleanedEmail, password);
         showToast(translate('login_success'), 'success');
         onLoginSuccess(result);
       } catch (error: any) {
@@ -137,19 +124,10 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
       >
         <AuthForm
           isRegister={isRegister}
-          email={email}
-          setEmail={setEmail}
-          password={password}
-          setPassword={setPassword}
-          name={name}
-          setName={setName}
           onSubmit={handleSubmit}
           onForgotPassword={() => setIsForgotPassword(true)}
           onToggleMode={() => {
             setIsRegister(!isRegister);
-            setEmail('');
-            setPassword('');
-            setName('');
           }}
           isSubmitting={isSubmitting}
           theme={t}

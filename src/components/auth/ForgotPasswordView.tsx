@@ -1,6 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useForm, Controller } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { AppIcon } from '../../components/common/Icon';
 import { Theme } from '../../theme';
 import { useToast } from '../../components/common/ToastProvider';
@@ -11,27 +14,69 @@ interface ForgotPasswordViewProps {
     theme: Theme;
 }
 
+type EmailFormValues = {
+    email: string;
+};
+
+type PasswordFormValues = {
+    newPassword: string;
+    confirmPassword: string;
+};
+
 export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBack, theme: t }) => {
     const { t: translate } = useTranslation();
     const { showToast } = useToast();
     const [resetStep, setResetStep] = useState<'email' | 'otp' | 'password'>('email');
-    const [email, setEmail] = useState('');
     const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
     const [resetToken, setResetToken] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const codeInputRefs = useRef<(TextInput | null)[]>([]);
     const bottomNavHeight = 80;
 
-    const handleResetPassword = async () => {
-        if (!email) {
-            showToast(translate('enter_email'), 'error');
-            return;
-        }
+    const emailSchema = useMemo(() => {
+        return z.object({
+            email: z
+                .string()
+                .trim()
+                .min(1, translate('enter_email'))
+                .email(translate('invalid_email')),
+        });
+    }, [translate]);
+
+    const passwordSchema = useMemo(() => {
+        return z.object({
+            newPassword: z.string().min(8, translate('password_min_length')),
+            confirmPassword: z.string().min(1, translate('enter_confirm_password')),
+        }).superRefine((data, ctx) => {
+            if (data.newPassword !== data.confirmPassword) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: translate('password_mismatch'),
+                    path: ['confirmPassword'],
+                });
+            }
+        });
+    }, [translate]);
+
+    const emailForm = useForm<EmailFormValues>({
+        resolver: zodResolver(emailSchema),
+        defaultValues: { email: '' },
+        mode: 'onTouched',
+    });
+
+    const passwordForm = useForm<PasswordFormValues>({
+        resolver: zodResolver(passwordSchema),
+        defaultValues: { newPassword: '', confirmPassword: '' },
+        mode: 'onTouched',
+    });
+
+    const emailValue = emailForm.watch('email');
+
+    const handleResetPassword = async (values: EmailFormValues) => {
+        const cleanedEmail = values.email.trim().toLowerCase();
         setIsSubmitting(true);
         try {
-            await sendResetOtp(email.trim().toLowerCase());
+            await sendResetOtp(cleanedEmail);
             setResetStep('otp');
             showToast(translate('otp_sent'), 'success');
         } catch (error: any) {
@@ -73,7 +118,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBack, 
         }
         setIsSubmitting(true);
         try {
-            const result = await verifyResetOtp(email.trim().toLowerCase(), code);
+            const result = await verifyResetOtp(emailValue.trim().toLowerCase(), code);
             setResetToken(result.resetToken);
             setResetStep('password');
             setVerificationCode(['', '', '', '', '', '']);
@@ -85,23 +130,16 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBack, 
         }
     };
 
-    const handleSubmitNewPassword = async () => {
-        if (newPassword.length < 8) {
-            showToast(translate('password_min_length'), 'error');
-            return;
-        }
-        if (newPassword !== confirmPassword) {
-            showToast(translate('password_mismatch'), 'error');
-            return;
-        }
+    const handleSubmitNewPassword = async (values: PasswordFormValues) => {
         if (!resetToken) {
             showToast(translate('verify_otp_first'), 'error');
             return;
         }
         setIsSubmitting(true);
         try {
-            await resetPassword(email.trim().toLowerCase(), resetToken, newPassword);
+            await resetPassword(emailValue.trim().toLowerCase(), resetToken, values.newPassword);
             showToast(translate('change_password_success'), 'success');
+            passwordForm.reset();
             onBack(); // Go back to login
         } catch (error: any) {
             showToast(error?.message || translate('change_password_failed'), 'error');
@@ -143,29 +181,39 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBack, 
                             <Text style={[styles.label, { color: t.text }]}>{translate('email')}</Text>
                             <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]} pointerEvents="box-none">
                                 <AppIcon name="mail" size={20} color={t.muted} style={styles.inputIcon} />
-                                <TextInput
-                                    placeholder="example@email.com"
-                                    value={email}
-                                    onChangeText={setEmail}
-                                    style={[
-                                        styles.input,
-                                        {
-                                            color: t.text,
-                                            textAlignVertical: 'center',
-                                            includeFontPadding: false,
-                                            paddingVertical: 0,
-                                        }
-                                    ]}
-                                    keyboardType="email-address"
-                                    autoCapitalize="none"
-                                    placeholderTextColor={t.muted}
-                                    editable={true}
+                                <Controller
+                                    control={emailForm.control}
+                                    name="email"
+                                    render={({ field: { onChange, onBlur, value } }) => (
+                                        <TextInput
+                                            placeholder="example@email.com"
+                                            value={value}
+                                            onChangeText={onChange}
+                                            onBlur={onBlur}
+                                            style={[
+                                                styles.input,
+                                                {
+                                                    color: t.text,
+                                                    textAlignVertical: 'center',
+                                                    includeFontPadding: false,
+                                                    paddingVertical: 0,
+                                                }
+                                            ]}
+                                            keyboardType="email-address"
+                                            autoCapitalize="none"
+                                            placeholderTextColor={t.muted}
+                                            editable={!isSubmitting}
+                                        />
+                                    )}
                                 />
                             </View>
+                            {emailForm.formState.errors.email ? (
+                                <Text style={styles.errorText}>{emailForm.formState.errors.email.message}</Text>
+                            ) : null}
                         </View>
 
                         <TouchableOpacity
-                            onPress={handleResetPassword}
+                            onPress={emailForm.handleSubmit(handleResetPassword)}
                             style={[
                                 styles.primaryButton,
                                 { backgroundColor: t.primary, shadowColor: t.primary },
@@ -233,52 +281,72 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBack, 
                             <Text style={[styles.label, { color: t.text }]}>{translate('new_password')}</Text>
                             <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]} pointerEvents="box-none">
                                 <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
-                                <TextInput
-                                    placeholder="••••••••"
-                                    value={newPassword}
-                                    onChangeText={setNewPassword}
-                                    style={[
-                                        styles.input,
-                                        {
-                                            color: t.text,
-                                            textAlignVertical: 'center',
-                                            includeFontPadding: false,
-                                            paddingVertical: 0,
-                                        }
-                                    ]}
-                                    secureTextEntry
-                                    placeholderTextColor={t.muted}
-                                    editable={true}
+                                <Controller
+                                    control={passwordForm.control}
+                                    name="newPassword"
+                                    render={({ field: { onChange, onBlur, value } }) => (
+                                        <TextInput
+                                            placeholder="••••••••"
+                                            value={value}
+                                            onChangeText={onChange}
+                                            onBlur={onBlur}
+                                            style={[
+                                                styles.input,
+                                                {
+                                                    color: t.text,
+                                                    textAlignVertical: 'center',
+                                                    includeFontPadding: false,
+                                                    paddingVertical: 0,
+                                                }
+                                            ]}
+                                            secureTextEntry
+                                            placeholderTextColor={t.muted}
+                                            editable={!isSubmitting}
+                                        />
+                                    )}
                                 />
                             </View>
+                            {passwordForm.formState.errors.newPassword ? (
+                                <Text style={styles.errorText}>{passwordForm.formState.errors.newPassword.message}</Text>
+                            ) : null}
                         </View>
 
                         <View style={styles.inputGroup}>
                             <Text style={[styles.label, { color: t.text }]}>{translate('confirm_password')}</Text>
                             <View style={[styles.inputContainer, { backgroundColor: t.surface, borderColor: t.border }]} pointerEvents="box-none">
                                 <AppIcon name="lock" size={20} color={t.muted} style={styles.inputIcon} />
-                                <TextInput
-                                    placeholder="••••••••"
-                                    value={confirmPassword}
-                                    onChangeText={setConfirmPassword}
-                                    style={[
-                                        styles.input,
-                                        {
-                                            color: t.text,
-                                            textAlignVertical: 'center',
-                                            includeFontPadding: false,
-                                            paddingVertical: 0,
-                                        }
-                                    ]}
-                                    secureTextEntry
-                                    placeholderTextColor={t.muted}
-                                    editable={true}
+                                <Controller
+                                    control={passwordForm.control}
+                                    name="confirmPassword"
+                                    render={({ field: { onChange, onBlur, value } }) => (
+                                        <TextInput
+                                            placeholder="••••••••"
+                                            value={value}
+                                            onChangeText={onChange}
+                                            onBlur={onBlur}
+                                            style={[
+                                                styles.input,
+                                                {
+                                                    color: t.text,
+                                                    textAlignVertical: 'center',
+                                                    includeFontPadding: false,
+                                                    paddingVertical: 0,
+                                                }
+                                            ]}
+                                            secureTextEntry
+                                            placeholderTextColor={t.muted}
+                                            editable={!isSubmitting}
+                                        />
+                                    )}
                                 />
                             </View>
+                            {passwordForm.formState.errors.confirmPassword ? (
+                                <Text style={styles.errorText}>{passwordForm.formState.errors.confirmPassword.message}</Text>
+                            ) : null}
                         </View>
 
                         <TouchableOpacity
-                            onPress={handleSubmitNewPassword}
+                            onPress={passwordForm.handleSubmit(handleSubmitNewPassword)}
                             style={[
                                 styles.primaryButton,
                                 { backgroundColor: t.primary, shadowColor: t.primary },
@@ -381,5 +449,9 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    errorText: {
+        color: '#EF4444',
+        fontSize: 12,
     },
 });

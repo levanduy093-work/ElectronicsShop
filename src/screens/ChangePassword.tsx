@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Platform, StatusBar, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { useForm, Controller } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../theme';
 import { useToast } from '../components/common/ToastProvider';
@@ -15,6 +18,13 @@ interface ChangePasswordProps {
   accessToken?: string;
 }
 
+type ChangePasswordFormValues = {
+  oldPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+  otp: string;
+};
+
 export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }: ChangePasswordProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
@@ -22,58 +32,69 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
   const { showToast } = useToast();
   const t = theme || ctxTheme || lightTheme;
 
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [secure, setSecure] = useState({ old: true, next: true, confirm: true });
-  const [otp, setOtp] = useState('');
   const [sendingOtp, setSendingOtp] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<{ old?: string; next?: string; confirm?: string; otp?: string }>({});
 
-  const validate = () => {
-    const nextErrors: typeof errors = {};
-    if (!oldPassword) {
-      nextErrors.old = translate('enterCurrentPassword');
-    } else if (oldPassword.length < 8) {
-      nextErrors.old = translate('currentPasswordMinLength');
-    }
-    if (!newPassword) {
-      nextErrors.next = translate('enterNewPassword');
-    } else if (newPassword.length < 8) {
-      nextErrors.next = translate('newPasswordMinLength');
-    }
-    if (confirmPassword !== newPassword) {
-      nextErrors.confirm = translate('confirmPasswordMismatch');
-    }
-    if (!otp || otp.length !== 6) {
-      nextErrors.otp = translate('enterFullOTP');
-    }
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
-  };
+  const schema = useMemo(() => {
+    return z.object({
+      oldPassword: z
+        .string()
+        .min(1, translate('enter_current_password'))
+        .min(8, translate('current_password_min_length')),
+      newPassword: z
+        .string()
+        .min(1, translate('enter_new_password'))
+        .min(8, translate('new_password_min_length')),
+      confirmPassword: z.string().min(1, translate('enter_confirm_password')),
+      otp: z.string().min(6, translate('enter_full_otp')).max(6, translate('enter_full_otp')),
+    }).superRefine((data, ctx) => {
+      if (data.newPassword !== data.confirmPassword) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: translate('password_mismatch'),
+          path: ['confirmPassword'],
+        });
+      }
+    });
+  }, [translate]);
 
-  const handleSubmit = async () => {
-    if (!validate()) return;
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    getValues,
+    reset,
+    setValue,
+    trigger,
+  } = useForm<ChangePasswordFormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      oldPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+      otp: '',
+    },
+    mode: 'onTouched',
+  });
+
+  const handleSubmitForm = handleSubmit(async (values) => {
     if (!accessToken) {
-      showToast(translate('loginRequiredChangePassword'), 'error');
+      showToast(translate('login_required_change_password'), 'error');
       return;
     }
     setSaving(true);
     try {
-      await changePassword(oldPassword, newPassword, otp, accessToken);
-      showToast(translate('passwordUpdated'), 'success');
-      setOldPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setOtp('');
+      await changePassword(values.oldPassword, values.newPassword, values.otp, accessToken);
+      showToast(translate('password_updated'), 'success');
+      reset();
       onSuccess?.();
     } catch (error: any) {
-      showToast(error?.message || translate('changePasswordFailed'), 'error');
+      showToast(error?.message || translate('change_password_failed'), 'error');
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   const maskEmail = (text?: string) => {
     if (!text) return translate('yourEmail');
@@ -85,21 +106,18 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
 
   const handleSendOtp = async () => {
     if (!accessToken) {
-      showToast(translate('loginRequiredSendOTP'), 'error');
+      showToast(translate('login_required_send_otp'), 'error');
       return;
     }
-    if (!oldPassword) {
-      setErrors(prev => ({ ...prev, old: translate('enterCurrentPassword') }));
-      return;
-    }
-    if (oldPassword.length < 8) {
-      setErrors(prev => ({ ...prev, old: translate('currentPasswordMinLength') }));
-      return;
-    }
+
+    const isOldPasswordValid = await trigger('oldPassword');
+    if (!isOldPasswordValid) return;
+
+    const oldPassword = getValues('oldPassword');
     setSendingOtp(true);
     try {
       await sendChangePasswordOtp(oldPassword, accessToken);
-      setOtp('');
+      setValue('otp', '');
       showToast(translate('otp_sent_to') + ' ' + maskEmail(email), 'success');
     } catch (error: any) {
       showToast(error?.message || translate('otp_resend_error'), 'error');
@@ -108,22 +126,34 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
     }
   };
 
-
-  const renderInput = (label: string, value: string, onChange: (text: string) => void, secureKey: keyof typeof secure, error?: string) => (
+  const renderInput = (
+    label: string,
+    name: 'oldPassword' | 'newPassword' | 'confirmPassword',
+    secureKey: keyof typeof secure,
+    error?: string,
+  ) => (
     <View className="gap-2">
       <Text className="text-sm font-semibold" style={{ color: t.text }}>{label}</Text>
       <View
         className="flex-row items-center border rounded-xl px-3"
         style={{ backgroundColor: t.surface, borderColor: error ? '#EF4444' : t.border }}
       >
-        <TextInput
-          value={value}
-          onChangeText={onChange}
-          placeholder="••••••••"
-          placeholderTextColor={t.muted}
-          secureTextEntry={secure[secureKey]}
-          className="flex-1 py-3 text-sm"
-          style={{ color: t.text }}
+        <Controller
+          control={control}
+          name={name}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <TextInput
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="••••••••"
+              placeholderTextColor={t.muted}
+              secureTextEntry={secure[secureKey]}
+              className="flex-1 py-3 text-sm"
+              style={{ color: t.text }}
+              editable={!saving}
+            />
+          )}
         />
         <TouchableOpacity onPress={() => setSecure(prev => ({ ...prev, [secureKey]: !prev[secureKey] }))} activeOpacity={0.7}>
           <AppIcon name={secure[secureKey] ? 'eye-off' : 'eye'} size={18} color={t.muted} />
@@ -153,18 +183,26 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
         className="flex-row items-center border rounded-xl px-3"
         style={{ backgroundColor: t.surface, borderColor: errors.otp ? '#EF4444' : t.border }}
       >
-        <TextInput
-          value={otp}
-          onChangeText={setOtp}
-          placeholder={translate('enter_otp_code')}
-          placeholderTextColor={t.muted}
-          keyboardType="number-pad"
-          className="flex-1 py-3 text-sm"
-          style={{ color: t.text }}
-          maxLength={6}
+        <Controller
+          control={control}
+          name="otp"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <TextInput
+              value={value}
+              onChangeText={(text) => onChange(text.replace(/\D/g, '').slice(0, 6))}
+              onBlur={onBlur}
+              placeholder={translate('enter_otp_code')}
+              placeholderTextColor={t.muted}
+              keyboardType="number-pad"
+              className="flex-1 py-3 text-sm"
+              style={{ color: t.text }}
+              maxLength={6}
+              editable={!saving}
+            />
+          )}
         />
       </View>
-      {errors.otp ? <Text className="text-xs text-red-500">{errors.otp}</Text> : null}
+      {errors.otp ? <Text className="text-xs text-red-500">{errors.otp.message}</Text> : null}
     </View>
   );
 
@@ -213,13 +251,13 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
           className="rounded-2xl border p-4 gap-3"
           style={{ backgroundColor: t.card, borderColor: t.border }}
         >
-          {renderInput(translate('currentPassword'), oldPassword, setOldPassword, 'old', errors.old)}
-          {renderInput(translate('newPassword'), newPassword, setNewPassword, 'next', errors.next)}
-          {renderInput(translate('confirmNewPassword'), confirmPassword, setConfirmPassword, 'confirm', errors.confirm)}
+          {renderInput(translate('current_password'), 'oldPassword', 'old', errors.oldPassword?.message)}
+          {renderInput(translate('new_password'), 'newPassword', 'next', errors.newPassword?.message)}
+          {renderInput(translate('confirm_new_password'), 'confirmPassword', 'confirm', errors.confirmPassword?.message)}
           {renderOtpInput()}
 
           <TouchableOpacity
-            onPress={handleSubmit}
+            onPress={handleSubmitForm}
             className="w-full py-3.5 rounded-xl items-center mt-2 shadow-sm"
             style={{
               backgroundColor: t.primary,
