@@ -128,7 +128,7 @@ export function AIChat({
     };
   }, [onMessagesChange]);
 
-  const bottomNavHeight = 16 + insets.bottom;
+  const bottomNavHeight = Platform.OS === 'ios' ? 2 + insets.bottom : 16 + insets.bottom;
   const isKeyboardVisible = keyboardHeight > 0;
 
   const toProduct = (card: AiProductCard): Product => ({
