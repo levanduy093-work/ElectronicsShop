@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { ScrollView, View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { ScrollView, View, Text, TextInput, TouchableOpacity, Alert, Image, Platform } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
@@ -8,6 +8,8 @@ import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { useTheme } from '../theme';
 import type { CreateProductInput } from '../services/api';
+import { uploadImage, UploadImageFile } from '../services/api';
+import { useAppOptional } from '../context';
 import { AppIcon } from '../components/common/Icon';
 
 type FormValues = {
@@ -19,7 +21,6 @@ type FormValues = {
     originalPrice: string;
     salePrice: string;
     stock: string;
-    images?: string; // comma separated
     options?: string; // comma separated
     classifications?: string; // comma separated
     specs?: string; // lines key:value
@@ -55,6 +56,8 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
     const { t } = useTranslation();
     const { theme } = useTheme();
     const insets = useSafeAreaInsets();
+    const app = useAppOptional();
+    const [images, setImages] = useState<{ id: string; uri: string; uploadedUrl?: string; uploading?: boolean }[]>([]);
 
     const schema = useMemo(
         () =>
@@ -73,7 +76,6 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
                     originalPrice: z.coerce.number().min(0, 'Giá gốc không hợp lệ'),
                     salePrice: z.coerce.number().min(0, 'Giá bán không hợp lệ'),
                     stock: z.coerce.number().min(0, 'Tồn kho không hợp lệ'),
-                    images: z.string().optional(),
                     options: z.string().optional(),
                     classifications: z.string().optional(),
                     specs: z.string().optional(),
@@ -106,7 +108,6 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
             originalPrice: '',
             salePrice: '',
             stock: '0',
-            images: '',
             options: '',
             classifications: '',
             specs: '',
@@ -117,6 +118,67 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
         mutationFn: async (payload: CreateProductInput) => onCreate(payload),
     });
 
+    const pickImages = async () => {
+        try {
+            const picker = await import('react-native-image-picker');
+            const result = await picker.launchImageLibrary({
+                mediaType: 'photo',
+                selectionLimit: 6,
+                quality: 0.85 as any,
+            });
+            if (result.didCancel || !result.assets) return;
+            const picked = result.assets
+                .filter(a => a.uri)
+                .map((a, idx) => ({
+                    id: `${Date.now()}-${idx}`,
+                    uri: a.uri as string,
+                }));
+            setImages(prev => [...prev, ...picked].slice(0, 10));
+        } catch (error: any) {
+            Alert.alert('Lỗi', error?.message || 'Không thể mở thư viện ảnh');
+        }
+    };
+
+    const removeImage = (id: string) => {
+        setImages(prev => prev.filter(img => img.id !== id));
+    };
+
+    const uploadAllImages = async (): Promise<string[]> => {
+        if (!images.length) return [];
+        const token = app?.authTokens?.accessToken;
+        if (!token) {
+            Alert.alert('Thiếu quyền', 'Bạn cần đăng nhập để tải ảnh.');
+            throw new Error('missing_token');
+        }
+        const folder = `electronics-shop/products/admin-${Date.now()}`;
+        const uploaded: string[] = [];
+        for (const item of images) {
+            if (item.uploadedUrl) {
+                uploaded.push(item.uploadedUrl);
+                continue;
+            }
+            const file: UploadImageFile = {
+                uri: item.uri,
+                name: `img-${item.id}.jpg`,
+                type: Platform.OS === 'ios' ? 'image/jpeg' : 'image/*',
+            };
+            try {
+                setImages(prev => prev.map(img => img.id === item.id ? { ...img, uploading: true } : img));
+                const res = await uploadImage(file, { token, folder });
+                const secureUrl = res?.secure_url || res?.url;
+                if (secureUrl) {
+                    uploaded.push(secureUrl);
+                    setImages(prev => prev.map(img => img.id === item.id ? { ...img, uploadedUrl: secureUrl, uploading: false } : img));
+                }
+            } catch (error: any) {
+                setImages(prev => prev.map(img => img.id === item.id ? { ...img, uploading: false } : img));
+                Alert.alert('Lỗi tải ảnh', error?.message || 'Không thể tải ảnh lên máy chủ');
+                throw error;
+            }
+        }
+        return uploaded;
+    };
+
     const onSubmit = async (values: FormValues) => {
         const payload: CreateProductInput = {
             name: values.name.trim(),
@@ -124,7 +186,6 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
             code: values.code?.trim() || undefined,
             description: values.description?.trim() || undefined,
             datasheet: values.datasheet?.trim() || undefined,
-            images: splitList(values.images),
             options: splitList(values.options),
             classifications: splitList(values.classifications),
             specs: parseSpecs(values.specs),
@@ -135,15 +196,17 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
             stock: Number(values.stock),
         };
 
-        if (!payload.images?.length) delete payload.images;
         if (!payload.options?.length) delete payload.options;
         if (!payload.classifications?.length) delete payload.classifications;
         if (!payload.specs || Object.keys(payload.specs).length === 0) delete payload.specs;
 
         try {
+            const uploadedImages = await uploadAllImages();
+            if (uploadedImages.length) payload.images = uploadedImages;
             await createProductMutation.mutateAsync(payload);
             Alert.alert('Thành công', 'Sản phẩm đã được tạo');
             reset();
+            setImages([]);
             onBack();
         } catch (error: any) {
             Alert.alert('Lỗi', error?.message || 'Không thể tạo sản phẩm');
@@ -182,8 +245,17 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
                         onBlur={onBlur}
                         placeholder={props?.placeholder}
                         placeholderTextColor={theme.muted}
-                        className="rounded-xl border px-3 py-3 text-sm"
-                        style={{ borderColor: theme.border, color: theme.text, backgroundColor: theme.surface }}
+                        className="rounded-xl border px-3 text-sm"
+                        style={{
+                            borderColor: theme.border,
+                            color: theme.text,
+                            backgroundColor: theme.surface,
+                            height: props?.multiline ? undefined : 44,
+                            paddingVertical: props?.multiline ? 10 : 10,
+                            textAlignVertical: props?.multiline ? 'top' : (Platform.OS === 'android' ? 'center' : 'auto'),
+                            includeFontPadding: Platform.OS === 'android' ? false : undefined,
+                            lineHeight: props?.multiline ? 18 : undefined,
+                        }}
                         multiline={props?.multiline}
                         numberOfLines={props?.multiline ? 3 : 1}
                         keyboardType={props?.keyboardType === 'numeric' ? 'numeric' : 'default'}
@@ -228,7 +300,57 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
                 {renderInput('originalPrice', 'Giá gốc', { keyboardType: 'numeric' })}
                 {renderInput('salePrice', 'Giá bán', { keyboardType: 'numeric' })}
                 {renderInput('stock', 'Tồn kho', { keyboardType: 'numeric' })}
-                {renderInput('images', 'Ảnh (ngăn cách bằng dấu phẩy)')}
+                <View className="mb-4">
+                    <Text className="text-sm font-medium mb-2" style={{ color: theme.text }}>
+                        Hình ảnh
+                    </Text>
+                    <View className="flex-row flex-wrap gap-3">
+                        {images.map((img) => (
+                            <View key={img.id} style={{ width: 96 }}>
+                                <View
+                                    className="rounded-xl overflow-hidden bg-gray-200"
+                                    style={{ aspectRatio: 1 }}
+                                >
+                                    <Image
+                                        source={{ uri: img.uploadedUrl || img.uri }}
+                                        style={{ width: '100%', height: '100%' }}
+                                        resizeMode="cover"
+                                    />
+                                    <TouchableOpacity
+                                        onPress={() => removeImage(img.id)}
+                                        className="absolute top-1 right-1 w-7 h-7 rounded-full items-center justify-center bg-black/60"
+                                        activeOpacity={0.8}
+                                    >
+                                        <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>✕</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                {img.uploading && (
+                                    <Text className="text-xs mt-1" style={{ color: theme.muted }}>
+                                        Đang tải...
+                                    </Text>
+                                )}
+                            </View>
+                        ))}
+                        <TouchableOpacity
+                            onPress={pickImages}
+                            activeOpacity={0.8}
+                            style={{
+                                width: 96,
+                                aspectRatio: 1,
+                                borderRadius: 12,
+                                borderWidth: 1,
+                                borderColor: theme.border,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: theme.surface,
+                            }}
+                        >
+                            <AppIcon name="image-plus" size={28} color={theme.muted} />
+                            <Text className="text-xs mt-2" style={{ color: theme.muted }}>Thêm ảnh</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
                 {renderInput('options', 'Tuỳ chọn (ngăn cách bằng dấu phẩy)')}
                 {renderInput('classifications', 'Phân loại (ngăn cách bằng dấu phẩy)')}
                 {renderInput('specs', 'Thông số (mỗi dòng dạng key:value)', { multiline: true, placeholder: 'power:10W\nvoltage:5V' })}
