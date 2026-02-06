@@ -79,7 +79,7 @@ export const ProfileMenu: React.FC<ProfileMenuProps> = ({
                         <View className="h-px mx-4" style={{ backgroundColor: t.border }} />
                         <MenuItem
                             icon="plus-circle"
-                            label="Admin: Thêm sản phẩm"
+                            label={translate('admin_add_product_menu')}
                             onPress={onNavigateToAdmin}
                             theme={t}
                         />
@@ -107,14 +107,19 @@ function MenuItem({ icon, label, onPress, theme }: { icon: string; label: string
             className="flex-row justify-between items-center p-4"
             activeOpacity={0.7}
         >
-            <View className="flex-row items-center gap-3">
+            <View className="flex-row items-center gap-3 flex-1" style={{ minWidth: 0 }}>
                 <View
                     className="w-8 h-8 rounded-full justify-center items-center"
                     style={{ backgroundColor: theme.surface }}
                 >
                     <AppIcon name={icon} size={16} color={theme.primary} />
                 </View>
-                <Text className="text-base font-medium" style={{ color: theme.text }}>{label}</Text>
+                <Text
+                    className="text-base font-medium"
+                    style={{ color: theme.text, flexShrink: 1, flexGrow: 1, minWidth: 0 }}
+                >
+                    {label}
+                </Text>
             </View>
             <AppIcon name="chevron-right" size={16} color={theme.muted} />
         </TouchableOpacity>

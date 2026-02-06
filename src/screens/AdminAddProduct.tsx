@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View, Text, TextInput, TouchableOpacity, Alert, Image, Platform } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { z } from 'zod';
@@ -14,16 +14,17 @@ import { AppIcon } from '../components/common/Icon';
 
 type FormValues = {
     name: string;
-    category?: string;
-    code?: string;
-    description?: string;
+    category: string;
+    code: string;
+    description: string;
     datasheet?: string;
     originalPrice: string;
     salePrice: string;
     stock: string;
+    imagesCount: number;
     options?: string; // comma separated
     classifications?: string; // comma separated
-    specs?: string; // lines key:value
+    specs: string; // lines key:value
 };
 
 const splitList = (value?: string) =>
@@ -53,50 +54,78 @@ export interface AdminAddProductProps {
 }
 
 export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCreate, isAdmin }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { theme } = useTheme();
     const insets = useSafeAreaInsets();
     const app = useAppOptional();
     const [images, setImages] = useState<{ id: string; uri: string; uploadedUrl?: string; uploading?: boolean }[]>([]);
 
-    const schema = useMemo(
-        () =>
-            z
-                .object({
-                    name: z.string().trim().min(1, 'Tên sản phẩm là bắt buộc'),
-                    category: z.string().trim().optional(),
-                    code: z.string().trim().optional(),
-                    description: z.string().trim().optional(),
-                    datasheet: z
-                        .string()
-                        .trim()
-                        .url('Đường dẫn datasheet không hợp lệ')
-                        .optional()
-                        .or(z.literal('').transform(() => undefined)),
-                    originalPrice: z.coerce.number().min(0, 'Giá gốc không hợp lệ'),
-                    salePrice: z.coerce.number().min(0, 'Giá bán không hợp lệ'),
-                    stock: z.coerce.number().min(0, 'Tồn kho không hợp lệ'),
-                    options: z.string().optional(),
-                    classifications: z.string().optional(),
-                    specs: z.string().optional(),
-                })
-                .superRefine((data, ctx) => {
-                    if (data.salePrice > data.originalPrice) {
-                        ctx.addIssue({
-                            code: z.ZodIssueCode.custom,
-                            path: ['salePrice'],
-                            message: 'Giá bán phải nhỏ hơn hoặc bằng giá gốc',
-                        });
-                    }
-                }),
-        []
-    );
+    const parseNumberString = (value: string) => {
+        const digits = (value || '').replace(/[^\d]/g, '');
+        return digits ? Number(digits) : NaN;
+    };
+
+    const formatNumber = (digits: string) => {
+        if (!digits) return '';
+        try {
+            return new Intl.NumberFormat(i18n.language || 'vi-VN').format(Number(digits));
+        } catch {
+            return digits;
+        }
+    };
+
+    const schema = useMemo(() => {
+        const tr = (key: string, fallback: string) => t(key) || fallback;
+        return z
+            .object({
+                name: z.string().trim().min(1, tr('admin_product_name_required', 'Tên sản phẩm là bắt buộc')).max(200, tr('admin_too_long', 'Nội dung quá dài')),
+                category: z.string().trim().min(1, tr('admin_category_required', 'Danh mục là bắt buộc')).max(120, tr('admin_too_long', 'Nội dung quá dài')),
+                code: z.string().trim().min(1, tr('admin_code_required', 'Mã sản phẩm là bắt buộc')).max(120, tr('admin_too_long', 'Nội dung quá dài')),
+                description: z.string().trim().min(1, tr('admin_description_required', 'Mô tả là bắt buộc')).max(2000, tr('admin_too_long', 'Nội dung quá dài')),
+                datasheet: z
+                    .string()
+                    .trim()
+                    .url(tr('admin_datasheet_invalid', 'Đường dẫn datasheet không hợp lệ'))
+                    .optional()
+                    .or(z.literal('').transform(() => undefined)),
+                originalPrice: z
+                    .string()
+                    .trim()
+                    .min(1, tr('admin_original_price_required', 'Giá gốc là bắt buộc'))
+                    .refine((v) => Number.isFinite(parseNumberString(v)), tr('admin_original_price_invalid', 'Giá gốc không hợp lệ')),
+                salePrice: z
+                    .string()
+                    .trim()
+                    .min(1, tr('admin_sale_price_required', 'Giá bán là bắt buộc'))
+                    .refine((v) => Number.isFinite(parseNumberString(v)), tr('admin_sale_price_invalid', 'Giá bán không hợp lệ')),
+                stock: z
+                    .coerce.number()
+                    .min(0, tr('admin_stock_invalid', 'Tồn kho không hợp lệ'))
+                    .refine((v) => Number.isInteger(v), tr('admin_stock_integer', 'Tồn kho phải là số nguyên')),
+                imagesCount: z.coerce.number().min(1, tr('admin_images_required', 'Vui lòng thêm ít nhất 1 ảnh')),
+                options: z.string().trim().max(500, tr('admin_too_long', 'Nội dung quá dài')).optional().or(z.literal('').transform(() => undefined)),
+                classifications: z.string().trim().max(500, tr('admin_too_long', 'Nội dung quá dài')).optional().or(z.literal('').transform(() => undefined)),
+                specs: z.string().trim().min(1, tr('admin_specs_required', 'Thông số là bắt buộc')).max(2000, tr('admin_too_long', 'Nội dung quá dài')),
+            })
+            .superRefine((data, ctx) => {
+                const original = parseNumberString(data.originalPrice);
+                const sale = parseNumberString(data.salePrice);
+                if (Number.isFinite(original) && Number.isFinite(sale) && sale > original) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        path: ['salePrice'],
+                        message: tr('admin_sale_price_leq', 'Giá bán phải nhỏ hơn hoặc bằng giá gốc'),
+                    });
+                }
+            });
+    }, [t]);
 
     const {
         control,
         handleSubmit,
         formState: { errors, isSubmitting },
         reset,
+        setValue,
     } = useForm<FormValues>({
         resolver: zodResolver(schema),
         defaultValues: {
@@ -108,11 +137,16 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
             originalPrice: '',
             salePrice: '',
             stock: '0',
+            imagesCount: 0,
             options: '',
             classifications: '',
             specs: '',
         },
     });
+
+    useEffect(() => {
+        setValue('imagesCount', images.length);
+    }, [images.length, setValue]);
 
     const createProductMutation = useMutation({
         mutationFn: async (payload: CreateProductInput) => onCreate(payload),
@@ -135,7 +169,7 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
                 }));
             setImages(prev => [...prev, ...picked].slice(0, 10));
         } catch (error: any) {
-            Alert.alert('Lỗi', error?.message || 'Không thể mở thư viện ảnh');
+            Alert.alert(t('admin_error', 'Lỗi'), error?.message || t('admin_open_gallery_failed', 'Không thể mở thư viện ảnh'));
         }
     };
 
@@ -147,7 +181,7 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
         if (!images.length) return [];
         const token = app?.authTokens?.accessToken;
         if (!token) {
-            Alert.alert('Thiếu quyền', 'Bạn cần đăng nhập để tải ảnh.');
+            Alert.alert(t('admin_auth_required', 'Thiếu quyền'), t('admin_upload_need_login', 'Bạn cần đăng nhập để tải ảnh.'));
             throw new Error('missing_token');
         }
         const folder = `electronics-shop/products/admin-${Date.now()}`;
@@ -172,7 +206,7 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
                 }
             } catch (error: any) {
                 setImages(prev => prev.map(img => img.id === item.id ? { ...img, uploading: false } : img));
-                Alert.alert('Lỗi tải ảnh', error?.message || 'Không thể tải ảnh lên máy chủ');
+                Alert.alert(t('admin_upload_error', 'Lỗi tải ảnh'), error?.message || t('admin_upload_failed', 'Không thể tải ảnh lên máy chủ'));
                 throw error;
             }
         }
@@ -182,16 +216,16 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
     const onSubmit = async (values: FormValues) => {
         const payload: CreateProductInput = {
             name: values.name.trim(),
-            category: values.category?.trim() || undefined,
-            code: values.code?.trim() || undefined,
-            description: values.description?.trim() || undefined,
+            category: values.category.trim(),
+            code: values.code.trim(),
+            description: values.description.trim(),
             datasheet: values.datasheet?.trim() || undefined,
             options: splitList(values.options),
             classifications: splitList(values.classifications),
             specs: parseSpecs(values.specs),
             price: {
-                originalPrice: Number(values.originalPrice),
-                salePrice: Number(values.salePrice),
+                originalPrice: parseNumberString(values.originalPrice),
+                salePrice: parseNumberString(values.salePrice),
             },
             stock: Number(values.stock),
         };
@@ -204,25 +238,27 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
             const uploadedImages = await uploadAllImages();
             if (uploadedImages.length) payload.images = uploadedImages;
             await createProductMutation.mutateAsync(payload);
-            Alert.alert('Thành công', 'Sản phẩm đã được tạo');
+            Alert.alert(t('admin_success', 'Thành công'), t('admin_product_created', 'Sản phẩm đã được tạo'));
             reset();
             setImages([]);
             onBack();
         } catch (error: any) {
-            Alert.alert('Lỗi', error?.message || 'Không thể tạo sản phẩm');
+            Alert.alert(t('admin_error', 'Lỗi'), error?.message || t('admin_create_failed', 'Không thể tạo sản phẩm'));
         }
     };
 
     if (!isAdmin) {
         return (
             <View className="flex-1 items-center justify-center px-6" style={{ backgroundColor: theme.background }}>
-                <Text className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Chỉ admin mới được truy cập</Text>
+                <Text className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
+                    {t('admin_only', 'Chỉ admin mới được truy cập')}
+                </Text>
                 <TouchableOpacity
                     onPress={onBack}
                     className="mt-4 px-4 py-2 rounded-xl"
                     style={{ backgroundColor: theme.primary }}
                 >
-                    <Text className="text-white font-semibold">Quay lại</Text>
+                    <Text className="text-white font-semibold">{t('back', 'Quay lại')}</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -231,7 +267,7 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
     const renderInput = (
         name: keyof FormValues,
         label: string,
-        props?: { multiline?: boolean; keyboardType?: 'default' | 'numeric'; placeholder?: string },
+        props?: { multiline?: boolean; keyboardType?: 'default' | 'numeric'; placeholder?: string; format?: 'currency' },
     ) => (
         <View className="mb-4">
             <Text className="text-sm font-medium mb-2" style={{ color: theme.text }}>{label}</Text>
@@ -240,8 +276,15 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
                 name={name}
                 render={({ field: { onChange, onBlur, value } }) => (
                     <TextInput
-                        value={value}
-                        onChangeText={onChange}
+                        value={String(value || '')}
+                        onChangeText={(text) => {
+                            if (props?.format === 'currency') {
+                                const digits = text.replace(/[^\d]/g, '');
+                                onChange(formatNumber(digits));
+                                return;
+                            }
+                            onChange(text);
+                        }}
                         onBlur={onBlur}
                         placeholder={props?.placeholder}
                         placeholderTextColor={theme.muted}
@@ -283,7 +326,9 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
                 <TouchableOpacity onPress={onBack} className="p-2 mr-3">
                     <AppIcon name="chevron-left" size={22} color={theme.text} />
                 </TouchableOpacity>
-                <Text className="text-xl font-semibold" style={{ color: theme.text }}>Tạo sản phẩm (Admin)</Text>
+                <Text className="text-xl font-semibold" style={{ color: theme.text }}>
+                    {t('admin_add_product_title', 'Thêm sản phẩm (Admin)')}
+                </Text>
             </View>
             <ScrollView
                 contentContainerStyle={{
@@ -293,16 +338,16 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
                 }}
                 showsVerticalScrollIndicator={false}
             >
-                {renderInput('name', 'Tên sản phẩm')}
-                {renderInput('code', 'Mã sản phẩm (code)')}
-                {renderInput('category', 'Danh mục')}
-                {renderInput('datasheet', 'Link datasheet (URL)')}
-                {renderInput('originalPrice', 'Giá gốc', { keyboardType: 'numeric' })}
-                {renderInput('salePrice', 'Giá bán', { keyboardType: 'numeric' })}
-                {renderInput('stock', 'Tồn kho', { keyboardType: 'numeric' })}
+                {renderInput('name', t('admin_product_name', 'Tên sản phẩm'))}
+                {renderInput('code', t('admin_product_code', 'Mã sản phẩm (code)'))}
+                {renderInput('category', t('admin_category', 'Danh mục'))}
+                {renderInput('datasheet', t('admin_datasheet', 'Link datasheet (URL)'))}
+                {renderInput('originalPrice', t('admin_original_price', 'Giá gốc'), { keyboardType: 'numeric', format: 'currency' })}
+                {renderInput('salePrice', t('admin_sale_price', 'Giá bán'), { keyboardType: 'numeric', format: 'currency' })}
+                {renderInput('stock', t('admin_stock', 'Tồn kho'), { keyboardType: 'numeric' })}
                 <View className="mb-4">
                     <Text className="text-sm font-medium mb-2" style={{ color: theme.text }}>
-                        Hình ảnh
+                        {t('admin_images', 'Hình ảnh')}
                     </Text>
                     <View className="flex-row flex-wrap gap-3">
                         {images.map((img) => (
@@ -336,7 +381,7 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
                             activeOpacity={0.8}
                             style={{
                                 width: 96,
-                                aspectRatio: 1,
+                                height: 96,
                                 borderRadius: 12,
                                 borderWidth: 1,
                                 borderColor: theme.border,
@@ -346,24 +391,35 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
                             }}
                         >
                             <AppIcon name="image-plus" size={28} color={theme.muted} />
-                            <Text className="text-xs mt-2" style={{ color: theme.muted }}>Thêm ảnh</Text>
+                            <Text className="text-xs mt-2" style={{ color: theme.muted }}>
+                                {t('admin_add_image', 'Thêm ảnh')}
+                            </Text>
                         </TouchableOpacity>
                     </View>
+                    {errors.imagesCount && (
+                        <Text className="text-xs mt-2" style={{ color: '#ef4444' }}>
+                            {errors.imagesCount.message as string}
+                        </Text>
+                    )}
                 </View>
 
-                {renderInput('options', 'Tuỳ chọn (ngăn cách bằng dấu phẩy)')}
-                {renderInput('classifications', 'Phân loại (ngăn cách bằng dấu phẩy)')}
-                {renderInput('specs', 'Thông số (mỗi dòng dạng key:value)', { multiline: true, placeholder: 'power:10W\nvoltage:5V' })}
-                {renderInput('description', 'Mô tả', { multiline: true })}
+                {renderInput('options', t('admin_options', 'Tuỳ chọn (ngăn cách bằng dấu phẩy)'), {
+                    placeholder: t('admin_options_placeholder', 'Ví dụ: Đài Loan, Trung Quốc, Nhật Bản'),
+                })}
+                {renderInput('classifications', t('admin_classifications', 'Phân loại (ngăn cách bằng dấu phẩy)'), {
+                    placeholder: t('admin_classifications_placeholder', 'Ví dụ: 10A, 20A, 30A'),
+                })}
+                {renderInput('specs', t('admin_specs', 'Thông số (mỗi dòng dạng key:value)'), { multiline: true, placeholder: t('admin_specs_placeholder', 'power:10W\nvoltage:5V') })}
+                {renderInput('description', t('admin_description', 'Mô tả'), { multiline: true })}
 
                 <TouchableOpacity
                     onPress={handleSubmit(onSubmit)}
-                    className="mt-2 rounded-xl py-3 items-center"
+                    className="mt-2 rounded-xl py-4 items-center"
                     style={{ backgroundColor: theme.primary, opacity: isSubmitting || createProductMutation.isPending ? 0.8 : 1 }}
                     disabled={isSubmitting || createProductMutation.isPending}
                 >
                     <Text className="text-white font-semibold">
-                        {isSubmitting || createProductMutation.isPending ? (t('processing') || 'Đang lưu...') : 'Lưu sản phẩm'}
+                        {isSubmitting || createProductMutation.isPending ? (t('processing') || 'Đang lưu...') : t('admin_save_product', 'Lưu sản phẩm')}
                     </Text>
                 </TouchableOpacity>
             </ScrollView>

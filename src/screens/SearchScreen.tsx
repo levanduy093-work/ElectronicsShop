@@ -284,25 +284,31 @@ export function SearchScreen({
           <AppIcon name="arrow-left" size={24} color={t.muted} />
         </TouchableOpacity>
         <View
-          className="flex-1 flex-row items-center h-11 px-3 rounded-xl border shadow-sm"
+          className="flex-1 flex-row items-center rounded-xl border shadow-sm"
           style={{
             backgroundColor: t.background,
             borderColor: t.border,
-            shadowOpacity: t === lightTheme ? 0.05 : 0
+            shadowOpacity: t === lightTheme ? 0.05 : 0,
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            minHeight: 40,
+            gap: 10,
           }}
         >
-          <AppIcon name="search" size={20} color={t.muted} style={{ marginRight: 8 }} />
+          <AppIcon name="search" size={20} color={t.muted} />
           <TextInput
             value={query}
             onChangeText={(text) => updateQuery(text, false)}
             onSubmitEditing={handleSearchSubmit}
             placeholder={translate('searchProductComponent')}
-            className="flex-1 text-base p-0"
+            className="flex-1 p-0"
             style={{
               color: t.text,
-              textAlignVertical: 'center',
-              includeFontPadding: false,
-              paddingVertical: 0,
+              fontSize: 15,
+              minHeight: 32,
+              paddingTop: 6,
+              paddingBottom: 6,
+              lineHeight: 20,
             }}
             placeholderTextColor={t.muted}
             autoFocus
