@@ -243,12 +243,32 @@ function AuthWrapper({ route }: { route: { params?: { mode?: 'login' | 'register
     const { theme } = useTheme();
     const app = useAppOptional();
 
+    const goToMainTabs = () => {
+        navigation.reset({
+            index: 0,
+            routes: [
+                {
+                    name: 'MainTabs',
+                    params: { screen: 'HomeTab', params: { screen: 'Home' } },
+                },
+            ],
+        });
+    };
+
+    const handleBack = () => {
+        if (navigation.canGoBack()) {
+            navigation.goBack();
+        } else {
+            goToMainTabs();
+        }
+    };
+
     return (
         <AuthScreen
-            onBack={() => navigation.goBack()}
+            onBack={handleBack}
             onLoginSuccess={(response) => {
                 app?.login(response);
-                navigation.goBack();
+                goToMainTabs();
             }}
             theme={theme}
             initialMode={route.params?.mode || 'login'}
@@ -402,10 +422,8 @@ interface RootStackProps {
 }
 
 export function RootStack({ cartCount = 0, initialAuthMode }: RootStackProps) {
-    const initialRouteName: keyof RootStackParamList = initialAuthMode ? 'Auth' : 'MainTabs';
     return (
         <Stack.Navigator
-            initialRouteName={initialRouteName}
             screenOptions={{
                 headerShown: false,
                 animation: 'slide_from_right',
@@ -422,11 +440,7 @@ export function RootStack({ cartCount = 0, initialAuthMode }: RootStackProps) {
             <Stack.Screen name="Notifications" component={NotificationsWrapper} />
             <Stack.Screen name="Checkout" component={CheckoutWrapper} />
             <Stack.Screen name="OrderDetail" component={OrderDetailWrapper} />
-            <Stack.Screen
-                name="Auth"
-                component={AuthWrapper}
-                initialParams={initialAuthMode ? { mode: initialAuthMode } : undefined}
-            />
+            <Stack.Screen name="Auth" component={AuthWrapper} />
             <Stack.Screen name="AdminAddProduct" component={AdminAddProductWrapper} />
             <Stack.Screen name="Settings" component={SettingsWrapper} />
             <Stack.Screen name="OrderHistory" component={OrderHistoryWrapper} />
