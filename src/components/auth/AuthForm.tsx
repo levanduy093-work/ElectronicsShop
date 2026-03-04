@@ -23,7 +23,7 @@ interface AuthFormProps {
     onToggleMode: () => void;
     onSocialLogin?: (provider: 'google' | 'apple') => void;
     isSubmitting: boolean;
-    isSocialLoading?: boolean;
+    socialLoadingProvider?: 'google' | 'apple' | null;
     theme: Theme;
 }
 
@@ -34,7 +34,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
     onToggleMode,
     onSocialLogin,
     isSubmitting,
-    isSocialLoading,
+    socialLoadingProvider = null,
     theme: t,
 }) => {
     const { t: translate } = useTranslation();
@@ -239,9 +239,9 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                             className="flex-row items-center justify-center rounded-xl py-3.5 border"
                             style={{ backgroundColor: t.surface, borderColor: t.border }}
                             activeOpacity={0.8}
-                            disabled={isSubmitting || isSocialLoading}
+                            disabled={isSubmitting || !!socialLoadingProvider}
                         >
-                            {isSocialLoading ? (
+                            {socialLoadingProvider === 'google' ? (
                                 <ActivityIndicator size="small" color={t.primary} style={{ marginRight: 12 }} />
                             ) : (
                                 <SvgXml xml={googleLogoSvg} width={20} height={20} style={{ marginRight: 12 }} />
@@ -257,9 +257,9 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                                 className="flex-row items-center justify-center rounded-xl py-3.5 border"
                                 style={{ backgroundColor: '#000', borderColor: '#000' }}
                                 activeOpacity={0.8}
-                                disabled={isSubmitting || isSocialLoading}
+                                disabled={isSubmitting || !!socialLoadingProvider}
                             >
-                                {isSocialLoading ? (
+                                {socialLoadingProvider === 'apple' ? (
                                     <ActivityIndicator size="small" color="#fff" style={{ marginRight: 12 }} />
                                 ) : (
                                     <AppIcon name="apple" size={20} color="#fff" style={{ marginRight: 12 }} />

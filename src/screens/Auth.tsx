@@ -31,7 +31,7 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSocialLoading, setIsSocialLoading] = useState(false);
+  const [socialLoadingProvider, setSocialLoadingProvider] = useState<'google' | 'apple' | null>(null);
   const [pendingRegister, setPendingRegister] = useState<{
     email: string;
     password: string;
@@ -80,7 +80,7 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
   };
 
   const handleSocialLogin = async (provider: 'google' | 'apple') => {
-    setIsSocialLoading(true);
+    setSocialLoadingProvider(provider);
     try {
       let firebaseIdToken: string | undefined;
 
@@ -128,7 +128,7 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
         showToast(error?.message || translate('social_login_failed'), 'error');
       }
     } finally {
-      setIsSocialLoading(false);
+      setSocialLoadingProvider(null);
     }
   };
 
@@ -188,7 +188,7 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
           }}
           onSocialLogin={handleSocialLogin}
           isSubmitting={isSubmitting}
-          isSocialLoading={isSocialLoading}
+          socialLoadingProvider={socialLoadingProvider}
           theme={t}
         />
       </ScrollView>
