@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -40,6 +40,7 @@ export function Onboarding({ onDone, onSkipToAuth, onSkipToHome, onSignUp }: Onb
   const insets = useSafeAreaInsets();
   const scrollX = useRef(new Animated.Value(0)).current;
   const [activeIndex, setActiveIndex] = useState(0);
+  const footerAnim = useRef(new Animated.Value(1)).current;
   const listRef = useRef<FlatList<Slide>>(null);
 
   const slides: Slide[] = useMemo(
@@ -164,6 +165,16 @@ export function Onboarding({ onDone, onSkipToAuth, onSkipToHome, onSignUp }: Onb
     });
   });
 
+  useEffect(() => {
+    // Chỉ làm hiệu ứng mờ → rõ rất nhẹ, không trượt lên xuống để tránh cảm giác giật
+    footerAnim.setValue(0.9);
+    Animated.timing(footerAnim, {
+      toValue: 1,
+      duration: 160,
+      useNativeDriver: true,
+    }).start();
+  }, [activeIndex, footerAnim]);
+
   return (
     <View
       className="flex-1"
@@ -192,7 +203,13 @@ export function Onboarding({ onDone, onSkipToAuth, onSkipToHome, onSignUp }: Onb
         scrollEventThrottle={16}
       />
 
-      <View className="px-6 pb-5 gap-3" style={{ marginBottom: insets.bottom ? 0 : 6 }}>
+      <Animated.View
+        className="px-6 pb-5 gap-3"
+        style={{
+          marginBottom: insets.bottom ? 0 : 6,
+          opacity: footerAnim,
+        }}
+      >
         <View className="flex-row items-center justify-center gap-2">
           {slides.map((slide, index) => (
             <Animated.View
@@ -265,7 +282,7 @@ export function Onboarding({ onDone, onSkipToAuth, onSkipToHome, onSignUp }: Onb
             </Pressable>
           </View>
         )}
-      </View>
+      </Animated.View>
     </View>
   );
 }

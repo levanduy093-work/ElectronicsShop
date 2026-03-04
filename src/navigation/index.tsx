@@ -16,9 +16,10 @@ function LoadingFallback() {
 
 interface AppNavigatorProps {
     cartCount?: number;
+    initialAuthMode?: 'login' | 'register' | null;
 }
 
-export function AppNavigator({ cartCount = 0 }: AppNavigatorProps) {
+export function AppNavigator({ cartCount = 0, initialAuthMode = null }: AppNavigatorProps) {
     const { theme } = useTheme();
 
     return (
@@ -54,7 +55,7 @@ export function AppNavigator({ cartCount = 0 }: AppNavigatorProps) {
             }}
         >
             <Suspense fallback={<LoadingFallback />}>
-                <RootStack cartCount={cartCount} />
+                <RootStack cartCount={cartCount} initialAuthMode={initialAuthMode || undefined} />
             </Suspense>
         </NavigationContainer>
     );

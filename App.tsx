@@ -64,6 +64,7 @@ function AppContent() {
 
     // Onboarding state
     const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
+    const [initialAuthMode, setInitialAuthMode] = useState<'login' | 'register' | null>(null);
     const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
 
     // Load initial state
@@ -92,16 +93,32 @@ function AppContent() {
         init();
     }, []);
 
-    // Handle onboarding complete
-    const handleOnboardingComplete = useCallback(async () => {
+    // Handle onboarding complete (go straight to home, không mở màn auth)
+    const handleOnboardingCompleteToHome = useCallback(async () => {
         try {
             await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
         } catch (error) {
             console.warn('Failed to persist onboarding state', error);
         } finally {
             setHasSeenOnboarding(true);
+            setInitialAuthMode(null);
         }
     }, []);
+
+    // Handle onboarding complete rồi mở màn Auth với mode tương ứng
+    const handleOnboardingGoToAuth = useCallback(
+        async (mode: 'login' | 'register') => {
+            try {
+                await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+            } catch (error) {
+                console.warn('Failed to persist onboarding state', error);
+            } finally {
+                setInitialAuthMode(mode);
+                setHasSeenOnboarding(true);
+            }
+        },
+        [],
+    );
 
     // Show loading while checking onboarding
     if (isCheckingOnboarding) {
@@ -122,10 +139,10 @@ function AppContent() {
                     translucent={true}
                 />
                 <Onboarding
-                    onDone={handleOnboardingComplete}
-                    onSkipToAuth={handleOnboardingComplete}
-                    onSkipToHome={handleOnboardingComplete}
-                    onSignUp={handleOnboardingComplete}
+                    onDone={handleOnboardingCompleteToHome}
+                    onSkipToAuth={() => handleOnboardingGoToAuth('login')}
+                    onSkipToHome={handleOnboardingCompleteToHome}
+                    onSignUp={() => handleOnboardingGoToAuth('register')}
                 />
             </ThemeProvider>
         );
@@ -145,7 +162,7 @@ function AppContent() {
                 translucent={true}
             />
             <AppStateProvider>
-                <AppNavigator />
+                <AppNavigator initialAuthMode={initialAuthMode} />
             </AppStateProvider>
         </ThemeProvider>
     );

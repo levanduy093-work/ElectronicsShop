@@ -398,11 +398,14 @@ function LanguageSelectionWrapper() {
 
 interface RootStackProps {
     cartCount?: number;
+    initialAuthMode?: 'login' | 'register';
 }
 
-export function RootStack({ cartCount = 0 }: RootStackProps) {
+export function RootStack({ cartCount = 0, initialAuthMode }: RootStackProps) {
+    const initialRouteName: keyof RootStackParamList = initialAuthMode ? 'Auth' : 'MainTabs';
     return (
         <Stack.Navigator
+            initialRouteName={initialRouteName}
             screenOptions={{
                 headerShown: false,
                 animation: 'slide_from_right',
@@ -419,7 +422,11 @@ export function RootStack({ cartCount = 0 }: RootStackProps) {
             <Stack.Screen name="Notifications" component={NotificationsWrapper} />
             <Stack.Screen name="Checkout" component={CheckoutWrapper} />
             <Stack.Screen name="OrderDetail" component={OrderDetailWrapper} />
-            <Stack.Screen name="Auth" component={AuthWrapper} />
+            <Stack.Screen
+                name="Auth"
+                component={AuthWrapper}
+                initialParams={initialAuthMode ? { mode: initialAuthMode } : undefined}
+            />
             <Stack.Screen name="AdminAddProduct" component={AdminAddProductWrapper} />
             <Stack.Screen name="Settings" component={SettingsWrapper} />
             <Stack.Screen name="OrderHistory" component={OrderHistoryWrapper} />
