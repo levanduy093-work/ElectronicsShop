@@ -272,7 +272,7 @@ export function Settings({
                     <Text className="text-xs font-medium mt-0.5" style={{ color: theme.muted }}>
                       {biometricStatus?.isSupported
                         ? t('biometric_lock_desc')
-                        : (biometricStatus?.error || t('biometric_not_supported'))}
+                        : t('biometric_not_supported')}
                     </Text>
                   </View>
                 </View>
