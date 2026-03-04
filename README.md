@@ -97,6 +97,41 @@ Quy trình "Checkout" 3 bước tối ưu hóa tỷ lệ chuyển đổi:
 - **Payment**: VNPAY SDK/Webview integration.
 - **AI Integration**: Kết nối tới module AI Backend xử lý NLP và Vision.
 
+### Xác thực xã hội (Social Login)
+
+- **Google Sign-In**:
+  - Mobile app sử dụng Firebase Authentication + `@react-native-google-signin/google-signin` để lấy **Firebase ID token**.
+  - ID token được gửi lên backend `electronics-backend` qua endpoint `POST /auth/social-login` với `provider = "google"`.
+  - Yêu cầu cấu hình:
+    - File `android/app/google-services.json` (Firebase config cho Android).
+    - File `ios/ElectronicsShop/GoogleService-Info.plist` (Firebase config cho iOS).
+    - Biến môi trường trong `ElectronicsShop/.env`:
+      ```env
+      GOOGLE_WEB_CLIENT_ID=<webClientId từ firebase>
+      ```
+- **Apple Sign-In**:
+  - Sử dụng `@invertase/react-native-apple-authentication` (iOS) kết hợp Firebase Auth để lấy ID token và gửi tới cùng endpoint `/auth/social-login` với `provider = "apple"`.
+
+#### Lưu đồ luồng Social Login (Mobile -> Backend)
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant M as Mobile App
+    participant F as Firebase Auth (Client)
+    participant API as electronics-backend
+    participant FA as Firebase Admin
+
+    U->>M: Nhấn "Đăng nhập Google/Apple"
+    M->>F: Gọi SDK GoogleSignin / AppleAuth
+    F-->>M: Trả về Firebase ID Token
+    M->>API: POST /auth/social-login<br/>{ idToken, provider }
+    API->>FA: verifyIdToken(idToken)
+    FA-->>API: Trả về thông tin user Firebase
+    API-->>M: JWT Access Token + Refresh Token<br/>+ thông tin user nội bộ
+    M->>M: Lưu token, chuyển vào màn hình chính
+```
+
 ---
 
 ## 📂 Cấu trúc Dự án (Project Structure)
@@ -118,6 +153,19 @@ src/
 ├── theme/           # Cấu hình giao diện (Colors, Fonts, Metrics)
 ├── types/           # Định nghĩa TypeScript Types & Interfaces
 └── utils/           # Các hàm tiện ích bổ trợ
+```
+
+### Sơ đồ luồng khởi động ứng dụng (App Startup Flow)
+
+```mermaid
+flowchart TD
+    A[Khởi động app] --> B[Khởi tạo theme, i18n]
+    B --> C[Đọc cache: token, giỏ hàng, cài đặt]
+    C --> D{Có Access Token hợp lệ?}
+    D -->|Có| E[Tự động đăng nhập lại<br/>load hồ sơ & giỏ hàng từ server]
+    D -->|Không| F[Đi tới màn hình Auth]
+    E --> G[Hiển thị màn hình Home]
+    F --> G
 ```
 
 ---
@@ -193,6 +241,17 @@ npm run ios
 ```
 
 ---
+
+## 🔐 Môi trường & Bảo mật
+
+- Các file/biến sau **không được commit** lên repository (đã được cấu hình trong `.gitignore`):
+  - `ElectronicsShop/.env`
+  - `ElectronicsShop/android/app/google-services.json`
+  - `ElectronicsShop/ios/ElectronicsShop/GoogleService-Info.plist`
+  - Các file keystore ký app Android (`*.keystore`, `*.jks`, ...).
+- Khi thiết lập dự án trên máy mới:
+  - Tự tạo `.env` từ hướng dẫn, hoặc liên hệ để nhận file mẫu.
+  - Tải bộ Firebase config (Android/iOS) từ Firebase Console tương ứng với project của bạn và đặt đúng đường dẫn như trên.
 
 ## 📞 Liên hệ & Hỗ trợ
 
