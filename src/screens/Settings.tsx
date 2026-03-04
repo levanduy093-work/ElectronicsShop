@@ -22,7 +22,6 @@ interface SettingsProps {
   theme?: any;
   isPushEnabled?: boolean;
   onTogglePush?: () => void;
-  onResetOnboarding?: () => void;
   onBiometricChange?: (enabled: boolean) => void;
 }
 
@@ -34,7 +33,6 @@ export function Settings({
   onNavigateToLanguage,
   isPushEnabled = true,
   onTogglePush,
-  onResetOnboarding,
   onBiometricChange,
 }: SettingsProps) {
   const { t, i18n } = useTranslation();
@@ -208,27 +206,6 @@ export function Settings({
               </View>
             </TouchableOpacity>
 
-            {/* Divider */}
-            <View className="h-px mx-4" style={{ backgroundColor: theme.border }} />
-
-            {/* Reset Onboarding */}
-            <TouchableOpacity
-              className="flex-row items-center justify-between p-4"
-              activeOpacity={0.7}
-              onPress={onResetOnboarding}
-              disabled={!onResetOnboarding}
-            >
-              <View className="flex-row items-center gap-3 flex-1">
-                <View className="w-9 h-9 rounded-full justify-center items-center" style={{ backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }}>
-                  <AppIcon name="refresh" size={18} color={theme.muted} />
-                </View>
-                <View>
-                  <Text className="text-sm font-medium" style={{ color: theme.text }}>{t('reset_onboarding')}</Text>
-                  <Text className="text-xs font-medium mt-0.5" style={{ color: theme.muted }}>{t('reset_onboarding_desc')}</Text>
-                </View>
-              </View>
-              <AppIcon name="chevron-right" size={18} color={theme.muted} />
-            </TouchableOpacity>
           </View>
         </View>
 

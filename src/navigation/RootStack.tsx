@@ -294,19 +294,6 @@ function SettingsWrapper() {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { theme } = useTheme();
     const app = useAppOptional();
-    const { t } = useTranslation();
-    const { showToast } = useToast();
-
-    const handleResetOnboarding = async () => {
-        try {
-            await AsyncStorage.setItem('electronicsshop/onboarding_seen', 'false');
-            showToast(t('reset_onboarding_success'), 'success');
-        } catch (error) {
-            console.warn('Failed to reset onboarding flag', error);
-            showToast(t('something_wrong') || 'Có lỗi xảy ra', 'error');
-        }
-    };
-
     return (
         <SettingsScreen
             onBack={() => navigation.goBack()}
@@ -317,7 +304,6 @@ function SettingsWrapper() {
             onNavigateToLanguage={() => navigation.navigate('LanguageSelection')}
             isPushEnabled={app?.isPushEnabled || false}
             onTogglePush={app?.setIsPushEnabled ? () => app.setIsPushEnabled(!app.isPushEnabled) : undefined}
-            onResetOnboarding={handleResetOnboarding}
             onBiometricChange={app?.setIsBiometricEnabled}
         />
     );
