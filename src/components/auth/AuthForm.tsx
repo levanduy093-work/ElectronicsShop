@@ -255,16 +255,31 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                             <TouchableOpacity
                                 onPress={() => onSocialLogin('apple')}
                                 className="flex-row items-center justify-center rounded-xl py-3.5 border"
-                                style={{ backgroundColor: '#000', borderColor: '#000' }}
+                                style={{
+                                    backgroundColor: t.isDark ? '#FFFFFF' : '#000000',
+                                    borderColor: t.isDark ? '#FFFFFF' : '#000000',
+                                }}
                                 activeOpacity={0.8}
                                 disabled={isSubmitting || !!socialLoadingProvider}
                             >
                                 {socialLoadingProvider === 'apple' ? (
-                                    <ActivityIndicator size="small" color="#fff" style={{ marginRight: 12 }} />
+                                    <ActivityIndicator
+                                        size="small"
+                                        color={t.isDark ? '#000000' : '#FFFFFF'}
+                                        style={{ marginRight: 12 }}
+                                    />
                                 ) : (
-                                    <AppIcon name="apple" size={20} color="#fff" style={{ marginRight: 12 }} />
+                                    <AppIcon
+                                        name="apple"
+                                        size={20}
+                                        color={t.isDark ? '#000000' : '#FFFFFF'}
+                                        style={{ marginRight: 12 }}
+                                    />
                                 )}
-                                <Text className="text-sm font-semibold" style={{ color: '#fff' }}>
+                                <Text
+                                    className="text-sm font-semibold"
+                                    style={{ color: t.isDark ? '#000000' : '#FFFFFF' }}
+                                >
                                     {translate('sign_in_with_apple')}
                                 </Text>
                             </TouchableOpacity>

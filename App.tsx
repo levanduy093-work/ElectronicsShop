@@ -6,13 +6,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { StatusBar, StyleSheet, View, useColorScheme, AppState, AppStateStatus } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { GOOGLE_WEB_CLIENT_ID } from '@env';
 
-import { AppStateProvider } from './src/context';
+import { AppStateProvider, useAppOptional } from './src/context';
 import { AppNavigator } from './src/navigation';
 import { darkTheme, lightTheme, ThemeProvider } from './src/theme';
 import { useToast, ToastProvider } from './src/components/common/ToastProvider';
@@ -33,7 +32,6 @@ GoogleSignin.configure({
 });
 
 const ONBOARDING_STORAGE_KEY = 'electronicsshop/onboarding_seen';
-const THEME_MODE_STORAGE_KEY = 'electronicsshop/theme_mode';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -60,12 +58,13 @@ const ForegroundNotificationHandler = () => {
     return null;
 };
 
-// Main App content with navigation
+// Main App content with navigation (uses themeMode từ AppStateProvider)
 function AppContent() {
     const { t } = useTranslation();
     const systemColorScheme = useColorScheme();
     const systemDarkMode = systemColorScheme === 'dark';
-    const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>('system');
+    const app = useAppOptional();
+    const themeMode: 'light' | 'dark' | 'system' = app?.themeMode || 'system';
     const isDarkMode = themeMode === 'system' ? systemDarkMode : themeMode === 'dark';
     const theme = isDarkMode ? darkTheme : lightTheme;
     const networkStatus = useNetworkStatus();
@@ -75,20 +74,9 @@ function AppContent() {
     const [initialAuthMode, setInitialAuthMode] = useState<'login' | 'register' | null>(null);
     const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
 
-    // Load initial state
+    // Load initial onboarding state
     useEffect(() => {
         const init = async () => {
-            // Load theme mode
-            try {
-                const stored = await AsyncStorage.getItem(THEME_MODE_STORAGE_KEY);
-                if (stored) {
-                    setThemeMode(stored as 'light' | 'dark' | 'system');
-                }
-            } catch (e) {
-                console.warn('Failed to load theme mode', e);
-            }
-
-            // Check onboarding
             try {
                 const seen = await AsyncStorage.getItem(ONBOARDING_STORAGE_KEY);
                 setHasSeenOnboarding(seen === 'true');
@@ -169,9 +157,7 @@ function AppContent() {
                 backgroundColor={theme.surface}
                 translucent={true}
             />
-            <AppStateProvider>
-                <AppNavigator initialAuthMode={initialAuthMode} />
-            </AppStateProvider>
+            <AppNavigator initialAuthMode={initialAuthMode} />
         </ThemeProvider>
     );
 }
@@ -182,7 +168,9 @@ function App(): React.JSX.Element {
         <GestureHandlerRootView style={styles.container}>
             <QueryClientProvider client={queryClient}>
                 <ToastProvider>
-                    <AppContent />
+                    <AppStateProvider>
+                        <AppContent />
+                    </AppStateProvider>
                 </ToastProvider>
             </QueryClientProvider>
         </GestureHandlerRootView>
