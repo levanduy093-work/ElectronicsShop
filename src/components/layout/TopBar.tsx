@@ -59,7 +59,10 @@ function TopBarComponent({
       ]}
     >
       <View className="h-14 flex-row items-center justify-between px-4">
-        <View className="flex-row items-center gap-3">
+        <View
+          className="flex-row items-center gap-3"
+          style={{ flexShrink: 1, minWidth: 0 }}
+        >
           <Image
             source={require('../../assets/images/logo.png')}
             className="w-8 h-8 rounded-lg"
@@ -70,7 +73,8 @@ function TopBarComponent({
           />
           <Text
             className="text-lg font-semibold tracking-tight text-gray-900"
-            style={{ color: resolvedTheme.text, letterSpacing: -0.5 }}
+            style={{ color: resolvedTheme.text, letterSpacing: -0.5, flexShrink: 1 }}
+            numberOfLines={2}
           >
             {title}
           </Text>

@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { GOOGLE_WEB_CLIENT_ID } from '@env';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { AppStateProvider, useAppOptional } from './src/context';
 import { AppNavigator } from './src/navigation';
@@ -125,8 +126,8 @@ function AppContent() {
         );
     }
 
-    // Show onboarding if not seen
-    if (!hasSeenOnboarding) {
+    // Show onboarding if not seen and user is not logged in
+    if (!hasSeenOnboarding && !app?.isLoggedIn) {
         return (
             <ThemeProvider value={{ theme, isDarkMode }}>
                 <StatusBar

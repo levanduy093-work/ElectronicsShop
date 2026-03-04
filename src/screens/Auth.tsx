@@ -125,7 +125,10 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
       if (isCancelled) {
         showToast(translate('social_login_cancelled'), 'info');
       } else {
-        showToast(error?.message || translate('social_login_failed'), 'error');
+        // Ẩn thông điệp kỹ thuật (ví dụ: com.apple.AuthenticationServices.AuthorizationError error 1000)
+        // và chỉ hiển thị thông báo thân thiện cho người dùng.
+        console.warn('Social login error', error);
+        showToast(translate('social_login_failed'), 'error');
       }
     } finally {
       setSocialLoadingProvider(null);
