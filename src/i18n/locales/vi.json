@@ -496,5 +496,10 @@
   "admin_add_product_menu": "Admin: Thêm sản phẩm",
   "admin_product_saved_title": "Thêm sản phẩm thành công",
   "admin_product_saved_body": "Sản phẩm đã được lưu vào hệ thống.",
-  "admin_ok": "OK"
+  "admin_ok": "OK",
+  "or_continue_with": "Hoặc tiếp tục với",
+  "sign_in_with_google": "Tiếp tục với Google",
+  "sign_in_with_apple": "Tiếp tục với Apple",
+  "social_login_failed": "Đăng nhập không thành công. Vui lòng thử lại.",
+  "social_login_cancelled": "Đã hủy đăng nhập"
 }

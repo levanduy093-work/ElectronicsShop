@@ -9,6 +9,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { GOOGLE_WEB_CLIENT_ID } from '@env';
 
 import { AppStateProvider } from './src/context';
 import { AppNavigator } from './src/navigation';
@@ -23,6 +25,11 @@ import {
 } from './src/services/fcm';
 
 import './src/i18n';
+
+GoogleSignin.configure({
+    webClientId: GOOGLE_WEB_CLIENT_ID || '955785161802-0b76g7963jiri4qda56d16n265k7ll40.apps.googleusercontent.com',
+    offlineAccess: true,
+});
 
 const ONBOARDING_STORAGE_KEY = 'electronicsshop/onboarding_seen';
 const THEME_MODE_STORAGE_KEY = 'electronicsshop/theme_mode';

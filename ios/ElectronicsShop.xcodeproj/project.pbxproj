@@ -8,8 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		4CBDFE920EF902FFCF713E48 /* Pods_ElectronicsShop.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A03FAC5F74739C4F00E11070 /* Pods_ElectronicsShop.framework */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
-		7F1582699EB625B3B422112D /* libPods-ElectronicsShop.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 356C2E0A1D1F95CC1CB7ACC5 /* libPods-ElectronicsShop.a */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		95B81E42C6193F6ADD7A56D4 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		C0F5AE602B1D4E7FA1B2C3D4 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = C0F5AE5F2B1D4E7FA1B2C3D4 /* GoogleService-Info.plist */; };
@@ -21,9 +21,9 @@
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = ElectronicsShop/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ElectronicsShop/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = ElectronicsShop/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		356C2E0A1D1F95CC1CB7ACC5 /* libPods-ElectronicsShop.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-ElectronicsShop.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = ElectronicsShop/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = ElectronicsShop/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		A03FAC5F74739C4F00E11070 /* Pods_ElectronicsShop.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ElectronicsShop.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		B7C1A2D12F0243A400E0F001 /* ElectronicsShop.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = ElectronicsShop.entitlements; path = ElectronicsShop/ElectronicsShop.entitlements; sourceTree = "<group>"; };
 		BE12D84199AED85C3C14593C /* Pods-ElectronicsShop.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ElectronicsShop.release.xcconfig"; path = "Target Support Files/Pods-ElectronicsShop/Pods-ElectronicsShop.release.xcconfig"; sourceTree = "<group>"; };
 		C0F5AE5F2B1D4E7FA1B2C3D4 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = "GoogleService-Info.plist"; path = "ElectronicsShop/GoogleService-Info.plist"; sourceTree = "<group>"; };
@@ -35,7 +35,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7F1582699EB625B3B422112D /* libPods-ElectronicsShop.a in Frameworks */,
+				4CBDFE920EF902FFCF713E48 /* Pods_ElectronicsShop.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -60,7 +60,7 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				356C2E0A1D1F95CC1CB7ACC5 /* libPods-ElectronicsShop.a */,
+				A03FAC5F74739C4F00E11070 /* Pods_ElectronicsShop.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";

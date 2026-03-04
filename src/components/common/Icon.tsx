@@ -111,6 +111,10 @@ const iconMap: Record<string, string> = {
   'scan-face': 'face-recognition',
   'face-recognition': 'face-recognition',
   'fingerprint': 'fingerprint',
+
+  // Social login icons
+  'google': 'google',
+  'apple': 'apple',
 };
 
 export function AppIcon({ name, size = 24, color = '#000', style }: IconProps) {

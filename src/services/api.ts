@@ -642,6 +642,10 @@ export function login(email: string, password: string) {
   return postJson<AuthResponse>('/auth/login', { email, password });
 }
 
+export function socialLogin(idToken: string, provider: 'google' | 'apple') {
+  return postJson<AuthResponse>('/auth/social-login', { idToken, provider });
+}
+
 export function sendRegisterOtp(
   name: string,
   email: string,

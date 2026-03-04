@@ -4,10 +4,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Theme, lightTheme, useTheme } from '../theme';
 import { useToast } from '../components/common/ToastProvider';
-import { AuthResponse, login, sendRegisterOtp } from '../services/api';
+import { AuthResponse, login, sendRegisterOtp, socialLogin } from '../services/api';
 import { VerifyEmailView } from '../components/auth/VerifyEmailView';
 import { ForgotPasswordView } from '../components/auth/ForgotPasswordView';
 import { AuthForm } from '../components/auth/AuthForm';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import auth from '@react-native-firebase/auth';
+import { appleAuth } from '@invertase/react-native-apple-authentication';
 
 interface AuthProps {
   onBack?: () => void;
@@ -28,6 +31,7 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSocialLoading, setIsSocialLoading] = useState(false);
   const [pendingRegister, setPendingRegister] = useState<{
     email: string;
     password: string;
@@ -72,6 +76,59 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
       } finally {
         setIsSubmitting(false);
       }
+    }
+  };
+
+  const handleSocialLogin = async (provider: 'google' | 'apple') => {
+    setIsSocialLoading(true);
+    try {
+      let firebaseIdToken: string | undefined;
+
+      if (provider === 'google') {
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        const response = await GoogleSignin.signIn();
+        const idToken = response.data?.idToken;
+        if (!idToken) {
+          throw new Error('Google Sign-In failed: no idToken');
+        }
+        const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+        const userCredential = await auth().signInWithCredential(googleCredential);
+        firebaseIdToken = await userCredential.user.getIdToken(true);
+      } else if (provider === 'apple') {
+        const appleAuthResponse = await appleAuth.performRequest({
+          requestedOperation: appleAuth.Operation.LOGIN,
+          requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
+        });
+        if (!appleAuthResponse.identityToken) {
+          throw new Error('Apple Sign-In failed: no identityToken');
+        }
+        const { identityToken, nonce } = appleAuthResponse;
+        const appleCredential = auth.AppleAuthProvider.credential(identityToken, nonce);
+        const userCredential = await auth().signInWithCredential(appleCredential);
+        firebaseIdToken = await userCredential.user.getIdToken(true);
+      }
+
+      if (!firebaseIdToken) {
+        throw new Error('Cannot get Firebase ID token');
+      }
+
+      const result = await socialLogin(firebaseIdToken, provider);
+      showToast(translate('login_success'), 'success');
+      onLoginSuccess(result);
+    } catch (error: any) {
+      const isCancelled =
+        error?.code === 'SIGN_IN_CANCELLED' ||
+        error?.code === '12501' ||
+        error?.code === 'ERR_REQUEST_CANCELED' ||
+        error?.message?.includes('Sign in action cancelled');
+
+      if (isCancelled) {
+        showToast(translate('social_login_cancelled'), 'info');
+      } else {
+        showToast(error?.message || translate('social_login_failed'), 'error');
+      }
+    } finally {
+      setIsSocialLoading(false);
     }
   };
 
@@ -129,7 +186,9 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
           onToggleMode={() => {
             setIsRegister(!isRegister);
           }}
+          onSocialLogin={handleSocialLogin}
           isSubmitting={isSubmitting}
+          isSocialLoading={isSocialLoading}
           theme={t}
         />
       </ScrollView>
