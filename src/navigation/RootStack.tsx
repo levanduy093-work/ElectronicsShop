@@ -189,7 +189,7 @@ function CheckoutWrapper() {
                 });
             }}
             addresses={app?.addresses || []}
-            onAddAddress={() => { }}
+            onAddAddress={undefined}
             onUpdateAddresses={app?.updateAddresses || (() => { })}
             accessToken={app?.authTokens?.accessToken}
             voucher={app?.appliedVoucher || null}
