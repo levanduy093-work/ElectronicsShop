@@ -28,6 +28,7 @@ import './src/i18n';
 
 GoogleSignin.configure({
     webClientId: GOOGLE_WEB_CLIENT_ID || '955785161802-0b76g7963jiri4qda56d16n265k7ll40.apps.googleusercontent.com',
+    iosClientId: '955785161802-6ncbjojfahbmro02fj5u352qd2vu2u2r.apps.googleusercontent.com',
     offlineAccess: true,
 });
 

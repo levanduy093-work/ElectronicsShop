@@ -89,7 +89,7 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
         const response = await GoogleSignin.signIn();
         const idToken = response.data?.idToken;
         if (!idToken) {
-          throw new Error('Google Sign-In failed: no idToken');
+          throw new Error(translate('social_login_no_id_token'));
         }
         const googleCredential = auth.GoogleAuthProvider.credential(idToken);
         const userCredential = await auth().signInWithCredential(googleCredential);
@@ -100,7 +100,7 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
           requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
         });
         if (!appleAuthResponse.identityToken) {
-          throw new Error('Apple Sign-In failed: no identityToken');
+          throw new Error(translate('social_login_no_identity_token'));
         }
         const { identityToken, nonce } = appleAuthResponse;
         const appleCredential = auth.AppleAuthProvider.credential(identityToken, nonce);
@@ -109,11 +109,11 @@ export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: A
       }
 
       if (!firebaseIdToken) {
-        throw new Error('Cannot get Firebase ID token');
+        throw new Error(translate('social_login_no_firebase_token'));
       }
 
       const result = await socialLogin(firebaseIdToken, provider);
-      showToast(translate('login_success'), 'success');
+      showToast(translate('social_login_success'), 'success');
       onLoginSuccess(result);
     } catch (error: any) {
       const isCancelled =

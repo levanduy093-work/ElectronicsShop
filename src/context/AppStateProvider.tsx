@@ -657,19 +657,6 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         },
     });
 
-    const syncCartMutation = useMutation({
-        mutationFn: async (params: { items: ApiCartItem[]; totals: ReturnType<typeof computeCartTotals>; cartId?: string | null }) => {
-            const token = authTokensRef.current?.accessToken;
-            if (!token) return null;
-            return upsertCart(params.items, token, params.cartId || null, params.totals);
-        },
-        onSuccess: (result) => {
-            if (result?._id) {
-                cartIdRef.current = result._id;
-            }
-        },
-    });
-
     useEffect(() => {
         if (!isAuthed) return;
         if (ordersQuery.data) {
@@ -1537,7 +1524,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         persistAiMessages(aiMessages).catch(() => { });
     }, [aiMessages]);
 
-    // Sync cart to backend
+    // Sync cart to backend (debounced, avoids re-triggering from mutation state changes)
     useEffect(() => {
         if (!authTokensRef.current?.accessToken) return;
         if (cartSyncTimeoutRef.current) {
@@ -1549,22 +1536,22 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
             try {
                 const payloadItems = cartItems.map(mapCartItemToApi);
                 const totals = computeCartTotals(cartItems);
-                await syncCartMutation.mutateAsync({
-                    items: payloadItems,
-                    totals,
-                    cartId: cartIdRef.current,
-                });
+                const result = await upsertCart(payloadItems, token, cartIdRef.current || null, totals);
+                if (result?._id) {
+                    cartIdRef.current = result._id;
+                }
             } catch (error) {
                 console.warn('AppStateProvider - Failed to sync cart to backend', error);
             }
-        }, 400);
+        }, 800);
 
         return () => {
             if (cartSyncTimeoutRef.current) {
                 clearTimeout(cartSyncTimeoutRef.current);
             }
         };
-    }, [cartItems, authTokens?.accessToken, syncCartMutation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [cartItems, authTokens?.accessToken]);
 
     // Load user data when logged in
     useEffect(() => {
