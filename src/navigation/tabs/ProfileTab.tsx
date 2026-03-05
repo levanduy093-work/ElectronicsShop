@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
 import { useAppOptional } from '../../context';
@@ -10,6 +10,7 @@ import { Auth as AuthScreen } from '../../screens/Auth';
 
 export function ProfileTab() {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const route = useRoute<any>();
     const { theme } = useTheme();
     const app = useAppOptional();
 
@@ -22,13 +23,16 @@ export function ProfileTab() {
         }, [app?.isLoggedIn, app?.authTokens?.accessToken])
     );
 
+    const initialAuthMode: 'login' | 'register' =
+        route?.params?.authMode === 'register' ? 'register' : 'login';
+
     if (!app?.isLoggedIn) {
         return (
             <AuthScreen
                 onBack={() => navigation.goBack()}
                 onLoginSuccess={(response) => app?.login(response)}
                 theme={theme}
-                initialMode="login"
+                initialMode={initialAuthMode}
             />
         );
     }
