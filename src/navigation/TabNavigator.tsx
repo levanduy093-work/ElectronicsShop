@@ -8,11 +8,15 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 
 interface TabNavigatorProps {
     cartCount?: number;
+    initialAuthMode?: 'login' | 'register';
 }
 
-export function TabNavigator({ cartCount = 0 }: TabNavigatorProps) {
+export function TabNavigator({ cartCount = 0, initialAuthMode }: TabNavigatorProps) {
+    const initialRouteName: keyof RootTabParamList = initialAuthMode ? 'ProfileTab' : 'HomeTab';
+
     return (
         <Tab.Navigator
+            initialRouteName={initialRouteName}
             screenOptions={{
                 headerShown: false,
                 animation: 'none',
@@ -23,7 +27,11 @@ export function TabNavigator({ cartCount = 0 }: TabNavigatorProps) {
             <Tab.Screen name="CatalogTab" component={CatalogTab} />
             <Tab.Screen name="AITab" component={AITab} />
             <Tab.Screen name="CartTab" component={CartTab} />
-            <Tab.Screen name="ProfileTab" component={ProfileTab} />
+            <Tab.Screen
+                name="ProfileTab"
+                component={ProfileTab}
+                initialParams={initialAuthMode ? { authMode: initialAuthMode } : undefined}
+            />
         </Tab.Navigator>
     );
 }

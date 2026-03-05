@@ -1,8 +1,7 @@
 import React, { Suspense } from 'react';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
-import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+import { NavigationContainer } from '@react-navigation/native';
 import { RootStack } from './RootStack';
-import type { RootStackParamList } from './types';
 import { useTheme } from '../theme';
 
 // Loading fallback for lazy-loaded screens
@@ -22,33 +21,9 @@ interface AppNavigatorProps {
 
 export function AppNavigator({ cartCount = 0, initialAuthMode = null }: AppNavigatorProps) {
     const { theme } = useTheme();
-    const navigationRef = React.useRef(
-        createNavigationContainerRef<RootStackParamList>(),
-    ).current;
-
-    const handleNavReady = () => {
-        if (initialAuthMode && navigationRef.isReady()) {
-            navigationRef.reset({
-                index: 0,
-                routes: [
-                    {
-                        name: 'MainTabs',
-                        params: {
-                            screen: 'ProfileTab',
-                            params: {
-                                authMode: initialAuthMode,
-                            },
-                        } as any,
-                    },
-                ],
-            });
-        }
-    };
 
     return (
         <NavigationContainer
-            ref={navigationRef}
-            onReady={handleNavReady}
             theme={{
                 dark: theme.isDark,
                 colors: {

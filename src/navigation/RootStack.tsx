@@ -418,7 +418,7 @@ export function RootStack({ cartCount = 0, initialAuthMode }: RootStackProps) {
             }}
         >
             <Stack.Screen name="MainTabs">
-                {() => <TabNavigator cartCount={cartCount} />}
+                {() => <TabNavigator cartCount={cartCount} initialAuthMode={initialAuthMode} />}
             </Stack.Screen>
             <Stack.Screen name="ProductDetail" component={ProductDetailWrapper} />
             <Stack.Screen name="Search" component={SearchWrapper} />
