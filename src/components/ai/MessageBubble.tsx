@@ -26,6 +26,13 @@ export function MessageBubble({
   const isDark = theme !== lightTheme;
   const [modalVisible, setModalVisible] = useState(false);
 
+  const formatOrderDate = (value?: string) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleDateString('vi-VN');
+  };
+
   const renderProductCard = (card: AiProductCard, index: number) => {
     const isOutOfStock = (card.stock ?? 0) <= 0;
     const action = message.actions?.find(
@@ -101,6 +108,7 @@ export function MessageBubble({
         ? 'Đã giao/đang giao'
         : 'Chưa giao';
     const statusColor = card.isCancelled ? '#DC2626' : card.shipped ? '#16A34A' : '#D97706';
+    const orderedDate = formatOrderDate(card.orderedAt);
 
     return (
       <View
@@ -124,6 +132,9 @@ export function MessageBubble({
           </Text>
         </View>
         <Text style={[styles.productMeta, { color: statusColor }]}>{statusText}</Text>
+        {orderedDate ? (
+          <Text style={[styles.productMeta, { color: theme.muted }]}>{`Ngày đặt: ${orderedDate}`}</Text>
+        ) : null}
         <Text style={[styles.addressLine, { color: theme.muted }]} numberOfLines={1}>
           {`Thanh toán: ${card.payment || 'N/A'} | ${card.paymentStatus || 'N/A'}`}
         </Text>
