@@ -2,6 +2,8 @@
  * @format
  */
 
+import 'react-native-gesture-handler';
+import 'react-native-reanimated';
 import { AppRegistry, LogBox } from 'react-native';
 
 // Ignore SafeAreaView deprecation (use react-native-safe-area-context instead)
