@@ -60,10 +60,10 @@ function TopBarComponent({
         }
       ]}
     >
-      <View className="h-14 flex-row items-center justify-between px-4">
+      <View className="h-14 flex-row items-center px-4">
         <View
           className="flex-row items-center gap-3"
-          style={{ flexShrink: 1, minWidth: 0 }}
+          style={{ flex: 1, minWidth: 0, marginRight: 8 }}
         >
           <Image
             source={require('../../assets/images/logo.png')}
@@ -76,13 +76,16 @@ function TopBarComponent({
           <Text
             className="text-lg font-semibold tracking-tight text-gray-900"
             style={{ color: resolvedTheme.text, letterSpacing: -0.5, flexShrink: 1 }}
-            numberOfLines={2}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            adjustsFontSizeToFit
+            minimumFontScale={0.9}
           >
             {title}
           </Text>
         </View>
 
-        <View className="flex-row items-center gap-4">
+        <View className="flex-row items-center gap-3" style={{ flexShrink: 0 }}>
           {showSearch && (
             <TouchableOpacity
               onPress={onSearchClick}
