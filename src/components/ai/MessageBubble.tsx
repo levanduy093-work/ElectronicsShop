@@ -109,6 +109,11 @@ export function MessageBubble({
         : 'Chưa giao';
     const statusColor = card.isCancelled ? '#DC2626' : card.shipped ? '#16A34A' : '#D97706';
     const orderedDate = formatOrderDate(card.orderedAt);
+    const previewNames = (card.itemPreviewNames || []).filter(Boolean);
+    const extraCount = Math.max(0, (card.itemCount || 0) - previewNames.length);
+    const itemPreviewText = previewNames.length
+      ? `${previewNames.join(', ')}${extraCount > 0 ? ` +${extraCount} món khác` : ''}`
+      : null;
 
     return (
       <View
@@ -134,6 +139,11 @@ export function MessageBubble({
         <Text style={[styles.productMeta, { color: statusColor }]}>{statusText}</Text>
         {orderedDate ? (
           <Text style={[styles.productMeta, { color: theme.muted }]}>{`Ngày đặt: ${orderedDate}`}</Text>
+        ) : null}
+        {itemPreviewText ? (
+          <Text style={[styles.addressLine, { color: isDark ? '#CBD5E1' : '#374151' }]} numberOfLines={2}>
+            {`Sản phẩm: ${itemPreviewText}`}
+          </Text>
         ) : null}
         <Text style={[styles.addressLine, { color: theme.muted }]} numberOfLines={1}>
           {`Thanh toán: ${card.payment || 'N/A'} | ${card.paymentStatus || 'N/A'}`}

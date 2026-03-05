@@ -205,6 +205,8 @@ export type AiOrderCard = {
   payment?: string;
   paymentStatus?: string;
   orderedAt?: string;
+  itemCount?: number;
+  itemPreviewNames?: string[];
   shipped: boolean;
   isCancelled?: boolean;
 };
