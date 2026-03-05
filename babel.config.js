@@ -15,7 +15,7 @@ module.exports = function (api) {
           path: '.env',
         },
       ],
-      // Keep Reanimated plugin last
+      // Keep Reanimated / Worklets plugin last
       'react-native-reanimated/plugin',
     ],
   };
