@@ -20,9 +20,10 @@ export function AITab() {
             accessToken={app?.authTokens?.accessToken}
             onAddToCart={app?.addToCart}
             onOpenProduct={(productId: string) => navigation.navigate('ProductDetail', { productId })}
+            onOpenOrderDetail={(orderId: string) => navigation.navigate('OrderDetail', { orderId })}
+            onOpenAddressBook={() => navigation.navigate('AddressBook')}
             onRequireLogin={app?.requireLogin}
             onNotificationClick={() => navigation.navigate('Notifications')}
         />
     );
 }
-

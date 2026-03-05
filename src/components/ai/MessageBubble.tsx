@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Modal } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { AiAction, AiProductCard, ChatMessage } from '../../types';
+import { AiAction, AiAddressCard, AiOrderCard, AiProductCard, ChatMessage } from '../../types';
 import { AppIcon } from '../common/Icon';
 import { useTheme, lightTheme } from '../../theme';
 
@@ -9,9 +9,17 @@ interface MessageBubbleProps {
   message: ChatMessage;
   onAction?: (action: AiAction, message: ChatMessage) => void;
   onSelectCard?: (card: AiProductCard) => void;
+  onOpenOrderDetail?: (orderId: string) => void;
+  onOpenAddressBook?: () => void;
 }
 
-export function MessageBubble({ message, onAction, onSelectCard }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  onAction,
+  onSelectCard,
+  onOpenOrderDetail,
+  onOpenAddressBook,
+}: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const { theme } = useTheme();
   const { t } = useTranslation();
@@ -79,6 +87,113 @@ export function MessageBubble({ message, onAction, onSelectCard }: MessageBubble
             >
               <AppIcon name="shopping-cart" size={14} color={isOutOfStock ? theme.muted : '#FFFFFF'} />
               <Text style={[styles.cardButtonText, { color: isOutOfStock ? theme.muted : '#FFFFFF' }]}>Thêm</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  const renderOrderCard = (card: AiOrderCard, index: number) => {
+    const statusText = card.isCancelled
+      ? 'Đã hủy'
+      : card.shipped
+        ? 'Đã giao/đang giao'
+        : 'Chưa giao';
+    const statusColor = card.isCancelled ? '#DC2626' : card.shipped ? '#16A34A' : '#D97706';
+
+    return (
+      <View
+        key={`${card.orderId || card.code || `order-${index}`}`}
+        style={[
+          styles.productCard,
+          { borderColor: theme.border, backgroundColor: isDark ? '#1F2933' : '#F9FAFB' },
+        ]}
+      >
+        <View style={styles.productCardHeader}>
+          <View style={styles.inlineHeader}>
+            <View style={[styles.metaIconWrap, { backgroundColor: isDark ? '#111827' : '#E8EEFf' }]}>
+              <AppIcon name="package-2" size={13} color={theme.primary} />
+            </View>
+            <Text style={[styles.productName, { color: isDark ? '#E5E7EB' : '#111827' }]} numberOfLines={1}>
+              Đơn hàng
+            </Text>
+          </View>
+          <Text style={[styles.productCode, { color: theme.muted }]} numberOfLines={1}>
+            {card.code}
+          </Text>
+        </View>
+        <Text style={[styles.productMeta, { color: statusColor }]}>{statusText}</Text>
+        <Text style={[styles.addressLine, { color: theme.muted }]} numberOfLines={1}>
+          {`Thanh toán: ${card.payment || 'N/A'} | ${card.paymentStatus || 'N/A'}`}
+        </Text>
+        <View style={styles.productFooter}>
+          <View>
+            <Text style={[styles.productPrice, { color: theme.primary }]}>
+              {(card.total ?? 0).toLocaleString('vi-VN')}đ
+            </Text>
+          </View>
+          <View style={styles.productActions}>
+            <TouchableOpacity
+              onPress={() => card.orderId && onOpenOrderDetail?.(card.orderId)}
+              style={[styles.cardButton, { borderColor: theme.border }]}
+              activeOpacity={0.9}
+            >
+              <AppIcon name="eye" size={14} color={theme.text} />
+              <Text style={[styles.cardButtonText, { color: theme.text }]}>Chi tiết</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  const renderAddressCard = (card: AiAddressCard, index: number) => {
+    return (
+      <View
+        key={`${card.name}-${card.phone}-${index}`}
+        style={[
+          styles.productCard,
+          { borderColor: theme.border, backgroundColor: isDark ? '#1F2933' : '#F9FAFB' },
+        ]}
+      >
+        <View style={styles.productCardHeader}>
+          <View style={styles.inlineHeader}>
+            <View style={[styles.metaIconWrap, { backgroundColor: isDark ? '#111827' : '#E8EEFf' }]}>
+              <AppIcon name="map-pin" size={13} color={theme.primary} />
+            </View>
+            <Text style={[styles.productName, { color: isDark ? '#E5E7EB' : '#111827' }]} numberOfLines={1}>
+              {card.name}
+            </Text>
+          </View>
+          <View style={[
+            styles.badge,
+            {
+              backgroundColor: card.isDefault ? theme.primary : (isDark ? '#374151' : '#EEF2FF'),
+            },
+          ]}>
+            <Text style={[
+              styles.badgeText,
+              { color: card.isDefault ? '#FFFFFF' : theme.muted },
+            ]}>
+              {card.isDefault ? 'Mặc định' : card.type || 'Địa chỉ'}
+            </Text>
+          </View>
+        </View>
+        <Text style={[styles.productMeta, { color: theme.muted }]}>{card.phone}</Text>
+        <Text style={[styles.addressLine, { color: isDark ? '#CBD5E1' : '#374151' }]} numberOfLines={2}>
+          {card.line1}
+        </Text>
+        <View style={styles.productFooter}>
+          <View />
+          <View style={styles.productActions}>
+            <TouchableOpacity
+              onPress={() => onOpenAddressBook?.()}
+              style={[styles.cardButton, styles.cardButtonPrimary, { backgroundColor: theme.primary }]}
+              activeOpacity={0.9}
+            >
+              <AppIcon name="map-pin" size={14} color="#FFFFFF" />
+              <Text style={[styles.cardButtonText, { color: '#FFFFFF' }]}>Sổ địa chỉ</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -156,6 +271,18 @@ export function MessageBubble({ message, onAction, onSelectCard }: MessageBubble
           {!isUser && message.cards?.length ? (
             <View style={styles.productList}>
               {message.cards.map(renderProductCard)}
+            </View>
+          ) : null}
+
+          {!isUser && message.orderCards?.length ? (
+            <View style={styles.productList}>
+              {message.orderCards.map(renderOrderCard)}
+            </View>
+          ) : null}
+
+          {!isUser && message.addressCards?.length ? (
+            <View style={styles.productList}>
+              {message.addressCards.map(renderAddressCard)}
             </View>
           ) : null}
 
@@ -278,6 +405,32 @@ const styles = StyleSheet.create({
   },
   productMeta: {
     fontSize: 12,
+  },
+  inlineHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  metaIconWrap: {
+    width: 22,
+    height: 22,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badge: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  addressLine: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   productFooter: {
     flexDirection: 'row',

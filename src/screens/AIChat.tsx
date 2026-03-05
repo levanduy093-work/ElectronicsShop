@@ -34,6 +34,8 @@ interface AIChatProps {
   onAddToCart?: (product: Product, quantity: number) => void;
   onRequireLogin?: () => void;
   onOpenProduct?: (productId: string) => void;
+  onOpenOrderDetail?: (orderId: string) => void;
+  onOpenAddressBook?: () => void;
   messages?: ChatMessage[];
   onMessagesChange?: (messages: ChatMessage[]) => void;
 }
@@ -45,6 +47,8 @@ export function AIChat({
   onAddToCart,
   onRequireLogin,
   onOpenProduct,
+  onOpenOrderDetail,
+  onOpenAddressBook,
   messages: externalMessages,
   onMessagesChange,
 }: AIChatProps) {
@@ -184,6 +188,8 @@ export function AIChat({
         timestamp: new Date(),
         type: 'text',
         cards: response.cards,
+        orderCards: response.orderCards,
+        addressCards: response.addressCards,
         actions: response.actions,
       };
 
@@ -303,6 +309,8 @@ export function AIChat({
         timestamp: new Date(),
         type: 'text',
         cards: response.cards,
+        orderCards: response.orderCards,
+        addressCards: response.addressCards,
         actions: response.actions,
       };
 
@@ -364,6 +372,8 @@ export function AIChat({
               message={msg}
               onAction={handleAction}
               onSelectCard={(card) => onOpenProduct?.(card.productId)}
+              onOpenOrderDetail={onOpenOrderDetail}
+              onOpenAddressBook={onOpenAddressBook}
             />
           ))}
 

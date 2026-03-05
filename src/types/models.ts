@@ -60,6 +60,24 @@ export interface AiProductCard {
   code?: string;
 }
 
+export interface AiOrderCard {
+  orderId: string;
+  code: string;
+  total: number;
+  payment?: string;
+  paymentStatus?: string;
+  shipped: boolean;
+  isCancelled?: boolean;
+}
+
+export interface AiAddressCard {
+  name: string;
+  phone: string;
+  line1: string;
+  type?: string;
+  isDefault?: boolean;
+}
+
 export type AiAction =
   | {
     type: 'ADD_TO_CART';
@@ -77,12 +95,16 @@ export interface ChatMessage {
   type?: "text" | "bom" | "schematic";
   metadata?: any;
   cards?: AiProductCard[];
+  orderCards?: AiOrderCard[];
+  addressCards?: AiAddressCard[];
   actions?: AiAction[];
 }
 
 export interface AiChatResponse {
   reply: string;
   cards?: AiProductCard[];
+  orderCards?: AiOrderCard[];
+  addressCards?: AiAddressCard[];
   actions?: AiAction[];
 }
 

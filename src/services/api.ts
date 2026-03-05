@@ -198,6 +198,24 @@ export type AiProductCard = {
   code?: string;
 };
 
+export type AiOrderCard = {
+  orderId: string;
+  code: string;
+  total: number;
+  payment?: string;
+  paymentStatus?: string;
+  shipped: boolean;
+  isCancelled?: boolean;
+};
+
+export type AiAddressCard = {
+  name: string;
+  phone: string;
+  line1: string;
+  type?: string;
+  isDefault?: boolean;
+};
+
 export type AiAction =
   | {
     type: 'ADD_TO_CART';
@@ -210,6 +228,8 @@ export type AiAction =
 export type AiChatResponse = {
   reply: string;
   cards?: AiProductCard[];
+  orderCards?: AiOrderCard[];
+  addressCards?: AiAddressCard[];
   actions?: AiAction[];
 };
 
