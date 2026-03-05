@@ -121,7 +121,7 @@ export function MessageBubble({
         <View style={styles.productCardHeader}>
           <View style={styles.inlineHeader}>
             <View style={[styles.metaIconWrap, { backgroundColor: isDark ? '#111827' : '#E8EEFf' }]}>
-              <AppIcon name="package-2" size={13} color={theme.primary} />
+              <AppIcon name="shopping-cart" size={13} color={theme.primary} />
             </View>
             <Text style={[styles.productName, { color: isDark ? '#E5E7EB' : '#111827' }]} numberOfLines={1}>
               Đơn hàng
