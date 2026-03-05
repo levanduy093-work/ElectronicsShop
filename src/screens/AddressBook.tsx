@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, StatusBar, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, StatusBar, Platform, ActivityIndicator, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
@@ -37,7 +37,13 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [pendingDefaultId, setPendingDefaultId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [formInitialValues, setFormInitialValues] = useState<Partial<AddressFormValues>>();
+  const scrollContentStyle = { padding: 16, paddingBottom: 96, backgroundColor: t.background };
+  const modalOverlayStyle = { backgroundColor: 'rgba(0,0,0,0.32)' };
+  const modalCardStyle = { backgroundColor: t.surface, borderColor: t.border };
+  const modalCancelBtnStyle = { backgroundColor: t.isDark ? '#2D2D30' : '#E5E7EB' };
+  const modalDeleteBtnStyle = { backgroundColor: '#EF4444' };
 
   const applyAddresses = useCallback((next: Address[]) => {
     setLocalAddresses(next);
@@ -118,35 +124,34 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
   };
 
   const handleDelete = (id: string) => {
+    setConfirmDeleteId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDeleteId) return;
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
+
     const index = addressList.findIndex(addr => addr.id === id);
     if (index === -1) return;
 
-    Alert.alert(translate('confirmDelete'), translate('confirmDeleteAddress'), [
-      { text: translate('cancel'), style: 'cancel' },
-      {
-        text: translate('delete'),
-        style: 'destructive',
-        onPress: async () => {
-          if (accessToken) {
-            if (!ensureOnline()) return;
-            try {
-              setIsLoading(true);
-              const updatedAddresses = await deleteAddress(index, accessToken);
-              setLocalAddresses(updatedAddresses);
-              if (onUpdateAddresses) {
-                onUpdateAddresses(updatedAddresses);
-              }
-            } catch (error: any) {
-              Alert.alert(translate('error'), error.message || translate('cannotDeleteAddress'));
-            } finally {
-              setIsLoading(false);
-            }
-          } else {
-            updateAddresses(prev => prev.filter(addr => addr.id !== id));
-          }
-        },
-      },
-    ]);
+    if (accessToken) {
+      if (!ensureOnline()) return;
+      try {
+        setIsLoading(true);
+        const updatedAddresses = await deleteAddress(index, accessToken);
+        setLocalAddresses(updatedAddresses);
+        if (onUpdateAddresses) {
+          onUpdateAddresses(updatedAddresses);
+        }
+      } catch (error: any) {
+        Alert.alert(translate('error'), error.message || translate('cannotDeleteAddress'));
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      updateAddresses(prev => prev.filter(addr => addr.id !== id));
+    }
   };
 
   const openAddForm = () => {
@@ -316,7 +321,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ padding: 16, paddingBottom: 96, backgroundColor: t.background }}
+        contentContainerStyle={scrollContentStyle}
         showsVerticalScrollIndicator={false}
       >
         {isLoading && addressList.length === 0 ? (
@@ -348,6 +353,51 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
           <Text className="text-sm font-medium" style={{ color: t.text }}>{translate('addNewAddress')}</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <Modal
+        visible={!!confirmDeleteId}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmDeleteId(null)}
+      >
+        <View className="flex-1 justify-center items-center px-6" style={modalOverlayStyle}>
+          <View
+            className="w-full max-w-[360px] rounded-[20px] px-5 pt-6 pb-3.5 border"
+            style={modalCardStyle}
+          >
+            <Text className="text-lg font-bold mb-2" style={{ color: t.text }}>
+              {translate('confirmDelete')}
+            </Text>
+            <Text className="text-sm leading-6 mb-4" style={{ color: t.muted }}>
+              {translate('confirmDeleteAddress')}
+            </Text>
+
+            <View className="flex-row items-center gap-2">
+              <TouchableOpacity
+                onPress={() => setConfirmDeleteId(null)}
+                className="flex-1 rounded-2xl min-h-11 items-center justify-center"
+                style={modalCancelBtnStyle}
+                activeOpacity={0.8}
+              >
+                <Text className="text-sm font-semibold" style={{ color: t.text }}>
+                  {translate('cancel')}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleConfirmDelete}
+                className="flex-1 rounded-2xl min-h-11 items-center justify-center"
+                style={modalDeleteBtnStyle}
+                activeOpacity={0.8}
+              >
+                <Text className="text-sm font-semibold text-white">
+                  {translate('delete')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
