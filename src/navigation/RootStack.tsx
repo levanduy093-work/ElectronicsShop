@@ -6,9 +6,6 @@ import type { RootStackParamList } from './types';
 import { useAppOptional } from '../context';
 import { useTheme } from '../theme';
 import { TabNavigator } from './TabNavigator';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useTranslation } from 'react-i18next';
-import { useToast } from '../components/common/ToastProvider';
 
 // Direct imports
 import { ProductDetail as ProductDetailScreen } from '../screens/ProductDetail';
@@ -26,6 +23,7 @@ import { SupportCenter as SupportCenterScreen } from '../screens/SupportCenter';
 import { ChangePassword as ChangePasswordScreen } from '../screens/ChangePassword';
 import { LanguageSelection as LanguageSelectionScreen } from '../screens/LanguageSelection';
 import { AdminAddProduct as AdminAddProductScreen } from '../screens/AdminAddProduct';
+import { AIChatHistory as AIChatHistoryScreen } from '../screens/AIChatHistory';
 import { filterProducts } from '../utils/filterUtils';
 import { getOrderById } from '../services/api';
 import { useProductsQuery } from '../hooks/useCatalogQueries';
@@ -148,6 +146,26 @@ function NotificationsWrapper() {
     );
 }
 
+function AIChatHistoryWrapper() {
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const { theme } = useTheme();
+    const app = useAppOptional();
+
+    return (
+        <AIChatHistoryScreen
+            theme={theme}
+            archives={app?.aiChatArchives || []}
+            onBack={() => navigation.goBack()}
+            onOpenArchive={(archiveId) => {
+                app?.openAiChatArchive?.(archiveId);
+                navigation.goBack();
+            }}
+            onDeleteArchive={(archiveId) => app?.deleteAiChatArchive?.(archiveId)}
+            onClearAll={() => app?.clearAiChatArchives?.()}
+        />
+    );
+}
+
 function CheckoutWrapper() {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { theme } = useTheme();
@@ -220,7 +238,8 @@ function OrderDetailWrapper({ route }: { route: { params: { orderId: string } } 
             onBack={() => navigation.goBack()}
             theme={theme}
             products={app?.products || []}
-            onReorder={(product, quantity, selectedOption, selectedClassification) => {
+            onProductPress={(productId) => navigation.navigate('ProductDetail', { productId })}
+            onReorder={(product, quantity, selectedOption, _selectedClassification) => {
                 app?.addToCart(product, quantity, selectedOption);
             }}
             onNavigateToCart={() => {
@@ -278,7 +297,6 @@ function AuthWrapper({ route }: { route: { params?: { mode?: 'login' | 'register
 
 function AdminAddProductWrapper() {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-    const { theme } = useTheme();
     const app = useAppOptional();
 
     return (
@@ -424,6 +442,7 @@ export function RootStack({ cartCount = 0, initialAuthMode }: RootStackProps) {
             <Stack.Screen name="Search" component={SearchWrapper} />
             <Stack.Screen name="Filter" component={FilterWrapper} />
             <Stack.Screen name="Notifications" component={NotificationsWrapper} />
+            <Stack.Screen name="AIChatHistory" component={AIChatHistoryWrapper} />
             <Stack.Screen name="Checkout" component={CheckoutWrapper} />
             <Stack.Screen name="OrderDetail" component={OrderDetailWrapper} />
             <Stack.Screen name="Auth" component={AuthWrapper} />

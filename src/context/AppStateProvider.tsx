@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { Product, CartItem, Order, Voucher, HomeBanner, ChatMessage, Address } from '../types';
+import { Product, CartItem, Order, Voucher, HomeBanner, ChatMessage, Address, AiChatArchive } from '../types';
 import { PRODUCTS, CATEGORIES } from '../constants/data';
 import { DEFAULT_ADDRESSES } from '../constants/defaults';
 import { AppProvider, AppContextValue } from './AppContext';
@@ -47,6 +47,10 @@ import {
     getReviews,
     createProduct as apiCreateProduct,
     CreateProductInput,
+    getAiChatHistory,
+    saveAiChatHistory,
+    getAiChatArchives,
+    saveAiChatArchives,
 } from '../services/api';
 import { socketService } from '../services/socket';
 import { prefetchService } from '../services/prefetchService';
@@ -66,7 +70,9 @@ const AUTH_STORAGE_KEY = 'electronicsshop/auth';
 const CART_STORAGE_KEY = 'electronicsshop/cart';
 const PUSH_SETTINGS_KEY = 'electronicsshop/push_settings';
 const THEME_MODE_STORAGE_KEY = 'electronicsshop/theme_mode';
-const AI_CHAT_STORAGE_KEY = 'electronicsshop/ai-chat/messages';
+const AI_CHAT_STORAGE_KEY_PREFIX = 'electronicsshop/ai-chat/messages';
+const AI_CHAT_STORAGE_KEY_LEGACY = 'electronicsshop/ai-chat/messages';
+const AI_CHAT_ARCHIVE_STORAGE_KEY_PREFIX = 'electronicsshop/ai-chat/archives';
 
 const DEFAULT_PROFILE = {
     name: "Nguyễn Văn A",
@@ -345,9 +351,33 @@ async function loadPersistedCart(): Promise<CartItem[] | null> {
     }
 }
 
-async function loadPersistedAiMessages(): Promise<ChatMessage[]> {
+function getAiChatStorageKey(userId?: string | null) {
+    return userId
+        ? `${AI_CHAT_STORAGE_KEY_PREFIX}/user/${userId}`
+        : `${AI_CHAT_STORAGE_KEY_PREFIX}/guest`;
+}
+
+function getAiChatArchiveStorageKey(userId?: string | null) {
+    return userId
+        ? `${AI_CHAT_ARCHIVE_STORAGE_KEY_PREFIX}/user/${userId}`
+        : `${AI_CHAT_ARCHIVE_STORAGE_KEY_PREFIX}/guest`;
+}
+
+async function loadPersistedAiMessages(userId?: string | null): Promise<ChatMessage[]> {
     try {
-        const stored = await AsyncStorage.getItem(AI_CHAT_STORAGE_KEY);
+        const key = getAiChatStorageKey(userId);
+        let stored = await AsyncStorage.getItem(key);
+
+        // One-time migration from legacy single-key storage.
+        if (!stored) {
+            const legacy = await AsyncStorage.getItem(AI_CHAT_STORAGE_KEY_LEGACY);
+            if (legacy) {
+                stored = legacy;
+                await AsyncStorage.setItem(key, legacy);
+                await AsyncStorage.removeItem(AI_CHAT_STORAGE_KEY_LEGACY);
+            }
+        }
+
         if (!stored) return [];
         const raw = JSON.parse(stored) as any[];
         return (raw || []).map(item => ({
@@ -360,15 +390,51 @@ async function loadPersistedAiMessages(): Promise<ChatMessage[]> {
     }
 }
 
-async function persistAiMessages(messages: ChatMessage[]) {
+async function persistAiMessages(messages: ChatMessage[], userId?: string | null) {
     try {
         const payload = messages.map(m => ({
             ...m,
             timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : m.timestamp,
         }));
-        await AsyncStorage.setItem(AI_CHAT_STORAGE_KEY, JSON.stringify(payload));
+        await AsyncStorage.setItem(getAiChatStorageKey(userId), JSON.stringify(payload));
     } catch (error) {
         console.warn('AppStateProvider - Failed to persist AI chat messages', error);
+    }
+}
+
+async function loadPersistedAiArchives(userId?: string | null): Promise<AiChatArchive[]> {
+    try {
+        const stored = await AsyncStorage.getItem(getAiChatArchiveStorageKey(userId));
+        if (!stored) return [];
+        const raw = JSON.parse(stored) as AiChatArchive[];
+        return (raw || []).map((archive) => ({
+            ...archive,
+            messages: (archive.messages || []).map((item: any) => ({
+                ...item,
+                timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
+            })),
+        }));
+    } catch (error) {
+        console.warn('AppStateProvider - Failed to load AI chat archives', error);
+        return [];
+    }
+}
+
+async function persistAiArchives(archives: AiChatArchive[], userId?: string | null) {
+    try {
+        const payload = archives.map((archive) => ({
+            ...archive,
+            messages: (archive.messages || []).map((m) => ({
+                ...m,
+                timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : m.timestamp,
+            })),
+        }));
+        await AsyncStorage.setItem(
+            getAiChatArchiveStorageKey(userId),
+            JSON.stringify(payload),
+        );
+    } catch (error) {
+        console.warn('AppStateProvider - Failed to persist AI chat archives', error);
     }
 }
 
@@ -457,6 +523,11 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     // AI Chat
     const [aiMessages, setAiMessages] = useState<ChatMessage[]>([]);
     const aiMessagesRef = useRef<ChatMessage[]>([]);
+    const [aiChatArchives, setAiChatArchives] = useState<AiChatArchive[]>([]);
+    const aiChatArchivesRef = useRef<AiChatArchive[]>([]);
+    const activeAiArchiveIdRef = useRef<string | null>(null);
+    const aiChatSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const aiArchiveSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Filters
     const [filters, setFilters] = useState<FilterState>({
@@ -1428,6 +1499,103 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         }
     }, [isLoggedIn, showToast, t]);
 
+    const buildAiArchiveTitle = useCallback((messages: ChatMessage[]) => {
+        const firstUserMessage = messages.find((m) => m.role === 'user')?.content?.trim();
+        if (!firstUserMessage) return t('chat_history');
+        return firstUserMessage.length > 48
+            ? `${firstUserMessage.slice(0, 48)}...`
+            : firstUserMessage;
+    }, [t]);
+
+    const normalizeMessagesForCompare = useCallback((messages: ChatMessage[]) => {
+        return (messages || []).map((m) => ({
+            role: m.role,
+            content: m.content || '',
+            type: m.type || 'text',
+            metadata: m.metadata || null,
+            cards: m.cards || [],
+            orderCards: m.orderCards || [],
+            addressCards: m.addressCards || [],
+            actions: m.actions || [],
+        }));
+    }, []);
+
+    const archiveCurrentAiChat = useCallback(() => {
+        const current = aiMessagesRef.current || [];
+        if (!current.length) {
+            setAiMessages([]);
+            activeAiArchiveIdRef.current = null;
+            return;
+        }
+
+        const now = new Date().toISOString();
+        const activeArchiveId = activeAiArchiveIdRef.current;
+        if (activeArchiveId) {
+            setAiChatArchives((prev) => {
+                const existingIndex = prev.findIndex((item) => item.id === activeArchiveId);
+                if (existingIndex < 0) {
+                    return prev;
+                }
+                const existing = prev[existingIndex];
+                const sameContent =
+                    JSON.stringify(normalizeMessagesForCompare(existing.messages || [])) ===
+                    JSON.stringify(normalizeMessagesForCompare(current));
+
+                if (sameContent) {
+                    return prev;
+                }
+
+                const updated: AiChatArchive = {
+                    ...existing,
+                    title: buildAiArchiveTitle(current),
+                    updatedAt: now,
+                    messages: current,
+                };
+                const next = prev.filter((item) => item.id !== activeArchiveId);
+                return [updated, ...next];
+            });
+            setAiMessages([]);
+            aiMessagesRef.current = [];
+            activeAiArchiveIdRef.current = null;
+            return;
+        }
+
+        const archive: AiChatArchive = {
+            id: `chat-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            title: buildAiArchiveTitle(current),
+            createdAt: now,
+            updatedAt: now,
+            messages: current,
+        };
+
+        setAiChatArchives((prev) => [archive, ...prev].slice(0, 50));
+        setAiMessages([]);
+        aiMessagesRef.current = [];
+        activeAiArchiveIdRef.current = null;
+    }, [buildAiArchiveTitle, normalizeMessagesForCompare]);
+
+    const openAiChatArchive = useCallback((archiveId: string) => {
+        const archive = aiChatArchivesRef.current.find((item) => item.id === archiveId);
+        if (!archive) return;
+        activeAiArchiveIdRef.current = archiveId;
+        setAiMessages((archive.messages || []).map((m) => ({
+            ...m,
+            timestamp: m.timestamp instanceof Date ? m.timestamp : new Date(m.timestamp),
+        })));
+    }, []);
+
+    const deleteAiChatArchive = useCallback((archiveId: string) => {
+        if (activeAiArchiveIdRef.current === archiveId) {
+            activeAiArchiveIdRef.current = null;
+        }
+        setAiChatArchives((prev) => prev.filter((item) => item.id !== archiveId));
+    }, []);
+
+    const clearAiChatArchives = useCallback(() => {
+        activeAiArchiveIdRef.current = null;
+        setAiChatArchives([]);
+    }, []);
+
     // ========================================================================
     // Effects
     // ========================================================================
@@ -1443,9 +1611,12 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
             if (savedCart) setCartItems(savedCart);
 
             // Load AI messages
-            const savedMessages = await loadPersistedAiMessages();
+            const savedMessages = await loadPersistedAiMessages(null);
             setAiMessages(savedMessages);
             aiMessagesRef.current = savedMessages;
+            const savedArchives = await loadPersistedAiArchives(null);
+            setAiChatArchives(savedArchives);
+            aiChatArchivesRef.current = savedArchives;
 
             // Load push settings
             try {
@@ -1518,11 +1689,163 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         void persistCartState(cartItems);
     }, [cartItems]);
 
-    // Persist AI messages
+    // Load AI chat history by current user (or guest)
+    useEffect(() => {
+        let cancelled = false;
+        const loadAiChatForCurrentUser = async () => {
+            const token = authTokens?.accessToken;
+            if (isLoggedIn && userId && token) {
+                const localUserArchives = await loadPersistedAiArchives(userId);
+                try {
+                    const remote = await getAiChatHistory(token);
+                    const remoteArchivesResponse = await getAiChatArchives(token);
+                    const remoteMessages = (remote?.messages || []).map((item: any) => ({
+                        ...item,
+                        timestamp: item?.timestamp ? new Date(item.timestamp) : new Date(),
+                    })) as ChatMessage[];
+                    const remoteArchives = (remoteArchivesResponse?.archives || []).map((arc: any) => ({
+                        ...arc,
+                        messages: (arc?.messages || []).map((m: any) => ({
+                            ...m,
+                            timestamp: m?.timestamp ? new Date(m.timestamp) : new Date(),
+                        })),
+                    })) as AiChatArchive[];
+                    if (!cancelled) {
+                        setAiMessages(remoteMessages);
+                        aiMessagesRef.current = remoteMessages;
+                        setAiChatArchives(remoteArchives);
+                        aiChatArchivesRef.current = remoteArchives;
+                    }
+                    if (!remoteMessages.length) {
+                        const localUserMessages = await loadPersistedAiMessages(userId);
+                        if (localUserMessages.length) {
+                            if (!cancelled) {
+                                setAiMessages(localUserMessages);
+                                aiMessagesRef.current = localUserMessages;
+                            }
+                            await saveAiChatHistory(
+                                localUserMessages.map((m) => ({
+                                    ...m,
+                                    timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : String(m.timestamp),
+                                })) as any[],
+                                token,
+                            );
+                        }
+                    }
+                    if (!remoteArchives.length && localUserArchives.length) {
+                        if (!cancelled) {
+                            setAiChatArchives(localUserArchives);
+                            aiChatArchivesRef.current = localUserArchives;
+                        }
+                        await saveAiChatArchives(
+                            localUserArchives.map((arc) => ({
+                                ...arc,
+                                messages: (arc.messages || []).map((m) => ({
+                                    ...m,
+                                    timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : String(m.timestamp),
+                                })),
+                            })) as any[],
+                            token,
+                        );
+                    }
+                    return;
+                } catch (error) {
+                    console.warn('AppStateProvider - Failed to load AI chat history from API', error);
+                }
+                const localUserMessages = await loadPersistedAiMessages(userId);
+                if (!cancelled) {
+                    setAiMessages(localUserMessages);
+                    aiMessagesRef.current = localUserMessages;
+                    setAiChatArchives(localUserArchives);
+                    aiChatArchivesRef.current = localUserArchives;
+                }
+                return;
+            }
+
+            const guestMessages = await loadPersistedAiMessages(null);
+            const guestArchives = await loadPersistedAiArchives(null);
+            if (!cancelled) {
+                setAiMessages(guestMessages);
+                aiMessagesRef.current = guestMessages;
+                setAiChatArchives(guestArchives);
+                aiChatArchivesRef.current = guestArchives;
+            }
+        };
+
+        void loadAiChatForCurrentUser();
+        return () => {
+            cancelled = true;
+        };
+    }, [isLoggedIn, userId, authTokens?.accessToken]);
+
+    // Persist AI messages to local storage by user/guest
     useEffect(() => {
         aiMessagesRef.current = aiMessages;
-        persistAiMessages(aiMessages).catch(() => { });
-    }, [aiMessages]);
+        persistAiMessages(aiMessages, isLoggedIn && userId ? userId : null).catch(() => { });
+    }, [aiMessages, isLoggedIn, userId]);
+
+    // Persist AI chat archives to local storage by user/guest
+    useEffect(() => {
+        aiChatArchivesRef.current = aiChatArchives;
+        persistAiArchives(aiChatArchives, isLoggedIn && userId ? userId : null).catch(() => { });
+    }, [aiChatArchives, isLoggedIn, userId]);
+
+    // Sync AI chat archives to backend (debounced)
+    useEffect(() => {
+        if (!isLoggedIn || !userId || !authTokens?.accessToken) return;
+        if (aiArchiveSyncTimeoutRef.current) {
+            clearTimeout(aiArchiveSyncTimeoutRef.current);
+        }
+        aiArchiveSyncTimeoutRef.current = setTimeout(async () => {
+            try {
+                const token = authTokensRef.current?.accessToken;
+                if (!token) return;
+                const payload = aiChatArchivesRef.current.map((arc) => ({
+                    ...arc,
+                    messages: (arc.messages || []).map((m) => ({
+                        ...m,
+                        timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : String(m.timestamp),
+                    })),
+                }));
+                await saveAiChatArchives(payload as any[], token);
+            } catch (error) {
+                console.warn('AppStateProvider - Failed to sync AI chat archives', error);
+            }
+        }, 800);
+
+        return () => {
+            if (aiArchiveSyncTimeoutRef.current) {
+                clearTimeout(aiArchiveSyncTimeoutRef.current);
+            }
+        };
+    }, [aiChatArchives, isLoggedIn, userId, authTokens?.accessToken]);
+
+    // Sync AI chat history to backend (debounced)
+    useEffect(() => {
+        if (!isLoggedIn || !userId || !authTokens?.accessToken) return;
+        if (aiChatSyncTimeoutRef.current) {
+            clearTimeout(aiChatSyncTimeoutRef.current);
+        }
+        aiChatSyncTimeoutRef.current = setTimeout(async () => {
+            try {
+                const token = authTokensRef.current?.accessToken;
+                if (!token) return;
+                const payload = aiMessagesRef.current.map((m) => ({
+                    ...m,
+                    timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : String(m.timestamp),
+                }));
+                await saveAiChatHistory(payload as any[], token);
+            } catch (error) {
+                console.warn('AppStateProvider - Failed to sync AI chat history', error);
+            }
+        }, 800);
+
+        return () => {
+            if (aiChatSyncTimeoutRef.current) {
+                clearTimeout(aiChatSyncTimeoutRef.current);
+            }
+        };
+    }, [aiMessages, isLoggedIn, userId, authTokens?.accessToken]);
 
     // Sync cart to backend (debounced, avoids re-triggering from mutation state changes)
     useEffect(() => {
@@ -1675,6 +1998,11 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         // AI Chat
         aiMessages,
         setAiMessages,
+        aiChatArchives,
+        archiveCurrentAiChat,
+        openAiChatArchive,
+        deleteAiChatArchive,
+        clearAiChatArchives,
 
         // Filters
         filters,
@@ -1714,6 +2042,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         notifications, isRefreshingNotifications, refreshNotifications, markNotificationRead, markAllNotificationsRead,
         addresses,
         aiMessages,
+        aiChatArchives, archiveCurrentAiChat, openAiChatArchive, deleteAiChatArchive, clearAiChatArchives,
         filters, searchQuery, availableCategories,
         catalogFilters, catalogSearchQuery,
         themeMode, handleThemeModeChange,

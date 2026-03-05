@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../../components/common/Icon';
 import { ImageWithFallback } from '../../components/common/ImageWithFallback';
@@ -11,9 +11,10 @@ interface OrderProductListProps {
     orderItems: Order['items'];
     products: Product[];
     theme: Theme;
+    onProductPress?: (productId: string) => void;
 }
 
-export const OrderProductList: React.FC<OrderProductListProps> = ({ orderItems, products, theme: t }) => {
+export const OrderProductList: React.FC<OrderProductListProps> = ({ orderItems, products, theme: t, onProductPress }) => {
     const { t: translate } = useTranslation();
 
     return (
@@ -33,11 +34,19 @@ export const OrderProductList: React.FC<OrderProductListProps> = ({ orderItems, 
             <View className="gap-4">
                 {orderItems.map((item) => {
                     const product = products.find(p => p.id === item.id);
+                    const targetProductId = product?.id || item.id;
                     const displayOptions = product?.options || [];
                     const displayClassifications = product?.classifications || [];
+                    const canNavigate = Boolean(onProductPress && targetProductId);
 
                     return (
-                        <View key={item.id} className="flex-row gap-3">
+                        <TouchableOpacity
+                            key={`${item.id}-${item.selectedOption || ''}-${item.selectedClassification || ''}`}
+                            className="flex-row gap-3"
+                            activeOpacity={canNavigate ? 0.7 : 1}
+                            disabled={!canNavigate}
+                            onPress={() => onProductPress?.(targetProductId)}
+                        >
                             <ImageWithFallback
                                 source={{ uri: item.image }}
                                 className="w-16 h-16 rounded-lg"
@@ -73,7 +82,7 @@ export const OrderProductList: React.FC<OrderProductListProps> = ({ orderItems, 
                                     <Text className="text-sm font-bold" style={{ color: t.primary }}>{formatPrice(item.price)}</Text>
                                 </View>
                             </View>
-                        </View>
+                        </TouchableOpacity>
                     );
                 })}
             </View>

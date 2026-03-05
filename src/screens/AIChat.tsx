@@ -36,6 +36,8 @@ interface AIChatProps {
   onOpenProduct?: (productId: string) => void;
   onOpenOrderDetail?: (orderId: string) => void;
   onOpenAddressBook?: () => void;
+  onOpenChatHistory?: () => void;
+  onArchiveCurrentChat?: () => void;
   messages?: ChatMessage[];
   onMessagesChange?: (messages: ChatMessage[]) => void;
 }
@@ -49,6 +51,8 @@ export function AIChat({
   onOpenProduct,
   onOpenOrderDetail,
   onOpenAddressBook,
+  onOpenChatHistory,
+  onArchiveCurrentChat,
   messages: externalMessages,
   onMessagesChange,
 }: AIChatProps) {
@@ -330,8 +334,12 @@ export function AIChat({
   };
 
   const handleNewChat = () => {
-    setMessages([]);
-    onMessagesChange?.([]);
+    if (onArchiveCurrentChat) {
+      onArchiveCurrentChat();
+    } else {
+      setMessages([]);
+      onMessagesChange?.([]);
+    }
     setInputValue('');
   };
 
@@ -344,6 +352,7 @@ export function AIChat({
         theme={theme}
         onNotificationClick={onNotificationClick}
         onNewChat={handleNewChat}
+        onHistoryClick={onOpenChatHistory}
       />
 
 

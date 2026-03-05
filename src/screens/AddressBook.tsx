@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, StatusBar, Platform, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -10,8 +10,8 @@ import { buildFullAddress } from '../utils/address';
 import { AddressForm } from '../components/address/AddressForm';
 import { AddressItem } from '../components/address/AddressItem';
 import { getCurrentNetworkStatus, useNetworkStatus } from '../utils/network';
-import { getAddresses, addAddress, updateAddress, deleteAddress, setDefaultAddress } from '../services/api';
-import { loadLocalAddresses, saveAddresses } from '../services/storage';
+import { addAddress, updateAddress, deleteAddress, setDefaultAddress } from '../services/api';
+import { saveAddresses } from '../services/storage';
 import { socketService } from '../services/socket';
 
 interface AddressBookProps {
@@ -36,8 +36,15 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [pendingDefaultId, setPendingDefaultId] = useState<string | null>(null);
   const [formInitialValues, setFormInitialValues] = useState<Partial<AddressFormValues>>();
-  const hasFetchedRef = useRef(false);
+
+  const applyAddresses = useCallback((next: Address[]) => {
+    setLocalAddresses(next);
+    if (onUpdateAddresses) {
+      onUpdateAddresses(next);
+    }
+  }, [onUpdateAddresses]);
 
   const ensureOnline = useCallback(() => {
     const status = getCurrentNetworkStatus();
@@ -74,23 +81,34 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
   }, [addresses]);
 
   const handleSetDefault = async (id: string) => {
+    if (pendingDefaultId) return;
+
     const index = addressList.findIndex(addr => addr.id === id);
     if (index === -1) return;
 
     if (accessToken) {
       if (!ensureOnline()) return;
-      try {
-        setIsLoading(true);
-        const updatedAddresses = await setDefaultAddress(index, accessToken);
-        setLocalAddresses(updatedAddresses);
-        if (onUpdateAddresses) {
-          onUpdateAddresses(updatedAddresses);
+
+      const previous = addressList;
+      const optimistic = previous.map(addr => ({
+        ...addr,
+        isDefault: addr.id === id,
+      }));
+      applyAddresses(optimistic);
+      setPendingDefaultId(id);
+
+      const syncDefaultAddress = async () => {
+        try {
+          const updatedAddresses = await setDefaultAddress(index, accessToken);
+          applyAddresses(updatedAddresses);
+        } catch (error: any) {
+          applyAddresses(previous);
+          Alert.alert(translate('error'), error.message || translate('cannotSetDefaultAddress'));
+        } finally {
+          setPendingDefaultId(null);
         }
-      } catch (error: any) {
-        Alert.alert(translate('error'), error.message || translate('cannotSetDefaultAddress'));
-      } finally {
-        setIsLoading(false);
-      }
+      };
+      syncDefaultAddress();
     } else {
       updateAddresses(prev => prev.map(addr => ({
         ...addr,
@@ -312,6 +330,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
               key={addr.id}
               address={addr}
               theme={t}
+              isSettingDefault={pendingDefaultId === addr.id}
               onSetDefault={handleSetDefault}
               onEdit={openEditForm}
               onDelete={handleDelete}

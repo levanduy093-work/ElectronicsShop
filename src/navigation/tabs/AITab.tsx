@@ -1,5 +1,4 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
@@ -22,6 +21,8 @@ export function AITab() {
             onOpenProduct={(productId: string) => navigation.navigate('ProductDetail', { productId })}
             onOpenOrderDetail={(orderId: string) => navigation.navigate('OrderDetail', { orderId })}
             onOpenAddressBook={() => navigation.navigate('AddressBook')}
+            onOpenChatHistory={() => navigation.navigate('AIChatHistory')}
+            onArchiveCurrentChat={app?.archiveCurrentAiChat}
             onRequireLogin={app?.requireLogin}
             onNotificationClick={() => navigation.navigate('Notifications')}
         />

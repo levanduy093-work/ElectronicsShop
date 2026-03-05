@@ -1,5 +1,5 @@
-import React, { createContext, useContext, ReactNode } from 'react';
-import type { Product, CartItem, Order, Voucher, HomeBanner, ChatMessage, Address } from '../types';
+import React, { createContext, useContext } from 'react';
+import type { Product, CartItem, Order, Voucher, HomeBanner, ChatMessage, Address, AiChatArchive } from '../types';
 import type { CreateProductInput } from '../services/api';
 
 // ============================================================================
@@ -69,6 +69,11 @@ export interface AppContextValue {
     // AI Chat
     aiMessages: ChatMessage[];
     setAiMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
+    aiChatArchives: AiChatArchive[];
+    archiveCurrentAiChat: () => void;
+    openAiChatArchive: (archiveId: string) => void;
+    deleteAiChatArchive: (archiveId: string) => void;
+    clearAiChatArchives: () => void;
 
     // Filters
     filters: {

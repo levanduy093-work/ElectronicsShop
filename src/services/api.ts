@@ -1,7 +1,6 @@
 import { NativeModules, Platform } from 'react-native';
 import { API_BASE_URL as ENV_API_URL, API_DEVICE_HOST } from '@env';
 import { getCurrentNetworkStatus } from '../utils/network';
-import { ChatMessage } from '../types';
 
 import i18n from '../i18n';
 
@@ -592,6 +591,37 @@ export type ApiSearchHistory = {
   updatedAt?: string;
 };
 
+export type ApiAiChatHistoryMessage = {
+  id: string;
+  role: 'user' | 'ai';
+  content: string;
+  timestamp: string;
+  type?: string;
+  metadata?: any;
+  cards?: AiProductCard[];
+  orderCards?: AiOrderCard[];
+  addressCards?: AiAddressCard[];
+  actions?: AiAction[];
+};
+
+export type ApiAiChatHistory = {
+  messages: ApiAiChatHistoryMessage[];
+  updatedAt?: string;
+};
+
+export type ApiAiChatArchive = {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: ApiAiChatHistoryMessage[];
+};
+
+export type ApiAiChatArchives = {
+  archives: ApiAiChatArchive[];
+  updatedAt?: string;
+};
+
 // Search History API functions
 export function getSearchHistory(token: string): Promise<string[]> {
   return getJson<ApiSearchHistory>('/users/me/search-history', { token }).then(
@@ -607,6 +637,36 @@ export function saveSearchHistory(queries: string[], token: string): Promise<str
 
 export function clearSearchHistory(token: string): Promise<void> {
   return deleteJson<void>('/users/me/search-history', { token });
+}
+
+export function getAiChatHistory(token: string): Promise<ApiAiChatHistory> {
+  return getJson<ApiAiChatHistory>('/users/me/ai-chat-history', { token });
+}
+
+export function saveAiChatHistory(
+  messages: ApiAiChatHistoryMessage[],
+  token: string,
+): Promise<ApiAiChatHistory> {
+  return postJson<ApiAiChatHistory>('/users/me/ai-chat-history', { messages }, { token });
+}
+
+export function clearAiChatHistory(token: string): Promise<void> {
+  return deleteJson<void>('/users/me/ai-chat-history', { token });
+}
+
+export function getAiChatArchives(token: string): Promise<ApiAiChatArchives> {
+  return getJson<ApiAiChatArchives>('/users/me/ai-chat-archives', { token });
+}
+
+export function saveAiChatArchives(
+  archives: ApiAiChatArchive[],
+  token: string,
+): Promise<ApiAiChatArchives> {
+  return postJson<ApiAiChatArchives>('/users/me/ai-chat-archives', { archives }, { token });
+}
+
+export function clearAiChatArchives(token: string): Promise<void> {
+  return deleteJson<void>('/users/me/ai-chat-archives', { token });
 }
 
 export function getPopularSearches(): Promise<string[]> {

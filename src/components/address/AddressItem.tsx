@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, Animated, Easing } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../common/Icon';
 import { Theme, lightTheme } from '../../theme';
@@ -8,6 +8,7 @@ import { Address } from '../../types';
 interface AddressItemProps {
     address: Address;
     theme: Theme;
+    isSettingDefault?: boolean;
     onSetDefault: (id: string) => void;
     onEdit: (address: Address) => void;
     onDelete: (id: string) => void;
@@ -16,18 +17,35 @@ interface AddressItemProps {
 export const AddressItem: React.FC<AddressItemProps> = ({
     address,
     theme: t,
+    isSettingDefault = false,
     onSetDefault,
     onEdit,
     onDelete,
 }) => {
     const { t: translate } = useTranslation();
+    const fadeAnim = useRef(new Animated.Value(1)).current;
+
+    useEffect(() => {
+        fadeAnim.setValue(0.9);
+        Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 180,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+        }).start();
+    }, [address.isDefault, fadeAnim]);
+
+    const borderColor = address.isDefault ? t.primary : t.border;
+    const borderWidth = address.isDefault ? 1.5 : 1;
 
     return (
-        <View
-            className={`rounded-2xl p-4 mb-4 border shadow-sm elevation-2 ${address.isDefault ? 'border-2' : ''}`}
+        <Animated.View
+            className="rounded-2xl p-4 mb-4 border shadow-sm elevation-2"
             style={{
+                opacity: fadeAnim,
                 backgroundColor: t.card,
-                borderColor: address.isDefault ? t.primary : t.border,
+                borderColor,
+                borderWidth,
                 shadowOpacity: t === lightTheme ? 0.05 : 0,
             }}
         >
@@ -49,12 +67,18 @@ export const AddressItem: React.FC<AddressItemProps> = ({
                     </View>
                 ) : (
                     <TouchableOpacity
+                        disabled={isSettingDefault}
                         onPress={() => onSetDefault(address.id)}
                         className="px-2 py-1 rounded border"
-                        style={{ borderColor: t.border }}
+                        style={{
+                            borderColor: t.border,
+                            opacity: isSettingDefault ? 0.6 : 1,
+                        }}
                         activeOpacity={0.7}
                     >
-                        <Text className="text-[10px]" style={{ color: t.muted }}>{translate('set_as_default_address')}</Text>
+                        <Text className="text-[10px]" style={{ color: t.muted }}>
+                            {isSettingDefault ? translate('updating') : translate('set_as_default_address')}
+                        </Text>
                     </TouchableOpacity>
                 )}
             </View>
@@ -91,6 +115,6 @@ export const AddressItem: React.FC<AddressItemProps> = ({
                     </TouchableOpacity>
                 </View>
             </View>
-        </View>
+        </Animated.View>
     );
 }

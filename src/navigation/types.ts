@@ -1,7 +1,5 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import type { CompositeScreenProps } from '@react-navigation/native';
 
 // ============================================================================
 // Root Stack Param List - Contains ALL detail screens outside tab navigator
@@ -14,6 +12,7 @@ export type RootStackParamList = {
     Search: { initialQuery?: string };
     Filter: { type?: 'global' | 'catalog' };
     Notifications: undefined;
+    AIChatHistory: undefined;
     // Cart flow
     Checkout: undefined;
     OrderDetail: { orderId: string };
@@ -82,6 +81,7 @@ export type ProductDetailScreenProps = NativeStackScreenProps<RootStackParamList
 export type SearchScreenProps = NativeStackScreenProps<RootStackParamList, 'Search'>;
 export type FilterScreenProps = NativeStackScreenProps<RootStackParamList, 'Filter'>;
 export type NotificationsScreenProps = NativeStackScreenProps<RootStackParamList, 'Notifications'>;
+export type AIChatHistoryScreenProps = NativeStackScreenProps<RootStackParamList, 'AIChatHistory'>;
 export type CheckoutScreenProps = NativeStackScreenProps<RootStackParamList, 'Checkout'>;
 export type OrderDetailScreenProps = NativeStackScreenProps<RootStackParamList, 'OrderDetail'>;
 export type AuthScreenProps = NativeStackScreenProps<RootStackParamList, 'Auth'>;

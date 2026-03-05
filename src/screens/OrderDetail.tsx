@@ -23,6 +23,7 @@ interface OrderDetailProps {
   onRefreshOrder?: (orderId: string) => void;
   onPayAgain?: (orderId: string) => Promise<{ paymentUrl?: string } | void>;
   accessToken?: string | null;
+  onProductPress?: (productId: string) => void;
 }
 
 const DEFAULT_ORDER: Order = {
@@ -68,7 +69,7 @@ const DEFAULT_ORDER: Order = {
   ],
 };
 
-export function OrderDetail({ orderId, onBack, order, theme, onReorder, products = [], onNavigateToCart, onRefreshOrder, onPayAgain, accessToken }: OrderDetailProps) {
+export function OrderDetail({ orderId, onBack, order, theme, onReorder, products = [], onNavigateToCart, onRefreshOrder, onPayAgain, accessToken, onProductPress }: OrderDetailProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme, isDarkMode } = useTheme();
   const { t: translate } = useTranslation();
@@ -129,7 +130,12 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
         <OrderAddress shippingAddress={orderData.shippingAddress} theme={t} />
 
         {/* Products */}
-        <OrderProductList orderItems={orderData.items} products={products} theme={t} />
+        <OrderProductList
+          orderItems={orderData.items}
+          products={products}
+          theme={t}
+          onProductPress={onProductPress}
+        />
 
         {/* Payment Info */}
         <OrderPaymentInfo payment={orderData.payment} theme={t} />

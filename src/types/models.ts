@@ -103,6 +103,14 @@ export interface ChatMessage {
   actions?: AiAction[];
 }
 
+export interface AiChatArchive {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: ChatMessage[];
+}
+
 export interface AiChatResponse {
   reply: string;
   cards?: AiProductCard[];
