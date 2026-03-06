@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Modal, Animated, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, Animated } from 'react-native';
 import { AppIcon } from '../common/Icon';
 import { Theme, lightTheme } from '../../theme';
 import { useTranslation } from 'react-i18next';
@@ -106,17 +106,25 @@ export const SupportModal: React.FC<SupportModalProps> = ({
             animationType="none"
             onRequestClose={onClose}
         >
-            <View style={styles.modalContainer}>
+            <View className="flex-1 justify-center items-center">
                 <TouchableOpacity
-                    style={styles.modalBackdrop}
+                    className="absolute inset-0"
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
                     activeOpacity={1}
                     onPress={onClose}
                 />
                 <Animated.View
+                    className="w-[85%] max-w-[400px] rounded-3xl p-6 items-center"
                     style={[
-                        styles.modalContent,
                         {
                             backgroundColor: t.card,
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 8 },
+                            shadowOpacity: 0.25,
+                            shadowRadius: 16,
+                            elevation: 8,
+                        },
+                        {
                             transform: [
                                 {
                                     scale: modalAnimation.interpolate({
@@ -137,16 +145,24 @@ export const SupportModal: React.FC<SupportModalProps> = ({
                 >
                     {content && (
                         <>
-                            <View style={[styles.modalIconContainer, { backgroundColor: content.iconBg }]}>
+                            <View className="w-16 h-16 rounded-full justify-center items-center mb-4" style={{ backgroundColor: content.iconBg }}>
                                 <AppIcon name={content.icon} size={32} color={content.iconColor} />
                             </View>
-                            <Text style={[styles.modalTitle, { color: t.text }]}>{content.title}</Text>
-                            <Text style={[styles.modalMessage, { color: t.muted }]}>{content.message}</Text>
-                            <View style={[styles.modalValueContainer, { backgroundColor: t.surface, borderColor: t.border }]}>
-                                <Text style={[styles.modalValue, { color: t.text }]}>{content.value}</Text>
+                            <Text className="text-xl font-bold mb-2 text-center" style={{ color: t.text }}>{content.title}</Text>
+                            <Text className="text-sm text-center mb-4" style={{ color: t.muted }}>{content.message}</Text>
+                            <View className="w-full p-4 rounded-xl border mb-6 flex-row items-center justify-between gap-3" style={{ backgroundColor: t.surface, borderColor: t.border }}>
+                                <Text className="text-base font-semibold flex-1 text-center" style={{ color: t.text }}>{content.value}</Text>
                                 {type === 'chat' && (
                                     <TouchableOpacity
-                                        style={[styles.copyButton, { backgroundColor: content.iconColor }]}
+                                        className="w-10 h-10 rounded-[10px] justify-center items-center"
+                                        style={{
+                                            backgroundColor: content.iconColor,
+                                            shadowColor: '#000',
+                                            shadowOffset: { width: 0, height: 2 },
+                                            shadowOpacity: 0.1,
+                                            shadowRadius: 4,
+                                            elevation: 3,
+                                        }}
                                         onPress={onCopy}
                                         activeOpacity={0.8}
                                     >
@@ -154,24 +170,33 @@ export const SupportModal: React.FC<SupportModalProps> = ({
                                     </TouchableOpacity>
                                 )}
                             </View>
-                            <View style={styles.modalButtons}>
+                            <View className="w-full flex-row gap-3">
                                 {content.secondaryButton && (
                                     <TouchableOpacity
-                                        style={[styles.modalButtonSecondary, { borderColor: t.border }]}
+                                        className="flex-1 py-3.5 rounded-xl border items-center"
+                                        style={{ borderColor: t.border }}
                                         onPress={content.secondaryButton.onPress}
                                         activeOpacity={0.7}
                                     >
-                                        <Text style={[styles.modalButtonSecondaryText, { color: t.text }]}>
+                                        <Text className="text-base font-semibold" style={{ color: t.text }}>
                                             {content.secondaryButton.text}
                                         </Text>
                                     </TouchableOpacity>
                                 )}
                                 <TouchableOpacity
-                                    style={[styles.modalButtonPrimary, { backgroundColor: content.iconColor }]}
+                                    className="flex-1 py-3.5 rounded-xl items-center"
+                                    style={{
+                                        backgroundColor: content.iconColor,
+                                        shadowColor: '#000',
+                                        shadowOffset: { width: 0, height: 2 },
+                                        shadowOpacity: 0.1,
+                                        shadowRadius: 4,
+                                        elevation: 3,
+                                    }}
                                     onPress={content.primaryButton.onPress}
                                     activeOpacity={0.8}
                                 >
-                                    <Text style={styles.modalButtonPrimaryText}>
+                                    <Text className="text-base font-semibold text-white">
                                         {content.primaryButton.text}
                                     </Text>
                                 </TouchableOpacity>
@@ -183,107 +208,3 @@ export const SupportModal: React.FC<SupportModalProps> = ({
         </Modal>
     );
 };
-
-const styles = StyleSheet.create({
-    modalContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    modalBackdrop: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    },
-    modalContent: {
-        width: '85%',
-        maxWidth: 400,
-        borderRadius: 24,
-        padding: 24,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.25,
-        shadowRadius: 16,
-        elevation: 8,
-    },
-    modalIconContainer: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    modalMessage: {
-        fontSize: 14,
-        textAlign: 'center',
-        marginBottom: 16,
-    },
-    modalValueContainer: {
-        width: '100%',
-        padding: 16,
-        borderRadius: 12,
-        borderWidth: 1,
-        marginBottom: 24,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 12,
-    },
-    modalValue: {
-        fontSize: 16,
-        fontWeight: '600',
-        flex: 1,
-        textAlign: 'center',
-    },
-    copyButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 10,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    modalButtons: {
-        width: '100%',
-        flexDirection: 'row',
-        gap: 12,
-    },
-    modalButtonSecondary: {
-        flex: 1,
-        paddingVertical: 14,
-        borderRadius: 12,
-        borderWidth: 1,
-        alignItems: 'center',
-    },
-    modalButtonSecondaryText: {
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    modalButtonPrimary: {
-        flex: 1,
-        paddingVertical: 14,
-        borderRadius: 12,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    modalButtonPrimaryText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#FFFFFF',
-    },
-});

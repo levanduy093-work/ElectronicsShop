@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../../components/common/Icon';
 import { Theme } from '../../theme';
@@ -28,7 +28,7 @@ export const VerifyEmailView: React.FC<VerifyEmailViewProps> = ({
     const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const codeInputRefs = useRef<(TextInput | null)[]>([]);
-    const bottomNavHeight = 80; // Approximate
+    const bottomNavHeight = 80;
 
     const handleVerificationCodeChange = (index: number, value: string) => {
         if (value.length > 1) {
@@ -88,47 +88,47 @@ export const VerifyEmailView: React.FC<VerifyEmailViewProps> = ({
 
     return (
         <KeyboardAvoidingView
-            style={[styles.container, { backgroundColor: t.background }]}
+            className="flex-1"
+            style={{ backgroundColor: t.background }}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
             <ScrollView
-                contentContainerStyle={[styles.contentContainer, { paddingBottom: bottomNavHeight + 24 }]}
+                contentContainerStyle={{ paddingBottom: bottomNavHeight + 24 }}
+                className="px-6 pt-16"
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
                 <TouchableOpacity
                     onPress={onBack}
-                    style={styles.backButton}
+                    className="self-start p-2 mb-6"
                     activeOpacity={0.7}
                 >
                     <AppIcon name="arrow-left" size={24} color={t.muted} />
                 </TouchableOpacity>
 
-                <View style={styles.header}>
-                    <Text style={[styles.title, { color: t.text }]}>{translate('verify_email')}</Text>
-                    <Text style={[styles.subtitle, { color: t.muted }]}>
+                <View className="mb-8">
+                    <Text className="text-3xl font-bold mb-2" style={{ color: t.text }}>{translate('verify_email')}</Text>
+                    <Text className="text-base" style={{ color: t.muted }}>
                         {translate('otp_sent_to')}{'\n'}
-                        <Text style={[styles.emailHighlight, { color: t.primary }]}>{email}</Text>
+                        <Text className="font-semibold" style={{ color: t.primary }}>{email}</Text>
                     </Text>
                 </View>
 
-                <View style={styles.verificationContainer}>
-                    <Text style={[styles.verificationLabel, { color: t.text }]}>{translate('enter_otp')}</Text>
-                    <View style={styles.codeInputContainer}>
+                <View className="gap-6 mt-4">
+                    <Text className="text-sm font-medium text-center" style={{ color: t.text }}>{translate('enter_otp')}</Text>
+                    <View className="flex-row justify-center gap-3">
                         {verificationCode.map((digit, index) => (
                             <TextInput
                                 key={index}
                                 ref={(ref) => {
                                     codeInputRefs.current[index] = ref;
                                 }}
-                                style={[
-                                    styles.codeInput,
-                                    {
-                                        backgroundColor: t.surface,
-                                        borderColor: t.border,
-                                        color: t.text,
-                                    },
-                                ]}
+                                className="w-11 h-14 rounded-xl border text-2xl font-bold"
+                                style={{
+                                    backgroundColor: t.surface,
+                                    borderColor: t.border,
+                                    color: t.text,
+                                }}
                                 value={digit}
                                 onChangeText={(value) => handleVerificationCodeChange(index, value)}
                                 onKeyPress={({ nativeEvent }) => {
@@ -146,101 +146,34 @@ export const VerifyEmailView: React.FC<VerifyEmailViewProps> = ({
 
                     <TouchableOpacity
                         onPress={handleResendCode}
-                        style={[styles.resendButton, isSubmitting && { opacity: 0.6 }]}
+                        className="self-center p-2"
+                        style={isSubmitting ? { opacity: 0.6 } : undefined}
                         activeOpacity={0.7}
                         disabled={isSubmitting}
                     >
-                        <Text style={[styles.resendText, { color: t.primary }]}>{translate('resend_code')}</Text>
+                        <Text className="text-sm font-medium" style={{ color: t.primary }}>{translate('resend_code')}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         onPress={handleVerifyCode}
+                        className="rounded-xl py-3.5 items-center mt-2"
                         style={[
-                            styles.primaryButton,
                             { backgroundColor: t.primary, shadowColor: t.primary },
-                            isSubmitting && { opacity: 0.9 },
+                            isSubmitting ? { opacity: 0.9 } : undefined,
+                            {
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.2,
+                                shadowRadius: 8,
+                                elevation: 4,
+                            },
                         ]}
                         activeOpacity={0.8}
                         disabled={isSubmitting}
                     >
-                        <Text style={styles.primaryButtonText}>{isSubmitting ? translate('processing') : translate('confirm')}</Text>
+                        <Text className="text-white text-base font-bold">{isSubmitting ? translate('processing') : translate('confirm')}</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
         </KeyboardAvoidingView>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    contentContainer: {
-        padding: 24,
-        paddingTop: 64,
-    },
-    backButton: {
-        alignSelf: 'flex-start',
-        padding: 8,
-        marginBottom: 24,
-    },
-    header: {
-        marginBottom: 32,
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        marginBottom: 8,
-    },
-    subtitle: {
-        fontSize: 16,
-    },
-    emailHighlight: {
-        fontWeight: '600',
-    },
-    verificationContainer: {
-        gap: 24,
-        marginTop: 16,
-    },
-    verificationLabel: {
-        fontSize: 14,
-        fontWeight: '500',
-        textAlign: 'center',
-    },
-    codeInputContainer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        gap: 12,
-    },
-    codeInput: {
-        width: 44,
-        height: 56,
-        borderRadius: 12,
-        borderWidth: 1,
-        fontSize: 24,
-        fontWeight: 'bold',
-    },
-    resendButton: {
-        alignSelf: 'center',
-        padding: 8,
-    },
-    resendText: {
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    primaryButton: {
-        borderRadius: 12,
-        paddingVertical: 14,
-        alignItems: 'center',
-        marginTop: 8,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    primaryButtonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-});

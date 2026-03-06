@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Modal } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AiAction, AiAddressCard, AiOrderCard, AiProductCard, ChatMessage } from '../../types';
 import { AppIcon } from '../common/Icon';
@@ -40,35 +40,36 @@ export function MessageBubble({
     );
 
     return (
-      <View key={card.productId || `card-${index}`} style={[styles.productCard, { borderColor: theme.border, backgroundColor: isDark ? '#1F2933' : '#F9FAFB' }]}>
-        <View style={styles.productCardHeader}>
-          <Text style={[styles.productName, { color: isDark ? '#E5E7EB' : '#111827' }]} numberOfLines={2}>
+      <View key={card.productId || `card-${index}`} className="border rounded-xl p-3 gap-1.5" style={{ borderColor: theme.border, backgroundColor: isDark ? '#1F2933' : '#F9FAFB' }}>
+        <View className="flex-row items-center justify-between gap-2">
+          <Text className="flex-1 text-sm font-semibold" style={{ color: isDark ? '#E5E7EB' : '#111827' }} numberOfLines={2}>
             {card.name}
           </Text>
           {card.code ? (
-            <Text style={[styles.productCode, { color: theme.muted }]} numberOfLines={1}>
+            <Text className="text-xs" style={{ color: theme.muted }} numberOfLines={1}>
               {card.code}
             </Text>
           ) : null}
         </View>
-        <Text style={[styles.productMeta, { color: theme.muted }]} numberOfLines={1}>
+        <Text className="text-xs" style={{ color: theme.muted }} numberOfLines={1}>
           {card.category || (t ? t('product') : 'Product')}
         </Text>
-        <View style={styles.productFooter}>
+        <View className="flex-row justify-between items-center mt-1 gap-3">
           <View>
-            <Text style={[styles.productPrice, { color: theme.primary }]}>{(card.price ?? 0).toLocaleString('vi-VN')}đ</Text>
-            <Text style={[styles.productStock, { color: (card.stock ?? 0) > 0 ? '#16A34A' : '#DC2626' }]}>
+            <Text className="text-base font-bold" style={{ color: theme.primary }}>{(card.price ?? 0).toLocaleString('vi-VN')}đ</Text>
+            <Text className="text-xs font-medium" style={{ color: (card.stock ?? 0) > 0 ? '#16A34A' : '#DC2626' }}>
               {(card.stock ?? 0) > 0 ? t('stockLeft', { count: card.stock ?? 0 }) : t('out_of_stock')}
             </Text>
           </View>
-          <View style={styles.productActions}>
+          <View className="flex-row gap-2">
             <TouchableOpacity
               onPress={() => onSelectCard?.(card)}
-              style={[styles.cardButton, { borderColor: theme.border }]}
+              className="flex-row items-center gap-1.5 border px-2.5 py-1.5 rounded-[10px]"
+              style={{ borderColor: theme.border }}
               activeOpacity={0.8}
             >
               <AppIcon name="eye" size={14} color={theme.text} />
-              <Text style={[styles.cardButtonText, { color: theme.text }]}>Xem</Text>
+              <Text className="text-xs font-semibold" style={{ color: theme.text }}>Xem</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() =>
@@ -81,19 +82,17 @@ export function MessageBubble({
                   message,
                 )
               }
-              style={[
-                styles.cardButton,
-                styles.cardButtonPrimary,
-                {
-                  backgroundColor: isOutOfStock ? theme.border : theme.primary,
-                  opacity: isOutOfStock ? 0.7 : 1,
-                },
-              ]}
+              className="flex-row items-center gap-1.5 border px-2.5 py-1.5 rounded-[10px]"
+              style={{
+                borderColor: 'transparent',
+                backgroundColor: isOutOfStock ? theme.border : theme.primary,
+                opacity: isOutOfStock ? 0.7 : 1,
+              }}
               activeOpacity={0.8}
               disabled={isOutOfStock}
             >
               <AppIcon name="shopping-cart" size={14} color={isOutOfStock ? theme.muted : '#FFFFFF'} />
-              <Text style={[styles.cardButtonText, { color: isOutOfStock ? theme.muted : '#FFFFFF' }]}>Thêm</Text>
+              <Text className="text-xs font-semibold" style={{ color: isOutOfStock ? theme.muted : '#FFFFFF' }}>Thêm</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -118,50 +117,49 @@ export function MessageBubble({
     return (
       <View
         key={`${card.orderId || card.code || `order-${index}`}`}
-        style={[
-          styles.productCard,
-          { borderColor: theme.border, backgroundColor: isDark ? '#1F2933' : '#F9FAFB' },
-        ]}
+        className="border rounded-xl p-3 gap-1.5"
+        style={{ borderColor: theme.border, backgroundColor: isDark ? '#1F2933' : '#F9FAFB' }}
       >
-        <View style={styles.productCardHeader}>
-          <View style={styles.inlineHeader}>
-            <View style={[styles.metaIconWrap, { backgroundColor: isDark ? '#111827' : '#E8EEFf' }]}>
+        <View className="flex-row items-center justify-between gap-2">
+          <View className="flex-row items-center gap-2 flex-1">
+            <View className="w-[22px] h-[22px] rounded-lg items-center justify-center" style={{ backgroundColor: isDark ? '#111827' : '#E8EEFF' }}>
               <AppIcon name="shopping-cart" size={13} color={theme.primary} />
             </View>
-            <Text style={[styles.productName, { color: isDark ? '#E5E7EB' : '#111827' }]} numberOfLines={1}>
+            <Text className="flex-1 text-sm font-semibold" style={{ color: isDark ? '#E5E7EB' : '#111827' }} numberOfLines={1}>
               Đơn hàng
             </Text>
           </View>
-          <Text style={[styles.productCode, { color: theme.muted }]} numberOfLines={1}>
+          <Text className="text-xs" style={{ color: theme.muted }} numberOfLines={1}>
             {card.code}
           </Text>
         </View>
-        <Text style={[styles.productMeta, { color: statusColor }]}>{statusText}</Text>
+        <Text className="text-xs" style={{ color: statusColor }}>{statusText}</Text>
         {orderedDate ? (
-          <Text style={[styles.productMeta, { color: theme.muted }]}>{`Ngày đặt: ${orderedDate}`}</Text>
+          <Text className="text-xs" style={{ color: theme.muted }}>{`Ngày đặt: ${orderedDate}`}</Text>
         ) : null}
         {itemPreviewText ? (
-          <Text style={[styles.addressLine, { color: isDark ? '#CBD5E1' : '#374151' }]} numberOfLines={2}>
+          <Text className="text-[13px] leading-[18px]" style={{ color: isDark ? '#CBD5E1' : '#374151' }} numberOfLines={2}>
             {`Sản phẩm: ${itemPreviewText}`}
           </Text>
         ) : null}
-        <Text style={[styles.addressLine, { color: theme.muted }]} numberOfLines={1}>
+        <Text className="text-[13px] leading-[18px]" style={{ color: theme.muted }} numberOfLines={1}>
           {`Thanh toán: ${card.payment || 'N/A'} | ${card.paymentStatus || 'N/A'}`}
         </Text>
-        <View style={styles.productFooter}>
+        <View className="flex-row justify-between items-center mt-1 gap-3">
           <View>
-            <Text style={[styles.productPrice, { color: theme.primary }]}>
+            <Text className="text-base font-bold" style={{ color: theme.primary }}>
               {(card.total ?? 0).toLocaleString('vi-VN')}đ
             </Text>
           </View>
-          <View style={styles.productActions}>
+          <View className="flex-row gap-2">
             <TouchableOpacity
               onPress={() => card.orderId && onOpenOrderDetail?.(card.orderId)}
-              style={[styles.cardButton, { borderColor: theme.border }]}
+              className="flex-row items-center gap-1.5 border px-2.5 py-1.5 rounded-[10px]"
+              style={{ borderColor: theme.border }}
               activeOpacity={0.9}
             >
               <AppIcon name="eye" size={14} color={theme.text} />
-              <Text style={[styles.cardButtonText, { color: theme.text }]}>Chi tiết</Text>
+              <Text className="text-xs font-semibold" style={{ color: theme.text }}>Chi tiết</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -173,48 +171,42 @@ export function MessageBubble({
     return (
       <View
         key={`${card.name}-${card.phone}-${index}`}
-        style={[
-          styles.productCard,
-          { borderColor: theme.border, backgroundColor: isDark ? '#1F2933' : '#F9FAFB' },
-        ]}
+        className="border rounded-xl p-3 gap-1.5"
+        style={{ borderColor: theme.border, backgroundColor: isDark ? '#1F2933' : '#F9FAFB' }}
       >
-        <View style={styles.productCardHeader}>
-          <View style={styles.inlineHeader}>
-            <View style={[styles.metaIconWrap, { backgroundColor: isDark ? '#111827' : '#E8EEFf' }]}>
+        <View className="flex-row items-center justify-between gap-2">
+          <View className="flex-row items-center gap-2 flex-1">
+            <View className="w-[22px] h-[22px] rounded-lg items-center justify-center" style={{ backgroundColor: isDark ? '#111827' : '#E8EEFF' }}>
               <AppIcon name="map-pin" size={13} color={theme.primary} />
             </View>
-            <Text style={[styles.productName, { color: isDark ? '#E5E7EB' : '#111827' }]} numberOfLines={1}>
+            <Text className="flex-1 text-sm font-semibold" style={{ color: isDark ? '#E5E7EB' : '#111827' }} numberOfLines={1}>
               {card.name}
             </Text>
           </View>
-          <View style={[
-            styles.badge,
-            {
-              backgroundColor: card.isDefault ? theme.primary : (isDark ? '#374151' : '#EEF2FF'),
-            },
-          ]}>
-            <Text style={[
-              styles.badgeText,
-              { color: card.isDefault ? '#FFFFFF' : theme.muted },
-            ]}>
+          <View
+            className="rounded-full px-2.5 py-1"
+            style={{ backgroundColor: card.isDefault ? theme.primary : (isDark ? '#374151' : '#EEF2FF') }}
+          >
+            <Text className="text-[11px] font-semibold" style={{ color: card.isDefault ? '#FFFFFF' : theme.muted }}>
               {card.isDefault ? 'Mặc định' : card.type || 'Địa chỉ'}
             </Text>
           </View>
         </View>
-        <Text style={[styles.productMeta, { color: theme.muted }]}>{card.phone}</Text>
-        <Text style={[styles.addressLine, { color: isDark ? '#CBD5E1' : '#374151' }]} numberOfLines={2}>
+        <Text className="text-xs" style={{ color: theme.muted }}>{card.phone}</Text>
+        <Text className="text-[13px] leading-[18px]" style={{ color: isDark ? '#CBD5E1' : '#374151' }} numberOfLines={2}>
           {card.line1}
         </Text>
-        <View style={styles.productFooter}>
+        <View className="flex-row justify-between items-center mt-1 gap-3">
           <View />
-          <View style={styles.productActions}>
+          <View className="flex-row gap-2">
             <TouchableOpacity
               onPress={() => onOpenAddressBook?.()}
-              style={[styles.cardButton, styles.cardButtonPrimary, { backgroundColor: theme.primary }]}
+              className="flex-row items-center gap-1.5 border px-2.5 py-1.5 rounded-[10px]"
+              style={{ backgroundColor: theme.primary, borderColor: 'transparent' }}
               activeOpacity={0.9}
             >
               <AppIcon name="map-pin" size={14} color="#FFFFFF" />
-              <Text style={[styles.cardButtonText, { color: '#FFFFFF' }]}>Sổ địa chỉ</Text>
+              <Text className="text-xs font-semibold text-white">Sổ địa chỉ</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -223,64 +215,71 @@ export function MessageBubble({
   };
 
   return (
-    <View style={[styles.container, isUser && styles.containerUser]}>
-      <View style={[styles.contentWrapper, isUser && styles.contentWrapperUser]}>
-        {/* Avatar */}
+    <View className={`w-full mb-6 ${isUser ? 'items-end' : 'items-start'}`}>
+      <View className={`max-w-[85%] flex-row gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
         {!isUser && (
-          <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
+          <View className="w-8 h-8 rounded-full justify-center items-center" style={{ backgroundColor: theme.primary }}>
             <AppIcon name="sparkles" size={16} color="#FFFFFF" />
           </View>
         )}
 
-        {/* Content */}
-        <View style={styles.content}>
-          <View style={[
-            styles.bubble,
-            isUser
-              ? [styles.bubbleUser, { backgroundColor: isDark ? '#3B4A5C' : theme.primary }]
-              : [styles.bubbleAI, { backgroundColor: isDark ? '#1F2933' : '#FFFFFF', borderColor: isDark ? '#2F3A44' : '#F3F4F6' }],
-          ]}>
-            <Text style={[
-              styles.messageText,
-              { color: isUser ? '#FFFFFF' : isDark ? '#E5E7EB' : '#111827' },
-            ]}>
+        <View className="flex-1 gap-1">
+          <View
+            className="px-4 py-3 rounded-2xl"
+            style={{
+              ...(isUser
+                ? {
+                  backgroundColor: isDark ? '#3B4A5C' : theme.primary,
+                  borderTopRightRadius: 4,
+                }
+                : {
+                  backgroundColor: isDark ? '#1F2933' : '#FFFFFF',
+                  borderColor: isDark ? '#2F3A44' : '#F3F4F6',
+                  borderWidth: 1,
+                  borderTopLeftRadius: 4,
+                }),
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 2,
+              elevation: 1,
+            }}
+          >
+            <Text className="text-[15px] leading-[22px]" style={{ color: isUser ? '#FFFFFF' : isDark ? '#E5E7EB' : '#111827' }}>
               {typeof message.content === 'string' ? message.content : (message.content as any)?.text || ''}
-
             </Text>
           </View>
 
-          {/* Metadata for AI */}
           {!isUser && (
-            <View style={styles.metadata}>
-              <Text style={[styles.timestamp, { color: isDark ? '#9CA3AF' : '#9CA3AF' }]}>
+            <View className="flex-row items-center gap-3 pl-1">
+              <Text className="text-[10px]" style={{ color: '#9CA3AF' }}>
                 {new Date(message.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-
               </Text>
               <TouchableOpacity activeOpacity={0.7}>
-                <AppIcon name="copy" size={12} color={isDark ? '#9CA3AF' : '#9CA3AF'} />
+                <AppIcon name="copy" size={12} color="#9CA3AF" />
               </TouchableOpacity>
             </View>
           )}
 
-          {/* Image preview */}
           {message.metadata?.imageUrl && (
             <>
               <TouchableOpacity onPress={() => setModalVisible(true)} activeOpacity={0.9}>
                 <Image
                   source={{ uri: message.metadata.imageUrl }}
-                  style={styles.previewImage}
+                  className="mt-2.5 w-full min-h-[120px] rounded-xl"
+                  style={{ backgroundColor: '#E5E7EB' }}
                   resizeMode="cover"
                 />
               </TouchableOpacity>
 
               <Modal visible={modalVisible} transparent={true} animationType="fade" onRequestClose={() => setModalVisible(false)}>
-                <View style={styles.fullScreenContainer}>
-                  <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
+                <View className="flex-1 justify-center items-center" style={{ backgroundColor: 'rgba(0,0,0,0.95)' }}>
+                  <TouchableOpacity className="absolute top-[50px] right-5 z-[999] p-2.5 rounded-[20px]" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} onPress={() => setModalVisible(false)}>
                     <AppIcon name="close" size={24} color="#FFFFFF" />
                   </TouchableOpacity>
                   <Image
                     source={{ uri: message.metadata.imageUrl }}
-                    style={styles.fullScreenImage}
+                    className="w-full h-full"
                     resizeMode="contain"
                   />
                 </View>
@@ -288,36 +287,36 @@ export function MessageBubble({
             </>
           )}
 
-          {/* Product cards / actions */}
           {!isUser && message.cards?.length ? (
-            <View style={styles.productList}>
+            <View className="mt-3 gap-3">
               {message.cards.map(renderProductCard)}
             </View>
           ) : null}
 
           {!isUser && message.orderCards?.length ? (
-            <View style={styles.productList}>
+            <View className="mt-3 gap-3">
               {message.orderCards.map(renderOrderCard)}
             </View>
           ) : null}
 
           {!isUser && message.addressCards?.length ? (
-            <View style={styles.productList}>
+            <View className="mt-3 gap-3">
               {message.addressCards.map(renderAddressCard)}
             </View>
           ) : null}
 
           {!isUser && message.actions?.length ? (
-            <View style={styles.actions}>
+            <View className="flex-row flex-wrap gap-2 mt-2">
               {message.actions.map((action) => (
                 <TouchableOpacity
                   key={action.confirmationId || action.type}
-                  style={[styles.actionChip, { borderColor: theme.border }]}
+                  className="flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-full border"
+                  style={{ borderColor: theme.border }}
                   onPress={() => onAction?.(action, message)}
                   activeOpacity={0.8}
                 >
                   <AppIcon name="flash" size={12} color={theme.primary} />
-                  <Text style={[styles.actionText, { color: theme.text }]}>
+                  <Text className="text-xs font-semibold" style={{ color: theme.text }}>
                     {action.type === 'ADD_TO_CART'
                       ? 'Xác nhận thêm giỏ'
                       : action.note || action.type}
@@ -331,207 +330,3 @@ export function MessageBubble({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    marginBottom: 24,
-    alignItems: 'flex-start',
-  },
-  containerUser: {
-    alignItems: 'flex-end',
-  },
-  contentWrapper: {
-    flexDirection: 'row',
-    maxWidth: '85%',
-    gap: 12,
-  },
-  contentWrapperUser: {
-    flexDirection: 'row-reverse',
-  },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#2563EB',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  content: {
-    flex: 1,
-    gap: 4,
-  },
-  bubble: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  bubbleUser: {
-    backgroundColor: '#2563EB',
-    borderTopRightRadius: 4,
-  },
-  bubbleAI: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 4,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-  },
-  messageText: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#111827',
-  },
-  messageTextUser: {
-    color: '#FFFFFF',
-  },
-  metadata: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingLeft: 4,
-  },
-  timestamp: {
-    fontSize: 10,
-    color: '#9CA3AF',
-  },
-  productList: {
-    marginTop: 12,
-    gap: 12,
-  },
-  productCard: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    backgroundColor: '#F9FAFB',
-    gap: 6,
-  },
-  productCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  productName: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  productCode: {
-    fontSize: 12,
-  },
-  productMeta: {
-    fontSize: 12,
-  },
-  inlineHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-  },
-  metaIconWrap: {
-    width: 22,
-    height: 22,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badge: {
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  addressLine: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  productFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4,
-    gap: 12,
-  },
-  productPrice: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  productStock: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  productActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  cardButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  cardButtonPrimary: {
-    borderColor: 'transparent',
-  },
-  cardButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  actions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
-  },
-  actionChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  actionText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  previewImage: {
-    marginTop: 10,
-    width: '100%',
-    minHeight: 120,
-    borderRadius: 12,
-    backgroundColor: '#E5E7EB',
-  },
-  fullScreenContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.95)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullScreenImage: {
-    width: '100%',
-    height: '100%',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    zIndex: 999,
-    padding: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 20,
-  },
-});

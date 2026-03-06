@@ -3,7 +3,6 @@ import {
     View,
     Text,
     TouchableOpacity,
-    StyleSheet,
     Platform,
     Animated,
 } from 'react-native';
@@ -67,11 +66,6 @@ function AnimatedTabButton({
         ]).start();
     }, [isFocused, scaleAnim, colorAnim]);
 
-    const iconColor = colorAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [inactiveColor, activeColor],
-    });
-
     const labelColor = colorAnim.interpolate({
         inputRange: [0, 1],
         outputRange: [inactiveColor, activeColor],
@@ -82,22 +76,31 @@ function AnimatedTabButton({
             <TouchableOpacity
                 onPress={onPress}
                 onLongPress={onLongPress}
-                style={styles.specialButton}
+                className="items-center justify-center -mt-3"
                 activeOpacity={0.7}
             >
                 <Animated.View
+                    className="w-14 h-14 rounded-full justify-center items-center"
                     style={[
-                        styles.specialIconContainer,
                         { transform: [{ scale: scaleAnim }] },
+                        {
+                            backgroundColor: '#2563EB',
+                            ...(Platform.OS === 'ios'
+                                ? {
+                                    shadowColor: '#2563EB',
+                                    shadowOffset: { width: 0, height: 4 },
+                                    shadowOpacity: 0.3,
+                                    shadowRadius: 8,
+                                }
+                                : { elevation: 8 }),
+                        },
                     ]}
                 >
                     <AppIcon name="message-circle" size={28} color="#FFFFFF" />
                 </Animated.View>
                 <Animated.Text
-                    style={[
-                        styles.specialLabel,
-                        isFocused && styles.specialLabelActive,
-                    ]}
+                    className="text-[11px] font-bold mt-1"
+                    style={{ color: isFocused ? '#2563EB' : '#9CA3AF' }}
                 >
                     AI Chat
                 </Animated.Text>
@@ -109,31 +112,27 @@ function AnimatedTabButton({
         <TouchableOpacity
             onPress={onPress}
             onLongPress={onLongPress}
-            style={styles.tabButton}
+            className="flex-1 items-center justify-center gap-1"
             activeOpacity={0.7}
         >
             <Animated.View
-                style={[
-                    styles.iconContainer,
-                    { transform: [{ scale: scaleAnim }] },
-                ]}
+                className="relative"
+                style={{ transform: [{ scale: scaleAnim }] }}
             >
                 {config.name === 'CartTab' && cartCount > 0 && (
-                    <View style={styles.badge}>
-                        <Text style={styles.badgeText}>
+                    <View className="absolute -top-1 -right-2 bg-red-500 rounded-[10px] min-w-4 h-4 px-1 justify-center items-center z-10">
+                        <Text className="text-white text-[10px] font-bold">
                             {cartCount > 99 ? '99+' : cartCount}
                         </Text>
                     </View>
                 )}
-                <Animated.View>
-                    <AppIcon
-                        name={config.icon}
-                        size={24}
-                        color={isFocused ? activeColor : inactiveColor}
-                    />
-                </Animated.View>
+                <AppIcon
+                    name={config.icon}
+                    size={24}
+                    color={isFocused ? activeColor : inactiveColor}
+                />
             </Animated.View>
-            <Animated.Text style={[styles.tabLabel, { color: labelColor }]}>
+            <Animated.Text className="text-[11px] font-medium" style={{ color: labelColor }}>
                 {t(config.label)}
             </Animated.Text>
         </TouchableOpacity>
@@ -144,29 +143,32 @@ interface AnimatedTabBarProps extends BottomTabBarProps {
     cartCount?: number;
 }
 
-export function AnimatedTabBar({ state, descriptors, navigation, cartCount = 0 }: AnimatedTabBarProps) {
+export function AnimatedTabBar({ state, navigation, cartCount = 0 }: AnimatedTabBarProps) {
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
     const activeColor = theme.tabActive;
     const inactiveColor = theme.tabInactive;
 
-    // Add extra padding on Android to avoid overlap with gesture navigation bar
     const minBottomPadding = Platform.OS === 'android' ? 36 : 16;
-
 
     return (
         <View
-            style={[
-                styles.container,
-                {
-                    paddingBottom: Math.max(insets.bottom, minBottomPadding),
-                    backgroundColor: theme.surface,
-                    borderTopColor: theme.border,
-                },
-            ]}
+            className="h-[86px] px-4 pt-3 flex-row items-center justify-between border-t"
+            style={{
+                paddingBottom: Math.max(insets.bottom, minBottomPadding),
+                backgroundColor: theme.surface,
+                borderTopColor: theme.border,
+                ...(Platform.OS === 'ios'
+                    ? {
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: -4 },
+                        shadowOpacity: 0.03,
+                        shadowRadius: 12,
+                    }
+                    : { elevation: 8 }),
+            }}
         >
             {state.routes.map((route, index) => {
-                const { options } = descriptors[route.key];
                 const isFocused = state.index === index;
                 const config = TAB_CONFIGS[route.name] || {
                     name: route.name,
@@ -209,93 +211,3 @@ export function AnimatedTabBar({ state, descriptors, navigation, cartCount = 0 }
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        borderTopWidth: 1,
-        borderTopColor: '#E5E7EB',
-        height: 80,
-        paddingHorizontal: 16,
-        paddingTop: 8,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        ...Platform.select({
-            ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: -4 },
-                shadowOpacity: 0.03,
-                shadowRadius: 12,
-            },
-            android: {
-                elevation: 8,
-            },
-        }),
-    },
-    tabButton: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 4,
-    },
-    iconContainer: {
-        position: 'relative',
-    },
-    badge: {
-        position: 'absolute',
-        top: -4,
-        right: -8,
-        backgroundColor: '#EF4444',
-        borderRadius: 10,
-        minWidth: 16,
-        height: 16,
-        paddingHorizontal: 4,
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 1,
-    },
-    badgeText: {
-        color: '#FFFFFF',
-        fontSize: 10,
-        fontWeight: 'bold',
-    },
-    tabLabel: {
-        fontSize: 11,
-        fontWeight: '500',
-        color: '#9CA3AF',
-    },
-    specialButton: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: -12,
-    },
-    specialIconContainer: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: '#2563EB',
-        justifyContent: 'center',
-        alignItems: 'center',
-        ...Platform.select({
-            ios: {
-                shadowColor: '#2563EB',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-            },
-            android: {
-                elevation: 8,
-            },
-        }),
-    },
-    specialLabel: {
-        fontSize: 11,
-        fontWeight: 'bold',
-        color: '#9CA3AF',
-        marginTop: 4,
-    },
-    specialLabelActive: {
-        color: '#2563EB',
-    },
-});

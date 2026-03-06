@@ -4,7 +4,6 @@ import {
   FlatList,
   Modal,
   StatusBar,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -79,8 +78,6 @@ export function AIChatHistory({
       muted: theme.isDark ? '#A1A1AA' : '#6B7280',
       primary: theme.isDark ? '#60A5FA' : '#2563EB',
       detailBg: theme.isDark ? 'rgba(37,99,235,0.14)' : '#EFF6FF',
-      badgeBg: theme.isDark ? 'rgba(251,191,36,0.16)' : '#FEF3C7',
-      badgeText: theme.isDark ? '#FBBF24' : '#D97706',
       overlay: theme.isDark ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.32)',
       danger: '#DC2626',
       dangerSoft: '#FEECEC',
@@ -107,43 +104,15 @@ export function AIChatHistory({
     setConfirmState(null);
   };
 
-  const rootStyle = { backgroundColor: palette.bg };
-  const headerStyle = {
-    paddingTop: Math.max(insets.top, 0),
-    backgroundColor: palette.surface,
-    borderBottomColor: palette.border,
-  };
-  const listContainerStyle = {
-    ...styles.listContent,
-    backgroundColor: palette.bg,
-  };
-  const emptyCardStyle = { backgroundColor: palette.surface, borderColor: palette.border };
-  const emptyIconStyle = { backgroundColor: palette.bg };
-  const overlayStyle = { backgroundColor: palette.overlay };
-  const modalCardStyle = {
-    backgroundColor: palette.surface,
-    borderColor: palette.border,
-    opacity: modalAnim,
-    transform: [
-      {
-        scale: modalAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0.97, 1],
-        }),
-      },
-    ],
-  };
-  const modalIconStyle = { backgroundColor: palette.dangerSoft };
-
   return (
-    <View className="flex-1" style={rootStyle}>
+    <View className="flex-1" style={{ backgroundColor: palette.bg }}>
       <StatusBar
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         translucent
         backgroundColor={palette.surface}
       />
 
-      <View className="flex-row items-center justify-between px-4 pb-3 border-b" style={headerStyle}>
+      <View className="flex-row items-center justify-between px-4 pb-3 border-b" style={{ paddingTop: Math.max(insets.top, 0), backgroundColor: palette.surface, borderBottomColor: palette.border }}>
         <TouchableOpacity onPress={onBack} className="w-10 h-10 items-center justify-center" activeOpacity={0.75}>
           <AppIcon name="arrow-left" size={24} color={palette.muted} />
         </TouchableOpacity>
@@ -170,10 +139,15 @@ export function AIChatHistory({
         data={archives}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={listContainerStyle}
+        contentContainerStyle={{
+          padding: 16,
+          paddingBottom: 96,
+          gap: 16,
+          backgroundColor: palette.bg,
+        }}
         ListEmptyComponent={
-          <View className="border rounded-2xl py-12 px-6 items-center" style={emptyCardStyle}>
-            <View className="w-16 h-16 rounded-full items-center justify-center mb-3.5" style={emptyIconStyle}>
+          <View className="border rounded-2xl py-12 px-6 items-center" style={{ backgroundColor: palette.surface, borderColor: palette.border }}>
+            <View className="w-16 h-16 rounded-full items-center justify-center mb-3.5" style={{ backgroundColor: palette.bg }}>
               <AppIcon name="history" size={26} color={palette.muted} />
             </View>
             <Text className="text-lg font-bold mb-1.5" style={{ color: palette.text }}>{t('no_history')}</Text>
@@ -188,71 +162,62 @@ export function AIChatHistory({
             .slice(0, 2)
             .map((m) => m.content.trim());
 
-          const cardStyle = { backgroundColor: palette.surface, borderColor: palette.border };
-          const sectionDivider = { borderTopColor: palette.border };
-          const codeStyle = { color: palette.muted };
-          const previewStyle = { color: palette.text };
-          const detailBtnStyle = { borderColor: palette.primary, backgroundColor: palette.detailBg };
-          const detailTextStyle = { color: palette.primary };
-          const deleteBtnStyle = {
-            borderColor: palette.danger,
-            backgroundColor: theme.isDark ? 'rgba(220,38,38,0.18)' : '#FEF2F2',
-          };
-          const deleteTextStyle = { color: palette.danger };
-
           return (
             <TouchableOpacity
               activeOpacity={0.94}
               onLongPress={() => setConfirmState({ type: 'single', archiveId: item.id })}
               delayLongPress={260}
               className="border rounded-2xl p-3.5"
-              style={cardStyle}
+              style={{ backgroundColor: palette.surface, borderColor: palette.border }}
             >
               <View className="flex-row justify-between items-start mb-2.5 gap-2">
                 <View className="flex-1">
-                  <Text className="text-[12px] font-bold mb-0.5 tracking-wide" style={codeStyle}>{buildArchiveCode(item.id)}</Text>
-                  <Text className="text-[12px] font-medium" style={codeStyle}>{formatDateTime(item.updatedAt)}</Text>
+                  <Text className="text-[12px] font-bold mb-0.5 tracking-wide" style={{ color: palette.muted }}>{buildArchiveCode(item.id)}</Text>
+                  <Text className="text-[12px] font-medium" style={{ color: palette.muted }}>{formatDateTime(item.updatedAt)}</Text>
                 </View>
               </View>
 
-              <View className="border-t pt-3 mb-3 gap-2 min-h-[52px]" style={sectionDivider}>
+              <View className="border-t pt-3 mb-3 gap-2 min-h-[52px]" style={{ borderTopColor: palette.border }}>
                 {previewMessages.length ? (
                   previewMessages.map((line, index) => (
                     <Text
                       key={`${item.id}-${index}`}
                       className="text-sm leading-5"
-                      style={previewStyle}
+                      style={{ color: palette.text }}
                       numberOfLines={1}
                     >
                       • {line}
                     </Text>
                   ))
                 ) : (
-                  <Text className="text-sm leading-5" style={previewStyle} numberOfLines={1}>
+                  <Text className="text-sm leading-5" style={{ color: palette.text }} numberOfLines={1}>
                     • {item.title}
                   </Text>
                 )}
               </View>
 
-              <View className="border-t mt-0.5 pt-3 px-1.5 flex-row items-center gap-5" style={sectionDivider}>
+              <View className="border-t mt-0.5 pt-3 px-1.5 flex-row items-center gap-5" style={{ borderTopColor: palette.border }}>
                 <TouchableOpacity
                   onPress={() => onOpenArchive(item.id)}
                   className="flex-1 flex-row items-center justify-center gap-1 border rounded-xl px-3 py-3"
-                  style={detailBtnStyle}
+                  style={{ borderColor: palette.primary, backgroundColor: palette.detailBg }}
                   activeOpacity={0.8}
                 >
-                  <Text className="text-[13px] font-medium" style={detailTextStyle}>Xem chi tiết</Text>
+                  <Text className="text-[13px] font-medium" style={{ color: palette.primary }}>Xem chi tiết</Text>
                   <AppIcon name="chevron-right" size={14} color={palette.primary} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   onPress={() => setConfirmState({ type: 'single', archiveId: item.id })}
                   className="flex-1 flex-row items-center justify-center gap-1 border rounded-xl px-3 py-3"
-                  style={deleteBtnStyle}
+                  style={{
+                    borderColor: palette.danger,
+                    backgroundColor: theme.isDark ? 'rgba(220,38,38,0.18)' : '#FEF2F2',
+                  }}
                   activeOpacity={0.8}
                 >
                   <AppIcon name="trash" size={13} color={palette.danger} />
-                  <Text className="text-[13px] font-medium" style={deleteTextStyle}>Xóa đoạn chat</Text>
+                  <Text className="text-[13px] font-medium" style={{ color: palette.danger }}>Xóa đoạn chat</Text>
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
@@ -268,12 +233,28 @@ export function AIChatHistory({
       >
         <View className="flex-1 justify-center items-center px-6">
           <TouchableOpacity
-            style={[styles.modalBackdrop, overlayStyle]}
+            className="absolute inset-0"
+            style={{ backgroundColor: palette.overlay }}
             activeOpacity={1}
             onPress={() => setConfirmState(null)}
           />
-          <Animated.View className="w-full max-w-[360px] rounded-[20px] border px-5 pt-6 pb-3.5 items-center" style={modalCardStyle}>
-            <View className="w-[82px] h-[82px] rounded-full items-center justify-center mb-4" style={modalIconStyle}>
+          <Animated.View
+            className="w-full max-w-[360px] rounded-[20px] border px-5 pt-6 pb-3.5 items-center"
+            style={{
+              backgroundColor: palette.surface,
+              borderColor: palette.border,
+              opacity: modalAnim,
+              transform: [
+                {
+                  scale: modalAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.97, 1],
+                  }),
+                },
+              ],
+            }}
+          >
+            <View className="w-[82px] h-[82px] rounded-full items-center justify-center mb-4" style={{ backgroundColor: palette.dangerSoft }}>
               <AppIcon name="trash" size={28} color={palette.danger} />
             </View>
             <Text className="text-lg font-bold mb-2 text-center" style={{ color: palette.text }}>
@@ -304,14 +285,3 @@ export function AIChatHistory({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  listContent: {
-    padding: 16,
-    paddingBottom: 96,
-    gap: 16,
-  },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-  },
-});

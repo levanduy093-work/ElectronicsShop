@@ -7,7 +7,6 @@ import {
   LayoutAnimation,
   Platform,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -25,7 +24,6 @@ import { Theme, lightTheme } from '../theme';
 import { aiChat, confirmAiAction, addCartItem, uploadImage, UploadImageFile } from '../services/api';
 
 import { useToast } from '../components/common/ToastProvider';
-
 
 interface AIChatProps {
   theme?: Theme;
@@ -63,14 +61,12 @@ export function AIChat({
   const [isUploading, setIsUploading] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-
   const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
   const { t: translate } = useTranslation();
 
   const setMessages = (updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
-
     setMessagesState((prev) => (typeof updater === 'function' ? (updater as any)(prev) : updater));
   };
 
@@ -79,7 +75,6 @@ export function AIChat({
       setMessagesState(externalMessages);
     }
   }, [externalMessages]);
-
 
   useEffect(() => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -117,14 +112,12 @@ export function AIChat({
     };
   }, []);
 
-  // Real-time chat sync
   useEffect(() => {
     const handleNewMessage = (newMessage: ChatMessage) => {
       setMessages((prev) => {
-        // Prevent duplicates
         if (prev.some(m => m.id === newMessage.id)) return prev;
         const next = [...prev, newMessage];
-        onMessagesChange?.(next); // Helper to sync with parent/storage
+        onMessagesChange?.(next);
         return next;
       });
     };
@@ -343,9 +336,8 @@ export function AIChat({
     setInputValue('');
   };
 
-
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View className="flex-1" style={{ backgroundColor: theme.background }}>
       <TopBar
         title={translate('ai_engineer_support')}
         showSearch={false}
@@ -355,29 +347,26 @@ export function AIChat({
         onHistoryClick={onOpenChatHistory}
       />
 
-
       <KeyboardAvoidingView
-        style={styles.keyboardView}
+        className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
         <ScrollView
           ref={scrollViewRef}
-          style={[styles.messagesContainer, { backgroundColor: theme.background }]}
-          contentContainerStyle={[
-            styles.messagesContent,
-            {
-              backgroundColor: theme.background,
-              paddingBottom: 16,
-            },
-          ]}
+          className="flex-1"
+          style={{ backgroundColor: theme.background }}
+          contentContainerStyle={{
+            backgroundColor: theme.background,
+            paddingBottom: 16,
+            padding: 16,
+          }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {messages.map((msg, index) => (
             <MessageBubble
               key={msg.id || index}
-
               message={msg}
               onAction={handleAction}
               onSelectCard={(card) => onOpenProduct?.(card.productId)}
@@ -387,34 +376,30 @@ export function AIChat({
           ))}
 
           {isTyping && (
-            <View style={styles.typingIndicator}>
+            <View className="flex-row items-center gap-2 ml-11 mt-2">
               <AppIcon name="sparkles" size={12} color={theme.muted} />
-              <Text style={[styles.typingText, { color: theme.muted }]}>{translate('ai_analyzing')}</Text>
+              <Text className="text-xs" style={{ color: theme.muted }}>{translate('ai_analyzing')}</Text>
             </View>
           )}
         </ScrollView>
 
         <View
-          style={[
-            styles.inputContainer,
-            {
-              paddingBottom: isKeyboardVisible ? 12 : bottomNavHeight,
-              backgroundColor: theme.surface,
-              borderTopColor: theme.border,
-            },
-          ]}
+          className="p-4 pt-4 border-t"
+          style={{
+            paddingBottom: isKeyboardVisible ? 12 : bottomNavHeight,
+            backgroundColor: theme.surface,
+            borderTopColor: theme.border,
+          }}
         >
           <View
-            style={[
-              styles.inputWrapper,
-              {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
-              },
-            ]}
+            className="flex-row items-center rounded-2xl px-2.5 py-2 border gap-2.5 min-h-11"
+            style={{
+              backgroundColor: theme.surface,
+              borderColor: theme.border,
+            }}
           >
             <TouchableOpacity
-              style={styles.inputButton}
+              className="w-10 h-10 justify-center items-center rounded-xl"
               activeOpacity={0.7}
               onPress={pickAndSendImage}
               disabled={isUploading || isSending}
@@ -430,7 +415,8 @@ export function AIChat({
               value={inputValue}
               onChangeText={setInputValue}
               placeholder={translate('askAIOrUpload')}
-              style={[styles.input, { color: theme.text }]}
+              className="flex-1 text-[15px] min-h-10 leading-5"
+              style={{ color: theme.text, paddingTop: 8, paddingBottom: 8 }}
               placeholderTextColor={theme.muted}
               multiline
               textAlignVertical="center"
@@ -440,7 +426,15 @@ export function AIChat({
             {inputValue.trim() && (
               <TouchableOpacity
                 onPress={handleSend}
-                style={[styles.sendButton, { backgroundColor: theme.primary }]}
+                className="w-9 h-9 rounded-[10px] justify-center items-center"
+                style={{
+                  backgroundColor: theme.primary,
+                  shadowColor: '#000',
+                  shadowOpacity: 0.1,
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowRadius: 4,
+                  elevation: 2,
+                }}
                 activeOpacity={0.8}
                 disabled={isSending}
               >
@@ -450,83 +444,6 @@ export function AIChat({
           </View>
         </View>
       </KeyboardAvoidingView>
-
     </View>
-
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  messagesContainer: {
-    flex: 1,
-  },
-  messagesContent: {
-    padding: 16,
-    paddingBottom: 16,
-  },
-  typingIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginLeft: 44,
-    marginTop: 8,
-  },
-  typingText: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-  inputContainer: {
-    padding: 16,
-    paddingTop: 16,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    gap: 10,
-    minHeight: 44,
-  },
-  input: {
-    flex: 1,
-    fontSize: 15,
-    color: '#111827',
-    minHeight: 40,
-    paddingTop: 8,
-    paddingBottom: 8,
-    lineHeight: 20,
-  },
-  inputButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 12,
-  },
-  sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 2,
-  },
-});

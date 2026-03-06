@@ -1,5 +1,5 @@
 import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AppState, AppStateStatus, Linking, useColorScheme, StyleSheet, View } from 'react-native';
+import { Alert, AppState, AppStateStatus, Linking, useColorScheme, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -2057,7 +2057,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         <AppProvider value={contextValue}>
             {children}
             {isAppLocked && (
-                <View style={StyleSheet.absoluteFill}>
+                <View className="absolute inset-0">
                     <BiometricLockScreen onUnlock={() => {
                         if (AppState.currentState === 'active') {
                             setIsAppLocked(false);

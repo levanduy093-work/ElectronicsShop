@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../common/Icon';
 import { Theme } from '../../theme';
@@ -69,7 +69,6 @@ export function LocationFields({
         loadProvinces();
     }, [loadProvinces]);
 
-    // Sync internal state with props if they change externally (or initially)
     useEffect(() => {
         if (!city || provinces.length === 0) return;
         const matched = provinces.find(p => p.name === city);
@@ -100,17 +99,15 @@ export function LocationFields({
     };
 
     const renderSelect = (label: string, value: string, placeholder: string, onPress: () => void, loading?: boolean) => (
-        <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: t.text }]}>{label}</Text>
+        <View className="gap-2">
+            <Text className="text-base font-medium mb-1" style={{ color: t.text }}>{label}</Text>
             <TouchableOpacity
                 onPress={onPress}
-                style={[styles.selectBox, { borderColor: t.border, backgroundColor: t.surface }]}
+                className="rounded-xl p-3 border flex-row items-center justify-between"
+                style={{ borderColor: t.border, backgroundColor: t.surface }}
                 activeOpacity={0.7}
             >
-                <Text style={[
-                    styles.selectText,
-                    { color: value ? t.text : t.muted },
-                ]}>
+                <Text className="text-base" style={{ color: value ? t.text : t.muted }}>
                     {value || placeholder}
                 </Text>
                 {loading ? (
@@ -123,7 +120,7 @@ export function LocationFields({
     );
 
     return (
-        <View style={styles.container}>
+        <View className="gap-4">
             {renderSelect(
                 translate('province_city_label'),
                 city,
@@ -137,7 +134,7 @@ export function LocationFields({
                 provinceLoading,
             )}
 
-            <View style={styles.inputGroup}>
+            <View className="gap-2">
                 {renderSelect(
                     translate('ward_label'),
                     wardValue,
@@ -177,31 +174,3 @@ export function LocationFields({
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        gap: 16,
-    },
-    inputGroup: {
-        gap: 8,
-    },
-    row: {
-        flexDirection: 'row',
-    },
-    label: {
-        fontSize: 16,
-        fontWeight: '500',
-        marginBottom: 4,
-    },
-    selectBox: {
-        borderRadius: 12,
-        padding: 12,
-        borderWidth: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    selectText: {
-        fontSize: 16,
-    },
-});

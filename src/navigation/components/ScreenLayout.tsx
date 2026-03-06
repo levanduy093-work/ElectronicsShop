@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { TopBar } from '../../components/layout/TopBar';
 import { useTheme } from '../../theme';
 import { useTranslation } from 'react-i18next';
@@ -31,7 +31,7 @@ export function ScreenLayout({
     const { t } = useTranslation();
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <View className="flex-1" style={{ backgroundColor: theme.background }}>
             <TopBar
                 title={title || t('app_name')}
                 showSearch={showSearch}
@@ -42,18 +42,9 @@ export function ScreenLayout({
                 theme={theme}
                 visible={showTopBar}
             />
-            <View style={styles.content}>
+            <View className="flex-1">
                 {children}
             </View>
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    content: {
-        flex: 1,
-    },
-});

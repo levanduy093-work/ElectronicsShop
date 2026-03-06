@@ -1,14 +1,13 @@
 import React, { Suspense } from 'react';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { RootStack } from './RootStack';
 import { useTheme } from '../theme';
 
-// Loading fallback for lazy-loaded screens
 function LoadingFallback() {
     const { theme } = useTheme();
     return (
-        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+        <View className="flex-1 justify-center items-center" style={{ backgroundColor: theme.background }}>
             <ActivityIndicator size="large" color={theme.primary} />
         </View>
     );
@@ -61,15 +60,6 @@ export function AppNavigator({ cartCount = 0, initialAuthMode = null }: AppNavig
     );
 }
 
-const styles = StyleSheet.create({
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-});
-
-// Re-export types and navigators
 export * from './types';
 export { RootStack } from './RootStack';
 export { TabNavigator } from './TabNavigator';

@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { StatusBar, StyleSheet, View, useColorScheme, AppState, AppStateStatus } from 'react-native';
+import { StatusBar, View, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useTranslation } from 'react-i18next';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -61,7 +61,6 @@ const ForegroundNotificationHandler = () => {
 
 // Main App content with navigation (uses themeMode từ AppStateProvider)
 function AppContent() {
-    const { t } = useTranslation();
     const systemColorScheme = useColorScheme();
     const systemDarkMode = systemColorScheme === 'dark';
     const app = useAppOptional();
@@ -121,7 +120,7 @@ function AppContent() {
     if (isCheckingOnboarding) {
         return (
             <ThemeProvider value={{ theme, isDarkMode }}>
-                <View style={[styles.container, { backgroundColor: theme.background }]} />
+                <View className="flex-1" style={{ backgroundColor: theme.background }} />
             </ThemeProvider>
         );
     }
@@ -166,7 +165,7 @@ function AppContent() {
 // Root App component with providers
 function App(): React.JSX.Element {
     return (
-        <GestureHandlerRootView style={styles.container}>
+        <GestureHandlerRootView className="flex-1">
             <QueryClientProvider client={queryClient}>
                 <ToastProvider>
                     <AppStateProvider>
@@ -177,11 +176,5 @@ function App(): React.JSX.Element {
         </GestureHandlerRootView>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-});
 
 export default App;

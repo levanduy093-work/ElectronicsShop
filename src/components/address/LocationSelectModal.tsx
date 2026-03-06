@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, FlatList, TextInput, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, FlatList, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../common/Icon';
 import { Theme } from '../../theme';
@@ -54,39 +54,38 @@ export function LocationSelectModal({
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <KeyboardAvoidingView
-                style={styles.modalOverlay}
+                className="flex-1 justify-end"
+                style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
-                <View style={[styles.modalCard, { backgroundColor: theme.card }]}>
-                    <View style={styles.modalHeader}>
-                        <Text style={[styles.modalTitle, { color: theme.text }]}>{title}</Text>
-                        <TouchableOpacity onPress={onClose} style={styles.modalClose} activeOpacity={0.7}>
+                <View className="max-h-[70%] rounded-t-2xl p-4 gap-3" style={{ backgroundColor: theme.card }}>
+                    <View className="flex-row items-center justify-between">
+                        <Text className="text-base font-semibold" style={{ color: theme.text }}>{title}</Text>
+                        <TouchableOpacity onPress={onClose} className="p-1" activeOpacity={0.7}>
                             <AppIcon name="close" size={20} color={theme.text} />
                         </TouchableOpacity>
                     </View>
-                    <View style={[styles.inputGroup, { marginBottom: 12 }]}>
+                    <View className="gap-2 mb-3">
                         <TextInput
                             value={query}
                             onChangeText={setQuery}
                             placeholder={t('search')}
                             placeholderTextColor={theme.muted}
-                            style={[
-                                styles.input,
-                                {
-                                    backgroundColor: theme.surface,
-                                    borderColor: theme.border,
-                                    color: theme.text,
-                                    textAlignVertical: 'center',
-                                    includeFontPadding: false,
-                                    paddingVertical: 0,
-                                }
-                            ]}
+                            className="rounded-xl p-3 border text-sm"
+                            style={{
+                                backgroundColor: theme.surface,
+                                borderColor: theme.border,
+                                color: theme.text,
+                                textAlignVertical: 'center',
+                                includeFontPadding: false,
+                                paddingVertical: 0,
+                            }}
                         />
                     </View>
                     {loading ? (
-                        <View style={styles.modalLoading}>
+                        <View className="items-center py-4 gap-2">
                             <ActivityIndicator color={theme.primary} />
-                            <Text style={[styles.loadingText, { color: theme.muted }]}>{t('loading')}</Text>
+                            <Text className="text-sm" style={{ color: theme.muted }}>{t('loading')}</Text>
                         </View>
                     ) : (
                         <FlatList
@@ -99,14 +98,15 @@ export function LocationSelectModal({
                                         onSelect(item);
                                         onClose();
                                     }}
-                                    style={[styles.optionRow, { borderColor: theme.border }]}
+                                    className="py-3 border-b"
+                                    style={{ borderColor: theme.border }}
                                     activeOpacity={0.7}
                                 >
-                                    <Text style={[styles.optionText, { color: theme.text }]}>{item.name}</Text>
+                                    <Text className="text-sm" style={{ color: theme.text }}>{item.name}</Text>
                                 </TouchableOpacity>
                             )}
                             ListEmptyComponent={
-                                <Text style={[styles.emptyText, { color: theme.muted }]}>{t('no_results')}</Text>
+                                <Text className="text-center py-4 text-sm" style={{ color: theme.muted }}>{t('no_results')}</Text>
                             }
                         />
                     )}
@@ -115,59 +115,3 @@ export function LocationSelectModal({
         </Modal>
     );
 }
-
-const styles = StyleSheet.create({
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        justifyContent: 'flex-end',
-    },
-    modalCard: {
-        maxHeight: '70%',
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-        padding: 16,
-        gap: 12,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    modalTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    modalClose: {
-        padding: 4,
-    },
-    inputGroup: {
-        gap: 8,
-    },
-    input: {
-        borderRadius: 12,
-        padding: 12,
-        borderWidth: 1,
-        fontSize: 14,
-    },
-    modalLoading: {
-        alignItems: 'center',
-        paddingVertical: 16,
-        gap: 8,
-    },
-    loadingText: {
-        fontSize: 14,
-    },
-    optionRow: {
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-    },
-    optionText: {
-        fontSize: 14,
-    },
-    emptyText: {
-        textAlign: 'center',
-        paddingVertical: 16,
-        fontSize: 14,
-    },
-});
