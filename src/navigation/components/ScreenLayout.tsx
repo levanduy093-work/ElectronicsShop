@@ -32,16 +32,18 @@ export function ScreenLayout({
 
     return (
         <View className="flex-1" style={{ backgroundColor: theme.background }}>
-            <TopBar
-                title={title || t('app_name')}
-                showSearch={showSearch}
-                onSearchClick={onSearchClick}
-                onFilterClick={showFilter ? onFilterClick : undefined}
-                onNotificationClick={onNotificationClick}
-                hasUnread={hasUnread}
-                theme={theme}
-                visible={showTopBar}
-            />
+            {showTopBar ? (
+                <TopBar
+                    title={title || t('app_name')}
+                    showSearch={showSearch}
+                    onSearchClick={onSearchClick}
+                    onFilterClick={showFilter ? onFilterClick : undefined}
+                    onNotificationClick={onNotificationClick}
+                    hasUnread={hasUnread}
+                    theme={theme}
+                    visible={showTopBar}
+                />
+            ) : null}
             <View className="flex-1">
                 {children}
             </View>

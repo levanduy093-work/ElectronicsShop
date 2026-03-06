@@ -5,7 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from './types';
 import { useAiChatOptional, useAppOptional, useOrdersOptional, useNotificationsOptional, useCartOptional, useSettingsOptional, useThemeModeOptional } from '../context';
 import { useTheme } from '../theme';
-import { TabNavigator } from './TabNavigator';
+import { MainTabsLayout } from './MainTabsLayout';
 
 // Direct imports
 import { ProductDetail as ProductDetailScreen } from '../screens/ProductDetail';
@@ -455,7 +455,13 @@ export function RootStack({ cartCount = 0, initialAuthMode }: RootStackProps) {
             }}
         >
             <Stack.Screen name="MainTabs">
-                {() => <TabNavigator cartCount={cartCount} initialAuthMode={initialAuthMode} />}
+                {(props) => (
+                    <MainTabsLayout
+                        {...props}
+                        cartCount={cartCount}
+                        initialAuthMode={initialAuthMode}
+                    />
+                )}
             </Stack.Screen>
             <Stack.Screen name="ProductDetail" component={ProductDetailWrapper} />
             <Stack.Screen name="Search" component={SearchWrapper} />

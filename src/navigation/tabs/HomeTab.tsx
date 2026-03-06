@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAppOptional, useNotificationsOptional } from '../../context';
+import { useAppOptional } from '../../context';
 import { useTheme } from '../../theme';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { Home as HomeScreen } from '../../screens/Home';
@@ -7,7 +7,6 @@ import { Home as HomeScreen } from '../../screens/Home';
 export const HomeTab = React.memo(function HomeTab({ navigation }: { navigation: any }) {
     const { theme } = useTheme();
     const app = useAppOptional();
-    const notificationsCtx = useNotificationsOptional();
 
     const handleNavigate = React.useCallback((screen: string) => {
         if (screen === 'search') {
@@ -40,18 +39,9 @@ export const HomeTab = React.memo(function HomeTab({ navigation }: { navigation:
         return app?.loadProducts?.();
     }, [app?.loadProducts]);
 
-    const hasUnread = React.useMemo(
-        () => (notificationsCtx?.notifications || []).some(n => !n.read),
-        [notificationsCtx?.notifications],
-    );
-
     return (
         <ScreenLayout
-            showTopBar={true}
-            showSearch={true}
-            hasUnread={hasUnread}
-            onSearchClick={() => navigation.navigate('Search', {})}
-            onNotificationClick={() => navigation.navigate('Notifications')}
+            showTopBar={false}
         >
             <HomeScreen
                 theme={theme}

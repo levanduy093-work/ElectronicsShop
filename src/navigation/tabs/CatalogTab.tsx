@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAppOptional, useNotificationsOptional } from '../../context';
+import { useAppOptional } from '../../context';
 import { useTheme } from '../../theme';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { filterProducts } from '../../utils/filterUtils';
@@ -9,7 +9,6 @@ import { setCatalogSearchQuery, useFiltersStore } from '../../store/filtersStore
 export const CatalogTab = React.memo(function CatalogTab({ navigation, route }: { navigation: any; route: any }) {
     const { theme } = useTheme();
     const app = useAppOptional();
-    const notificationsCtx = useNotificationsOptional();
     const catalogFilters = useFiltersStore((state) => state.catalogFilters);
     const catalogSearchQuery = useFiltersStore((state) => state.catalogSearchQuery);
 
@@ -24,11 +23,6 @@ export const CatalogTab = React.memo(function CatalogTab({ navigation, route }: 
         if (typeof params.params?.category === 'string') return params.params.category;
         return 'All';
     }, [route.params]);
-
-    const hasUnread = React.useMemo(
-        () => (notificationsCtx?.notifications || []).some(n => !n.read),
-        [notificationsCtx?.notifications],
-    );
 
     const handleProductClick = React.useCallback((p: any) => {
         navigation.navigate('ProductDetail', { productId: p.id });
@@ -48,10 +42,7 @@ export const CatalogTab = React.memo(function CatalogTab({ navigation, route }: 
 
     return (
         <ScreenLayout
-            showTopBar={true}
-            showSearch={false}
-            hasUnread={hasUnread}
-            onNotificationClick={() => navigation.navigate('Notifications')}
+            showTopBar={false}
         >
             <CatalogScreen
                 theme={theme}

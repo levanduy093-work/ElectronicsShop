@@ -1,26 +1,17 @@
 import React from 'react';
-import { useAppOptional, useNotificationsOptional, useCartOptional } from '../../context';
+import { useAppOptional, useCartOptional } from '../../context';
 import { useTheme } from '../../theme';
 import { ScreenLayout } from '../components/ScreenLayout';
-import { useTranslation } from 'react-i18next';
 import { Cart as CartScreen } from '../../screens/Cart';
 
 export function CartTab({ navigation }: { navigation: any }) {
     const { theme } = useTheme();
-    const { t } = useTranslation();
     const app = useAppOptional();
-    const notificationsCtx = useNotificationsOptional();
     const cartCtx = useCartOptional();
-
-    const hasUnread = (notificationsCtx?.notifications || []).some(n => !n.read);
 
     return (
         <ScreenLayout
-            showTopBar={true}
-            title={t('cart_title')}
-            showSearch={false}
-            hasUnread={hasUnread}
-            onNotificationClick={() => navigation.navigate('Notifications')}
+            showTopBar={false}
         >
             <CartScreen
                 theme={theme}

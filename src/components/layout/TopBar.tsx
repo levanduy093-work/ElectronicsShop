@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppIcon } from '../common/Icon';
 import { Theme, lightTheme, useTheme } from '../../theme';
 
+const LOGO_SOURCE = require('../../assets/images/logo.png');
+
 interface TopBarProps {
   title?: string;
   showSearch?: boolean;
@@ -66,12 +68,14 @@ function TopBarComponent({
           style={{ flex: 1, minWidth: 0, marginRight: 8 }}
         >
           <Image
-            source={require('../../assets/images/logo.png')}
+            source={LOGO_SOURCE}
             className="w-8 h-8 rounded-lg"
             resizeMode="contain"
             fadeDuration={0}
-            defaultSource={require('../../assets/images/logo.png')}
+            defaultSource={LOGO_SOURCE}
             onLoadEnd={() => { }}
+            renderToHardwareTextureAndroid
+            shouldRasterizeIOS
           />
           <Text
             className="text-lg font-semibold tracking-tight text-gray-900"
