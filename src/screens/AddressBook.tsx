@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../theme';
+import { TYPO_CLASS } from '../theme/typography';
 import { Address, AddressFormValues, AddressType } from '../types';
 import { DEFAULT_ADDRESSES } from '../constants/defaults';
 import { buildFullAddress } from '../utils/address';
@@ -304,7 +305,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
         <TouchableOpacity onPress={onBack} className="p-2" activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text className="text-lg font-bold flex-1 ml-2" style={{ color: t.text }}>{translate('address_book')}</Text>
+        <Text className={`${TYPO_CLASS.screenTitle} flex-1 ml-2`} style={{ color: t.text }}>{translate('address_book')}</Text>
         <TouchableOpacity onPress={openAddForm} activeOpacity={0.7}>
           <AppIcon name="plus" size={24} color={t.primary} />
         </TouchableOpacity>
@@ -313,7 +314,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
       {isOffline && (
         <View className="flex-row items-center gap-1.5 px-3 py-2.5 border-b" style={{ backgroundColor: t.surface, borderColor: t.border }}>
           <AppIcon name="wifi-off" size={14} color={t.muted} />
-          <Text className="text-xs font-medium" style={{ color: t.muted }}>
+          <Text className={TYPO_CLASS.caption} style={{ color: t.muted }}>
             {translate('no_internet')}
           </Text>
         </View>
@@ -327,7 +328,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
         {isLoading && addressList.length === 0 ? (
           <View className="flex-1 justify-center items-center py-10">
             <ActivityIndicator size="large" color={t.primary} />
-            <Text className="mt-3 text-sm" style={{ color: t.muted }}>{translate('loading_addresses')}</Text>
+            <Text className={`${TYPO_CLASS.helper} mt-3`} style={{ color: t.muted }}>{translate('loading_addresses')}</Text>
           </View>
         ) : (
           addressList.map((addr) => (
@@ -350,7 +351,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
           activeOpacity={0.7}
         >
           <AppIcon name="plus" size={20} color={t.muted} />
-          <Text className="text-sm font-medium" style={{ color: t.text }}>{translate('addNewAddress')}</Text>
+          <Text className={TYPO_CLASS.bodyStrong} style={{ color: t.text }}>{translate('addNewAddress')}</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -368,7 +369,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
             <Text className="text-lg font-bold mb-2" style={{ color: t.text }}>
               {translate('confirmDelete')}
             </Text>
-            <Text className="text-sm leading-6 mb-4" style={{ color: t.muted }}>
+            <Text className={`${TYPO_CLASS.helper} leading-6 mb-4`} style={{ color: t.muted }}>
               {translate('confirmDeleteAddress')}
             </Text>
 

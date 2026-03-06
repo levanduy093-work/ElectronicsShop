@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../theme';
+import { TEXT_INPUT_BASE_STYLE, TYPO_CLASS } from '../theme/typography';
 import { useToast } from '../components/common/ToastProvider';
 import { changePassword, sendChangePasswordOtp } from '../services/api';
 
@@ -133,7 +134,7 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
     error?: string,
   ) => (
     <View className="gap-2">
-      <Text className="text-sm font-semibold" style={{ color: t.text }}>{label}</Text>
+      <Text className={TYPO_CLASS.fieldLabel} style={{ color: t.text }}>{label}</Text>
       <View
         className="flex-row items-center border rounded-xl px-3"
         style={{ backgroundColor: t.surface, borderColor: error ? '#EF4444' : t.border }}
@@ -149,8 +150,8 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
               placeholder="••••••••"
               placeholderTextColor={t.muted}
               secureTextEntry={secure[secureKey]}
-              className="flex-1 py-3 text-sm"
-              style={{ color: t.text }}
+              className="flex-1 py-3 text-base"
+              style={{ color: t.text, ...TEXT_INPUT_BASE_STYLE }}
               editable={!saving}
             />
           )}
@@ -166,7 +167,7 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
   const renderOtpInput = () => (
     <View className="gap-2">
       <View className="flex-row justify-between items-center">
-        <Text className="text-sm font-semibold" style={{ color: t.text }}>{translate('verify_otp')}</Text>
+        <Text className={TYPO_CLASS.fieldLabel} style={{ color: t.text }}>{translate('verify_otp')}</Text>
         <TouchableOpacity
           onPress={handleSendOtp}
           className="py-1.5 px-3 rounded-full border"
@@ -194,8 +195,8 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
               placeholder={translate('enter_otp_code')}
               placeholderTextColor={t.muted}
               keyboardType="number-pad"
-              className="flex-1 py-3 text-sm"
-              style={{ color: t.text }}
+              className="flex-1 py-3 text-base"
+              style={{ color: t.text, ...TEXT_INPUT_BASE_STYLE }}
               maxLength={6}
               editable={!saving}
             />

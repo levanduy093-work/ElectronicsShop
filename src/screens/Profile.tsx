@@ -13,6 +13,7 @@ import { ProfileStats } from '../components/profile/ProfileStats';
 import { ProfileMenu } from '../components/profile/ProfileMenu';
 import { VoucherListModal } from '../components/profile/VoucherListModal';
 import { EditProfileModal } from '../components/profile/EditProfileModal';
+import { TYPO_CLASS } from '../theme/typography';
 
 interface UserProfile {
   name: string;
@@ -137,7 +138,7 @@ export function Profile({
           theme={t}
         />
 
-        <Text className="text-center text-sm mt-8 mb-4" style={{ color: t.muted }}>Version 1.0.0 (Build 2024)</Text>
+        <Text className={`${TYPO_CLASS.helper} text-center mt-8 mb-4`} style={{ color: t.muted }}>Version 1.0.0 (Build 2024)</Text>
       </ScrollView>
 
       {/* Vouchers Modal */}

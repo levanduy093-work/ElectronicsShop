@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Modal, FlatList, TextInput, ActivityIndic
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../common/Icon';
 import { Theme } from '../../theme';
+import { TEXT_INPUT_LARGE_STYLE, TYPO_CLASS } from '../../theme/typography';
 import { LocationOption } from '../../services/locations';
 
 const normalizeText = (text: string) =>
@@ -60,7 +61,7 @@ export function LocationSelectModal({
             >
                 <View className="max-h-[70%] rounded-t-2xl p-4 gap-3" style={{ backgroundColor: theme.card }}>
                     <View className="flex-row items-center justify-between">
-                        <Text className="text-base font-semibold" style={{ color: theme.text }}>{title}</Text>
+                        <Text className={TYPO_CLASS.sectionTitle} style={{ color: theme.text }}>{title}</Text>
                         <TouchableOpacity onPress={onClose} className="p-1" activeOpacity={0.7}>
                             <AppIcon name="close" size={20} color={theme.text} />
                         </TouchableOpacity>
@@ -77,11 +78,7 @@ export function LocationSelectModal({
                                 borderColor: theme.border,
                                 color: theme.text,
                                 height: 46,
-                                fontSize: 18,
-                                lineHeight: 22,
-                                textAlignVertical: 'center',
-                                includeFontPadding: false,
-                                paddingVertical: 0,
+                                ...TEXT_INPUT_LARGE_STYLE,
                             }}
                         />
                     </View>
@@ -104,9 +101,9 @@ export function LocationSelectModal({
                                     className="py-3 border-b"
                                     style={{ borderColor: theme.border }}
                                     activeOpacity={0.7}
-                                >
-                                    <Text className="text-sm" style={{ color: theme.text }}>{item.name}</Text>
-                                </TouchableOpacity>
+                                    >
+                                        <Text className={TYPO_CLASS.body} style={{ color: theme.text }}>{item.name}</Text>
+                                    </TouchableOpacity>
                             )}
                             ListEmptyComponent={
                                 <Text className="text-center py-4 text-sm" style={{ color: theme.muted }}>{t('no_results')}</Text>

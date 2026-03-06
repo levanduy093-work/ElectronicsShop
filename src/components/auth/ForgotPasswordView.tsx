@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AppIcon } from '../../components/common/Icon';
 import { Theme } from '../../theme';
+import { TEXT_INPUT_BASE_STYLE, TYPO_CLASS } from '../../theme/typography';
 import { useToast } from '../../components/common/ToastProvider';
 import { sendResetOtp, verifyResetOtp, resetPassword } from '../../services/api';
 
@@ -180,7 +181,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBack, 
                 {resetStep === 'email' && (
                     <View className="gap-4">
                         <View className="gap-2">
-                            <Text className="text-sm font-medium" style={{ color: t.text }}>{translate('email')}</Text>
+                            <Text className={TYPO_CLASS.fieldLabel} style={{ color: t.text }}>{translate('email')}</Text>
                             <View className="flex-row items-center rounded-xl border px-3 h-12" style={{ backgroundColor: t.surface, borderColor: t.border }} pointerEvents="box-none">
                                 <AppIcon name="mail" size={20} color={t.muted} style={{ marginRight: 12 }} />
                                 <Controller
@@ -192,12 +193,10 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBack, 
                                             value={value}
                                             onChangeText={onChange}
                                             onBlur={onBlur}
-                                            className="flex-1 text-sm"
+                                            className="flex-1 text-base"
                                             style={{
                                                 color: t.text,
-                                                textAlignVertical: 'center',
-                                                includeFontPadding: false,
-                                                paddingVertical: 0,
+                                                ...TEXT_INPUT_BASE_STYLE,
                                             }}
                                             keyboardType="email-address"
                                             autoCapitalize="none"
@@ -288,7 +287,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBack, 
                 {resetStep === 'password' && (
                     <View className="gap-4">
                         <View className="gap-2">
-                            <Text className="text-sm font-medium" style={{ color: t.text }}>{translate('new_password')}</Text>
+                            <Text className={TYPO_CLASS.fieldLabel} style={{ color: t.text }}>{translate('new_password')}</Text>
                             <View className="flex-row items-center rounded-xl border px-3 h-12" style={{ backgroundColor: t.surface, borderColor: t.border }} pointerEvents="box-none">
                                 <AppIcon name="lock" size={20} color={t.muted} style={{ marginRight: 12 }} />
                                 <Controller
@@ -300,12 +299,10 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBack, 
                                             value={value}
                                             onChangeText={onChange}
                                             onBlur={onBlur}
-                                            className="flex-1 text-sm"
+                                            className="flex-1 text-base"
                                             style={{
                                                 color: t.text,
-                                                textAlignVertical: 'center',
-                                                includeFontPadding: false,
-                                                paddingVertical: 0,
+                                                ...TEXT_INPUT_BASE_STYLE,
                                             }}
                                             secureTextEntry
                                             placeholderTextColor={t.muted}
@@ -320,7 +317,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBack, 
                         </View>
 
                         <View className="gap-2">
-                            <Text className="text-sm font-medium" style={{ color: t.text }}>{translate('confirm_password')}</Text>
+                            <Text className={TYPO_CLASS.fieldLabel} style={{ color: t.text }}>{translate('confirm_password')}</Text>
                             <View className="flex-row items-center rounded-xl border px-3 h-12" style={{ backgroundColor: t.surface, borderColor: t.border }} pointerEvents="box-none">
                                 <AppIcon name="lock" size={20} color={t.muted} style={{ marginRight: 12 }} />
                                 <Controller
@@ -332,12 +329,10 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBack, 
                                             value={value}
                                             onChangeText={onChange}
                                             onBlur={onBlur}
-                                            className="flex-1 text-sm"
+                                            className="flex-1 text-base"
                                             style={{
                                                 color: t.text,
-                                                textAlignVertical: 'center',
-                                                includeFontPadding: false,
-                                                paddingVertical: 0,
+                                                ...TEXT_INPUT_BASE_STYLE,
                                             }}
                                             secureTextEntry
                                             placeholderTextColor={t.muted}

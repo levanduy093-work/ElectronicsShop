@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../types';
@@ -7,6 +7,7 @@ import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
 import { formatPrice } from '../utils';
 import { Theme, lightTheme, useTheme } from '../theme';
+import { TYPO_CLASS } from '../theme/typography';
 
 interface WishlistProps {
   items: Product[];
@@ -46,7 +47,7 @@ export function Wishlist({ items, onBack, onRemove, onProductClick, theme }: Wis
         <TouchableOpacity onPress={onBack} className="p-2" activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text className="text-lg font-bold flex-1 ml-2" style={{ color: t.text }}>{translate('favorite_products_count', { count: items.length })}</Text>
+        <Text className={`${TYPO_CLASS.screenTitle} flex-1 ml-2`} style={{ color: t.text }}>{translate('favorite_products_count', { count: items.length })}</Text>
       </View>
 
       <ScrollView
@@ -60,8 +61,8 @@ export function Wishlist({ items, onBack, onRemove, onProductClick, theme }: Wis
             <View className="w-20 h-20 rounded-full justify-center items-center mb-4" style={{ backgroundColor: t.surface }}>
               <AppIcon name="heart" size={32} color={t.muted} />
             </View>
-            <Text className="text-lg font-bold mb-2" style={{ color: t.text }}>{translate('wishlist_empty_title')}</Text>
-            <Text className="text-sm text-center max-w-[300px]" style={{ color: t.muted }}>
+            <Text className={`${TYPO_CLASS.sectionTitle} mb-2`} style={{ color: t.text }}>{translate('wishlist_empty_title')}</Text>
+            <Text className={`${TYPO_CLASS.helper} text-center max-w-[300px]`} style={{ color: t.muted }}>
               {translate('wishlist_empty_text')}
             </Text>
           </View>
@@ -116,12 +117,12 @@ export function Wishlist({ items, onBack, onRemove, onProductClick, theme }: Wis
                     onPress={() => onProductClick(product)}
                     activeOpacity={0.7}
                   >
-                    <Text className="text-sm font-medium mb-1 min-h-[36px]" style={{ color: t.text }} numberOfLines={2}>
+                    <Text className={`${TYPO_CLASS.helper} font-medium mb-1 min-h-[36px]`} style={{ color: t.text }} numberOfLines={2}>
                       {product.name}
                     </Text>
                   </TouchableOpacity>
                   <View className="flex-row justify-between items-center mt-auto">
-                    <Text className="text-sm font-bold" style={{ color: t.primary }}>{formatPrice(product.price)}</Text>
+                    <Text className={TYPO_CLASS.bodyStrong} style={{ color: t.primary }}>{formatPrice(product.price)}</Text>
                     <TouchableOpacity
                       onPress={() => onProductClick(product)}
                       className="w-8 h-8 rounded-full justify-center items-center"

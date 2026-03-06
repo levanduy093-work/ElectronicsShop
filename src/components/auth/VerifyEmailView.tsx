@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, ScrollVi
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../../components/common/Icon';
 import { Theme } from '../../theme';
+import { TYPO_CLASS } from '../../theme/typography';
 import { useToast } from '../../components/common/ToastProvider';
 import { sendRegisterOtp, verifyRegisterOtp, AuthResponse } from '../../services/api';
 
@@ -115,7 +116,7 @@ export const VerifyEmailView: React.FC<VerifyEmailViewProps> = ({
                 </View>
 
                 <View className="gap-6 mt-4">
-                    <Text className="text-sm font-medium text-center" style={{ color: t.text }}>{translate('enter_otp')}</Text>
+                    <Text className={`${TYPO_CLASS.fieldLabel} text-center`} style={{ color: t.text }}>{translate('enter_otp')}</Text>
                     <View className="flex-row justify-center gap-3">
                         {verificationCode.map((digit, index) => (
                             <TextInput
@@ -151,7 +152,7 @@ export const VerifyEmailView: React.FC<VerifyEmailViewProps> = ({
                         activeOpacity={0.7}
                         disabled={isSubmitting}
                     >
-                        <Text className="text-sm font-medium" style={{ color: t.primary }}>{translate('resend_code')}</Text>
+                        <Text className={TYPO_CLASS.fieldLabel} style={{ color: t.primary }}>{translate('resend_code')}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity

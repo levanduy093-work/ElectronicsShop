@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Switch, StatusBar, Platform, useColorScheme } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Switch, StatusBar, useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
 import { BiometricIcon } from '../components/common/BiometricIcon';
 import { darkTheme, lightTheme } from '../theme';
+import { TYPO_CLASS } from '../theme/typography';
 import {
   checkBiometricSupport,
   setBiometricEnabled,
@@ -104,7 +105,7 @@ export function Settings({
         <TouchableOpacity onPress={onBack} className="p-2" activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text className="text-lg font-bold flex-1 ml-2" style={{ color: theme.text }}>{t('settings')}</Text>
+        <Text className={`${TYPO_CLASS.screenTitle} flex-1 ml-2`} style={{ color: theme.text }}>{t('settings')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -130,10 +131,10 @@ export function Settings({
                 >
                   <AppIcon name="moon" size={18} color={theme.muted} />
                 </View>
-                <Text className="text-sm font-medium" style={{ color: theme.text }}>{t('darkMode')}</Text>
+                <Text className={TYPO_CLASS.bodyStrong} style={{ color: theme.text }}>{t('darkMode')}</Text>
               </View>
               <View className="flex-row items-center gap-2">
-                <Text className="text-sm" style={{ color: theme.muted }}>
+                <Text className={TYPO_CLASS.helper} style={{ color: theme.muted }}>
                   {getThemeModeLabel()}
                 </Text>
                 <AppIcon name={showThemeSelector ? 'chevron-up' : 'chevron-down'} size={18} color={theme.muted} />
@@ -151,7 +152,7 @@ export function Settings({
                     setShowThemeSelector(false);
                   }}
                 >
-                  <Text className="text-sm font-medium" style={{ color: themeMode === 'light' ? theme.primary : theme.text }}>
+                  <Text className={TYPO_CLASS.bodyStrong} style={{ color: themeMode === 'light' ? theme.primary : theme.text }}>
                     {t('light') || 'Sáng'}
                   </Text>
                   {themeMode === 'light' && <AppIcon name="check" size={18} color={theme.primary} />}
@@ -166,7 +167,7 @@ export function Settings({
                     setShowThemeSelector(false);
                   }}
                 >
-                  <Text className="text-sm font-medium" style={{ color: themeMode === 'dark' ? theme.primary : theme.text }}>
+                  <Text className={TYPO_CLASS.bodyStrong} style={{ color: themeMode === 'dark' ? theme.primary : theme.text }}>
                     {t('dark') || 'Tối'}
                   </Text>
                   {themeMode === 'dark' && <AppIcon name="check" size={18} color={theme.primary} />}
@@ -181,7 +182,7 @@ export function Settings({
                     setShowThemeSelector(false);
                   }}
                 >
-                  <Text className="text-sm font-medium" style={{ color: themeMode === 'system' ? theme.primary : theme.text }}>
+                  <Text className={TYPO_CLASS.bodyStrong} style={{ color: themeMode === 'system' ? theme.primary : theme.text }}>
                     {t('system') || 'Theo hệ thống'}
                   </Text>
                   {themeMode === 'system' && <AppIcon name="check" size={18} color={theme.primary} />}
@@ -196,10 +197,10 @@ export function Settings({
                 <View className="w-9 h-9 rounded-full justify-center items-center" style={{ backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }}>
                   <AppIcon name="globe" size={18} color={theme.muted} />
                 </View>
-                <Text className="text-sm font-medium" style={{ color: theme.text }}>{t('language')}</Text>
+                <Text className={TYPO_CLASS.bodyStrong} style={{ color: theme.text }}>{t('language')}</Text>
               </View>
               <View className="flex-row items-center gap-2">
-                <Text className="text-sm" style={{ color: theme.muted }}>
+                <Text className={TYPO_CLASS.helper} style={{ color: theme.muted }}>
                   {i18n.language === 'en' ? t('english') : t('vietnamese')}
                 </Text>
                 <AppIcon name="chevron-right" size={18} color={theme.muted} />
@@ -219,7 +220,7 @@ export function Settings({
                   <AppIcon name="bell" size={18} color={theme.muted} />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-sm font-medium" style={{ color: theme.text }}>{t('pushNotifications')}</Text>
+                  <Text className={TYPO_CLASS.bodyStrong} style={{ color: theme.text }}>{t('pushNotifications')}</Text>
                   <Text className="text-xs font-medium mt-0.5" style={{ color: theme.muted }}>
                     {t('push_notifications_description')}
                   </Text>
@@ -244,7 +245,7 @@ export function Settings({
                 <View className="w-9 h-9 rounded-full justify-center items-center" style={{ backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }}>
                   <AppIcon name="lock" size={18} color={theme.muted} />
                 </View>
-                <Text className="text-sm font-medium" style={{ color: theme.text }}>{t('changePassword')}</Text>
+                <Text className={TYPO_CLASS.bodyStrong} style={{ color: theme.text }}>{t('changePassword')}</Text>
               </View>
               <AppIcon name="chevron-right" size={18} color={theme.muted} />
             </TouchableOpacity>
@@ -262,7 +263,7 @@ export function Settings({
                     />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-medium" style={{ color: theme.text }}>
+                    <Text className={TYPO_CLASS.bodyStrong} style={{ color: theme.text }}>
                       {biometricStatus?.isSupported
                         ? (biometricStatus.biometryType === 'FaceID'
                           ? t('biometric_lock_faceid')

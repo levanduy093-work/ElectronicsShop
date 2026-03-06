@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Modal, TextInput, Image, KeyboardAvoiding
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../../components/common/Icon';
 import { Theme } from '../../theme';
+import { TEXT_INPUT_BASE_STYLE, TYPO_CLASS } from '../../theme/typography';
 import { useToast } from '../../components/common/ToastProvider';
 import { UploadImageFile } from '../../services/api';
 
@@ -140,7 +141,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
                     <ScrollView className="p-4">
                         <View className="mb-5">
-                            <Text className="text-sm font-medium mb-2" style={{ color: t.text }}>{translate('name')}</Text>
+                            <Text className={`${TYPO_CLASS.fieldLabel} mb-2`} style={{ color: t.text }}>{translate('name')}</Text>
                             <TextInput
                                 value={editingName}
                                 onChangeText={setEditingName}
@@ -150,9 +151,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                     borderColor: t.border,
                                     color: t.text,
                                     height: 48,
-                                    textAlignVertical: 'center',
-                                    includeFontPadding: false,
-                                    paddingVertical: 0,
+                                    ...TEXT_INPUT_BASE_STYLE,
                                 }}
                                 placeholder={translate('enter_name_placeholder')}
                                 placeholderTextColor={t.muted}
@@ -160,7 +159,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                         </View>
 
                         <View className="mb-5">
-                            <Text className="text-sm font-medium mb-2" style={{ color: t.text }}>{translate('avatar')}</Text>
+                            <Text className={`${TYPO_CLASS.fieldLabel} mb-2`} style={{ color: t.text }}>{translate('avatar')}</Text>
                             {!showUrlInput ? (
                                 <>
                                     <View className="flex-row items-center gap-4 mb-3">
@@ -223,9 +222,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                             borderColor: t.border,
                                             color: t.text,
                                             height: 48,
-                                            textAlignVertical: 'center',
-                                            includeFontPadding: false,
-                                            paddingVertical: 0,
+                                            ...TEXT_INPUT_BASE_STYLE,
                                         }}
                                         placeholder={translate('or_enter_url')}
                                         placeholderTextColor={t.muted}
@@ -281,4 +278,3 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         </Modal>
     );
 };
-

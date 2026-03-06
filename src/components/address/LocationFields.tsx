@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../common/Icon';
 import { Theme } from '../../theme';
+import { TYPO_CLASS } from '../../theme/typography';
 import { useToast } from '../common/ToastProvider';
 import { LocationSelectModal } from './LocationSelectModal';
 import { getProvinces, getWards, LocationOption } from '../../services/locations';
@@ -100,7 +101,7 @@ export function LocationFields({
 
     const renderSelect = (label: string, value: string, placeholder: string, onPress: () => void, loading?: boolean) => (
         <View className="gap-2">
-            <Text className="text-base font-medium mb-1" style={{ color: t.text }}>{label}</Text>
+            <Text className={`${TYPO_CLASS.fieldLabel} mb-1`} style={{ color: t.text }}>{label}</Text>
             <TouchableOpacity
                 onPress={onPress}
                 className="rounded-xl p-3 border flex-row items-center justify-between"

@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { AppIcon } from '../../components/common/Icon';
 import { SvgXml } from 'react-native-svg';
 import { Theme } from '../../theme';
+import { TEXT_INPUT_BASE_STYLE, TYPO_CLASS } from '../../theme/typography';
 
 const googleLogoSvg = `<svg width="800" height="800" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M23.75,16A7.7446,7.7446,0,0,1,8.7177,18.6259L4.2849,22.1721A13.244,13.244,0,0,0,29.25,16" fill="#00ac47"/><path d="M23.75,16a7.7387,7.7387,0,0,1-3.2516,6.2987l4.3824,3.5059A13.2042,13.2042,0,0,0,29.25,16" fill="#4285f4"/><path d="M8.25,16a7.698,7.698,0,0,1,.4677-2.6259L4.2849,9.8279a13.177,13.177,0,0,0,0,12.3442l4.4328-3.5462A7.698,7.698,0,0,1,8.25,16Z" fill="#ffba00"/><path d="M16,8.25a7.699,7.699,0,0,1,4.558,1.4958l4.06-3.7893A13.2152,13.2152,0,0,0,4.2849,9.8279l4.4328,3.5462A7.756,7.756,0,0,1,16,8.25Z" fill="#ea4435"/><path d="M29.25,15v1L27,19.5H16.5V14H28.25A1,1,0,0,1,29.25,15Z" fill="#4285f4"/></svg>`;
 
@@ -90,7 +91,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
             <View className="gap-4">
                 {isRegister && (
                     <View className="gap-2">
-                        <Text className="text-sm font-medium" style={{ color: t.text }}>{translate('full_name')}</Text>
+                        <Text className={TYPO_CLASS.fieldLabel} style={{ color: t.text }}>{translate('full_name')}</Text>
                         <View className="flex-row items-center rounded-xl border px-3 h-12" style={{ backgroundColor: t.surface, borderColor: t.border }}>
                             <AppIcon name="user" size={20} color={t.muted} style={{ marginRight: 12 }} />
                             <Controller
@@ -98,16 +99,14 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                                 name="name"
                                 render={({ field: { onChange, onBlur, value } }) => (
                                     <TextInput
-                                        className="flex-1 text-sm h-full p-0"
+                                        className="flex-1 text-base h-full p-0"
                                         placeholder={translate('enter_name_placeholder')}
                                         value={value}
                                         onChangeText={onChange}
                                         onBlur={onBlur}
                                         style={{
                                             color: t.text,
-                                            textAlignVertical: 'center',
-                                            includeFontPadding: false,
-                                            paddingVertical: 0,
+                                            ...TEXT_INPUT_BASE_STYLE,
                                         }}
                                         placeholderTextColor={t.muted}
                                         editable={!isSubmitting}
@@ -122,7 +121,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                 )}
 
                 <View className="gap-2">
-                    <Text className="text-sm font-medium" style={{ color: t.text }}>{translate('email')}</Text>
+                    <Text className={TYPO_CLASS.fieldLabel} style={{ color: t.text }}>{translate('email')}</Text>
                     <View className="flex-row items-center rounded-xl border px-3 h-12" style={{ backgroundColor: t.surface, borderColor: t.border }}>
                         <AppIcon name="mail" size={20} color={t.muted} style={{ marginRight: 12 }} />
                         <Controller
@@ -130,16 +129,14 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                             name="email"
                             render={({ field: { onChange, onBlur, value } }) => (
                                 <TextInput
-                                    className="flex-1 text-sm h-full p-0"
+                                    className="flex-1 text-base h-full p-0"
                                     placeholder="example@email.com"
                                     value={value}
                                     onChangeText={onChange}
                                     onBlur={onBlur}
                                     style={{
                                         color: t.text,
-                                        textAlignVertical: 'center',
-                                        includeFontPadding: false,
-                                        paddingVertical: 0,
+                                        ...TEXT_INPUT_BASE_STYLE,
                                     }}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
@@ -156,13 +153,13 @@ export const AuthForm: React.FC<AuthFormProps> = ({
 
                 <View className="gap-2">
                     <View className="flex-row justify-between items-center">
-                        <Text className="text-sm font-medium" style={{ color: t.text }}>{translate('password')}</Text>
+                        <Text className={TYPO_CLASS.fieldLabel} style={{ color: t.text }}>{translate('password')}</Text>
                         {!isRegister && (
                             <TouchableOpacity
                                 onPress={onForgotPassword}
                                 activeOpacity={0.7}
                             >
-                                <Text className="text-sm font-medium" style={{ color: t.primary }}>{translate('forgot_password_link')}</Text>
+                                <Text className={TYPO_CLASS.bodyStrong} style={{ color: t.primary }}>{translate('forgot_password_link')}</Text>
                             </TouchableOpacity>
                         )}
                     </View>
@@ -173,16 +170,14 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                             name="password"
                             render={({ field: { onChange, onBlur, value } }) => (
                                 <TextInput
-                                    className="flex-1 text-sm h-full p-0"
+                                    className="flex-1 text-base h-full p-0"
                                     placeholder="••••••••"
                                     value={value}
                                     onChangeText={onChange}
                                     onBlur={onBlur}
                                     style={{
                                         color: t.text,
-                                        textAlignVertical: 'center',
-                                        includeFontPadding: false,
-                                        paddingVertical: 0,
+                                        ...TEXT_INPUT_BASE_STYLE,
                                     }}
                                     secureTextEntry={!showPassword}
                                     placeholderTextColor={t.muted}
@@ -246,7 +241,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                             ) : (
                                 <SvgXml xml={googleLogoSvg} width={20} height={20} style={{ marginRight: 12 }} />
                             )}
-                            <Text className="text-sm font-semibold" style={{ color: t.text }}>
+                            <Text className={TYPO_CLASS.bodyStrong} style={{ color: t.text }}>
                                 {translate('sign_in_with_google')}
                             </Text>
                         </TouchableOpacity>
@@ -277,7 +272,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                                     />
                                 )}
                                 <Text
-                                    className="text-sm font-semibold"
+                                    className={TYPO_CLASS.bodyStrong}
                                     style={{ color: t.isDark ? '#000000' : '#FFFFFF' }}
                                 >
                                     {translate('sign_in_with_apple')}
@@ -289,14 +284,14 @@ export const AuthForm: React.FC<AuthFormProps> = ({
             )}
 
             <View className="flex-row justify-center mt-6 gap-1">
-                <Text className="text-sm" style={{ color: t.muted }}>
+                <Text className={TYPO_CLASS.body} style={{ color: t.muted }}>
                     {isRegister ? translate('already_have_account') : translate('not_have_account')}
                 </Text>
                 <TouchableOpacity
                     onPress={onToggleMode}
                     activeOpacity={0.7}
                 >
-                    <Text className="text-sm font-bold" style={{ color: t.primary }}>
+                    <Text className={TYPO_CLASS.bodyStrong} style={{ color: t.primary }}>
                         {isRegister ? translate('login') : translate('register_now')}
                     </Text>
                 </TouchableOpacity>

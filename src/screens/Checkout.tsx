@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, Platform, Linking, AppState } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Linking, AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
@@ -16,6 +16,7 @@ import { PaymentMethodSection } from '../components/checkout/PaymentMethodSectio
 import { OrderSummary } from '../components/checkout/OrderSummary';
 import { CheckoutSuccessView } from '../components/checkout/CheckoutSuccessView';
 import { PaymentWaitingView } from '../components/checkout/PaymentWaitingView';
+import { TYPO_CLASS } from '../theme/typography';
 
 interface CheckoutProps {
   onBack: () => void;
@@ -389,7 +390,7 @@ export function Checkout({
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text className="text-lg font-bold flex-1 ml-3" style={{ color: t.text }}>{translate('payment')}</Text>
+        <Text className={`${TYPO_CLASS.screenTitle} flex-1 ml-3`} style={{ color: t.text }}>{translate('payment')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -422,7 +423,7 @@ export function Checkout({
                 />
               </View>
               <Text
-                className="text-[10px] font-bold uppercase"
+                className={`${TYPO_CLASS.caption} font-bold uppercase`}
                 style={{ color: isActive || isCompleted ? t.primary : t.muted }}
               >
                 {s.title}
@@ -451,7 +452,7 @@ export function Checkout({
 
         {step === 'shipping' && (
           <View className="gap-4 pb-24">
-            <Text className="text-xs font-bold uppercase tracking-wider" style={{ color: t.muted }}>Phương thức vận chuyển</Text>
+            <Text className={`${TYPO_CLASS.caption} font-bold uppercase tracking-wider`} style={{ color: t.muted }}>Phương thức vận chuyển</Text>
 
             {shippingOptions.map((opt, i) => (
               <TouchableOpacity
@@ -473,10 +474,10 @@ export function Checkout({
                 </View>
                 <View className="flex-1">
                   <View className="flex-row justify-between items-center mb-1">
-                    <Text className="text-sm font-semibold" style={{ color: t.text }}>{opt.name}</Text>
-                    <Text className="text-sm font-bold" style={{ color: t.primary }}>{formatPrice(opt.price)}</Text>
+                    <Text className={TYPO_CLASS.bodyStrong} style={{ color: t.text }}>{opt.name}</Text>
+                    <Text className={TYPO_CLASS.bodyStrong} style={{ color: t.primary }}>{formatPrice(opt.price)}</Text>
                   </View>
-                  <Text className="text-[13px] leading-5" style={{ color: t.muted }}>{opt.desc}</Text>
+                  <Text className={`${TYPO_CLASS.helper} leading-5`} style={{ color: t.muted }}>{opt.desc}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -526,7 +527,7 @@ export function Checkout({
           activeOpacity={0.8}
           disabled={isSubmitting || placingOrder}
         >
-          <Text className="text-white text-base font-bold">
+          <Text className={`${TYPO_CLASS.bodyStrong} text-white`}>
             {step === 'payment' ? translate('payAmount', { amount: formatPrice(total) }) : translate('continue')}
           </Text>
           {step !== 'payment' && <AppIcon name="chevron-right" size={20} color="#FFFFFF" />}

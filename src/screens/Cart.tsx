@@ -11,6 +11,7 @@ import { CartItemRow } from '../components/cart/CartItemRow';
 import { CartSummary } from '../components/cart/CartSummary';
 import { CartVoucherModal } from '../components/cart/CartVoucherModal';
 import { CartOptionModal } from '../components/cart/CartOptionModal';
+import { TYPO_CLASS } from '../theme/typography';
 
 interface CartProps {
   onCheckout?: (voucher: Voucher | null) => void;
@@ -126,7 +127,7 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpda
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Text className="text-2xl font-bold mb-6" style={{ color: t.text }}>{translate('cart_title_count', { count: items.length })}</Text>
+        <Text className={`${TYPO_CLASS.screenTitle} mb-6`} style={{ color: t.text }}>{translate('cart_title_count', { count: items.length })}</Text>
 
         <View className="gap-4 mb-8">
           {items.map((item, index) => (

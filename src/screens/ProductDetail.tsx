@@ -9,6 +9,7 @@ import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
 import { formatPrice } from '../utils';
 import { useTheme } from '../theme';
+import { TEXT_INPUT_BASE_STYLE, TYPO_CLASS } from '../theme/typography';
 import { useToast } from '../components/common/ToastProvider';
 import { ApiReview, createReview, getProductById, getReviews, uploadImage, UploadImageFile } from '../services/api';
 import { socketService } from '../services/socket';
@@ -78,10 +79,6 @@ export function ProductDetail({
   const activeProductId = product?.id ?? productId;
   const hasDatasheet = !!(product?.datasheet && String(product?.datasheet).trim());
 
-  if (!product) {
-    return <View style={{ flex: 1, backgroundColor: theme.background }} />;
-  }
-
   // Animation values
   const animItem = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const animScale = useRef(new Animated.Value(0)).current;
@@ -96,12 +93,12 @@ export function ProductDetail({
   const [selectedClassification, setSelectedClassification] = useState<string | null>(null);
 
   // Get options and classifications from product, with fallback
-  const productOptions = useMemo(() => product.options && product.options.length > 0
+  const productOptions = useMemo(() => product?.options && product.options.length > 0
     ? product.options
-    : ['Tiêu chuẩn'], [product.options]);
-  const productClassifications = useMemo(() => product.classifications && product.classifications.length > 0
+    : ['Tiêu chuẩn'], [product?.options]);
+  const productClassifications = useMemo(() => product?.classifications && product.classifications.length > 0
     ? product.classifications
-    : [], [product.classifications]);
+    : [], [product?.classifications]);
 
   // Initialize selected values
   useEffect(() => {
@@ -197,7 +194,7 @@ export function ProductDetail({
     };
   }, [activeProductId, queryClient]);
 
-  const reviews = reviewsQuery.data ?? [];
+  const reviews = useMemo(() => reviewsQuery.data ?? [], [reviewsQuery.data]);
   const reviewsLoading = reviewsQuery.isLoading && reviews.length === 0;
   const reviewsFetched = reviewsQuery.data !== undefined;
   const ratingCounts = reviews.reduce(
@@ -475,12 +472,16 @@ export function ProductDetail({
             size: '',
             desc: 'Tài liệu kỹ thuật',
             icon: 'file-text' as const,
-            url: String(product.datasheet),
+            url: String(product?.datasheet),
           },
         ]
         : [],
-    [hasDatasheet, product.datasheet],
+    [hasDatasheet, product?.datasheet],
   );
+
+  if (!product) {
+    return <View style={{ flex: 1, backgroundColor: theme.background }} />;
+  }
 
   return (
     <View className="flex-1" style={{ backgroundColor: theme.background }}>
@@ -963,7 +964,7 @@ export function ProductDetail({
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <View className="w-full rounded-2xl p-4" style={{ backgroundColor: theme.surface }}>
-            <Text className="text-lg font-bold mb-3" style={{ color: theme.text }}>{t('writeReview')}</Text>
+            <Text className={`${TYPO_CLASS.sectionTitle} mb-3`} style={{ color: theme.text }}>{t('writeReview')}</Text>
 
             <View className="flex-row gap-2 mb-3">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -982,8 +983,8 @@ export function ProductDetail({
               onChangeText={setReviewContent}
               placeholder="Chia sẻ cảm nhận của bạn..."
               placeholderTextColor={theme.muted}
-              style={{ color: theme.text, borderColor: theme.border }}
-              className="min-h-[100px] border rounded-xl p-3 text-top mb-3"
+              style={{ color: theme.text, borderColor: theme.border, ...TEXT_INPUT_BASE_STYLE, textAlignVertical: 'top', paddingVertical: 12 }}
+              className="min-h-[100px] border rounded-xl p-3 mb-3 text-base"
               multiline
               maxLength={400}
             />
@@ -1039,7 +1040,7 @@ export function ProductDetail({
             <View className="w-20 h-20 rounded-full bg-emerald-50 justify-center items-center mb-4">
               <AppIcon name="check-circle" size={48} color="#10B981" />
             </View>
-            <Text className="text-lg font-bold mb-3" style={{ color: theme.text, textAlign: 'center' }}>
+            <Text className={`${TYPO_CLASS.sectionTitle} text-center`} style={{ color: theme.text }}>
               Đã tải datasheet
             </Text>
             <Text className="text-sm text-center mb-6 leading-5 px-2" style={{ color: theme.muted }}>
@@ -1086,7 +1087,7 @@ export function ProductDetail({
             <View className="w-20 h-20 rounded-full bg-emerald-50 justify-center items-center mb-4" style={{ backgroundColor: '#FEF2F2' }}>
               <AppIcon name="shield-check" size={48} color="#EF4444" />
             </View>
-            <Text className="text-lg font-bold mb-3" style={{ color: theme.text, textAlign: 'center' }}>
+            <Text className={`${TYPO_CLASS.sectionTitle} text-center`} style={{ color: theme.text }}>
               Cần quyền lưu trữ
             </Text>
             <Text className="text-sm text-center mb-6 leading-5 px-2" style={{ color: theme.muted }}>

@@ -11,6 +11,7 @@ import { OrderProductList } from '../components/order/OrderProductList';
 import { OrderPaymentInfo } from '../components/order/OrderPaymentInfo';
 import { OrderActions } from '../components/order/OrderActions';
 import { OrderSupportModal } from '../components/order/OrderSupportModal';
+import { TYPO_CLASS } from '../theme/typography';
 
 interface OrderDetailProps {
   orderId: string;
@@ -114,7 +115,7 @@ export function OrderDetail({ orderId, onBack, order, theme, onReorder, products
         <TouchableOpacity onPress={onBack} className="p-2" activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.muted} />
         </TouchableOpacity>
-        <Text className="text-lg font-bold flex-1 ml-2" style={{ color: t.text }}>{translate('order_details')}</Text>
+        <Text className={`${TYPO_CLASS.screenTitle} flex-1 ml-2`} style={{ color: t.text }}>{translate('order_details')}</Text>
         <View style={{ width: 24 }} />
       </View>
 

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../theme';
+import { TYPO_CLASS } from '../theme/typography';
 import { Order } from '../types';
 import { formatPrice } from '../utils';
 
@@ -107,7 +108,7 @@ export function OrderHistory({ onBack, onViewDetail, orders = [], theme, onRefre
         <TouchableOpacity onPress={onBack} className="p-2" activeOpacity={0.7}>
           <AppIcon name="arrow-left" size={24} color={t.muted} />
         </TouchableOpacity>
-        <Text className="text-lg font-bold flex-1 ml-2" style={{ color: t.text }}>{translate('my_orders')}</Text>
+        <Text className={`${TYPO_CLASS.screenTitle} flex-1 ml-2`} style={{ color: t.text }}>{translate('my_orders')}</Text>
         <View className="w-10" />
       </View>
       <ScrollView
@@ -130,7 +131,7 @@ export function OrderHistory({ onBack, onViewDetail, orders = [], theme, onRefre
               <AppIcon name="package" size={32} color={t.muted} />
             </View>
             <Text className="text-lg font-bold mb-2" style={{ color: t.text }}>{translate('no_orders_yet')}</Text>
-            <Text className="text-sm text-center" style={{ color: t.muted }}>{translate('orders_will_appear_here')}</Text>
+            <Text className={`${TYPO_CLASS.helper} text-center`} style={{ color: t.muted }}>{translate('orders_will_appear_here')}</Text>
           </View>
         ) : (
           orders.map((order) => (
@@ -163,7 +164,7 @@ export function OrderHistory({ onBack, onViewDetail, orders = [], theme, onRefre
 
               <View className="border-t pt-3 mb-3 gap-1" style={{ borderTopColor: t.border }}>
                 {order.items.slice(0, 2).map((item, i) => (
-                  <Text key={i} className="text-sm leading-5" style={{ color: t.text }} numberOfLines={1}>
+                  <Text key={i} className={`${TYPO_CLASS.helper} leading-5`} style={{ color: t.text }} numberOfLines={1}>
                     • {item.name} x{item.quantity}
                   </Text>
                 ))}
@@ -176,7 +177,7 @@ export function OrderHistory({ onBack, onViewDetail, orders = [], theme, onRefre
 
               <View className="flex-row justify-between items-center pt-3 mt-3 border-t" style={{ borderTopColor: t.border }}>
                 <View>
-                  <Text className="text-sm" style={{ color: t.muted }}>{translate('total')}:</Text>
+                  <Text className={TYPO_CLASS.helper} style={{ color: t.muted }}>{translate('total')}:</Text>
                   <Text className="text-lg font-bold" style={{ color: t.primary }}>{formatPrice(order.payment.total)}</Text>
                 </View>
                 <TouchableOpacity
@@ -185,7 +186,7 @@ export function OrderHistory({ onBack, onViewDetail, orders = [], theme, onRefre
                   style={{ backgroundColor: t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)', borderColor: t.primary }}
                   activeOpacity={0.7}
                 >
-                  <Text className="text-sm font-medium" style={{ color: t.primary }}>{translate('view_details')}</Text>
+                  <Text className={TYPO_CLASS.bodyStrong} style={{ color: t.primary }}>{translate('view_details')}</Text>
                   <AppIcon name="chevron-right" size={16} color={t.primary} />
                 </TouchableOpacity>
               </View>

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../common/Icon';
 import { AddressFormValues, AddressType } from '../../types';
 import { Theme, lightTheme, useTheme } from '../../theme';
+import { TEXT_INPUT_BASE_STYLE, TYPO_CLASS } from '../../theme/typography';
 import { useToast } from '../common/ToastProvider';
 import { LocationFields } from './LocationFields';
 
@@ -111,7 +112,7 @@ export function AddressForm({
       <ScrollView className="flex-1 p-4" contentContainerStyle={{ paddingBottom: 96 }} showsVerticalScrollIndicator={false}>
         <View className="rounded-2xl p-4 mb-4 gap-4" style={{ backgroundColor: t.card }}>
           <View className="gap-2">
-            <Text className="text-base font-medium mb-1" style={{ color: t.text }}>{translate('full_name_label')}</Text>
+            <Text className={`${TYPO_CLASS.fieldLabel} mb-1`} style={{ color: t.text }}>{translate('full_name_label')}</Text>
             <TextInput
               value={formData.name}
               onChangeText={text => setFormData({ ...formData, name: text })}
@@ -121,11 +122,7 @@ export function AddressForm({
                 borderColor: t.border,
                 color: t.text,
                 height: 48,
-                fontSize: 16,
-                lineHeight: 20,
-                textAlignVertical: 'center',
-                includeFontPadding: false,
-                paddingVertical: 0,
+                ...TEXT_INPUT_BASE_STYLE,
               }}
               placeholder={translate('enter_name_placeholder')}
               placeholderTextColor={t.muted}
@@ -133,7 +130,7 @@ export function AddressForm({
           </View>
 
           <View className="gap-2">
-            <Text className="text-base font-medium mb-1" style={{ color: t.text }}>{translate('phone_number_label')}</Text>
+            <Text className={`${TYPO_CLASS.fieldLabel} mb-1`} style={{ color: t.text }}>{translate('phone_number_label')}</Text>
             <TextInput
               value={formData.phone}
               onChangeText={text => setFormData({ ...formData, phone: text })}
@@ -143,11 +140,7 @@ export function AddressForm({
                 borderColor: t.border,
                 color: t.text,
                 height: 48,
-                fontSize: 16,
-                lineHeight: 20,
-                textAlignVertical: 'center',
-                includeFontPadding: false,
-                paddingVertical: 0,
+                ...TEXT_INPUT_BASE_STYLE,
               }}
               placeholder={translate('enterPhone')}
               keyboardType="phone-pad"
@@ -166,7 +159,7 @@ export function AddressForm({
           />
 
           <View className="gap-2">
-            <Text className="text-base font-medium mb-1" style={{ color: t.text }}>{translate('detailed_address_label')}</Text>
+            <Text className={`${TYPO_CLASS.fieldLabel} mb-1`} style={{ color: t.text }}>{translate('detailed_address_label')}</Text>
             <TextInput
               value={formData.detailedAddress}
               onChangeText={text => setFormData({ ...formData, detailedAddress: text })}
@@ -176,11 +169,7 @@ export function AddressForm({
                 borderColor: t.border,
                 color: t.text,
                 height: 48,
-                fontSize: 16,
-                lineHeight: 20,
-                textAlignVertical: 'center',
-                includeFontPadding: false,
-                paddingVertical: 0,
+                ...TEXT_INPUT_BASE_STYLE,
               }}
               placeholder={translate('enterAddress')}
               placeholderTextColor={t.muted}
@@ -188,7 +177,7 @@ export function AddressForm({
           </View>
 
           <View className="gap-2">
-            <Text className="text-base font-medium mb-1" style={{ color: t.text }}>{translate('address_type_label')}</Text>
+            <Text className={`${TYPO_CLASS.fieldLabel} mb-1`} style={{ color: t.text }}>{translate('address_type_label')}</Text>
             <View className="flex-row gap-3">
               {renderTypeButton(translate('home') as AddressType, translate('home'), 'home')}
               {renderTypeButton(translate('office') as AddressType, translate('office'), 'briefcase')}

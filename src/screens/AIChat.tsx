@@ -21,6 +21,7 @@ import { MessageBubble } from '../components/ai/MessageBubble';
 import { TopBar } from '../components/layout/TopBar';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme } from '../theme';
+import { TEXT_INPUT_BASE_STYLE } from '../theme/typography';
 import { aiChat, confirmAiAction, addCartItem, uploadImage, UploadImageFile } from '../services/api';
 
 import { useToast } from '../components/common/ToastProvider';
@@ -415,8 +416,8 @@ export function AIChat({
               value={inputValue}
               onChangeText={setInputValue}
               placeholder={translate('askAIOrUpload')}
-              className="flex-1 text-[15px] min-h-10 leading-5"
-              style={{ color: theme.text, paddingTop: 8, paddingBottom: 8 }}
+              className="flex-1 text-base min-h-10"
+              style={{ color: theme.text, ...TEXT_INPUT_BASE_STYLE, paddingTop: 8, paddingBottom: 8 }}
               placeholderTextColor={theme.muted}
               multiline
               textAlignVertical="center"

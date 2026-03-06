@@ -18,6 +18,7 @@ import { filterProducts } from '../utils/filterUtils';
 import { ProductCard } from '../components/ui/ProductCard';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme } from '../theme';
+import { TEXT_INPUT_BASE_STYLE } from '../theme/typography';
 
 interface CatalogProps {
   onProductClick?: (product: Product) => void;
@@ -166,12 +167,10 @@ export function Catalog({
               setSearchQuery(text);
               onSearchQueryChange?.(text);
             }}
-            className="flex-1 text-sm p-0"
+            className="flex-1 text-base p-0"
             style={{
               color: theme.text,
-              textAlignVertical: 'center',
-              includeFontPadding: false,
-              paddingVertical: 0,
+              ...TEXT_INPUT_BASE_STYLE,
             }}
             placeholderTextColor={theme.muted}
           />

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../theme';
+import { TEXT_INPUT_BASE_STYLE } from '../theme/typography';
 
 interface FilterScreenProps {
   onClose: () => void;
@@ -136,8 +137,8 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
                   placeholder="0"
                   placeholderTextColor={t.muted}
                   keyboardType="numeric"
-                  className="text-lg font-medium p-0"
-                  style={{ color: t.text }}
+                  className="text-base font-medium p-0"
+                  style={{ color: t.text, ...TEXT_INPUT_BASE_STYLE }}
                 />
                 <Text className="text-base" style={{ color: t.muted }}>₫</Text>
               </View>
@@ -152,8 +153,8 @@ export function FilterScreen({ onClose, onApply, currentFilters, getFilteredCoun
                   placeholder={formatNumber(PRICE_MAX.toString())}
                   placeholderTextColor={t.muted}
                   keyboardType="numeric"
-                  className="text-lg font-medium p-0"
-                  style={{ color: t.text }}
+                  className="text-base font-medium p-0"
+                  style={{ color: t.text, ...TEXT_INPUT_BASE_STYLE }}
                 />
                 <Text className="text-base" style={{ color: t.muted }}>₫</Text>
               </View>

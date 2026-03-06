@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { useTheme } from '../theme';
+import { TEXT_INPUT_BASE_STYLE, TYPO_CLASS } from '../theme/typography';
 import type { CreateProductInput } from '../services/api';
 import { uploadImage, UploadImageFile } from '../services/api';
 import { useAppOptional } from '../context';
@@ -278,23 +279,6 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
         }
     };
 
-    if (!isAdmin) {
-        return (
-            <View className="flex-1 items-center justify-center px-6" style={{ backgroundColor: theme.background }}>
-                <Text className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
-                    {t('admin_only', 'Chỉ admin mới được truy cập')}
-                </Text>
-                <TouchableOpacity
-                    onPress={onBack}
-                    className="mt-4 px-4 py-2 rounded-xl"
-                    style={{ backgroundColor: theme.primary }}
-                >
-                    <Text className="text-white font-semibold">{t('back', 'Quay lại')}</Text>
-                </TouchableOpacity>
-            </View>
-        );
-    }
-
     useEffect(() => {
         if (successVisible) {
             Animated.spring(successAnim, {
@@ -312,13 +296,30 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
         }
     }, [successVisible, successAnim]);
 
+    if (!isAdmin) {
+        return (
+            <View className="flex-1 items-center justify-center px-6" style={{ backgroundColor: theme.background }}>
+                <Text className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
+                    {t('admin_only', 'Chỉ admin mới được truy cập')}
+                </Text>
+                <TouchableOpacity
+                    onPress={onBack}
+                    className="mt-4 px-4 py-2 rounded-xl"
+                    style={{ backgroundColor: theme.primary }}
+                >
+                    <Text className="text-white font-semibold">{t('back', 'Quay lại')}</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
     const renderInput = (
         name: keyof FormValues,
         label: string,
         props?: { multiline?: boolean; keyboardType?: 'default' | 'numeric'; placeholder?: string; format?: 'currency'; minRows?: number },
     ) => (
         <View className="mb-4">
-            <Text className="text-sm font-medium mb-2" style={{ color: theme.text }}>{label}</Text>
+            <Text className={`${TYPO_CLASS.fieldLabel} mb-2`} style={{ color: theme.text }}>{label}</Text>
             <Controller
                 control={control}
                 name={name}
@@ -336,16 +337,17 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
                         onBlur={onBlur}
                         placeholder={props?.placeholder}
                         placeholderTextColor={theme.muted}
-                        className="rounded-xl border px-3 text-sm"
+                        className="rounded-xl border px-3 text-base"
                         style={{
                             borderColor: theme.border,
                             color: theme.text,
                             backgroundColor: theme.surface,
                             height: props?.multiline ? undefined : 44,
-                            paddingVertical: props?.multiline ? 10 : 10,
+                            paddingVertical: props?.multiline ? 10 : 0,
                             textAlignVertical: props?.multiline ? 'top' : (Platform.OS === 'android' ? 'center' : 'auto'),
                             includeFontPadding: Platform.OS === 'android' ? false : undefined,
-                            lineHeight: props?.multiline ? 18 : undefined,
+                            lineHeight: props?.multiline ? 18 : TEXT_INPUT_BASE_STYLE.lineHeight,
+                            ...(props?.multiline ? {} : TEXT_INPUT_BASE_STYLE),
                         }}
                         multiline={props?.multiline}
                         numberOfLines={props?.multiline ? (props?.minRows || 3) : 1}
@@ -394,7 +396,7 @@ export const AdminAddProduct: React.FC<AdminAddProductProps> = ({ onBack, onCrea
                 {renderInput('salePrice', t('admin_sale_price', 'Giá bán'), { keyboardType: 'numeric', format: 'currency' })}
                 {renderInput('stock', t('admin_stock', 'Tồn kho'), { keyboardType: 'numeric' })}
                 <View className="mb-4">
-                    <Text className="text-sm font-medium mb-2" style={{ color: theme.text }}>
+                    <Text className={`${TYPO_CLASS.fieldLabel} mb-2`} style={{ color: theme.text }}>
                         {t('admin_images', 'Hình ảnh')}
                     </Text>
                     <View className="flex-row flex-wrap gap-3">
