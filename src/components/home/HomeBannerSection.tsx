@@ -9,7 +9,7 @@ const sliderWidth = width - 32;
 
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
-const BannerCard = ({
+const BannerCard = React.memo(function BannerCard({
     item,
     index,
     scrollX,
@@ -19,7 +19,7 @@ const BannerCard = ({
     index: number;
     scrollX: Animated.Value;
     onPress: () => void;
-}) => {
+}) {
     const inputRange = [
         (index - 1) * sliderWidth,
         index * sliderWidth,
@@ -80,7 +80,7 @@ const BannerCard = ({
             </Animated.View>
         </TouchableOpacity>
     );
-};
+});
 
 interface HomeBannerSectionProps {
     banners: HomeBanner[];
@@ -88,11 +88,11 @@ interface HomeBannerSectionProps {
     fallbackProduct?: any; // Just for fallback logic usage
 }
 
-export const HomeBannerSection: React.FC<HomeBannerSectionProps> = ({
+function HomeBannerSectionComponent({
     banners,
     onBannerPress,
     fallbackProduct
-}) => {
+}: HomeBannerSectionProps) {
     const { t } = useTranslation();
     const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
     const bannerListRef = useRef<FlatList<HomeBanner>>(null);
@@ -184,4 +184,6 @@ export const HomeBannerSection: React.FC<HomeBannerSectionProps> = ({
             )}
         </View>
     );
-};
+}
+
+export const HomeBannerSection = React.memo(HomeBannerSectionComponent);

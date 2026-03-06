@@ -6,7 +6,7 @@ interface AIRecommendationsCardProps {
     onPress: () => void;
 }
 
-export const AIRecommendationsCard: React.FC<AIRecommendationsCardProps> = ({ onPress }) => {
+function AIRecommendationsCardComponent({ onPress }: AIRecommendationsCardProps) {
     const { t } = useTranslation();
 
     return (
@@ -52,4 +52,6 @@ export const AIRecommendationsCard: React.FC<AIRecommendationsCardProps> = ({ on
             </View>
         </TouchableOpacity>
     );
-};
+}
+
+export const AIRecommendationsCard = React.memo(AIRecommendationsCardComponent);

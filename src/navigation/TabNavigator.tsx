@@ -26,10 +26,10 @@ export function TabNavigator({ cartCount = 0, initialAuthMode }: TabNavigatorPro
             }}
             tabBar={(props) => <AnimatedTabBar {...props} cartCount={cartCount} />}
         >
-            <Tab.Screen name="HomeTab" component={HomeTab} />
-            <Tab.Screen name="CatalogTab" component={CatalogTab} />
+            <Tab.Screen name="HomeTab" component={HomeTab} options={{ freezeOnBlur: false }} />
+            <Tab.Screen name="CatalogTab" component={CatalogTab} options={{ freezeOnBlur: false }} />
             <Tab.Screen name="AITab" component={AITab} />
-            <Tab.Screen name="CartTab" component={CartTab} />
+            <Tab.Screen name="CartTab" component={CartTab} options={{ freezeOnBlur: false }} />
             <Tab.Screen
                 name="ProfileTab"
                 component={ProfileTab}

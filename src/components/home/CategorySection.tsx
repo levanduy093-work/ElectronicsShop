@@ -13,7 +13,7 @@ interface CategorySectionProps {
     theme: Theme;
 }
 
-const CategoryPill = ({
+const CategoryPill = React.memo(function CategoryPill({
     item,
     theme,
     onPress
@@ -21,7 +21,7 @@ const CategoryPill = ({
     item: Category;
     theme: Theme;
     onPress: () => void;
-}) => {
+}) {
     return (
         <TouchableOpacity
             className="items-center w-20 gap-2"
@@ -48,14 +48,14 @@ const CategoryPill = ({
             </Text>
         </TouchableOpacity>
     );
-};
+});
 
-export const CategorySection: React.FC<CategorySectionProps> = ({
+function CategorySectionComponent({
     categories,
     onSelectCategory,
     onNavigate,
     theme
-}) => {
+}: CategorySectionProps) {
     const { t } = useTranslation();
 
     // Use passed categories or fallback to constant
@@ -113,4 +113,6 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
             </ScrollView>
         </View>
     );
-};
+}
+
+export const CategorySection = React.memo(CategorySectionComponent);

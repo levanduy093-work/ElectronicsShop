@@ -107,7 +107,7 @@ export const Home = React.memo(function Home({
     };
   }, [onRefreshProducts]);
 
-  const handleBannerPressInternal = (item: HomeBanner) => {
+  const handleBannerPressInternal = React.useCallback((item: HomeBanner) => {
     if (onBannerPress) {
       onBannerPress(item);
       return;
@@ -124,7 +124,7 @@ export const Home = React.memo(function Home({
     } else {
       Alert.alert(t('product_not_found'), t('try_again'));
     }
-  };
+  }, [onBannerPress, onProductClick, products, raspberryProduct, t]);
 
   // Extract categories from products if CATEGORIES is empty
   const displayCategories = React.useMemo(
@@ -182,7 +182,7 @@ export const Home = React.memo(function Home({
     </View>
   ), [onProductClick, resolvedTheme]);
 
-  const listHeader = (
+  const listHeader = React.useMemo(() => (
     <View>
       <HomeBannerSection
         banners={banners}
@@ -205,9 +205,9 @@ export const Home = React.memo(function Home({
         {t('featured_products')}
       </Text>
     </View>
-  );
+  ), [banners, displayCategories, handleBannerPressInternal, onNavigate, onSelectCategory, raspberryProduct, resolvedTheme, t]);
 
-  const listEmpty = (
+  const listEmpty = React.useMemo(() => (
     <View className="items-center justify-center py-12 px-8">
       <AppIcon name={error ? 'alert-circle-outline' : 'package-variant'} size={64} color={resolvedTheme.muted} />
       <Text
@@ -240,7 +240,7 @@ export const Home = React.memo(function Home({
         </TouchableOpacity>
       )}
     </View>
-  );
+  ), [error, isOffline, onRefreshProducts, resolvedTheme, t]);
 
   const listFooter = products.length > visibleCount ? (
     <TouchableOpacity
