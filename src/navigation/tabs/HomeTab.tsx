@@ -4,12 +4,12 @@ import { useTheme } from '../../theme';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { Home as HomeScreen } from '../../screens/Home';
 
-export function HomeTab({ navigation }: { navigation: any }) {
+export const HomeTab = React.memo(function HomeTab({ navigation }: { navigation: any }) {
     const { theme } = useTheme();
     const app = useAppOptional();
     const notificationsCtx = useNotificationsOptional();
 
-    const handleNavigate = (screen: string) => {
+    const handleNavigate = React.useCallback((screen: string) => {
         if (screen === 'search') {
             navigation.navigate('Search', {});
         } else if (screen === 'notifications') {
@@ -22,13 +22,28 @@ export function HomeTab({ navigation }: { navigation: any }) {
             // @ts-ignore
             navigation.navigate('MainTabs', { screen: 'CatalogTab' });
         }
-    };
+    }, [navigation]);
 
-    const handleProductClick = (product: any) => {
+    const handleProductClick = React.useCallback((product: any) => {
         navigation.navigate('ProductDetail', { productId: product.id });
-    };
+    }, [navigation]);
 
-    const hasUnread = (notificationsCtx?.notifications || []).some(n => !n.read);
+    const handleSelectCategory = React.useCallback((cat: string) => {
+        // @ts-ignore
+        navigation.navigate('MainTabs', {
+            screen: 'CatalogTab',
+            params: { screen: 'Catalog', params: { category: cat } },
+        });
+    }, [navigation]);
+
+    const handleRefreshProducts = React.useCallback(() => {
+        return app?.loadProducts?.();
+    }, [app?.loadProducts]);
+
+    const hasUnread = React.useMemo(
+        () => (notificationsCtx?.notifications || []).some(n => !n.read),
+        [notificationsCtx?.notifications],
+    );
 
     return (
         <ScreenLayout
@@ -44,18 +59,12 @@ export function HomeTab({ navigation }: { navigation: any }) {
                 banners={app?.banners || []}
                 onNavigate={handleNavigate}
                 onProductClick={handleProductClick}
-                onSelectCategory={(cat: string) => {
-                    // @ts-ignore
-                    navigation.navigate('MainTabs', {
-                        screen: 'CatalogTab',
-                        params: { screen: 'Catalog', params: { category: cat } },
-                    });
-                }}
-                onRefreshProducts={() => app?.loadProducts?.()}
+                onSelectCategory={handleSelectCategory}
+                onRefreshProducts={handleRefreshProducts}
                 isLoading={app?.isLoadingProducts || false}
                 error={app?.productsError || null}
                 isOffline={app?.networkStatus.isConnected === false}
             />
         </ScreenLayout>
     );
-}
+});

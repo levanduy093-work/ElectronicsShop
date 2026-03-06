@@ -17,7 +17,8 @@ export function TabNavigator({ cartCount = 0, initialAuthMode }: TabNavigatorPro
     return (
         <Tab.Navigator
             initialRouteName={initialRouteName}
-            detachInactiveScreens={true}
+            detachInactiveScreens={false}
+            lazyPreloadDistance={1}
             screenOptions={{
                 headerShown: false,
                 animation: 'none',

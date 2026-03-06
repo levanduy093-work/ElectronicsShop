@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback, useMemo, useDeferredValue } fr
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   TextInput,
   FlatList,
@@ -41,7 +40,7 @@ interface CatalogProps {
   onRefresh?: () => void;
 }
 
-export function Catalog({
+export const Catalog = React.memo(function Catalog({
   onProductClick,
   onFilterClick,
 
@@ -179,14 +178,41 @@ export function Catalog({
     </View>
   ), [handleProductPress, theme]);
 
-  return (
-    <KeyboardAvoidingView
-      className="flex-1"
-      style={{ backgroundColor: theme.background }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+  const renderCategoryItem = useCallback(({ item: cat }: { item: typeof categories[number] }) => {
+    const isActive = activeCategory === cat.name;
+    return (
+      <TouchableOpacity
+        key={cat.name}
+        onPress={() => {
+          setActiveCategory(cat.name);
+          onActiveCategoryChange?.(cat.name);
+        }}
+        className={`flex-row items-center gap-2 px-4 py-2 rounded-full border mr-2`}
+        style={{
+          backgroundColor: isActive ? theme.text : theme.surface,
+          borderColor: isActive ? theme.text : theme.border,
+        }}
+        activeOpacity={0.7}
+      >
+        <AppIcon
+          name={cat.icon}
+          size={16}
+          color={isActive ? theme.surface : theme.muted}
+        />
+        <Text
+          className="text-sm font-medium"
+          style={{ color: isActive ? theme.surface : theme.muted }}
+        >
+          {cat.name === 'All' ? t('all') : cat.name}
+        </Text>
+      </TouchableOpacity>
+    );
+  }, [activeCategory, onActiveCategoryChange, t, theme]);
+
+  const listHeader = useMemo(() => (
+    <View>
       {/* Search Header */}
-      <View className="px-4 py-2" style={{ backgroundColor: theme.background }}>
+      <View className="py-2">
         <View
           className="flex-row items-center rounded-xl px-3 h-11"
           style={{
@@ -233,91 +259,85 @@ export function Catalog({
 
       {/* Category Tabs */}
       <View className="max-h-[72px]">
-        <ScrollView
+        <FlatList
+          data={categories}
           horizontal
+          keyExtractor={(item) => item.name}
+          renderItem={renderCategoryItem}
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 8, alignItems: 'center' }}
-        >
-          {categories.map((cat) => {
-            const isActive = activeCategory === cat.name;
-            return (
-              <TouchableOpacity
-                key={cat.name}
-                onPress={() => {
-                  setActiveCategory(cat.name);
-                  onActiveCategoryChange?.(cat.name);
-                }}
-                className={`flex-row items-center gap-2 px-4 py-2 rounded-full border mr-2`}
-                style={{
-                  backgroundColor: isActive ? theme.text : theme.surface,
-                  borderColor: isActive ? theme.text : theme.border,
-                }}
-                activeOpacity={0.7}
-              >
-                <AppIcon
-                  name={cat.icon}
-                  size={16}
-                  color={isActive ? theme.surface : theme.muted}
-                />
-                <Text
-                  className="text-sm font-medium"
-                  style={{ color: isActive ? theme.surface : theme.muted }}
-                >
-                  {cat.name === 'All' ? t('all') : cat.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+          contentContainerStyle={{ paddingVertical: 12, gap: 8, alignItems: 'center' }}
+        />
       </View>
 
-      {/* Product Grid */}
-      <View className="flex-1 px-4">
-        <Text className="text-sm font-semibold mb-4" style={{ color: theme.muted }}>{t('products_count', { count: filteredProducts.length })}</Text>
-        {filteredProducts.length > 0 ? (
-          <FlatList
-            data={filteredProducts}
-            numColumns={2}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            contentContainerStyle={{ paddingBottom: 96 }}
-            columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 16 }}
-            showsVerticalScrollIndicator={false}
-            scrollEventThrottle={16}
-            removeClippedSubviews={false}
-            maxToRenderPerBatch={10}
-            windowSize={11}
-            initialNumToRender={10}
-            refreshControl={
-              <RefreshControl
-                refreshing={isLoading}
-                onRefresh={onRefresh}
-                colors={[theme.primary]}
-                tintColor={theme.primary}
-              />
-            }
-          />
-        ) : (
-          <View className="flex-1 justify-center items-center py-20">
-            <View className="w-16 h-16 rounded-full bg-gray-100 justify-center items-center mb-4">
-              <AppIcon name="search" size={32} color="#9CA3AF" />
-            </View>
-            <Text className="text-base font-medium text-gray-500 mb-1">{t('product_not_found')}</Text>
-            <Text className="text-sm text-gray-400 mb-5">{t('try_different_keywords')}</Text>
-            {onRefresh && (
-              <TouchableOpacity
-                onPress={onRefresh}
-                className="flex-row items-center gap-2 px-5 py-2.5 rounded-xl"
-                style={{ backgroundColor: theme.primary }}
-                activeOpacity={0.8}
-              >
-                <AppIcon name="refresh" size={18} color="#FFFFFF" />
-                <Text className="text-white text-sm font-semibold">Thử lại</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+      {/* Product Count */}
+      <Text className="text-sm font-semibold mb-4" style={{ color: theme.muted }}>
+        {t('products_count', { count: filteredProducts.length })}
+      </Text>
+    </View>
+  ), [
+    categories,
+    filteredProducts.length,
+    onFilterClick,
+    onSearchQueryChange,
+    renderCategoryItem,
+    searchInputTextAlignStyle,
+    searchQuery,
+    t,
+    theme,
+  ]);
+
+  const listEmptyComponent = useMemo(() => (
+    <View className="flex-1 justify-center items-center py-20">
+      <View className="w-16 h-16 rounded-full bg-gray-100 justify-center items-center mb-4">
+        <AppIcon name="search" size={32} color="#9CA3AF" />
       </View>
+      <Text className="text-base font-medium text-gray-500 mb-1">{t('product_not_found')}</Text>
+      <Text className="text-sm text-gray-400 mb-5">{t('try_different_keywords')}</Text>
+      {onRefresh && (
+        <TouchableOpacity
+          onPress={onRefresh}
+          className="flex-row items-center gap-2 px-5 py-2.5 rounded-xl"
+          style={{ backgroundColor: theme.primary }}
+          activeOpacity={0.8}
+        >
+          <AppIcon name="refresh" size={18} color="#FFFFFF" />
+          <Text className="text-white text-sm font-semibold">Thử lại</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  ), [onRefresh, t, theme]);
+
+  return (
+    <KeyboardAvoidingView
+      className="flex-1"
+      style={{ backgroundColor: theme.background }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <FlatList
+        data={filteredProducts}
+        numColumns={2}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={listEmptyComponent}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }}
+        columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 16 }}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        removeClippedSubviews={false}
+        maxToRenderPerBatch={10}
+        windowSize={11}
+        initialNumToRender={10}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={onRefresh}
+            colors={[theme.primary]}
+            tintColor={theme.primary}
+          />
+        }
+      />
     </KeyboardAvoidingView>
   );
-}
+});

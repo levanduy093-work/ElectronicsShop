@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, Platform, RefreshControl } from 'react-native';
+import React, { useCallback } from 'react';
+import { View, Text, TouchableOpacity, StatusBar, Platform, RefreshControl, FlatList } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
@@ -23,12 +23,8 @@ export function OrderHistory({ onBack, onViewDetail, orders = [], theme, onRefre
   const { t: translate } = useTranslation();
   const t = theme || ctxTheme || lightTheme;
 
-  // Debug: log số lượng orders
-  console.log('OrderHistory - orders count:', orders.length);
-  console.log('OrderHistory - orders:', orders.map(o => ({ id: o.id, status: o.status })));
-
   // Get the latest active status from timeline
-  const getStatusFromTimeline = (order: Order) => {
+  const getStatusFromTimeline = useCallback((order: Order) => {
     if (order.status === 'cancelled') {
       return {
         text: translate('order_status_cancelled'),
@@ -76,8 +72,65 @@ export function OrderHistory({ onBack, onViewDetail, orders = [], theme, onRefre
       color,
       bgColor,
     };
-  };
+  }, [t, translate]);
 
+  const renderOrderItem = useCallback(({ item: order }: { item: Order }) => (
+    <View
+      className="p-4 mb-4 border rounded-2xl shadow-sm"
+      style={{
+        backgroundColor: t.card,
+        borderColor: t.border,
+        shadowOpacity: t === lightTheme ? 0.05 : 0,
+        elevation: t === lightTheme ? 2 : 0
+      }}
+    >
+      <View className="flex-row justify-between items-start mb-3">
+        <View>
+          <Text className="text-xs font-bold mb-1" style={{ color: t.muted }}>#{order.code}</Text>
+          <Text className="text-xs" style={{ color: t.muted }}>{order.date}</Text>
+        </View>
+        {(() => {
+          const statusInfo = getStatusFromTimeline(order);
+          return (
+            <View className="px-2.5 py-1 rounded-xl" style={{ backgroundColor: statusInfo.bgColor }}>
+              <Text className="text-[11px] font-bold" style={{ color: statusInfo.color }}>
+                {statusInfo.text}
+              </Text>
+            </View>
+          );
+        })()}
+      </View>
+
+      <View className="border-t pt-3 mb-3 gap-1" style={{ borderTopColor: t.border }}>
+        {order.items.slice(0, 2).map((item, i) => (
+          <Text key={i} className={`${TYPO_CLASS.helper} leading-5`} style={{ color: t.text }} numberOfLines={1}>
+            • {item.name} x{item.quantity}
+          </Text>
+        ))}
+        {order.items.length > 2 && (
+          <Text className="text-xs italic mt-1" style={{ color: t.muted }}>
+            {translate('more_products', { count: order.items.length - 2 })}
+          </Text>
+        )}
+      </View>
+
+      <View className="flex-row justify-between items-center pt-3 mt-3 border-t" style={{ borderTopColor: t.border }}>
+        <View>
+          <Text className={TYPO_CLASS.helper} style={{ color: t.muted }}>{translate('total')}:</Text>
+          <Text className="text-lg font-bold" style={{ color: t.primary }}>{formatPrice(order.payment.total)}</Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => onViewDetail?.(order.id)}
+          className="flex-row items-center gap-1 px-3 py-2 rounded-lg border"
+          style={{ backgroundColor: t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)', borderColor: t.primary }}
+          activeOpacity={0.7}
+        >
+          <Text className={TYPO_CLASS.bodyStrong} style={{ color: t.primary }}>{translate('view_details')}</Text>
+          <AppIcon name="chevron-right" size={16} color={t.primary} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  ), [getStatusFromTimeline, onViewDetail, t, translate]);
 
   return (
     <View className="flex-1" style={{ backgroundColor: t.background }}>
@@ -111,10 +164,22 @@ export function OrderHistory({ onBack, onViewDetail, orders = [], theme, onRefre
         <Text className={`${TYPO_CLASS.screenTitle} flex-1 ml-2`} style={{ color: t.text }}>{translate('my_orders')}</Text>
         <View className="w-10" />
       </View>
-      <ScrollView
+      <FlatList
+        data={orders}
+        keyExtractor={(item) => item.id}
+        renderItem={renderOrderItem}
         className="flex-1"
-        contentContainerStyle={{ padding: 16, paddingBottom: 96, backgroundColor: t.background }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 96, backgroundColor: t.background, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View className="flex-1 justify-center items-center py-20">
+            <View className="w-20 h-20 rounded-full justify-center items-center mb-6" style={{ backgroundColor: t.surface }}>
+              <AppIcon name="package" size={32} color={t.muted} />
+            </View>
+            <Text className="text-lg font-bold mb-2" style={{ color: t.text }}>{translate('no_orders_yet')}</Text>
+            <Text className={`${TYPO_CLASS.helper} text-center`} style={{ color: t.muted }}>{translate('orders_will_appear_here')}</Text>
+          </View>
+        }
         refreshControl={
           onRefresh ? (
             <RefreshControl
@@ -124,76 +189,7 @@ export function OrderHistory({ onBack, onViewDetail, orders = [], theme, onRefre
             />
           ) : undefined
         }
-      >
-        {orders.length === 0 ? (
-          <View className="flex-1 justify-center items-center py-20">
-            <View className="w-20 h-20 rounded-full justify-center items-center mb-6" style={{ backgroundColor: t.surface }}>
-              <AppIcon name="package" size={32} color={t.muted} />
-            </View>
-            <Text className="text-lg font-bold mb-2" style={{ color: t.text }}>{translate('no_orders_yet')}</Text>
-            <Text className={`${TYPO_CLASS.helper} text-center`} style={{ color: t.muted }}>{translate('orders_will_appear_here')}</Text>
-          </View>
-        ) : (
-          orders.map((order) => (
-            <View
-              key={order.id}
-              className="p-4 mb-4 border rounded-2xl shadow-sm"
-              style={{
-                backgroundColor: t.card,
-                borderColor: t.border,
-                shadowOpacity: t === lightTheme ? 0.05 : 0,
-                elevation: t === lightTheme ? 2 : 0
-              }}
-            >
-              <View className="flex-row justify-between items-start mb-3">
-                <View>
-                  <Text className="text-xs font-bold mb-1" style={{ color: t.muted }}>#{order.code}</Text>
-                  <Text className="text-xs" style={{ color: t.muted }}>{order.date}</Text>
-                </View>
-                {(() => {
-                  const statusInfo = getStatusFromTimeline(order);
-                  return (
-                    <View className="px-2.5 py-1 rounded-xl" style={{ backgroundColor: statusInfo.bgColor }}>
-                      <Text className="text-[11px] font-bold" style={{ color: statusInfo.color }}>
-                        {statusInfo.text}
-                      </Text>
-                    </View>
-                  );
-                })()}
-              </View>
-
-              <View className="border-t pt-3 mb-3 gap-1" style={{ borderTopColor: t.border }}>
-                {order.items.slice(0, 2).map((item, i) => (
-                  <Text key={i} className={`${TYPO_CLASS.helper} leading-5`} style={{ color: t.text }} numberOfLines={1}>
-                    • {item.name} x{item.quantity}
-                  </Text>
-                ))}
-                {order.items.length > 2 && (
-                  <Text className="text-xs italic mt-1" style={{ color: t.muted }}>
-                    {translate('more_products', { count: order.items.length - 2 })}
-                  </Text>
-                )}
-              </View>
-
-              <View className="flex-row justify-between items-center pt-3 mt-3 border-t" style={{ borderTopColor: t.border }}>
-                <View>
-                  <Text className={TYPO_CLASS.helper} style={{ color: t.muted }}>{translate('total')}:</Text>
-                  <Text className="text-lg font-bold" style={{ color: t.primary }}>{formatPrice(order.payment.total)}</Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => onViewDetail?.(order.id)}
-                  className="flex-row items-center gap-1 px-3 py-2 rounded-lg border"
-                  style={{ backgroundColor: t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)', borderColor: t.primary }}
-                  activeOpacity={0.7}
-                >
-                  <Text className={TYPO_CLASS.bodyStrong} style={{ color: t.primary }}>{translate('view_details')}</Text>
-                  <AppIcon name="chevron-right" size={16} color={t.primary} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))
-        )}
-      </ScrollView>
+      />
     </View>
   );
 }

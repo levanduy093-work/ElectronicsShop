@@ -1,11 +1,14 @@
 import React from 'react';
 import {
-  ScrollView,
   Alert,
+  FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
   RefreshControl,
   InteractionManager,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { HomeBanner, Product } from '../types';
@@ -15,8 +18,9 @@ import { socketService } from '../services/socket';
 import { HomeBannerSection } from '../components/home/HomeBannerSection';
 import { CategorySection } from '../components/home/CategorySection';
 import { AIRecommendationsCard } from '../components/home/AIRecommendationsCard';
-import { FeaturedProductsSection } from '../components/home/FeaturedProductsSection';
 import { CATEGORIES } from '../constants/data';
+import { AppIcon } from '../components/common/Icon';
+import { ProductCard } from '../components/ui/ProductCard';
 
 interface HomeProps {
   onNavigate: (tab: string) => void;
@@ -36,7 +40,7 @@ interface HomeProps {
   onVisibleCountChange?: (value: number) => void;
 }
 
-export function Home({
+export const Home = React.memo(function Home({
   onNavigate,
   onProductClick,
   theme,
@@ -57,7 +61,7 @@ export function Home({
   const { theme: ctxTheme } = useTheme();
   const resolvedTheme = theme || ctxTheme || lightTheme;
   const [visibleCount, setVisibleCount] = React.useState(initialVisibleCount || 10);
-  const scrollViewRef = React.useRef<ScrollView>(null);
+  const listRef = React.useRef<FlatList<Product>>(null);
   const hasRestoredScroll = React.useRef(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
 
@@ -72,7 +76,10 @@ export function Home({
     onVisibleCountChange?.(visibleCount);
   }, [visibleCount, onVisibleCountChange]);
 
-  const raspberryProduct = products.find(p => p.name.toLowerCase().includes('rasp')) || products[0];
+  const raspberryProduct = React.useMemo(
+    () => products.find(p => p.name.toLowerCase().includes('rasp')) || products[0],
+    [products],
+  );
 
   // Real-time listener
   React.useEffect(() => {
@@ -120,12 +127,15 @@ export function Home({
   };
 
   // Extract categories from products if CATEGORIES is empty
-  const displayCategories = CATEGORIES.length > 0 ? CATEGORIES : extractCategoriesFromProducts(products);
+  const displayCategories = React.useMemo(
+    () => (CATEGORIES.length > 0 ? CATEGORIES : extractCategoriesFromProducts(products)),
+    [products],
+  );
 
   React.useEffect(() => {
-    if (scrollViewRef.current && initialScrollOffset !== undefined) {
+    if (listRef.current && initialScrollOffset !== undefined) {
       requestAnimationFrame(() => {
-        scrollViewRef.current?.scrollTo({ y: initialScrollOffset, animated: false });
+        listRef.current?.scrollToOffset({ offset: initialScrollOffset, animated: false });
       });
       hasRestoredScroll.current = true;
     }
@@ -147,30 +157,33 @@ export function Home({
     }
   }, [onRefreshProducts, isRefreshing]);
 
-  return (
-    <ScrollView
-      ref={scrollViewRef}
-      className="flex-1 bg-transparent"
-      style={{ backgroundColor: resolvedTheme.background }}
-      contentContainerStyle={{
-        paddingBottom: 96,
-        paddingTop: 16,
-        paddingHorizontal: 16,
-        backgroundColor: resolvedTheme.background
+  const visibleProducts = React.useMemo(
+    () => (products.length ? products : []).slice(0, visibleCount),
+    [products, visibleCount],
+  );
+
+  const handleLoadMore = React.useCallback(() => {
+    setVisibleCount(prev => Math.min(prev + 10, products.length));
+  }, [products.length]);
+
+  const renderProductItem = React.useCallback(({ item, index }: { item: Product; index: number }) => (
+    <View
+      style={{
+        flex: 1,
+        marginBottom: 16,
+        marginRight: index % 2 === 0 ? 12 : 0,
       }}
-      showsVerticalScrollIndicator={false}
-      onScroll={handleScroll}
-      scrollEventThrottle={16}
-      contentOffset={{ x: 0, y: initialScrollOffset || 0 }}
-      refreshControl={
-        <RefreshControl
-          refreshing={isRefreshing}
-          onRefresh={handleRefresh}
-          colors={[resolvedTheme.primary]}
-          tintColor={resolvedTheme.primary}
-        />
-      }
     >
+      <ProductCard
+        product={item}
+        theme={resolvedTheme}
+        onPress={() => onProductClick?.(item)}
+      />
+    </View>
+  ), [onProductClick, resolvedTheme]);
+
+  const listHeader = (
+    <View>
       <HomeBannerSection
         banners={banners}
         onBannerPress={handleBannerPressInternal}
@@ -188,17 +201,91 @@ export function Home({
         onPress={() => onNavigate('ai')}
       />
 
-      <FeaturedProductsSection
-        products={products}
-        isLoading={isLoading}
-        error={error}
-        isOffline={isOffline}
-        onRefresh={onRefreshProducts}
-        onProductClick={onProductClick}
-        visibleCount={visibleCount}
-        onLoadMore={() => setVisibleCount(prev => Math.min(prev + 10, products.length))}
-        theme={resolvedTheme}
-      />
-    </ScrollView>
+      <Text className="text-lg font-bold mb-4" style={{ color: resolvedTheme.text }}>
+        {t('featured_products')}
+      </Text>
+    </View>
   );
-}
+
+  const listEmpty = (
+    <View className="items-center justify-center py-12 px-8">
+      <AppIcon name={error ? 'alert-circle-outline' : 'package-variant'} size={64} color={resolvedTheme.muted} />
+      <Text
+        className="text-lg font-semibold mt-4 mb-2 text-center"
+        style={{ color: resolvedTheme.text }}
+      >
+        {error
+          ? (isOffline ? 'Không có kết nối mạng' : 'Không thể tải sản phẩm')
+          : 'Chưa có sản phẩm'}
+      </Text>
+      <Text
+        className="text-sm text-center mb-6 leading-5"
+        style={{ color: resolvedTheme.muted }}
+      >
+        {error
+          ? (isOffline
+            ? 'Vui lòng kiểm tra kết nối internet của bạn và thử lại.'
+            : error || 'Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại.')
+          : 'Hiện tại chưa có sản phẩm nào. Vui lòng thử lại sau.'}
+      </Text>
+      {onRefreshProducts && (
+        <TouchableOpacity
+          onPress={() => onRefreshProducts()}
+          className="flex-row items-center gap-2 px-6 py-3 rounded-xl"
+          style={{ backgroundColor: resolvedTheme.primary }}
+          activeOpacity={0.8}
+        >
+          <AppIcon name="refresh" size={20} color="#FFFFFF" />
+          <Text className="text-white text-base font-semibold">{error ? 'Thử lại' : 'Tải lại'}</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
+  const listFooter = products.length > visibleCount ? (
+    <TouchableOpacity
+      onPress={handleLoadMore}
+      className="mt-3 self-center flex-row items-center gap-1.5 px-4 py-2.5 rounded-xl border"
+      style={{ borderColor: resolvedTheme.primary }}
+      activeOpacity={0.8}
+    >
+      <Text className="text-sm font-semibold" style={{ color: resolvedTheme.primary }}>
+        {t('view_more_products', { count: Math.max(products.length - visibleCount, 0) })}
+      </Text>
+      <AppIcon name="chevron-down" size={16} color={resolvedTheme.primary} />
+    </TouchableOpacity>
+  ) : null;
+
+  return (
+    <FlatList
+      ref={listRef}
+      data={visibleProducts}
+      keyExtractor={(item) => item.id}
+      renderItem={renderProductItem}
+      numColumns={2}
+      className="flex-1 bg-transparent"
+      style={{ backgroundColor: resolvedTheme.background }}
+      contentContainerStyle={{
+        paddingBottom: 96,
+        paddingTop: 16,
+        paddingHorizontal: 16,
+        backgroundColor: resolvedTheme.background,
+      }}
+      showsVerticalScrollIndicator={false}
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
+      ListHeaderComponent={listHeader}
+      ListEmptyComponent={!isLoading ? listEmpty : null}
+      ListFooterComponent={listFooter}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          colors={[resolvedTheme.primary]}
+          tintColor={resolvedTheme.primary}
+        />
+      }
+      contentOffset={{ x: 0, y: initialScrollOffset || 0 }}
+    />
+  );
+});

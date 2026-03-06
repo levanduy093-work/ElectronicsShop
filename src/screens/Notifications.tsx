@@ -2,12 +2,12 @@ import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   StatusBar,
   Platform,
   RefreshControl,
   InteractionManager,
+  FlatList,
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -145,24 +145,19 @@ export function Notifications({
         )}
       </View>
 
-      <ScrollView
-        style={styles.scroll}
+      <FlatList
+        data={notifications}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh || (() => {})}
-            tintColor={t.primary}
-          />
-        }
-      >
-        {notifications.map((item) => {
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        renderItem={({ item }) => {
           const itemRead = item.read || localReadIds.includes(item.id);
           const isExpanded = expandedId === item.id;
           const showElevated = !itemRead || isExpanded;
 
           return (
-            <View key={item.id} style={styles.cardWrap}>
+            <View style={styles.cardWrap}>
               <TouchableOpacity
                 activeOpacity={0.92}
                 onPress={() => handleToggleNotification(item)}
@@ -209,12 +204,21 @@ export function Notifications({
               </TouchableOpacity>
             </View>
           );
-        })}
-
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: t.muted }]}>{translate('all_notifications_viewed')}</Text>
-        </View>
-      </ScrollView>
+        }}
+        ListFooterComponent={
+          <View style={styles.footer}>
+            <Text style={[styles.footerText, { color: t.muted }]}>{translate('all_notifications_viewed')}</Text>
+          </View>
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh || (() => {})}
+            tintColor={t.primary}
+          />
+        }
+        extraData={{ expandedId, localReadIds }}
+      />
     </View>
   );
 }

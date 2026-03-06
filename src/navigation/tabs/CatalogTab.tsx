@@ -6,7 +6,7 @@ import { filterProducts } from '../../utils/filterUtils';
 import { Catalog as CatalogScreen } from '../../screens/Catalog';
 import { setCatalogSearchQuery, useFiltersStore } from '../../store/filtersStore';
 
-export function CatalogTab({ navigation, route }: { navigation: any; route: any }) {
+export const CatalogTab = React.memo(function CatalogTab({ navigation, route }: { navigation: any; route: any }) {
     const { theme } = useTheme();
     const app = useAppOptional();
     const notificationsCtx = useNotificationsOptional();
@@ -25,7 +25,22 @@ export function CatalogTab({ navigation, route }: { navigation: any; route: any 
         return 'All';
     }, [route.params]);
 
-    const hasUnread = (notificationsCtx?.notifications || []).some(n => !n.read);
+    const hasUnread = React.useMemo(
+        () => (notificationsCtx?.notifications || []).some(n => !n.read),
+        [notificationsCtx?.notifications],
+    );
+
+    const handleProductClick = React.useCallback((p: any) => {
+        navigation.navigate('ProductDetail', { productId: p.id });
+    }, [navigation]);
+
+    const handleFilterClick = React.useCallback(() => {
+        navigation.navigate('Filter', { type: 'catalog' });
+    }, [navigation]);
+
+    const handleRefresh = React.useCallback(() => {
+        return app?.loadProducts?.();
+    }, [app?.loadProducts]);
 
     const applyFilters = React.useCallback((products: any[]) => {
         return filterProducts(products, catalogSearchQuery || '', catalogFilters || {});
@@ -42,15 +57,15 @@ export function CatalogTab({ navigation, route }: { navigation: any; route: any 
                 theme={theme}
                 products={app?.products || []}
                 initialCategory={initialCategory}
-                onProductClick={(p) => navigation.navigate('ProductDetail', { productId: p.id })}
-                onFilterClick={() => navigation.navigate('Filter', { type: 'catalog' })}
+                onProductClick={handleProductClick}
+                onFilterClick={handleFilterClick}
                 searchQuery={catalogSearchQuery || ''}
                 onSearchQueryChange={setCatalogSearchQuery}
                 filters={catalogFilters}
                 applyFilters={applyFilters}
                 isLoading={app?.isLoadingProducts || false}
-                onRefresh={() => app?.loadProducts?.()}
+                onRefresh={handleRefresh}
             />
         </ScreenLayout>
     );
-}
+});
