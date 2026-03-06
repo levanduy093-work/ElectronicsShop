@@ -993,21 +993,22 @@ export function ProductDetail({
         animationType="fade"
         onRequestClose={() => setShowImageViewer(false)}
       >
-        <View className="flex-1 bg-black">
+        <View className="flex-1 bg-black/80">
           <View
-            className="absolute top-0 left-0 right-0 z-20 flex-row items-center justify-between px-4"
+            className="absolute top-0 left-0 right-0 z-20 flex-row items-center justify-center px-4"
             style={{ paddingTop: Math.max(insets.top, 12) }}
           >
+            <Text className="text-white text-sm font-semibold bg-black/35 px-3 py-1 rounded-full">
+              {viewerImageIndex + 1}/{productImages.length}
+            </Text>
             <TouchableOpacity
-              className="w-10 h-10 rounded-full items-center justify-center bg-black/45"
+              className="absolute right-4 w-14 h-14 rounded-2xl items-center justify-center bg-black/65"
+              style={{ top: Math.max(insets.top, 12) + 18 }}
               onPress={() => setShowImageViewer(false)}
               activeOpacity={0.85}
             >
-              <AppIcon name="arrow-left" size={20} color="#FFFFFF" />
+              <AppIcon name="close" size={28} color="#FFFFFF" />
             </TouchableOpacity>
-            <Text className="text-white text-sm font-semibold">
-              {viewerImageIndex + 1}/{productImages.length}
-            </Text>
           </View>
 
           <ScrollView
@@ -1027,7 +1028,7 @@ export function ProductDetail({
               >
                 <ImageWithFallback
                   source={{ uri: img }}
-                  className="w-full h-[82%]"
+                  className="w-full h-[70%]"
                   resizeMode="contain"
                 />
               </View>

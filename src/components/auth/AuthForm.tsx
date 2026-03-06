@@ -79,6 +79,25 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         reset({ name: '', email: '', password: '' });
     }, [isRegister, reset]);
 
+    const singleLineInputStyle = useMemo(() => {
+        if (Platform.OS === 'ios') {
+            return {
+                fontSize: 16,
+                lineHeight: 20,
+                height: 20,
+                paddingTop: 0,
+                paddingBottom: 0,
+            } as const;
+        }
+
+        return {
+            ...TEXT_INPUT_BASE_STYLE,
+            height: 44,
+            textAlignVertical: 'center' as const,
+            includeFontPadding: false,
+        };
+    }, []);
+
     return (
         <>
             <View className="mb-8">
@@ -99,14 +118,14 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                                 name="name"
                                 render={({ field: { onChange, onBlur, value } }) => (
                                     <TextInput
-                                        className="flex-1 text-base h-full p-0"
+                                        className="flex-1 p-0"
                                         placeholder={translate('enter_name_placeholder')}
                                         value={value}
                                         onChangeText={onChange}
                                         onBlur={onBlur}
                                         style={{
                                             color: t.text,
-                                            ...TEXT_INPUT_BASE_STYLE,
+                                            ...singleLineInputStyle,
                                         }}
                                         placeholderTextColor={t.muted}
                                         editable={!isSubmitting}
@@ -129,14 +148,14 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                             name="email"
                             render={({ field: { onChange, onBlur, value } }) => (
                                 <TextInput
-                                    className="flex-1 text-base h-full p-0"
+                                    className="flex-1 p-0"
                                     placeholder="example@email.com"
                                     value={value}
                                     onChangeText={onChange}
                                     onBlur={onBlur}
                                     style={{
                                         color: t.text,
-                                        ...TEXT_INPUT_BASE_STYLE,
+                                        ...singleLineInputStyle,
                                     }}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
@@ -170,14 +189,14 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                             name="password"
                             render={({ field: { onChange, onBlur, value } }) => (
                                 <TextInput
-                                    className="flex-1 text-base h-full p-0"
+                                    className="flex-1 p-0"
                                     placeholder="••••••••"
                                     value={value}
                                     onChangeText={onChange}
                                     onBlur={onBlur}
                                     style={{
                                         color: t.text,
-                                        ...TEXT_INPUT_BASE_STYLE,
+                                        ...singleLineInputStyle,
                                     }}
                                     secureTextEntry={!showPassword}
                                     placeholderTextColor={t.muted}
