@@ -1,212 +1,245 @@
-# ElectroAI - Ứng dụng Mua Sắm Linh Kiện Điện Tử & Trợ Lý AI
+# ElectronicsShop
 
-## 📱 Tổng quan (Overview)
+Ứng dụng mobile thương mại điện tử cho linh kiện điện tử, tích hợp AI chat tư vấn sản phẩm, theo dõi đơn hàng và thanh toán VNPAY.
 
-**ElectroAI** là nền tảng thương mại điện tử thế hệ mới dành riêng cho lĩnh vực linh kiện điện tử, được tích hợp sâu Trí tuệ nhân tạo (AI) để hỗ trợ kỹ sư, sinh viên và người đam mê công nghệ.
+- Platform: React Native (Android + iOS)
+- App client của hệ sinh thái `electronics-backend` + `electronics-admin`
 
-Khác với các ứng dụng mua sắm thông thường, ElectroAI sở hữu một **"Kỹ sư AI" ảo**, có khả năng tư vấn kỹ thuật, phân tích sơ đồ mạch qua hình ảnh và tự động đề xuất linh kiện phù hợp, giúp rút ngắn thời gian từ ý tưởng đến thực thi.
+## 1. Tính năng chính
 
-## ✨ Tính năng Nổi bật (Key Features)
+- Mua sắm sản phẩm linh kiện: danh mục, tìm kiếm, lọc, chi tiết, đánh giá.
+- Giỏ hàng đồng bộ theo tài khoản (và fallback local khi chưa đăng nhập).
+- Checkout với 2 phương thức: `COD` và `VNPAY`.
+- Quản lý đơn hàng: lịch sử đơn, chi tiết đơn, timeline trạng thái.
+- AI Chat:
+  - Chat tư vấn linh kiện theo ngữ cảnh.
+  - Hỗ trợ gửi ảnh (sơ đồ mạch/linh kiện) để AI phân tích.
+  - Trả về product cards + actions (ví dụ thêm giỏ hàng có xác nhận).
+  - Lưu history và archives cuộc hội thoại.
+- Auth đầy đủ: login, register OTP email, quên mật khẩu, đổi mật khẩu, social login Google/Apple.
+- Hồ sơ người dùng: cập nhật profile/avatar, địa chỉ giao hàng, wishlist, voucher.
+- Notifications qua Firebase Cloud Messaging (FCM).
+- i18n: Tiếng Việt/Tiếng Anh.
+- Theme mode: `light`, `dark`, `system`.
+- Biometric lock (Face ID / Touch ID / Biometrics).
 
-### 1. 🤖 Trợ lý Kỹ thuật AI (AI Engineer Assistant)
-Đây là "trái tim" của ứng dụng, mang lại trải nghiệm vượt trội:
-- **Tư vấn thông minh**: Chat bot hiểu ngữ cảnh kỹ thuật, giúp giải đáp thắc mắc về datasheet, thông số linh kiện.
-- **Phân tích hình ảnh (Vision)**: Upload ảnh sơ đồ mạch hoặc bo mạch thực tế, AI sẽ nhận diện các linh kiện và đề xuất danh sách mua hàng tương ứng.
-- **Thẻ sản phẩm trong Chat**: AI trả về trực tiếp các Product Card tương tác được, cho phép xem nhanh giá, tồn kho và thêm vào giỏ ngay trong cuộc hội thoại.
-- **Hành động tự động**: AI có thể thực hiện "Add to Cart" (Thêm vào giỏ) thay người dùng sau khi được xác nhận.
-
-### 2. 🔐 Xác thực & Bảo mật (Authentication)
-Hệ thống tài khoản bảo mật cao:
-- **Đăng ký/Đăng nhập**: Hỗ trợ đăng ký tài khoản mới với quy trình xác thực OTP qua Email (SendGrid/SMTP).
-- **Quản lý mật khẩu**: Tính năng "Quên mật khẩu" và "Đổi mật khẩu" an toàn với mã xác minh OTP.
-- **Token Management**: Cơ chế tự động làm mới phiên đăng nhập (Refresh Token) giúp trải nghiệm người dùng không bị gián đoạn.
-- **Khóa Ứng dụng (Biometric Lock)**: Bảo vệ quyền riêng tư bằng Face ID / Touch ID mỗi khi mở app hoặc quay lại từ nền (Background). Kích hoạt trong phần Cài đặt.
-
-### 3. 🛍️ Trải nghiệm Mua sắm (Shopping Experience)
-- **Danh mục đa dạng**: Hệ thống phân loại thông minh (Vi điều khiển, Cảm biến, IC, Dây cáp, v.v...) với khả năng tự động chuẩn hóa tên gọi.
-- **Tìm kiếm nâng cao**:
-  - Hỗ trợ tìm kiếm mờ (Fuzzy Search) thông minh.
-  - **Lịch sử tìm kiếm**: Lưu lại các từ khóa đã tìm giúp truy cập nhanh.
-- **Bộ lọc chuyên sâu (Filter)**: Lọc sản phẩm theo khoảng giá, đánh giá (sao), tình trạng tồn kho và danh mục.
-- **Chi tiết sản phẩm**:
-  - Thông số kỹ thuật (Specs) chi tiết.
-  - Xem Datasheet sản phẩm.
-  - **Sản phẩm liên quan**: Gợi ý các sản phẩm bổ trợ.
-  - **Đánh giá & Bình luận**: Xem và viết đánh giá, hỗ trợ đính kèm hình ảnh thực tế sản phẩm.
-
-### 4. ❤️ Tiện ích Cá nhân (User Utilities)
-- **Danh sách yêu thích (Wishlist)**: Lưu lại các linh kiện quan tâm để mua sau.
-- **Sổ địa chỉ**: Quản lý nhiều địa chỉ giao hàng, dễ dàng chuyển đổi địa chỉ mặc định.
-- **Ví Voucher**: Lưu trữ và áp dụng mã giảm giá.
-- **Trung tâm hỗ trợ (Support Center)**: Kênh hỗ trợ khách hàng tích hợp sẵn.
-
-### 5. 🛒 Giỏ hàng & Thanh toán (Checkout)
-Quy trình "Checkout" 3 bước tối ưu hóa tỷ lệ chuyển đổi:
-- **Giỏ hàng**: Tự động đồng bộ giỏ hàng giữa các thiết bị (nếu đăng nhập).
-- **Vận chuyển & Voucher**: Chọn phương thức vận chuyển và áp mã giảm giá trực quan.
-- **Thanh toán đa kênh**:
-  - **COD**: Thanh toán khi nhận hàng.
-  - **VNPAY**: Tích hợp cổng thanh toán VNPAY an toàn, hỗ trợ quét QR, thẻ ATM/Visa nội địa và quốc tế.
-
-### 6. 📦 Quản lý Đơn hàng (Order Management)
-- **Theo dõi thời gian thực (Real-time Tracking)**: Cập nhật trạng thái đơn hàng (Mới đặt, Đang xử lý, Đang giao, Thành công) ngay lập tức qua Socket.io.
-- **Lịch sử chi tiết**: Xem lại đầy đủ thông tin đơn hàng cũ, bao gồm cả timeline xử lý.
-
-### 7. 🔔 Thông báo & Đa ngôn ngữ
-- **Push Notifications**: Thông báo đẩy qua Firebase Cloud Messaging (FCM) về trạng thái đơn hàng, khuyến mãi mới.
-- **Đa ngôn ngữ (i18n)**: Chuyển đổi linh hoạt giữa Tiếng Việt và Tiếng Anh.
-- **Giao diện**: Hỗ trợ Dark Mode / Light Mode.
-
----
-
-## ⚡ Hiệu suất & Tối ưu hóa (Performance) (New Update)
-Ứng dụng đã được tối ưu hóa sâu để đạt tốc độ khởi động "Zero-Wait" (tức thì):
-
-### 1. Zero-Wait Startup
-- Loại bỏ hoàn toàn màn hình chờ (Splash Loading).
-- App hiển thị ngay lập tức màn hình Home với dữ liệu mặc định/cache, sau đó cập nhật ngầm (Background Update).
-
-### 2. Parallel Data Loading
-- Sử dụng `Promise.all` để tải song song 5 luồng dữ liệu quan trọng (Auth, Cart, Theme, Onboarding, Push Settings) thay vì tuần tự.
-- Giảm thời gian khôi phục trạng thái xuống mức mili-giây.
-
-### 3. Strict Cache Strategy
-- Cơ chế **Cache-First**: Luôn ưu tiên hiển thị dữ liệu sản phẩm từ bộ nhớ đệm (AsyncStorage) trong lần mở đầu tiên.
-- **Background Fetch**: Dữ liệu mới nhất sẽ được tải ngầm và cập nhật UI mượt mà không gây gián đoạn.
-
-### 4. Code Splitting & Lazy Loading
-- Áp dụng `React.lazy` và `Suspense` để chia nhỏ bundle.
-- Chỉ tải các module cần thiết (Home) khi khởi động. Các màn hình phụ (Cart, Profile, Settings...) chỉ được tải vào bộ nhớ khi người dùng thực sự truy cập.
-
----
-
-## 🛠️ Công nghệ sử dụng (Tech Stack)
-
-### Mobile App (Client)
-- **Framework**: React Native 0.83.1
-- **Ngôn ngữ**: TypeScript 5.8
-- **State & Logic**: React Hooks, Context API.
-- **UI Kit**: Custom Design System, `react-native-vector-icons`, `react-native-svg`.
-- **Navigation**: React Navigation (Stack/Tab).
-
-### Kết nối & Tích hợp
-- **Real-time**: Socket.io Client.
-- **API**: RESTful API (Axios/Fetch).
-- **Notification**: Firebase Cloud Messaging (FCM).
-- **Storage**: AsyncStorage (Lưu cache, token, settings).
-- **Payment**: VNPAY SDK/Webview integration.
-- **AI Integration**: Kết nối tới module AI Backend xử lý NLP và Vision.
-
-### Xác thực xã hội (Social Login)
-
-- **Google Sign-In**:
-  - Mobile app sử dụng Firebase Authentication + `@react-native-google-signin/google-signin` để lấy **Firebase ID token**.
-  - ID token được gửi lên backend `electronics-backend` qua endpoint `POST /auth/social-login` với `provider = "google"`.
-  - Yêu cầu cấu hình:
-    - File `android/app/google-services.json` (Firebase config cho Android).
-    - File `ios/ElectronicsShop/GoogleService-Info.plist` (Firebase config cho iOS).
-    - Biến môi trường trong `ElectronicsShop/.env`:
-      ```env
-      GOOGLE_WEB_CLIENT_ID=<webClientId từ firebase>
-      ```
-- **Apple Sign-In**:
-  - Sử dụng `@invertase/react-native-apple-authentication` (iOS) kết hợp Firebase Auth để lấy ID token và gửi tới cùng endpoint `/auth/social-login` với `provider = "apple"`.
-
-#### Lưu đồ luồng Social Login (Mobile -> Backend)
+## 2. Kiến trúc ứng dụng
 
 ```mermaid
-sequenceDiagram
-    participant U as User
-    participant M as Mobile App
-    participant F as Firebase Auth (Client)
-    participant API as electronics-backend
-    participant FA as Firebase Admin
+flowchart LR
+  U[User] --> APP[ElectronicsShop App]
+  APP --> API[electronics-backend REST API]
+  APP --> WS[Socket.IO]
+  APP --> FCM[Firebase Messaging]
 
-    U->>M: Nhấn "Đăng nhập Google/Apple"
-    M->>F: Gọi SDK GoogleSignin / AppleAuth
-    F-->>M: Trả về Firebase ID Token
-    M->>API: POST /auth/social-login<br/>{ idToken, provider }
-    API->>FA: verifyIdToken(idToken)
-    FA-->>API: Trả về thông tin user Firebase
-    API-->>M: JWT Access Token + Refresh Token<br/>+ thông tin user nội bộ
-    M->>M: Lưu token, chuyển vào màn hình chính
+  API --> DB[(MongoDB)]
+  API --> AI[Groq AI via backend]
+  API --> VNP[VNPay]
+  API --> CLD[Cloudinary]
+
+  WS --> API
 ```
 
----
+## 3. Stack công nghệ
 
-## 📂 Cấu trúc Dự án (Project Structure)
+- `React Native 0.83.1`
+- `React 19`
+- `TypeScript`
+- `React Navigation` (Native Stack + Bottom Tabs)
+- `@tanstack/react-query`
+- `AsyncStorage`
+- `socket.io-client`
+- `@react-native-firebase` (app/auth/messaging)
+- `@react-native-google-signin/google-signin`
+- `@invertase/react-native-apple-authentication`
+- `react-hook-form` + `zod`
+- `nativewind`
 
-Dự án được tổ chức theo cấu trúc module hóa, giúp dễ dàng mở rộng và bảo trì:
+## 4. Cấu trúc thư mục
 
+```text
+ElectronicsShop/
+├── src/
+│   ├── components/           # UI components theo domain (auth/cart/ai/home/profile/...)
+│   ├── screens/              # Màn hình chính
+│   ├── navigation/           # RootStack + TabNavigator + tab screens
+│   ├── context/              # AppStateProvider + AppContext (state trung tâm)
+│   ├── services/             # API, FCM, Socket, Biometric, Prefetch
+│   ├── hooks/                # useCatalogQueries, ...
+│   ├── theme/                # light/dark theme + typography
+│   ├── i18n/                 # vi/en locale
+│   ├── utils/                # cache, mappers, filter, network, ...
+│   ├── constants/            # constants và dữ liệu mặc định
+│   └── types/                # model types
+├── android/
+├── ios/
+├── App.tsx
+└── package.json
 ```
-src/
-├── assets/          # Tài nguyên tĩnh (images, fonts, animations)
-├── components/      # Các component tái sử dụng, chia theo chức năng (auth, cart, product...)
-│   ├── ai/          # Components liên quan đến AI (Chat bubble, AI products)
-│   ├── common/      # Components chung (Button, Input, Header...)
-│   └── ...
-├── constants/       # Các hằng số, config chung
-├── hooks/           # Custom React Hooks
-├── i18n/            # Cấu hình đa ngôn ngữ (locales)
-├── screens/         # Các màn hình chính của ứng dụng
-├── services/        # Xử lý API, storage, socket, authentication
-├── theme/           # Cấu hình giao diện (Colors, Fonts, Metrics)
-├── types/           # Định nghĩa TypeScript Types & Interfaces
-└── utils/           # Các hàm tiện ích bổ trợ
-```
 
-### Sơ đồ luồng khởi động ứng dụng (App Startup Flow)
+## 5. Điều hướng (Navigation)
+
+Bottom tabs (`TabNavigator`):
+- `HomeTab`
+- `CatalogTab`
+- `AITab`
+- `CartTab`
+- `ProfileTab`
+
+Root stack (`RootStack`) chứa màn chi tiết/flow:
+- `ProductDetail`, `Search`, `Filter`, `Notifications`, `AIChatHistory`
+- `Checkout`, `OrderDetail`
+- `Auth`, `Settings`, `OrderHistory`, `AddressBook`, `Wishlist`, `SupportCenter`, `ChangePassword`, `LanguageSelection`, `AdminAddProduct`
+
+## 6. Luồng runtime chính
+
+### 6.1 App startup
 
 ```mermaid
 flowchart TD
-    A[Khởi động app] --> B[Khởi tạo theme, i18n]
-    B --> C[Đọc cache: token, giỏ hàng, cài đặt]
-    C --> D{Có Access Token hợp lệ?}
-    D -->|Có| E[Tự động đăng nhập lại<br/>load hồ sơ & giỏ hàng từ server]
-    D -->|Không| F[Đi tới màn hình Auth]
-    E --> G[Hiển thị màn hình Home]
-    F --> G
+  A[App.tsx mount] --> B[Init providers: QueryClient + Toast + AppState + Theme + i18n]
+  B --> C[Load onboarding state từ AsyncStorage]
+  C --> D{Đã xem onboarding?}
+  D -->|No| E[Show Onboarding]
+  D -->|Yes| F[Load AppNavigator]
+  E --> F
+  F --> G[RootStack + TabNavigator]
 ```
 
----
+### 6.2 Auth + refresh token
 
-## 📜 Các Scripts có sẵn
+```mermaid
+sequenceDiagram
+  participant APP as Mobile App
+  participant API as backend
 
-Trong thư mục dự án, bạn có thể chạy các lệnh sau:
+  APP->>API: POST /auth/login hoặc /auth/social-login
+  API-->>APP: accessToken + refreshToken + user
+  APP->>APP: Persist auth state vào AsyncStorage
 
-### `npm start`
-Khởi chạy Metro Bundler để phục vụ ứng dụng cho máy ảo hoặc thiết bị thật.
+  APP->>API: API request có Bearer token
+  alt 401
+    APP->>API: POST /auth/refresh
+    API-->>APP: accessToken/refreshToken mới
+    APP->>APP: configureApiAuth cập nhật token
+    APP->>API: Retry request
+  else lỗi refresh
+    APP->>APP: onAuthFailure -> logout local
+  end
+```
 
-### `npm run android`
-Build và chạy ứng dụng trên Android Emulator hoặc thiết bị kết nối qua USB.
+### 6.3 AI chat + action confirm
 
-### `npm run ios`
-Build và chạy ứng dụng trên iOS Simulator (chỉ trên macOS).
+```mermaid
+flowchart TD
+  A[User gửi message hoặc image] --> B[POST /ai/chat]
+  B --> C[Backend trả reply + cards + orderCards + addressCards + actions]
+  C --> D[Render message bubble + cards]
+  D --> E{Có action ADD_TO_CART?}
+  E -->|Yes| F[POST /ai/confirm với confirmationId]
+  F --> G[Backend thêm giỏ hàng]
+  G --> H[Toast + cập nhật UI cart]
+  E -->|No| I[Kết thúc lượt chat]
+```
 
-### `npm run lint`
-Kiểm tra lỗi cú pháp và style code bằng ESLint.
+## 7. Quản lý state và dữ liệu
 
-### `npm test`
-Chạy bộ kiểm thử unit test với Jest.
+`AppStateProvider` là trung tâm state của app:
+- Auth state: `isLoggedIn`, `authTokens`, `userProfile`, `userRole`.
+- Product/catalog state + filters + search query.
+- Cart state, order state, notification state, vouchers, addresses.
+- AI chat messages + archive + sync local/remote.
+- Theme mode, push setting, biometric lock state.
 
----
+Dữ liệu server dùng kết hợp:
+- `react-query` (query/mutation + invalidation).
+- Polling có điều kiện cho orders/notifications.
+- Socket `db_change` để refresh dữ liệu quan trọng theo thời gian thực.
+- Cache local qua `cacheManager` (`AsyncStorage` + memory cache).
 
-## �🚀 Cài đặt và chạy ứng dụng
+## 8. Môi trường (`.env`)
 
-### 1. Clone repository
+Copy mẫu:
 
 ```bash
-git clone <repository-url>
+cp .env.example .env
+```
+
+Các biến dùng trong app:
+
+```env
+API_BASE_URL=http://localhost:3000
+API_DEVICE_HOST=http://192.168.x.x:3000
+APP_LINK_DOMAIN=electronicsshop.app
+APP_LINK_SCHEME=electronicsshop
+GOOGLE_WEB_CLIENT_ID=your_google_web_client_id
+```
+
+Ghi chú:
+- `API_BASE_URL` có thể để localhost khi chạy simulator.
+- Với máy thật, đặt `API_DEVICE_HOST` thành IP LAN của máy chạy backend.
+- `GOOGLE_WEB_CLIENT_ID` dùng cho Google Sign-In + Firebase auth flow.
+
+## 9. Tích hợp backend (API chính)
+
+Các nhóm endpoint được dùng trong `src/services/api.ts`:
+
+- Catalog: `/products`, `/products/:id`, `/products/:id/related`, `/banners/public`
+- Auth: `/auth/login`, `/auth/social-login`, OTP register/reset/change password, `/auth/refresh`
+- User profile: `/users/me`, `/users/me/favorites`, `/users/me/addresses`, `/users/me/fcm-token`
+- Cart/Order/Payment: `/carts`, `/carts/items`, `/orders`, `/orders/:id`, `/payments/vnpay`
+- AI: `/ai/chat`, `/ai/confirm`, ai chat history/archives qua `/users/me/ai-chat-*`
+- Notifications: `/notifications`, `/notifications/:id/read`, `/notifications/read-all`
+- Search trends/history: `/search-trends`, `/search-trends/increment`, `/users/me/search-history`
+
+## 10. Firebase và social login
+
+Yêu cầu file native:
+- Android: `android/app/google-services.json`
+- iOS: `ios/ElectronicsShop/GoogleService-Info.plist`
+
+Google login:
+- App dùng Google Sign-In để lấy token.
+- Token được xác thực qua Firebase Auth client.
+- Firebase ID token được gửi tới backend `/auth/social-login`.
+
+Apple login:
+- Dùng `@invertase/react-native-apple-authentication`.
+- Tạo credential Firebase, rồi gọi backend `/auth/social-login` với provider `apple`.
+
+FCM:
+- Xin quyền notification, lấy token, sync token lên backend.
+- Lắng nghe foreground message để hiển thị toast.
+
+## 11. Checkout và VNPAY
+
+- `Checkout` tạo payload order từ cart items + địa chỉ + payment method.
+- Nếu `COD`: tạo đơn trực tiếp qua `/orders`.
+- Nếu `VNPAY`: gọi `/payments/vnpay`, mở `paymentUrl`, app polling trạng thái đơn và check lại khi app active.
+
+## 12. Biometric lock
+
+- Toggle ở Settings.
+- Trạng thái lưu ở `AsyncStorage` (`biometric_lock_enabled`).
+- Khi app về background/inactive và biometric bật, app lock lại.
+- Khi quay về foreground, người dùng cần xác thực để mở khóa.
+
+## 13. Cài đặt và chạy
+
+### 13.1 Yêu cầu
+
+- Node.js `>= 20`
+- JDK + Android Studio (Android)
+- Xcode + CocoaPods (iOS, macOS)
+
+### 13.2 Install
+
+```bash
 cd ElectronicsShop
-```
-
-### 2. Cài đặt dependencies
-
-```bash
 npm install
 ```
 
-### 3. Cài đặt dependencies cho iOS (chỉ trên macOS)
+### 13.3 iOS pods (macOS)
 
 ```bash
 cd ios
@@ -214,51 +247,58 @@ pod install
 cd ..
 ```
 
-**Lưu ý**: React Native khuyến nghị sử dụng `npm run ios` hoặc `yarn ios` thay vì chạy `pod install` trực tiếp. Lệnh này sẽ tự động cài đặt pods khi cần thiết.
-
-### 4. Chạy ứng dụng
-
-#### Android
-**Lưu ý**: Cần thêm file google-services.json từ firebase vào ElectronicsShop/android/app/ để thực hiện được chức năng gửi thông báo và tránh lỗi khi build.
+### 13.4 Run
 
 ```bash
-# Khởi động Metro bundler
 npm start
-
-# Trong terminal khác, chạy Android app
-npm run android
 ```
 
-#### iOS (chỉ trên macOS)
-**Lưu ý**: Cần thêm file GoogleService-Info.plist từ firebase vào ElectronicsShop/ios/ để build không phát sinh lỗi, hiện dự án được phát triển bởi tài khoản Apple Personal Developer nên chưa cấu hình được thông báo đẩy trên ios, chỉ mới chạy được trên android.
+Terminal khác:
 
 ```bash
-# Khởi động Metro bundler
-npm start
-
-# Trong terminal khác, chạy iOS app
+npm run android
+# hoặc
 npm run ios
 ```
 
----
+## 14. Scripts
 
-## 🔐 Môi trường & Bảo mật
+- `npm start`: chạy Metro bundler
+- `npm run android`: build/run Android
+- `npm run android:clean`: clean gradle + cache plugin RN
+- `npm run ios`: build/run iOS
+- `npm run lint`: ESLint
+- `npm test`: Jest
 
-- Các file/biến sau **không được commit** lên repository (đã được cấu hình trong `.gitignore`):
-  - `ElectronicsShop/.env`
-  - `ElectronicsShop/android/app/google-services.json`
-  - `ElectronicsShop/ios/ElectronicsShop/GoogleService-Info.plist`
-  - Các file keystore ký app Android (`*.keystore`, `*.jks`, ...).
-- Khi thiết lập dự án trên máy mới:
-  - Tự tạo `.env` từ hướng dẫn, hoặc liên hệ để nhận file mẫu.
-  - Tải bộ Firebase config (Android/iOS) từ Firebase Console tương ứng với project của bạn và đặt đúng đường dẫn như trên.
+## 15. Android local.properties
 
-## 📞 Liên hệ & Hỗ trợ
+Nếu thiếu Android SDK path, copy file mẫu:
 
-Để nhận file cấu hình môi trường **`.env`** (chứa API Keys, Firebase Config, Payment Gateway credentials) để chạy thử nghiệm đầy đủ các tính năng của dự án, vui lòng liên hệ:
+- `android/local.properties.example` -> `android/local.properties`
+- cập nhật `sdk.dir=...` theo máy local
 
-- **Zalo**: 0827733475
-- **Email**: levanduy.work@gmail.com
+## 16. Troubleshooting nhanh
 
----
-© 2026 ElectroAI Project.
+- App không gọi được backend trên máy thật:
+  - kiểm tra `API_DEVICE_HOST`
+  - backend có mở cổng `3000` trong cùng mạng LAN
+- Lỗi social login:
+  - kiểm tra `GOOGLE_WEB_CLIENT_ID`
+  - kiểm tra file Firebase config native
+- Không nhận notification:
+  - kiểm tra permission OS
+  - kiểm tra FCM token đã sync backend
+- VNPAY không quay lại app:
+  - kiểm tra `APP_LINK_SCHEME` và cấu hình deep link native
+- Socket không nhận update:
+  - kiểm tra backend socket CORS/JWT
+
+## 17. Bảo mật
+
+- Không commit `.env`, file Firebase config, keystore/signing keys.
+- Token auth được lưu local, tự refresh qua `/auth/refresh`.
+- Khi refresh thất bại, app clear session và yêu cầu đăng nhập lại.
+
+## 18. License
+
+UNLICENSED.

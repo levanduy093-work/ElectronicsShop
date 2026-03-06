@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../components/common/Icon';
 import { Theme, lightTheme, useTheme } from '../theme';
 import { TYPO_CLASS } from '../theme/typography';
-import { Address, AddressFormValues, AddressType } from '../types';
+import { Address, AddressFormValues } from '../types';
 import { DEFAULT_ADDRESSES } from '../constants/defaults';
 import { buildFullAddress } from '../utils/address';
 import { AddressForm } from '../components/address/AddressForm';
@@ -165,7 +165,7 @@ export function AddressBook({ onBack, theme, addresses, onUpdateAddresses, acces
       ward: '',
       district: '',
       city: '',
-      type: translate('home') as AddressType,
+      type: 'home',
       isDefault: addressList.length === 0,
     });
     setIsFormOpen(true);

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../../components/common/Icon';
 import { Address } from '../../types';
 import { Theme, lightTheme } from '../../theme';
+import { getAddressTypeLabel } from '../../utils/addressType';
 
 interface AddressSectionProps {
     addressList: Address[];
@@ -63,7 +64,7 @@ export const AddressSection: React.FC<AddressSectionProps> = ({
                             </View>
                             <View className="flex-1 gap-1">
                                 <Text className="text-sm font-bold" style={{ color: t.text }}>
-                                    {addr.type === 'Nhà riêng' ? translate('home') : translate('office')}
+                                    {getAddressTypeLabel(addr.type, translate)}
                                 </Text>
                                 <Text className="text-sm leading-5" style={{ color: t.text }}>{addr.address}</Text>
                                 <Text className="text-xs" style={{ color: t.muted }}>{contactLine}</Text>

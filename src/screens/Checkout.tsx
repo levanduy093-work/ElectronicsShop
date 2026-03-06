@@ -314,7 +314,7 @@ export function Checkout({
         theme={t}
         onCancel={() => setIsAddingAddress(false)}
         onSubmit={handleSaveAddress}
-        initialValues={{ isDefault: addressList.length === 0, type: translate('home') as any }} // Type casting as quick fix if needed defined in types
+        initialValues={{ isDefault: addressList.length === 0, type: 'home' as any }}
         title="Thêm địa chỉ mới"
       />
     );

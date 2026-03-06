@@ -3,6 +3,7 @@ import { API_BASE_URL as ENV_API_URL, API_DEVICE_HOST } from '@env';
 import { getCurrentNetworkStatus } from '../utils/network';
 
 import i18n from '../i18n';
+import { normalizeAddressType, toAddressTypeValue, toBackendAddressType } from '../utils/addressType';
 
 export type AuthResponse = {
   user: any;
@@ -836,7 +837,7 @@ function backendToFrontendAddress(addr: BackendAddress, index: number): Frontend
     district: addr.district,
     city: addr.city,
     address,
-    type: addr.type,
+    type: toAddressTypeValue(normalizeAddressType(addr.type)),
     isDefault: addr.isDefault,
   };
 }
@@ -852,7 +853,7 @@ function frontendToBackendAddress(addr: Partial<FrontendAddress>): Partial<Backe
     district,
     ward,
     street: addr.detailedAddress,
-    type: addr.type,
+    type: toBackendAddressType(addr.type),
     isDefault: addr.isDefault,
   };
 }

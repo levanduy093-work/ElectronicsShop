@@ -3,11 +3,12 @@ import { Platform, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, Vie
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../common/Icon';
-import { AddressFormValues, AddressType } from '../../types';
+import { AddressFormValues } from '../../types';
 import { Theme, lightTheme, useTheme } from '../../theme';
 import { TEXT_INPUT_BASE_STYLE, TYPO_CLASS } from '../../theme/typography';
 import { useToast } from '../common/ToastProvider';
 import { LocationFields } from './LocationFields';
+import { normalizeAddressType, toAddressTypeValue } from '../../utils/addressType';
 
 interface AddressFormProps {
   title?: string;
@@ -18,14 +19,14 @@ interface AddressFormProps {
   theme?: Theme;
 }
 
-const getEmptyForm = (t: (key: string) => string): AddressFormValues => ({
+const getEmptyForm = (): AddressFormValues => ({
   name: '',
   phone: '',
   detailedAddress: '',
   ward: '',
   district: '',
   city: '',
-  type: t('home') as AddressType,
+  type: toAddressTypeValue('home'),
   isDefault: false,
 });
 
@@ -45,7 +46,7 @@ export function AddressForm({
   const defaultTitle = translate('addNewAddress');
   const defaultSubmitLabel = translate('saveAddress');
 
-  const mergedInitial = useMemo(() => ({ ...getEmptyForm(translate), ...initialValues }), [initialValues, translate]);
+  const mergedInitial = useMemo(() => ({ ...getEmptyForm(), ...initialValues }), [initialValues]);
   const [formData, setFormData] = useState<AddressFormValues>(mergedInitial);
 
   useEffect(() => {
@@ -57,23 +58,26 @@ export function AddressForm({
       showToast(translate('fillFullInfo'), 'error');
       return;
     }
-    onSubmit(formData);
+    onSubmit({
+      ...formData,
+      type: toAddressTypeValue(normalizeAddressType(formData.type)),
+    });
   };
 
-  const renderTypeButton = (type: AddressType, label: string, icon: string) => (
+  const renderTypeButton = (type: 'home' | 'office', label: string, icon: string) => (
     <TouchableOpacity
-      onPress={() => setFormData({ ...formData, type })}
+      onPress={() => setFormData({ ...formData, type: toAddressTypeValue(type) })}
       className={`flex-1 flex-row items-center justify-center gap-2 py-2 px-4 rounded-lg border`}
       style={{
-        borderColor: formData.type === type ? t.primary : t.border,
-        backgroundColor: formData.type === type ? (t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)') : t.surface,
+        borderColor: normalizeAddressType(formData.type) === type ? t.primary : t.border,
+        backgroundColor: normalizeAddressType(formData.type) === type ? (t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)') : t.surface,
       }}
       activeOpacity={0.7}
     >
-      <AppIcon name={icon} size={16} color={formData.type === type ? t.primary : t.muted} />
+      <AppIcon name={icon} size={16} color={normalizeAddressType(formData.type) === type ? t.primary : t.muted} />
       <Text
         className="text-base font-medium"
-        style={{ color: formData.type === type ? t.primary : t.text }}
+        style={{ color: normalizeAddressType(formData.type) === type ? t.primary : t.text }}
       >
         {label}
       </Text>
@@ -179,8 +183,8 @@ export function AddressForm({
           <View className="gap-2">
             <Text className={`${TYPO_CLASS.fieldLabel} mb-1`} style={{ color: t.text }}>{translate('address_type_label')}</Text>
             <View className="flex-row gap-3">
-              {renderTypeButton(translate('home') as AddressType, translate('home'), 'home')}
-              {renderTypeButton(translate('office') as AddressType, translate('office'), 'briefcase')}
+              {renderTypeButton('home', translate('address_home'), 'home')}
+              {renderTypeButton('office', translate('address_office'), 'briefcase')}
             </View>
           </View>
 

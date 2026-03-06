@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { AppIcon } from '../common/Icon';
 import { Theme, lightTheme } from '../../theme';
 import { Address } from '../../types';
+import { getAddressTypeIcon, getAddressTypeLabel } from '../../utils/addressType';
 
 interface AddressItemProps {
     address: Address;
@@ -88,12 +89,12 @@ export const AddressItem: React.FC<AddressItemProps> = ({
             <View className="flex-row justify-between items-center pt-3 border-t" style={{ borderTopColor: '#F3F4F6' }}>
                 <View className="flex-row items-center gap-1 px-2 py-1 rounded" style={{ backgroundColor: t.surface }}>
                     <AppIcon
-                        name={address.type === 'Nhà riêng' ? 'home' : 'briefcase'}
+                        name={getAddressTypeIcon(address.type)}
                         size={10}
                         color={t.muted}
                     />
                     <Text className="text-sm" style={{ color: t.muted }}>
-                        {address.type === 'Nhà riêng' ? translate('home') : translate('office')}
+                        {getAddressTypeLabel(address.type, translate)}
                     </Text>
                 </View>
                 <View className="flex-row gap-4">
