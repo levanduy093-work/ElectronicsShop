@@ -71,11 +71,14 @@ export function LocationSelectModal({
                             onChangeText={setQuery}
                             placeholder={t('search')}
                             placeholderTextColor={theme.muted}
-                            className="rounded-xl p-3 border text-sm"
+                            className="rounded-xl px-4 border text-base"
                             style={{
                                 backgroundColor: theme.surface,
                                 borderColor: theme.border,
                                 color: theme.text,
+                                height: 46,
+                                fontSize: 18,
+                                lineHeight: 22,
                                 textAlignVertical: 'center',
                                 includeFontPadding: false,
                                 paddingVertical: 0,
