@@ -75,11 +75,18 @@ const AI_CHAT_STORAGE_KEY_LEGACY = 'electronicsshop/ai-chat/messages';
 const AI_CHAT_ARCHIVE_STORAGE_KEY_PREFIX = 'electronicsshop/ai-chat/archives';
 
 const DEFAULT_PROFILE = {
-    name: "Nguyễn Văn A",
-    email: "nguyenva@example.com",
+    name: '',
+    email: '',
     avatar: "",
     role: undefined as string | undefined,
 };
+
+const normalizeUserProfile = (profile?: Partial<typeof DEFAULT_PROFILE> | null) => ({
+    name: typeof profile?.name === 'string' ? profile.name.trim() : '',
+    email: typeof profile?.email === 'string' ? profile.email.trim() : '',
+    avatar: typeof profile?.avatar === 'string' ? profile.avatar.trim() : '',
+    role: profile?.role || undefined,
+});
 
 // ============================================================================
 // Helper functions (moved from App.tsx)
@@ -263,6 +270,10 @@ const mapCartItemToApi = (item: CartItem): ApiCartItem => {
         name: item.name,
         category: item.category,
         image: item.image,
+        ...(item.selectedOption?.trim() ? { selectedOption: item.selectedOption.trim() } : {}),
+        ...(item.selectedClassification?.trim()
+            ? { selectedClassification: item.selectedClassification.trim() }
+            : {}),
     };
 };
 
@@ -278,7 +289,7 @@ const pickMostRecentCart = (carts: ApiCart[] = []) => {
 
 const mapApiCartToUi = (cart: ApiCart, products: Product[]): CartItem[] => {
     const fallbackImage = 'https://images.unsplash.com/photo-1581093588401-99b6fa-2?auto=format&fit=crop&w=600&q=80';
-    return (cart.items || []).map((item) => {
+    const mapped = (cart.items || []).map((item) => {
         const productMatch = products.find(p => p.id === item.productId);
         const baseProduct: Product = productMatch || {
             id: item.productId,
@@ -305,8 +316,47 @@ const mapApiCartToUi = (cart: ApiCart, products: Product[]): CartItem[] => {
             image: item.image || baseProduct.image,
             category: item.category || baseProduct.category,
             quantity: item.quantity,
+            ...(item.selectedOption ? { selectedOption: item.selectedOption } : {}),
+            ...(item.selectedClassification
+                ? { selectedClassification: item.selectedClassification }
+                : {}),
         };
     });
+    return mapped;
+};
+
+const normalizeCartSelection = (value?: string) => {
+    if (typeof value !== 'string') return undefined;
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : undefined;
+};
+
+const getCartIdentityKey = (item: CartItem) => {
+    const effectiveOption = normalizeCartSelection(item.selectedOption);
+    const effectiveClassification = normalizeCartSelection(item.selectedClassification);
+
+    return [
+        item.id,
+        (effectiveOption || 'default').toLowerCase(),
+        (effectiveClassification || 'default').toLowerCase(),
+    ].join('|');
+};
+
+const mergeCartItems = (items: CartItem[]) => {
+    const merged = new Map<string, CartItem>();
+    for (const item of items) {
+        const key = getCartIdentityKey(item);
+        const existing = merged.get(key);
+        if (!existing) {
+            merged.set(key, { ...item });
+            continue;
+        }
+        merged.set(key, {
+            ...existing,
+            quantity: (existing.quantity || 0) + (item.quantity || 0),
+        });
+    }
+    return Array.from(merged.values());
 };
 
 const getCartSignature = (items: CartItem[]) =>
@@ -623,7 +673,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
                 const cached = await cacheManager.get<ApiOrder[]>(cacheKey);
                 if (cached) return cached;
             }
-            const result = await apiGetOrders(token);
+            const result = await apiGetOrders(token, { scope: 'mine' });
             await cacheManager.set(cacheKey, result);
             return result;
         },
@@ -694,7 +744,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         }
 
         cartIdRef.current = activeCart._id;
-        const mapped = mapApiCartToUi(activeCart, productsRef.current);
+        const mapped = mergeCartItems(mapApiCartToUi(activeCart, productsRef.current));
         const nextSignature = getCartSignature(mapped);
         setCartItems((prev) => {
             const currentSignature = getCartSignature(prev);
@@ -1027,24 +1077,19 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         try {
             const result = await getCurrentUser(token);
             if (result) {
-                setUserProfile(prev => {
-                    const updated = {
-                        ...prev,
-                        ...(result.name ? { name: result.name } : {}),
-                        ...(result.email ? { email: result.email } : {}),
-                        ...(result.avatar ? { avatar: result.avatar } : {}),
-                        ...(result.role ? { role: result.role } : {}),
-                    };
-                    if (authTokensRef.current) {
-                        persistAuthState(authTokensRef.current as any, updated, result._id || userId).catch(() => { });
-                    }
-                    return updated;
+                const normalized = normalizeUserProfile({
+                    name: result.name,
+                    email: result.email,
+                    avatar: result.avatar,
+                    role: result.role,
                 });
-                if (result.role) {
-                    setUserRole(result.role);
-                }
+                setUserProfile(normalized);
+                setUserRole(normalized.role);
                 if (result._id && result._id !== userId) {
                     setUserId(result._id);
+                }
+                if (authTokensRef.current) {
+                    persistAuthState(authTokensRef.current as any, normalized, result._id || userId).catch(() => { });
                 }
             }
         } catch (error: any) {
@@ -1174,20 +1219,15 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         setIsLoggedIn(true);
         const nextUserId = userIdOverride ?? user?._id ?? userId ?? null;
         setUserId(nextUserId);
-        setUserProfile(prev => {
-            const nextProfile = {
-                ...prev,
-                ...(user?.name ? { name: user.name } : {}),
-                ...(user?.email ? { email: user.email } : {}),
-                ...(user?.avatar ? { avatar: user.avatar } : {}),
-                ...(user?.role ? { role: user.role } : {}),
-            };
-            persistAuthState(tokens, nextProfile, nextUserId).catch(() => { });
-            return nextProfile;
+        const nextProfile = normalizeUserProfile({
+            name: user?.name,
+            email: user?.email,
+            avatar: user?.avatar,
+            role: user?.role,
         });
-        if (user?.role) {
-            setUserRole(user.role);
-        }
+        setUserProfile(nextProfile);
+        setUserRole(nextProfile.role);
+        persistAuthState(tokens, nextProfile, nextUserId).catch(() => { });
 
         // Sync FCM token to backend after login
         if (tokens?.accessToken) {
@@ -1259,12 +1299,18 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
 
         const safeQuantity = Math.max(1, quantity);
         const limit = available ?? Number.POSITIVE_INFINITY;
-        const itemKey = `${product.id}-${selectedOption || 'default'}-${selectedClassification || 'default'}`;
+        const normalizedOption = normalizeCartSelection(selectedOption);
+        const normalizedClassification = normalizeCartSelection(selectedClassification);
+        const itemKey = [
+            product.id,
+            (normalizedOption || 'default').toLowerCase(),
+            (normalizedClassification || 'default').toLowerCase(),
+        ].join('|');
 
         let success = false;
         setCartItems(prev => {
             const existing = prev.find(item => {
-                const itemKey2 = `${item.id}-${item.selectedOption || 'default'}-${item.selectedClassification || 'default'}`;
+                const itemKey2 = getCartIdentityKey(item);
                 return itemKey2 === itemKey;
             });
 
@@ -1276,10 +1322,11 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
                     return prev;
                 }
                 success = true;
-                return prev.map(item => {
-                    const itemKey2 = `${item.id}-${item.selectedOption || 'default'}-${item.selectedClassification || 'default'}`;
+                const next = prev.map(item => {
+                    const itemKey2 = getCartIdentityKey(item);
                     return itemKey2 === itemKey ? { ...item, quantity: Math.max(1, clamped) } : item;
                 });
+                return mergeCartItems(next);
             }
 
             const initialQty = Math.min(safeQuantity, limit);
@@ -1294,22 +1341,27 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
                 quantity: Math.max(1, initialQty),
             };
 
-            if (selectedOption?.trim()) {
-                newItem.selectedOption = selectedOption.trim();
+            if (normalizedOption) {
+                newItem.selectedOption = normalizedOption;
             }
-            if (selectedClassification?.trim()) {
-                newItem.selectedClassification = selectedClassification.trim();
+            if (normalizedClassification) {
+                newItem.selectedClassification = normalizedClassification;
             }
 
-            return [...prev, newItem];
+            return mergeCartItems([...prev, newItem]);
         });
         return success;
     }, [showToast, t]);
 
-    const updateCartQuantity = useCallback((id: string, delta: number) => {
+    const updateCartQuantity = useCallback((id: string, delta: number, selectedOption?: string, selectedClassification?: string) => {
+        const targetKey = [
+            id,
+            (normalizeCartSelection(selectedOption) || 'default').toLowerCase(),
+            (normalizeCartSelection(selectedClassification) || 'default').toLowerCase(),
+        ].join('|');
         setCartItems(prev =>
             prev.map(item => {
-                if (item.id !== id) return item;
+                if (getCartIdentityKey(item) !== targetKey) return item;
                 const limit = item.stockQuantity ?? Number.POSITIVE_INFINITY;
                 const desired = item.quantity + delta;
                 if (delta < 0) {
@@ -1325,13 +1377,29 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         );
     }, []);
 
-    const removeFromCart = useCallback((id: string) => {
-        setCartItems(prev => prev.filter(item => item.id !== id));
+    const removeFromCart = useCallback((id: string, selectedOption?: string, selectedClassification?: string) => {
+        const targetKey = [
+            id,
+            (normalizeCartSelection(selectedOption) || 'default').toLowerCase(),
+            (normalizeCartSelection(selectedClassification) || 'default').toLowerCase(),
+        ].join('|');
+        setCartItems(prev => prev.filter(item => getCartIdentityKey(item) !== targetKey));
     }, []);
 
-    const updateCartItemOptions = useCallback((itemId: string, selectedOption?: string, selectedClassification?: string) => {
+    const updateCartItemOptions = useCallback((
+        itemId: string,
+        selectedOption?: string,
+        selectedClassification?: string,
+        previousOption?: string,
+        previousClassification?: string,
+    ) => {
         setCartItems(prev => {
-            const itemIndex = prev.findIndex(item => item.id === itemId);
+            const previousKey = [
+                itemId,
+                (normalizeCartSelection(previousOption) || 'default').toLowerCase(),
+                (normalizeCartSelection(previousClassification) || 'default').toLowerCase(),
+            ].join('|');
+            const itemIndex = prev.findIndex(item => getCartIdentityKey(item) === previousKey);
             if (itemIndex === -1) return prev;
 
             const currentItem = prev[itemIndex];
@@ -1342,11 +1410,12 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
             const newOption = selectedOption !== undefined ? normalizeOption(selectedOption) : normalizeOption(currentItem.selectedOption);
             const newClassification = selectedClassification !== undefined ? normalizeOption(selectedClassification) : normalizeOption(currentItem.selectedClassification);
 
-            return prev.map((item, index) =>
+            const next = prev.map((item, index) =>
                 index === itemIndex
                     ? { ...item, selectedOption: newOption, selectedClassification: newClassification }
                     : item
             );
+            return mergeCartItems(next);
         });
     }, []);
 

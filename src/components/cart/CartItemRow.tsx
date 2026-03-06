@@ -9,8 +9,8 @@ import { formatPrice } from '../../utils';
 
 interface CartItemRowProps {
     item: CartItem;
-    onUpdateQuantity: (id: string, delta: number) => void;
-    onRemoveItem: (id: string) => void;
+    onUpdateQuantity: (id: string, delta: number, selectedOption?: string, selectedClassification?: string) => void;
+    onRemoveItem: (id: string, selectedOption?: string, selectedClassification?: string) => void;
     onEditOption: (item: CartItem) => void;
     onEditClassification: (item: CartItem) => void;
     theme: Theme;
@@ -52,7 +52,7 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({
                         {item.name}
                     </Text>
                     <TouchableOpacity
-                        onPress={() => onRemoveItem(item.id)}
+                        onPress={() => onRemoveItem(item.id, item.selectedOption, item.selectedClassification)}
                         className="p-1"
                         activeOpacity={0.7}
                     >
@@ -110,7 +110,7 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({
                         style={{ backgroundColor: t.surface }}
                     >
                         <TouchableOpacity
-                            onPress={() => onUpdateQuantity(item.id, -1)}
+                            onPress={() => onUpdateQuantity(item.id, -1, item.selectedOption, item.selectedClassification)}
                             className="w-6 h-6 justify-center items-center rounded-md border"
                             style={{ backgroundColor: t.card, borderColor: t.border }}
                             activeOpacity={0.7}
@@ -124,7 +124,7 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({
                             {item.quantity}
                         </Text>
                         <TouchableOpacity
-                            onPress={() => onUpdateQuantity(item.id, 1)}
+                            onPress={() => onUpdateQuantity(item.id, 1, item.selectedOption, item.selectedClassification)}
                             className="w-6 h-6 justify-center items-center rounded-md border"
                             style={{ backgroundColor: t.card, borderColor: t.border }}
                             activeOpacity={0.7}

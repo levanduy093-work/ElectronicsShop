@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -55,6 +55,27 @@ export function SearchScreen({
   const t = theme || ctxTheme || lightTheme;
   const [query, setQuery] = useState(initialQuery);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const searchInputTextAlignStyle = useMemo(
+    () =>
+      Platform.select({
+        ios: {
+          // iOS: center text by padding instead of textAlignVertical.
+          lineHeight: 20,
+          paddingVertical: 8,
+        },
+        android: {
+          textAlignVertical: 'center' as const,
+          includeFontPadding: false,
+          lineHeight: 20,
+          paddingVertical: 0,
+        },
+        default: {
+          lineHeight: 20,
+          paddingVertical: 8,
+        },
+      }),
+    [],
+  );
 
   const [isRecentSearchesExpanded, setIsRecentSearchesExpanded] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -288,6 +309,7 @@ export function SearchScreen({
             style={{
               color: t.text,
               ...TEXT_INPUT_BASE_STYLE,
+              ...searchInputTextAlignStyle,
             }}
             placeholderTextColor={t.muted}
             autoFocus

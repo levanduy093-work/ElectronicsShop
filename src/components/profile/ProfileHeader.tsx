@@ -21,6 +21,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     onViewAvatar,
     theme: t,
 }) => {
+    const displayName = (userProfile.name || '').trim() || (userProfile.email || '').split('@')[0] || 'User';
+    const avatarInitial = displayName.charAt(0).toUpperCase() || 'U';
+
     return (
         <View
             className="flex-row items-center gap-4 mb-8 p-4 rounded-3xl border shadow-sm elevation-2"
@@ -49,7 +52,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                             className="w-full h-full rounded-full justify-center items-center"
                             style={{ backgroundColor: t.surface }}
                         >
-                            <AppIcon name="user" size={32} color={t.muted} />
+                            <Text className="text-xl font-bold" style={{ color: t.primary }}>
+                                {avatarInitial}
+                            </Text>
                         </View>
                     )}
                 </TouchableOpacity>
@@ -64,7 +69,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </View>
             <View className="flex-1">
                 <View className="flex-row items-center gap-2 mb-1">
-                    <Text className="text-xl font-bold flex-1" style={{ color: t.text }}>{userProfile.name}</Text>
+                    <Text className="text-xl font-bold flex-1" style={{ color: t.text }}>{displayName}</Text>
                     <TouchableOpacity
                         onPress={onEditProfile}
                         className="p-1"
@@ -73,7 +78,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         <AppIcon name="pencil" size={16} color={t.primary} />
                     </TouchableOpacity>
                 </View>
-                <Text className="text-base" style={{ color: t.muted }}>{userProfile.email}</Text>
+                <Text className="text-base" style={{ color: t.muted }}>{userProfile.email || ' '}</Text>
             </View>
         </View>
     );

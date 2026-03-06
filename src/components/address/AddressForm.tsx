@@ -48,6 +48,27 @@ export function AddressForm({
 
   const mergedInitial = useMemo(() => ({ ...getEmptyForm(), ...initialValues }), [initialValues]);
   const [formData, setFormData] = useState<AddressFormValues>(mergedInitial);
+  const inputTextAlignStyle = useMemo(
+    () =>
+      Platform.select({
+        ios: {
+          // iOS ignores textAlignVertical; use symmetric vertical padding for true centering.
+          lineHeight: 20,
+          paddingVertical: 10,
+        },
+        android: {
+          textAlignVertical: 'center' as const,
+          includeFontPadding: false,
+          lineHeight: 20,
+          paddingVertical: 0,
+        },
+        default: {
+          lineHeight: 20,
+          paddingVertical: 10,
+        },
+      }),
+    [],
+  );
 
   useEffect(() => {
     setFormData(mergedInitial);
@@ -127,6 +148,7 @@ export function AddressForm({
                 color: t.text,
                 height: 48,
                 ...TEXT_INPUT_BASE_STYLE,
+                ...inputTextAlignStyle,
               }}
               placeholder={translate('enter_name_placeholder')}
               placeholderTextColor={t.muted}
@@ -145,6 +167,7 @@ export function AddressForm({
                 color: t.text,
                 height: 48,
                 ...TEXT_INPUT_BASE_STYLE,
+                ...inputTextAlignStyle,
               }}
               placeholder={translate('enterPhone')}
               keyboardType="phone-pad"
@@ -174,6 +197,7 @@ export function AddressForm({
                 color: t.text,
                 height: 48,
                 ...TEXT_INPUT_BASE_STYLE,
+                ...inputTextAlignStyle,
               }}
               placeholder={translate('enterAddress')}
               placeholderTextColor={t.muted}

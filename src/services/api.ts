@@ -173,6 +173,8 @@ export type ApiCartItem = {
   image?: string;
   price: number;
   quantity: number;
+  selectedOption?: string;
+  selectedClassification?: string;
 };
 
 export type ApiCart = {
@@ -777,8 +779,10 @@ export function createOrder(data: Record<string, unknown>, token: string) {
   return postJson<ApiOrder>('/orders', data, { token });
 }
 
-export function getOrders(token: string) {
-  return getJson<ApiOrder[]>('/orders', { token });
+export function getOrders(token: string, options?: { scope?: 'mine' | 'all' }) {
+  const scope = options?.scope;
+  const path = scope ? `/orders?scope=${scope}` : '/orders';
+  return getJson<ApiOrder[]>(path, { token });
 }
 
 export function getOrderById(id: string, token: string) {
@@ -933,8 +937,18 @@ export function updateFcmToken(token: string, authToken: string) {
   return postJson('/users/me/fcm-token', { token }, { token: authToken });
 }
 
-export function addCartItem(productId: string, quantity: number, token: string) {
-  return postJson('/carts/items', { productId, quantity }, { token });
+export function addCartItem(
+  productId: string,
+  quantity: number,
+  token: string,
+  selectedOption?: string,
+  selectedClassification?: string,
+) {
+  return postJson(
+    '/carts/items',
+    { productId, quantity, selectedOption, selectedClassification },
+    { token },
+  );
 }
 
 export function fetchMyCart(token: string) {

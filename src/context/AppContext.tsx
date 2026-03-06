@@ -18,9 +18,9 @@ export interface AppContextValue {
     // Cart
     cartItems: CartItem[];
     addToCart: (product: Product, quantity: number, selectedOption?: string, selectedClassification?: string) => void;
-    updateCartQuantity: (productId: string, quantity: number) => void;
-    removeFromCart: (productId: string) => void;
-    updateCartItemOptions: (productId: string, selectedOption?: string, selectedClassification?: string) => void;
+    updateCartQuantity: (productId: string, quantity: number, selectedOption?: string, selectedClassification?: string) => void;
+    removeFromCart: (productId: string, selectedOption?: string, selectedClassification?: string) => void;
+    updateCartItemOptions: (productId: string, selectedOption?: string, selectedClassification?: string, previousOption?: string, previousClassification?: string) => void;
 
     // Auth
     isLoggedIn: boolean;

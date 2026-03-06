@@ -16,9 +16,9 @@ import { TYPO_CLASS } from '../theme/typography';
 interface CartProps {
   onCheckout?: (voucher: Voucher | null) => void;
   items: CartItem[];
-  onUpdateQuantity: (id: string, delta: number) => void;
-  onRemoveItem: (id: string) => void;
-  onUpdateItemOptions?: (itemId: string, selectedOption?: string, selectedClassification?: string) => void;
+  onUpdateQuantity: (id: string, delta: number, selectedOption?: string, selectedClassification?: string) => void;
+  onRemoveItem: (id: string, selectedOption?: string, selectedClassification?: string) => void;
+  onUpdateItemOptions?: (itemId: string, selectedOption?: string, selectedClassification?: string, previousOption?: string, previousClassification?: string) => void;
   onExplore?: () => void;
   theme?: Theme;
   vouchers?: Voucher[];
@@ -92,7 +92,9 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpda
       onUpdateItemOptions(
         editingItem.id,
         option,
-        editingItem.selectedClassification
+        editingItem.selectedClassification,
+        editingItem.selectedOption,
+        editingItem.selectedClassification,
       );
     }
     setShowOptionModal(false);
@@ -104,7 +106,9 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpda
       onUpdateItemOptions(
         editingItem.id,
         editingItem.selectedOption,
-        classification
+        classification,
+        editingItem.selectedOption,
+        editingItem.selectedClassification,
       );
     }
     setShowClassificationModal(false);
@@ -136,12 +140,12 @@ export function Cart({ onCheckout, items, onUpdateQuantity, onRemoveItem, onUpda
               item={item}
               onUpdateQuantity={onUpdateQuantity}
               onRemoveItem={onRemoveItem}
-              onEditOption={(item) => {
-                setEditingItem(item);
+              onEditOption={(cartItem) => {
+                setEditingItem(cartItem);
                 setShowOptionModal(true);
               }}
-              onEditClassification={(item) => {
-                setEditingItem(item);
+              onEditClassification={(cartItem) => {
+                setEditingItem(cartItem);
                 setShowClassificationModal(true);
               }}
               theme={t}

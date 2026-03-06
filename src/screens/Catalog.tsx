@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -60,6 +60,26 @@ export function Catalog({
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState<string>(controlledCategory ?? initialCategory ?? 'All');
   const [searchQuery, setSearchQuery] = useState(controlledSearchQuery ?? '');
+  const searchInputTextAlignStyle = useMemo(
+    () =>
+      Platform.select({
+        ios: {
+          lineHeight: 20,
+          paddingVertical: 8,
+        },
+        android: {
+          textAlignVertical: 'center' as const,
+          includeFontPadding: false,
+          lineHeight: 20,
+          paddingVertical: 0,
+        },
+        default: {
+          lineHeight: 20,
+          paddingVertical: 8,
+        },
+      }),
+    [],
+  );
 
   const normalizeCategory = (value?: string) => {
     const key = (value || '').trim().toLowerCase();
@@ -171,6 +191,7 @@ export function Catalog({
             style={{
               color: theme.text,
               ...TEXT_INPUT_BASE_STYLE,
+              ...searchInputTextAlignStyle,
             }}
             placeholderTextColor={theme.muted}
           />

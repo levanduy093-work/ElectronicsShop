@@ -239,8 +239,8 @@ function OrderDetailWrapper({ route }: { route: { params: { orderId: string } } 
             theme={theme}
             products={app?.products || []}
             onProductPress={(productId) => navigation.navigate('ProductDetail', { productId })}
-            onReorder={(product, quantity, selectedOption, _selectedClassification) => {
-                app?.addToCart(product, quantity, selectedOption);
+            onReorder={(product, quantity, selectedOption, selectedClassification) => {
+                app?.addToCart(product, quantity, selectedOption, selectedClassification);
             }}
             onNavigateToCart={() => {
                 navigation.reset({

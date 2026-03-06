@@ -46,7 +46,7 @@ export function Profile({
   onNavigateToWishlist,
   onNavigateToAdmin,
   onLogout,
-  userProfile = { name: "Nguyễn Văn A", email: "nguyenva@example.com", avatar: "" },
+  userProfile = { name: "", email: "", avatar: "" },
   onUpdateProfile,
   theme,
   vouchers,
