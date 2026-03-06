@@ -18,6 +18,7 @@ import { downloadDatasheetPdf } from '../utils/fileDownload';
 import { cacheManager } from '../utils/cache';
 import { mapApiProductToUi } from '../utils/mappers';
 import { APP_LINK_DOMAIN as ENV_APP_LINK_DOMAIN, APP_LINK_SCHEME as ENV_APP_LINK_SCHEME } from '@env';
+import { buildProductShareLinks } from '../utils/appLinks';
 
 interface ProductDetailProps {
   productId: string;
@@ -178,11 +179,12 @@ export function ProductDetail({
       await cacheManager.set(`reviews-${activeProductId}`, data);
       return data;
     },
-    enabled: Boolean(activeProductId),
+    enabled: Boolean(activeProductId) && activeTab === 'reviews',
     staleTime: 30_000,
   });
 
   useEffect(() => {
+    if (activeTab !== 'reviews') return;
     let isActive = true;
     const loadCached = async () => {
       if (!activeProductId) return;
@@ -195,7 +197,7 @@ export function ProductDetail({
     return () => {
       isActive = false;
     };
-  }, [activeProductId, queryClient]);
+  }, [activeProductId, queryClient, activeTab]);
 
   const reviews = useMemo(() => reviewsQuery.data ?? [], [reviewsQuery.data]);
   const reviewsLoading = reviewsQuery.isLoading && reviews.length === 0;
@@ -215,13 +217,12 @@ export function ProductDetail({
       ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
       : 0
     : product.rating || product.averageRating || 0;
-  const appLinkHost = (ENV_APP_LINK_DOMAIN || 'electronicsshop.app').replace(/^https?:\/\//, '');
-  const appLinkScheme = ENV_APP_LINK_SCHEME || 'electronicsshop';
-
   const buildShareLinks = () => {
-    const universalLink = appLinkHost ? `https://${appLinkHost}/product/${activeProductId}` : '';
-    const deepLink = `${appLinkScheme}://product/${activeProductId}`;
-    return { universalLink, deepLink };
+    return buildProductShareLinks({
+      productId: activeProductId,
+      domain: ENV_APP_LINK_DOMAIN,
+      scheme: ENV_APP_LINK_SCHEME,
+    });
   };
 
   // Use ref to store callback to avoid triggering re-fetches when callback reference changes
@@ -292,14 +293,11 @@ export function ProductDetail({
     try {
       const { universalLink, deepLink } = buildShareLinks();
       const shareLink = universalLink || deepLink;
-      const fallback =
-        universalLink && deepLink
-          ? `\n${t('openInAppFallback', { link: deepLink })}`
-          : '';
+      const fallback = `\n${t('openInAppLink', { link: deepLink })}`;
       await Share.share({
         message: `Xem sản phẩm ${product.name} trên ElectroAI!\n${shareLink}${fallback}`,
         title: product.name,
-        url: shareLink,
+        ...(Platform.OS === 'ios' ? { url: shareLink } : {}),
       });
     } catch {
       showToast(t('cannotShare'), 'error');

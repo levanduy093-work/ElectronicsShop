@@ -1,3 +1,14 @@
 export { AppProvider, useAppOptional } from './AppContext';
 export type { AppContextValue } from './AppContext';
 export { AppStateProvider } from './AppStateProvider';
+export { OrdersProvider, useOrdersOptional } from './OrdersContext';
+export { NotificationsProvider, useNotificationsOptional } from './NotificationsContext';
+export { OrdersStateProvider } from './OrdersStateProvider';
+export { NotificationsStateProvider } from './NotificationsStateProvider';
+export { CartProvider, useCartOptional } from './CartContext';
+export { AiChatProvider, useAiChatOptional } from './AiChatContext';
+export { AiChatStateProvider } from './AiChatStateProvider';
+export { ThemeModeProvider, useThemeModeOptional } from './ThemeModeContext';
+export { ThemeModeStateProvider } from './ThemeModeStateProvider';
+export { SettingsProvider, useSettingsOptional } from './SettingsContext';
+export { SettingsStateProvider } from './SettingsStateProvider';

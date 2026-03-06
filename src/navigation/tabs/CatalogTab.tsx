@@ -1,21 +1,17 @@
 import React from 'react';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import type { RouteProp } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList, RootTabParamList } from '../types';
-import { useAppOptional } from '../../context';
+import { useAppOptional, useNotificationsOptional } from '../../context';
 import { useTheme } from '../../theme';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { filterProducts } from '../../utils/filterUtils';
 import { Catalog as CatalogScreen } from '../../screens/Catalog';
-import { useProductsQuery } from '../../hooks/useCatalogQueries';
+import { setCatalogSearchQuery, useFiltersStore } from '../../store/filtersStore';
 
-export function CatalogTab() {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-    const route = useRoute<RouteProp<RootTabParamList, 'CatalogTab'>>();
+export function CatalogTab({ navigation, route }: { navigation: any; route: any }) {
     const { theme } = useTheme();
     const app = useAppOptional();
-    const productsQuery = useProductsQuery(app?.products);
+    const notificationsCtx = useNotificationsOptional();
+    const catalogFilters = useFiltersStore((state) => state.catalogFilters);
+    const catalogSearchQuery = useFiltersStore((state) => state.catalogSearchQuery);
 
     // Derive requested category from navigation params (supports direct or nested shape)
     const initialCategory = React.useMemo(() => {
@@ -29,11 +25,11 @@ export function CatalogTab() {
         return 'All';
     }, [route.params]);
 
-    const hasUnread = (app?.notifications || []).some(n => !n.read);
+    const hasUnread = (notificationsCtx?.notifications || []).some(n => !n.read);
 
     const applyFilters = React.useCallback((products: any[]) => {
-        return filterProducts(products, app?.catalogSearchQuery || '', app?.catalogFilters || {});
-    }, [app?.catalogFilters, app?.catalogSearchQuery]);
+        return filterProducts(products, catalogSearchQuery || '', catalogFilters || {});
+    }, [catalogFilters, catalogSearchQuery]);
 
     return (
         <ScreenLayout
@@ -44,16 +40,16 @@ export function CatalogTab() {
         >
             <CatalogScreen
                 theme={theme}
-                products={productsQuery.data || []}
+                products={app?.products || []}
                 initialCategory={initialCategory}
                 onProductClick={(p) => navigation.navigate('ProductDetail', { productId: p.id })}
                 onFilterClick={() => navigation.navigate('Filter', { type: 'catalog' })}
-                searchQuery={app?.catalogSearchQuery || ''}
-                onSearchQueryChange={app?.setCatalogSearchQuery}
-                filters={app?.catalogFilters}
+                searchQuery={catalogSearchQuery || ''}
+                onSearchQueryChange={setCatalogSearchQuery}
+                filters={catalogFilters}
                 applyFilters={applyFilters}
-                isLoading={productsQuery.isLoading || productsQuery.isFetching}
-                onRefresh={() => productsQuery.refetch()}
+                isLoading={app?.isLoadingProducts || false}
+                onRefresh={() => app?.loadProducts?.()}
             />
         </ScreenLayout>
     );

@@ -18,7 +18,7 @@ interface ProductCardProps {
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 48) / 2; // 2 columns with padding
 
-export function ProductCard({ product, style, onPress, theme = lightTheme }: ProductCardProps) {
+function ProductCardComponent({ product, style, onPress, theme = lightTheme }: ProductCardProps) {
   const { t } = useTranslation();
   const hasReviews = (product.reviews ?? 0) > 0 && (product.rating ?? 0) > 0;
   const displayRating = hasReviews ? Number(product.rating).toFixed(1) : '0';
@@ -94,3 +94,5 @@ export function ProductCard({ product, style, onPress, theme = lightTheme }: Pro
     </TouchableOpacity>
   );
 }
+
+export const ProductCard = React.memo(ProductCardComponent);

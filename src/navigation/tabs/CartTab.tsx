@@ -1,20 +1,18 @@
 import React from 'react';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../types';
-import { useAppOptional } from '../../context';
+import { useAppOptional, useNotificationsOptional, useCartOptional } from '../../context';
 import { useTheme } from '../../theme';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { useTranslation } from 'react-i18next';
 import { Cart as CartScreen } from '../../screens/Cart';
 
-export function CartTab() {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+export function CartTab({ navigation }: { navigation: any }) {
     const { theme } = useTheme();
     const { t } = useTranslation();
     const app = useAppOptional();
+    const notificationsCtx = useNotificationsOptional();
+    const cartCtx = useCartOptional();
 
-    const hasUnread = (app?.notifications || []).some(n => !n.read);
+    const hasUnread = (notificationsCtx?.notifications || []).some(n => !n.read);
 
     return (
         <ScreenLayout
@@ -26,17 +24,16 @@ export function CartTab() {
         >
             <CartScreen
                 theme={theme}
-                items={app?.cartItems || []}
-                onUpdateQuantity={app?.updateCartQuantity || (() => { })}
-                onRemoveItem={app?.removeFromCart || (() => { })}
-                onUpdateItemOptions={app?.updateCartItemOptions || (() => { })}
+                items={cartCtx?.cartItems || []}
+                onUpdateQuantity={cartCtx?.updateCartQuantity || (() => { })}
+                onRemoveItem={cartCtx?.removeFromCart || (() => { })}
+                onUpdateItemOptions={cartCtx?.updateCartItemOptions || (() => { })}
                 onCheckout={() => navigation.navigate('Checkout')}
                 onExplore={() => navigation.navigate('MainTabs', { screen: 'HomeTab', params: { screen: 'Home' } })}
                 vouchers={app?.vouchers || []}
-                appliedVoucher={app?.appliedVoucher || null}
-                onVoucherChange={app?.setAppliedVoucher || (() => { })}
+                appliedVoucher={cartCtx?.appliedVoucher || null}
+                onVoucherChange={cartCtx?.setAppliedVoucher || (() => { })}
             />
         </ScreenLayout>
     );
 }
-

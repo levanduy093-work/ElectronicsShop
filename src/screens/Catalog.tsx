@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useDeferredValue } from 'react';
 import {
   View,
   Text,
@@ -60,6 +60,7 @@ export function Catalog({
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState<string>(controlledCategory ?? initialCategory ?? 'All');
   const [searchQuery, setSearchQuery] = useState(controlledSearchQuery ?? '');
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const searchInputTextAlignStyle = useMemo(
     () =>
       Platform.select({
@@ -81,7 +82,7 @@ export function Catalog({
     [],
   );
 
-  const normalizeCategory = (value?: string) => {
+  const normalizeCategory = useCallback((value?: string) => {
     const key = (value || '').trim().toLowerCase();
     const map: Record<string, string> = {
       'vi dieu khien': 'Vi điều khiển',
@@ -113,31 +114,41 @@ export function Catalog({
       'capacitor': 'Tụ điện',
     };
     return map[key] || (value || '').trim();
-  };
+  }, []);
 
-  // Start with all products
-  let filteredProducts = products;
+  const filteredProducts = useMemo(() => {
+    // Start with all products
+    let next = products;
 
-  // Apply filters first (includes search + advanced filters from CatalogStack)
-  if (applyFilters) {
-    filteredProducts = applyFilters(filteredProducts);
-  } else if (searchQuery) {
-    // Fallback if applyFilters not provided (though it should be)
-    filteredProducts = filterProducts(filteredProducts, searchQuery, filters || {});
-  }
+    // Apply filters first (includes search + advanced filters from CatalogStack)
+    if (applyFilters) {
+      next = applyFilters(next, deferredSearchQuery);
+    } else if (deferredSearchQuery) {
+      // Fallback if applyFilters not provided (though it should be)
+      next = filterProducts(next, deferredSearchQuery, filters || {});
+    }
 
-  // Apply category tab filter (if not 'All')
-  if (activeCategory !== 'All') {
-    const normalizedActive = normalizeCategory(activeCategory);
-    filteredProducts = filteredProducts.filter(p => normalizeCategory(p.category) === normalizedActive);
-  }
+    // Apply category tab filter (if not 'All')
+    if (activeCategory !== 'All') {
+      const normalizedActive = normalizeCategory(activeCategory);
+      next = next.filter(p => normalizeCategory(p.category) === normalizedActive);
+    }
+
+    return next;
+  }, [products, applyFilters, deferredSearchQuery, filters, activeCategory, normalizeCategory]);
 
   // Extract categories from products if CATEGORIES is empty
-  const displayCategories = CATEGORIES.length > 0 ? CATEGORIES : extractCategoriesFromProducts(products);
-  const categories = [{ name: 'All', icon: 'grid' as const }, ...displayCategories.map(c => ({
-    name: c.name,
-    icon: c.icon || 'package-variant',
-  }))];
+  const displayCategories = useMemo(
+    () => (CATEGORIES.length > 0 ? CATEGORIES : extractCategoriesFromProducts(products)),
+    [products],
+  );
+  const categories = useMemo(
+    () => [{ name: 'All', icon: 'grid' as const }, ...displayCategories.map(c => ({
+      name: c.name,
+      icon: c.icon || 'package-variant',
+    }))],
+    [displayCategories],
+  );
 
   useEffect(() => {
     if (controlledCategory !== undefined) {
@@ -157,6 +168,16 @@ export function Catalog({
   const handleProductPress = useCallback((product: Product) => {
     onProductClick?.(product);
   }, [onProductClick]);
+
+  const renderItem = useCallback(({ item }: { item: Product }) => (
+    <View className="flex-1">
+      <ProductCard
+        product={item}
+        theme={theme}
+        onPress={() => handleProductPress(item)}
+      />
+    </View>
+  ), [handleProductPress, theme]);
 
   return (
     <KeyboardAvoidingView
@@ -258,15 +279,7 @@ export function Catalog({
             data={filteredProducts}
             numColumns={2}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <View className="flex-1">
-                <ProductCard
-                  product={item}
-                  theme={theme}
-                  onPress={() => handleProductPress(item)}
-                />
-              </View>
-            )}
+            renderItem={renderItem}
             contentContainerStyle={{ paddingBottom: 96 }}
             columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 16 }}
             showsVerticalScrollIndicator={false}

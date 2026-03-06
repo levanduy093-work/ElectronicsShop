@@ -1,22 +1,22 @@
 import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AppState, AppStateStatus, Linking, useColorScheme, View } from 'react-native';
+import { Alert, InteractionManager } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { Product, CartItem, Order, Voucher, HomeBanner, ChatMessage, Address, AiChatArchive } from '../types';
-import { PRODUCTS, CATEGORIES } from '../constants/data';
+import { Product, CartItem, Voucher, HomeBanner, Address } from '../types';
+import { PRODUCTS } from '../constants/data';
 import { DEFAULT_ADDRESSES } from '../constants/defaults';
 import { AppProvider, AppContextValue } from './AppContext';
+import { CartProvider, type CartContextValue } from './CartContext';
+import { OrdersStateProvider } from './OrdersStateProvider';
+import { NotificationsStateProvider } from './NotificationsStateProvider';
 import { useToast } from '../components/common/ToastProvider';
 import { useNetworkStatus } from '../utils/network';
-import { extractCategoriesFromProducts } from '../utils/product';
 import { mapApiProductToUi, mapApiBannerToUi } from '../utils/mappers';
 import { cacheBanners, getCachedBanners, cacheProducts, getCachedProducts, cacheManager } from '../utils/cache';
 
 import {
-    ApiNotification,
-    ApiOrder,
     ApiProduct,
     ApiVoucher,
     ApiCart,
@@ -24,18 +24,11 @@ import {
     AuthResponse,
     addFavorite,
     configureApiAuth,
-    createOrder as apiCreateOrder,
-    createVnpayPayment,
     getPublicBanners,
     getFavorites as apiGetFavorites,
     getMyVouchers,
-    getNotifications as apiGetNotifications,
-    getOrderById,
-    getOrders as apiGetOrders,
     getProducts,
     getRelatedProducts,
-    markAllNotificationsRead as apiMarkAllNotificationsRead,
-    markNotificationRead as apiMarkNotificationRead,
     removeFavorite,
     updateProfile as apiUpdateProfile,
     getCurrentUser,
@@ -47,32 +40,16 @@ import {
     getReviews,
     createProduct as apiCreateProduct,
     CreateProductInput,
-    getAiChatHistory,
-    saveAiChatHistory,
-    getAiChatArchives,
-    saveAiChatArchives,
 } from '../services/api';
 import { socketService } from '../services/socket';
 import { prefetchService } from '../services/prefetchService';
-import {
-    requestUserPermission,
-    getFcmToken,
-    subscribeToFcmTokenRefresh,
-    deleteFcmToken,
-} from '../services/fcm';
-import { isBiometricLockEnabled, setBiometricEnabled as apiSetBiometricEnabled } from '../services/BiometricService';
-import { BiometricLockScreen } from '../components/auth/BiometricLockScreen';
+import { getFcmToken, deleteFcmToken } from '../services/fcm';
 
 // ============================================================================
 // Storage Keys
 // ============================================================================
 const AUTH_STORAGE_KEY = 'electronicsshop/auth';
 const CART_STORAGE_KEY = 'electronicsshop/cart';
-const PUSH_SETTINGS_KEY = 'electronicsshop/push_settings';
-const THEME_MODE_STORAGE_KEY = 'electronicsshop/theme_mode';
-const AI_CHAT_STORAGE_KEY_PREFIX = 'electronicsshop/ai-chat/messages';
-const AI_CHAT_STORAGE_KEY_LEGACY = 'electronicsshop/ai-chat/messages';
-const AI_CHAT_ARCHIVE_STORAGE_KEY_PREFIX = 'electronicsshop/ai-chat/archives';
 
 const DEFAULT_PROFILE = {
     name: '',
@@ -91,139 +68,6 @@ const normalizeUserProfile = (profile?: Partial<typeof DEFAULT_PROFILE> | null) 
 // ============================================================================
 // Helper functions (moved from App.tsx)
 // ============================================================================
-interface FilterState {
-    priceRange: [number, number];
-    categories: string[];
-    rating: number | null;
-    onlyInStock: boolean;
-}
-
-const formatDateTime = (value?: string | Date | null) => {
-    if (!value) return '';
-    const date = typeof value === 'string' ? new Date(value) : value;
-    if (Number.isNaN(date.getTime())) return '';
-    const dd = String(date.getDate()).padStart(2, '0');
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const yyyy = date.getFullYear();
-    const hh = String(date.getHours()).padStart(2, '0');
-    const min = String(date.getMinutes()).padStart(2, '0');
-    return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
-};
-
-const formatRelativeTime = (value?: string | Date | null, t?: (key: string, options?: any) => string) => {
-    if (!value) return '';
-    const date = typeof value === 'string' ? new Date(value) : value;
-    if (Number.isNaN(date.getTime())) return '';
-    const diffMs = Date.now() - date.getTime();
-    const diffMinutes = Math.floor(diffMs / 60000);
-    if (typeof t !== 'function') {
-        if (diffMinutes < 1) return 'Just now';
-        if (diffMinutes < 60) return `${diffMinutes} minutes ago`;
-        const diffHours = Math.floor(diffMinutes / 60);
-        if (diffHours < 24) return `${diffHours} hours ago`;
-        const diffDays = Math.floor(diffHours / 24);
-        if (diffDays < 7) return `${diffDays} days ago`;
-        return formatDateTime(date);
-    }
-    if (diffMinutes < 1) return t('time_just_now');
-    if (diffMinutes < 60) return t('time_minutes_ago', { count: diffMinutes });
-    const diffHours = Math.floor(diffMinutes / 60);
-    if (diffHours < 24) return t('time_hours_ago', { count: diffHours });
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffDays < 7) return t('time_days_ago', { count: diffDays });
-    return formatDateTime(date);
-};
-
-const getOrderStatusText = (status: Order['status'], t: (key: string) => string): string => {
-    const statusMap: Record<Order['status'], string> = {
-        processing: t('order_status_processing'),
-        shipping: t('order_status_shipping'),
-        completed: t('order_status_completed'),
-        cancelled: t('order_status_cancelled'),
-    };
-    return statusMap[status];
-};
-
-type UiNotification = {
-    id: string;
-    type: string;
-    title: string;
-    message: string;
-    time: string;
-    read: boolean;
-    sendAt?: string;
-};
-
-const mapApiOrderToUi = (order: ApiOrder, productLookup: Product[] = PRODUCTS, t?: (key: string) => string): Order => {
-    const created = order.status?.ordered || order.createdAt || new Date().toISOString();
-    const hasShipped = Boolean(order.status?.shipped);
-    const hasPackaged = Boolean(order.status?.packaged);
-    const hasConfirmed = Boolean(order.status?.confirmed);
-    const isCompleted = hasShipped && order.paymentStatus === 'paid';
-    const isCancelled = Boolean(order.isCancelled);
-
-    let status: Order['status'] = 'processing';
-    if (isCancelled) status = 'cancelled';
-    else if (isCompleted) status = 'completed';
-    else if (hasShipped) status = 'shipping';
-
-    const addressString = [
-        order.shippingAddress?.street,
-        order.shippingAddress?.ward,
-        order.shippingAddress?.district,
-        order.shippingAddress?.city,
-    ].filter(Boolean).join(', ') || (t ? t('address_none') : 'No address');
-
-    const pickImage = (productId: string) => productLookup.find(p => p.id === productId)?.image || productLookup[0]?.image || '';
-    const getTitle = (key: string) => t ? t(key) : key;
-    const timeline = [
-        { time: formatDateTime(created), title: getTitle('order_placed_success'), active: Boolean(created) },
-        { time: formatDateTime(order.status?.confirmed), title: getTitle('order_confirmed'), active: hasConfirmed },
-        { time: formatDateTime(order.status?.packaged), title: getTitle('order_packing'), active: hasPackaged },
-        { time: formatDateTime(order.status?.shipped), title: getTitle('order_shipping'), active: hasShipped },
-    ];
-
-    if (!isCancelled) {
-        timeline.push({
-            time: isCompleted ? formatDateTime(order.status?.shipped) : '',
-            title: getTitle('order_delivery_success'),
-            active: isCompleted,
-        });
-    }
-
-    return {
-        id: order._id,
-        code: order.code || order._id,
-        date: formatDateTime(created),
-        createdAt: typeof created === 'string' ? created : new Date(created).toISOString(),
-        status,
-        statusText: t ? getOrderStatusText(status, t) : status,
-        paymentStatus: order.paymentStatus,
-        items: order.items.map(item => ({
-            id: item.productId,
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            image: pickImage(item.productId),
-            selectedOption: item.selectedOption,
-            selectedClassification: item.selectedClassification,
-        })),
-        shippingAddress: {
-            name: order.shippingAddress?.name || (t ? t('receiver') : 'Receiver'),
-            phone: order.shippingAddress?.phone || '',
-            address: addressString,
-        },
-        payment: {
-            method: order.payment || 'cod',
-            subtotal: order.subTotal,
-            shippingFee: order.shippingFee,
-            discount: order.discount,
-            total: order.totalPrice,
-        },
-        timeline,
-    };
-};
-
 const mapApiVoucherToUi = (voucher: ApiVoucher): Voucher => {
     const fallbackType = voucher.description?.toLowerCase().includes('ship') ? 'shipping' : 'fixed';
     return {
@@ -236,20 +80,6 @@ const mapApiVoucherToUi = (voucher: ApiVoucher): Voucher => {
         maxDiscountPrice: voucher.maxDiscountPrice,
         minTotal: Number(voucher.minTotal) || 0,
         expire: voucher.expire,
-    };
-};
-
-const mapApiNotificationToUi = (item: ApiNotification, t?: (key: string, options?: any) => string): UiNotification => {
-    const fallbackDate = item.deliveredAt || item.readAt || item.updatedAt || new Date().toISOString();
-    const sendAt = item.sendAt || item.createdAt || fallbackDate;
-    return {
-        id: item.id || item._id || '',
-        type: item.type || 'system',
-        title: item.title || '',
-        message: item.body || '',
-        time: formatRelativeTime(sendAt, t),
-        read: Boolean(item.isRead),
-        sendAt: sendAt || undefined,
     };
 };
 
@@ -407,112 +237,6 @@ async function loadPersistedCart(): Promise<CartItem[] | null> {
     }
 }
 
-function getAiChatStorageKey(userId?: string | null) {
-    return userId
-        ? `${AI_CHAT_STORAGE_KEY_PREFIX}/user/${userId}`
-        : `${AI_CHAT_STORAGE_KEY_PREFIX}/guest`;
-}
-
-function getAiChatArchiveStorageKey(userId?: string | null) {
-    return userId
-        ? `${AI_CHAT_ARCHIVE_STORAGE_KEY_PREFIX}/user/${userId}`
-        : `${AI_CHAT_ARCHIVE_STORAGE_KEY_PREFIX}/guest`;
-}
-
-async function loadPersistedAiMessages(userId?: string | null): Promise<ChatMessage[]> {
-    try {
-        const key = getAiChatStorageKey(userId);
-        let stored = await AsyncStorage.getItem(key);
-
-        // One-time migration from legacy single-key storage.
-        if (!stored) {
-            const legacy = await AsyncStorage.getItem(AI_CHAT_STORAGE_KEY_LEGACY);
-            if (legacy) {
-                stored = legacy;
-                await AsyncStorage.setItem(key, legacy);
-                await AsyncStorage.removeItem(AI_CHAT_STORAGE_KEY_LEGACY);
-            }
-        }
-
-        if (!stored) return [];
-        const raw = JSON.parse(stored) as any[];
-        return (raw || []).map(item => ({
-            ...item,
-            timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
-        }));
-    } catch (error) {
-        console.warn('AppStateProvider - Failed to load AI chat messages', error);
-        return [];
-    }
-}
-
-async function persistAiMessages(messages: ChatMessage[], userId?: string | null) {
-    try {
-        const payload = messages.map(m => ({
-            ...m,
-            timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : m.timestamp,
-        }));
-        await AsyncStorage.setItem(getAiChatStorageKey(userId), JSON.stringify(payload));
-    } catch (error) {
-        console.warn('AppStateProvider - Failed to persist AI chat messages', error);
-    }
-}
-
-async function loadPersistedAiArchives(userId?: string | null): Promise<AiChatArchive[]> {
-    try {
-        const stored = await AsyncStorage.getItem(getAiChatArchiveStorageKey(userId));
-        if (!stored) return [];
-        const raw = JSON.parse(stored) as AiChatArchive[];
-        return (raw || []).map((archive) => ({
-            ...archive,
-            messages: (archive.messages || []).map((item: any) => ({
-                ...item,
-                timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
-            })),
-        }));
-    } catch (error) {
-        console.warn('AppStateProvider - Failed to load AI chat archives', error);
-        return [];
-    }
-}
-
-async function persistAiArchives(archives: AiChatArchive[], userId?: string | null) {
-    try {
-        const payload = archives.map((archive) => ({
-            ...archive,
-            messages: (archive.messages || []).map((m) => ({
-                ...m,
-                timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : m.timestamp,
-            })),
-        }));
-        await AsyncStorage.setItem(
-            getAiChatArchiveStorageKey(userId),
-            JSON.stringify(payload),
-        );
-    } catch (error) {
-        console.warn('AppStateProvider - Failed to persist AI chat archives', error);
-    }
-}
-
-async function persistThemeMode(mode: 'light' | 'dark' | 'system') {
-    try {
-        await AsyncStorage.setItem(THEME_MODE_STORAGE_KEY, mode);
-    } catch (error) {
-        console.warn('AppStateProvider - Failed to persist theme mode', error);
-    }
-}
-
-async function loadPersistedThemeMode(): Promise<'light' | 'dark' | 'system' | null> {
-    try {
-        const stored = await AsyncStorage.getItem(THEME_MODE_STORAGE_KEY);
-        if (!stored) return null;
-        return stored as 'light' | 'dark' | 'system';
-    } catch (error) {
-        console.warn('AppStateProvider - Failed to load theme mode', error);
-        return null;
-    }
-}
-
 // ============================================================================
 // AppStateProvider Component
 // ============================================================================
@@ -523,12 +247,7 @@ interface AppStateProviderProps {
 export function AppStateProvider({ children }: AppStateProviderProps) {
     const { t } = useTranslation();
     const { showToast } = useToast();
-    const systemColorScheme = useColorScheme();
-    const systemDarkMode = systemColorScheme === 'dark';
     const networkStatus = useNetworkStatus();
-
-    // Theme state
-    const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>('system');
 
     // Products and banners
     const [products, setProducts] = useState<Product[]>(PRODUCTS);
@@ -553,14 +272,6 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     const authTokensRef = useRef<{ accessToken: string; refreshToken: string } | null>(null);
     const [isRestoringAuth, setIsRestoringAuth] = useState(true);
     const hasFetchedCartRef = useRef(false);
-    const fcmRefreshUnsubRef = useRef<(() => void) | null>(null);
-    const hasRegisteredFcmRef = useRef(false);
-
-    // Orders
-    const [orders, setOrders] = useState<Order[]>([]);
-    const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-    const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-    const [isRefreshingOrders, setIsRefreshingOrders] = useState(false);
 
     // Wishlist
     const [wishlist, setWishlist] = useState<Product[]>([]);
@@ -572,113 +283,10 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     // Addresses
     const [addresses, setAddresses] = useState<Address[]>(DEFAULT_ADDRESSES);
 
-    // Notifications
-    const [notifications, setNotifications] = useState<UiNotification[]>([]);
-    const [isRefreshingNotifications, setIsRefreshingNotifications] = useState(false);
-    const [isPushEnabled, setIsPushEnabled] = useState(true);
-
-    // AI Chat
-    const [aiMessages, setAiMessages] = useState<ChatMessage[]>([]);
-    const aiMessagesRef = useRef<ChatMessage[]>([]);
-    const [aiChatArchives, setAiChatArchives] = useState<AiChatArchive[]>([]);
-    const aiChatArchivesRef = useRef<AiChatArchive[]>([]);
-    const activeAiArchiveIdRef = useRef<string | null>(null);
-    const aiChatSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const aiArchiveSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    // Filters
-    const [filters, setFilters] = useState<FilterState>({
-        priceRange: [0, 10000000],
-        categories: [],
-        rating: null,
-        onlyInStock: false,
-    });
-    const [searchQuery, setSearchQuery] = useState('');
-    const [catalogFilters, setCatalogFilters] = useState<FilterState>({
-        priceRange: [0, 10000000],
-        categories: [],
-        rating: null,
-        onlyInStock: false,
-    });
-    const [catalogSearchQuery, setCatalogSearchQuery] = useState('');
-    const [isBiometricEnabled, setIsBiometricEnabledState] = useState(false);
-    const [isAppLocked, setIsAppLocked] = useState(false);
-    const isBiometricEnabledRef = useRef(false);
-    const pendingUnlockRef = useRef(false);
-
-    const setIsBiometricEnabled = useCallback(async (enabled: boolean) => {
-        setIsBiometricEnabledState(enabled);
-        isBiometricEnabledRef.current = enabled;
-        await apiSetBiometricEnabled(enabled);
-    }, []);
-
-    // Initial biometric check
-    useEffect(() => {
-        const checkBiometric = async () => {
-            const enabled = await isBiometricLockEnabled();
-            setIsBiometricEnabledState(enabled);
-            isBiometricEnabledRef.current = enabled;
-            if (enabled) {
-                setIsAppLocked(true);
-            }
-        };
-        checkBiometric();
-    }, []);
-
-    // AppState handling for biometric lock
-    useEffect(() => {
-        const handleAppStateChange = (nextAppState: AppStateStatus) => {
-            if (nextAppState === 'inactive' || nextAppState === 'background') {
-                if (isBiometricEnabledRef.current) {
-                    setIsAppLocked(true);
-                    pendingUnlockRef.current = false;
-                }
-            } else if (nextAppState === 'active') {
-                if (pendingUnlockRef.current) {
-                    setIsAppLocked(false);
-                    pendingUnlockRef.current = false;
-                }
-            }
-        };
-
-        const subscription = AppState.addEventListener('change', handleAppStateChange);
-
-        // Synchronous initial check if app starts in background/inactive
-        if (AppState.currentState !== 'active' && isBiometricEnabledRef.current) {
-            setIsAppLocked(true);
-        }
-
-        return () => subscription.remove();
-    }, []);
-
-    // Available categories
-    const availableCategories = useMemo(() => {
-        const base = (CATEGORIES.length ? CATEGORIES : extractCategoriesFromProducts(products)).map(c => c.name);
-        return Array.from(new Set(base.filter(Boolean)));
-    }, [products]);
-
     const queryClient = useQueryClient();
     const isAuthed = Boolean(isLoggedIn && authTokens?.accessToken);
     const currentUserKey = userId || 'me';
     const isOffline = networkStatus.isConnected === false || networkStatus.isInternetReachable === false;
-
-    const ordersQuery = useQuery({
-        queryKey: ['orders', currentUserKey],
-        enabled: isAuthed,
-        queryFn: async () => {
-            const token = authTokensRef.current?.accessToken || authTokens?.accessToken;
-            if (!token) return [];
-            const cacheKey = `orders-${currentUserKey}`;
-            if (isOffline) {
-                const cached = await cacheManager.get<ApiOrder[]>(cacheKey);
-                if (cached) return cached;
-            }
-            const result = await apiGetOrders(token, { scope: 'mine' });
-            await cacheManager.set(cacheKey, result);
-            return result;
-        },
-        refetchInterval: isAuthed && !isOffline ? 30000 : false,
-    });
 
     const favoritesQuery = useQuery({
         queryKey: ['favorites', currentUserKey],
@@ -812,20 +420,6 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
 
     useEffect(() => {
         if (!isAuthed) return;
-        if (ordersQuery.data) {
-            const mapped = ordersQuery.data
-                .map(o => mapApiOrderToUi(o, productsRef.current, t))
-                .sort((a, b) => {
-                    const dateA = new Date(a.createdAt || a.date).getTime();
-                    const dateB = new Date(b.createdAt || b.date).getTime();
-                    return dateB - dateA;
-                });
-            setOrders(mapped);
-        }
-    }, [ordersQuery.data, isAuthed, t, products]);
-
-    useEffect(() => {
-        if (!isAuthed) return;
         if (favoritesQuery.data) {
             setWishlist(favoritesQuery.data.map(mapApiProductToUi));
         }
@@ -845,14 +439,6 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         applyCartSnapshot(cartQuery.data);
         hasFetchedCartRef.current = true;
     }, [cartQuery.data, isAuthed, applyCartSnapshot]);
-
-    useEffect(() => {
-        if (!isAuthed) {
-            setIsRefreshingOrders(false);
-            return;
-        }
-        setIsRefreshingOrders(ordersQuery.isFetching);
-    }, [ordersQuery.isFetching, isAuthed]);
 
     // ========================================================================
     // Data loading functions
@@ -1005,11 +591,6 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         }
     }, [networkStatus.isConnected]);
 
-    const loadOrders = useCallback(async (_tokenOverride?: string, _options?: { silent?: boolean }) => {
-        if (!isAuthed) return;
-        await ordersQuery.refetch();
-    }, [ordersQuery.refetch, isAuthed]);
-
     const loadFavorites = async (_tokenOverride?: string) => {
         if (!isAuthed) return;
         await favoritesQuery.refetch();
@@ -1099,112 +680,37 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         }
     }, [userId]);
 
-    const syncNotificationsFromApi = useCallback((items: ApiNotification[]) => {
-        const translate = typeof t === 'function' ? t : undefined;
-        const list = Array.isArray(items) ? items : [];
-        const mapped = list
-            .map(item => mapApiNotificationToUi(item, translate))
-            .filter(item => item.id)
-            .sort((a, b) => {
-                const timeA = a.sendAt ? new Date(a.sendAt).getTime() : 0;
-                const timeB = b.sendAt ? new Date(b.sendAt).getTime() : 0;
-                return timeB - timeA;
-            });
-        setNotifications(mapped);
-    }, [t]);
-
-    const loadNotifications = useCallback(async (tokenOverride?: string, options?: { silent?: boolean }) => {
-        const token = tokenOverride || authTokensRef.current?.accessToken;
-        if (!token) return;
-        const showSpinner = !options?.silent;
-        if (showSpinner) setIsRefreshingNotifications(true);
-        try {
-            const result = await apiGetNotifications(token);
-            syncNotificationsFromApi(result);
-        } catch (error: any) {
-            console.warn('AppStateProvider - Failed to load notifications', error?.message || error);
-        } finally {
-            if (showSpinner) setIsRefreshingNotifications(false);
-        }
-    }, [syncNotificationsFromApi]);
-
-    const fetchOrderDetail = useCallback(async (orderId: string) => {
-        const token = authTokensRef.current?.accessToken;
-        if (!token) return;
-        try {
-            const result = await getOrderById(orderId, token);
-            const mapped = mapApiOrderToUi(result, productsRef.current, t);
-            setOrders(prev => {
-                const exists = prev.some(o => o.id === mapped.id);
-                const updated = exists ? prev.map(o => (o.id === mapped.id ? mapped : o)) : [mapped, ...prev];
-                return updated.sort((a, b) => {
-                    const dateA = new Date(a.createdAt || a.date).getTime();
-                    const dateB = new Date(b.createdAt || b.date).getTime();
-                    return dateB - dateA;
-                });
-            });
-        } catch (error: any) {
-            console.warn('AppStateProvider - Failed to fetch order detail', error?.message || error);
-        }
-    }, [t]);
-
     useEffect(() => {
-        socketService.connect();
-        if (!isAuthed) return;
+        let isMounted = true;
+        let listenersAttached = false;
+
         const handler = (payload: any) => {
-            const collection = payload?.collection;
-            if (!collection) return;
-
-            if (collection === 'notifications') {
-                loadNotifications(undefined, { silent: true });
-            }
-
-            if (collection === 'orders') {
-                if (selectedOrderId) {
-                    fetchOrderDetail(selectedOrderId);
-                }
-                loadOrders(undefined, { silent: true });
-            }
-
-            if (collection === 'carts') {
-                loadCart(undefined, { silent: true });
-            }
+            if (payload?.collection !== 'carts') return;
+            loadCart(undefined, { silent: true });
         };
 
         const cartHandler = () => {
             loadCart(undefined, { silent: true });
         };
 
-        socketService.on('db_change', handler);
-        socketService.on('cart_updated', cartHandler);
+        const task = InteractionManager.runAfterInteractions(() => {
+            if (!isMounted) return;
+            socketService.connect();
+            if (!isAuthed) return;
+            socketService.on('db_change', handler);
+            socketService.on('cart_updated', cartHandler);
+            listenersAttached = true;
+        });
+
         return () => {
-            socketService.off('db_change', handler);
-            socketService.off('cart_updated', cartHandler);
-        };
-    }, [isAuthed, selectedOrderId, loadNotifications, loadOrders, fetchOrderDetail, loadCart]);
-
-    useEffect(() => {
-        if (!isAuthed || isOffline) return;
-
-        const notificationInterval = setInterval(() => {
-            if (AppState.currentState !== 'active') return;
-            loadNotifications(undefined, { silent: true });
-        }, 60000);
-
-        const orderInterval = setInterval(() => {
-            if (AppState.currentState !== 'active') return;
-            if (selectedOrderId) {
-                fetchOrderDetail(selectedOrderId);
-            } else {
-                loadOrders(undefined, { silent: true });
+            isMounted = false;
+            task.cancel?.();
+            if (listenersAttached) {
+                socketService.off('db_change', handler);
+                socketService.off('cart_updated', cartHandler);
             }
-        }, 30000);
-
-        return () => {
-            clearInterval(notificationInterval);
-            clearInterval(orderInterval);
         };
-    }, [isAuthed, isOffline, selectedOrderId, loadNotifications, loadOrders, fetchOrderDetail]);
+    }, [isAuthed, loadCart]);
 
     // ========================================================================
     // Auth functions
@@ -1252,8 +758,6 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         setUserRole(undefined);
         setUserId(null);
         setVouchers([]);
-        setNotifications([]);
-        setIsRefreshingNotifications(false);
         setAddresses(DEFAULT_ADDRESSES);
         setCartItems([]);
         socketService.setAuthToken(null);
@@ -1273,13 +777,11 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         setAddresses([]);
         syncAuthTokens(tokens, data.user, newUserId);
         loadUserProfile(tokens.accessToken, { silent: true }).catch(() => { });
-        loadOrders(tokens.accessToken).catch(() => { });
         loadFavorites(tokens.accessToken).catch(() => { });
         loadVouchers(tokens.accessToken).catch(() => { });
-        loadNotifications(tokens.accessToken, { silent: true }).catch(() => { });
         loadAddresses(tokens.accessToken).catch(() => { });
         loadCart(tokens.accessToken, { silent: true }).catch(() => { });
-    }, [syncAuthTokens, loadOrders, loadNotifications, loadUserProfile, loadCart]);
+    }, [syncAuthTokens, loadUserProfile, loadCart]);
 
     // ========================================================================
     // Cart functions
@@ -1419,6 +921,10 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         });
     }, []);
 
+    const clearCart = useCallback(() => {
+        setCartItems([]);
+    }, []);
+
     // ========================================================================
     // Wishlist functions
     // ========================================================================
@@ -1433,118 +939,6 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     const isFavorite = useCallback((productId: string) => {
         return wishlist.some(item => item.id === productId);
     }, [wishlist]);
-
-    // ========================================================================
-    // Order functions
-    // ========================================================================
-    const refreshOrders = useCallback(async () => {
-        await loadOrders();
-    }, [loadOrders]);
-
-    const refreshOrderDetail = useCallback(async (orderId: string) => {
-        await fetchOrderDetail(orderId);
-    }, [fetchOrderDetail]);
-
-    const placeOrder = useCallback(async (params: {
-        items: CartItem[];
-        totals: { subTotal: number; shippingFee: number; discount: number; total: number };
-        paymentMethod: string;
-        shippingAddress?: Address;
-    }) => {
-        if (!authTokensRef.current?.accessToken) {
-            throw new Error(t('login_required_order'));
-        }
-
-        const code = `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
-        const normalizedPayment = params.paymentMethod?.toLowerCase() || 'cod';
-        const isVnpay = normalizedPayment === 'vnpay';
-
-        const payload = {
-            code,
-            status: { ordered: new Date().toISOString() },
-            items: params.items.map(item => ({
-                productId: item.id,
-                name: item.name,
-                quantity: item.quantity,
-                price: item.price,
-                subTotal: item.price * item.quantity,
-                shippingFee: 0,
-                discount: 0,
-                totalPrice: item.price * item.quantity,
-                ...(item.selectedOption?.trim() ? { selectedOption: item.selectedOption.trim() } : {}),
-                ...(item.selectedClassification?.trim() ? { selectedClassification: item.selectedClassification.trim() } : {}),
-            })),
-            subTotal: params.totals.subTotal,
-            shippingFee: params.totals.shippingFee,
-            discount: params.totals.discount,
-            totalPrice: params.totals.total,
-            payment: normalizedPayment,
-            paymentStatus: 'pending',
-            shippingAddress: params.shippingAddress
-                ? {
-                    name: params.shippingAddress.name,
-                    phone: params.shippingAddress.phone,
-                    city: params.shippingAddress.city,
-                    district: params.shippingAddress.district,
-                    ward: params.shippingAddress.ward,
-                    street: params.shippingAddress.detailedAddress || params.shippingAddress.address,
-                }
-                : undefined,
-        };
-
-        setIsPlacingOrder(true);
-        try {
-            if (isVnpay) {
-                const paymentResult = await createVnpayPayment(payload, authTokensRef.current.accessToken);
-                const orderId =
-                    (paymentResult?.order as any)?._id ||
-                    (paymentResult?.order as any)?.id ||
-                    (paymentResult?.order as any)?._id?.toString?.();
-                return { id: orderId || code, code, paymentUrl: paymentResult.paymentUrl };
-            } else {
-                const result = await apiCreateOrder(payload, authTokensRef.current.accessToken);
-                const mapped = mapApiOrderToUi(result, productsRef.current, t);
-                setOrders(prev => [mapped, ...prev]);
-                setCartItems([]);
-                return mapped;
-            }
-        } finally {
-            setIsPlacingOrder(false);
-        }
-    }, [t]);
-
-    // ========================================================================
-    // Notification functions
-    // ========================================================================
-    const refreshNotifications = useCallback(async () => {
-        await loadNotifications(undefined, { silent: false });
-    }, [loadNotifications]);
-
-    const markNotificationRead = useCallback(async (id: string) => {
-        if (!authTokensRef.current?.accessToken) return;
-        const previous = notifications;
-        setNotifications(prev => prev.map(item => (item.id === id ? { ...item, read: true } : item)));
-        try {
-            const result = await apiMarkNotificationRead(id, authTokensRef.current.accessToken);
-            syncNotificationsFromApi(result);
-        } catch (error: any) {
-            setNotifications(previous);
-            console.warn('AppStateProvider - Failed to mark notification read', error?.message || error);
-        }
-    }, [notifications, syncNotificationsFromApi]);
-
-    const markAllNotificationsRead = useCallback(async () => {
-        if (!authTokensRef.current?.accessToken) return;
-        const previous = notifications;
-        setNotifications(prev => prev.map(item => ({ ...item, read: true })));
-        try {
-            const result = await apiMarkAllNotificationsRead(authTokensRef.current.accessToken);
-            syncNotificationsFromApi(result);
-        } catch (error: any) {
-            setNotifications(previous);
-            console.warn('AppStateProvider - Failed to mark all notifications read', error?.message || error);
-        }
-    }, [notifications, syncNotificationsFromApi]);
 
     // ========================================================================
     // Profile functions
@@ -1611,14 +1005,6 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     }, [userProfile, userId, profileMutation]);
 
     // ========================================================================
-    // Theme functions
-    // ========================================================================
-    const handleThemeModeChange = useCallback((mode: 'light' | 'dark' | 'system') => {
-        setThemeMode(mode);
-        persistThemeMode(mode).catch(() => { });
-    }, []);
-
-    // ========================================================================
     // Navigation helpers (for backward compatibility)
     // ========================================================================
     const navigateToProduct = useCallback((productId: string) => {
@@ -1640,134 +1026,15 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         }
     }, [isLoggedIn, showToast, t]);
 
-    const buildAiArchiveTitle = useCallback((messages: ChatMessage[]) => {
-        const firstUserMessage = messages.find((m) => m.role === 'user')?.content?.trim();
-        if (!firstUserMessage) return t('chat_history');
-        return firstUserMessage.length > 48
-            ? `${firstUserMessage.slice(0, 48)}...`
-            : firstUserMessage;
-    }, [t]);
-
-    const normalizeMessagesForCompare = useCallback((messages: ChatMessage[]) => {
-        return (messages || []).map((m) => ({
-            role: m.role,
-            content: m.content || '',
-            type: m.type || 'text',
-            metadata: m.metadata || null,
-            cards: m.cards || [],
-            orderCards: m.orderCards || [],
-            addressCards: m.addressCards || [],
-            actions: m.actions || [],
-        }));
-    }, []);
-
-    const archiveCurrentAiChat = useCallback(() => {
-        const current = aiMessagesRef.current || [];
-        if (!current.length) {
-            setAiMessages([]);
-            activeAiArchiveIdRef.current = null;
-            return;
-        }
-
-        const now = new Date().toISOString();
-        const activeArchiveId = activeAiArchiveIdRef.current;
-        if (activeArchiveId) {
-            setAiChatArchives((prev) => {
-                const existingIndex = prev.findIndex((item) => item.id === activeArchiveId);
-                if (existingIndex < 0) {
-                    return prev;
-                }
-                const existing = prev[existingIndex];
-                const sameContent =
-                    JSON.stringify(normalizeMessagesForCompare(existing.messages || [])) ===
-                    JSON.stringify(normalizeMessagesForCompare(current));
-
-                if (sameContent) {
-                    return prev;
-                }
-
-                const updated: AiChatArchive = {
-                    ...existing,
-                    title: buildAiArchiveTitle(current),
-                    updatedAt: now,
-                    messages: current,
-                };
-                const next = prev.filter((item) => item.id !== activeArchiveId);
-                return [updated, ...next];
-            });
-            setAiMessages([]);
-            aiMessagesRef.current = [];
-            activeAiArchiveIdRef.current = null;
-            return;
-        }
-
-        const archive: AiChatArchive = {
-            id: `chat-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-            title: buildAiArchiveTitle(current),
-            createdAt: now,
-            updatedAt: now,
-            messages: current,
-        };
-
-        setAiChatArchives((prev) => [archive, ...prev].slice(0, 50));
-        setAiMessages([]);
-        aiMessagesRef.current = [];
-        activeAiArchiveIdRef.current = null;
-    }, [buildAiArchiveTitle, normalizeMessagesForCompare]);
-
-    const openAiChatArchive = useCallback((archiveId: string) => {
-        const archive = aiChatArchivesRef.current.find((item) => item.id === archiveId);
-        if (!archive) return;
-        activeAiArchiveIdRef.current = archiveId;
-        setAiMessages((archive.messages || []).map((m) => ({
-            ...m,
-            timestamp: m.timestamp instanceof Date ? m.timestamp : new Date(m.timestamp),
-        })));
-    }, []);
-
-    const deleteAiChatArchive = useCallback((archiveId: string) => {
-        if (activeAiArchiveIdRef.current === archiveId) {
-            activeAiArchiveIdRef.current = null;
-        }
-        setAiChatArchives((prev) => prev.filter((item) => item.id !== archiveId));
-    }, []);
-
-    const clearAiChatArchives = useCallback(() => {
-        activeAiArchiveIdRef.current = null;
-        setAiChatArchives([]);
-    }, []);
-
     // ========================================================================
     // Effects
     // ========================================================================
     // Load initial data
     useEffect(() => {
         const init = async () => {
-            // Load theme
-            const savedTheme = await loadPersistedThemeMode();
-            if (savedTheme) setThemeMode(savedTheme);
-
             // Load cart
             const savedCart = await loadPersistedCart();
             if (savedCart) setCartItems(savedCart);
-
-            // Load AI messages
-            const savedMessages = await loadPersistedAiMessages(null);
-            setAiMessages(savedMessages);
-            aiMessagesRef.current = savedMessages;
-            const savedArchives = await loadPersistedAiArchives(null);
-            setAiChatArchives(savedArchives);
-            aiChatArchivesRef.current = savedArchives;
-
-            // Load push settings
-            try {
-                const pushSettings = await AsyncStorage.getItem(PUSH_SETTINGS_KEY);
-                if (pushSettings !== null) {
-                    setIsPushEnabled(JSON.parse(pushSettings));
-                }
-            } catch (e) {
-                console.warn('Failed to load push settings', e);
-            }
 
             // Load auth
             try {
@@ -1830,164 +1097,6 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         void persistCartState(cartItems);
     }, [cartItems]);
 
-    // Load AI chat history by current user (or guest)
-    useEffect(() => {
-        let cancelled = false;
-        const loadAiChatForCurrentUser = async () => {
-            const token = authTokens?.accessToken;
-            if (isLoggedIn && userId && token) {
-                const localUserArchives = await loadPersistedAiArchives(userId);
-                try {
-                    const remote = await getAiChatHistory(token);
-                    const remoteArchivesResponse = await getAiChatArchives(token);
-                    const remoteMessages = (remote?.messages || []).map((item: any) => ({
-                        ...item,
-                        timestamp: item?.timestamp ? new Date(item.timestamp) : new Date(),
-                    })) as ChatMessage[];
-                    const remoteArchives = (remoteArchivesResponse?.archives || []).map((arc: any) => ({
-                        ...arc,
-                        messages: (arc?.messages || []).map((m: any) => ({
-                            ...m,
-                            timestamp: m?.timestamp ? new Date(m.timestamp) : new Date(),
-                        })),
-                    })) as AiChatArchive[];
-                    if (!cancelled) {
-                        setAiMessages(remoteMessages);
-                        aiMessagesRef.current = remoteMessages;
-                        setAiChatArchives(remoteArchives);
-                        aiChatArchivesRef.current = remoteArchives;
-                    }
-                    if (!remoteMessages.length) {
-                        const localUserMessages = await loadPersistedAiMessages(userId);
-                        if (localUserMessages.length) {
-                            if (!cancelled) {
-                                setAiMessages(localUserMessages);
-                                aiMessagesRef.current = localUserMessages;
-                            }
-                            await saveAiChatHistory(
-                                localUserMessages.map((m) => ({
-                                    ...m,
-                                    timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : String(m.timestamp),
-                                })) as any[],
-                                token,
-                            );
-                        }
-                    }
-                    if (!remoteArchives.length && localUserArchives.length) {
-                        if (!cancelled) {
-                            setAiChatArchives(localUserArchives);
-                            aiChatArchivesRef.current = localUserArchives;
-                        }
-                        await saveAiChatArchives(
-                            localUserArchives.map((arc) => ({
-                                ...arc,
-                                messages: (arc.messages || []).map((m) => ({
-                                    ...m,
-                                    timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : String(m.timestamp),
-                                })),
-                            })) as any[],
-                            token,
-                        );
-                    }
-                    return;
-                } catch (error) {
-                    console.warn('AppStateProvider - Failed to load AI chat history from API', error);
-                }
-                const localUserMessages = await loadPersistedAiMessages(userId);
-                if (!cancelled) {
-                    setAiMessages(localUserMessages);
-                    aiMessagesRef.current = localUserMessages;
-                    setAiChatArchives(localUserArchives);
-                    aiChatArchivesRef.current = localUserArchives;
-                }
-                return;
-            }
-
-            const guestMessages = await loadPersistedAiMessages(null);
-            const guestArchives = await loadPersistedAiArchives(null);
-            if (!cancelled) {
-                setAiMessages(guestMessages);
-                aiMessagesRef.current = guestMessages;
-                setAiChatArchives(guestArchives);
-                aiChatArchivesRef.current = guestArchives;
-            }
-        };
-
-        void loadAiChatForCurrentUser();
-        return () => {
-            cancelled = true;
-        };
-    }, [isLoggedIn, userId, authTokens?.accessToken]);
-
-    // Persist AI messages to local storage by user/guest
-    useEffect(() => {
-        aiMessagesRef.current = aiMessages;
-        persistAiMessages(aiMessages, isLoggedIn && userId ? userId : null).catch(() => { });
-    }, [aiMessages, isLoggedIn, userId]);
-
-    // Persist AI chat archives to local storage by user/guest
-    useEffect(() => {
-        aiChatArchivesRef.current = aiChatArchives;
-        persistAiArchives(aiChatArchives, isLoggedIn && userId ? userId : null).catch(() => { });
-    }, [aiChatArchives, isLoggedIn, userId]);
-
-    // Sync AI chat archives to backend (debounced)
-    useEffect(() => {
-        if (!isLoggedIn || !userId || !authTokens?.accessToken) return;
-        if (aiArchiveSyncTimeoutRef.current) {
-            clearTimeout(aiArchiveSyncTimeoutRef.current);
-        }
-        aiArchiveSyncTimeoutRef.current = setTimeout(async () => {
-            try {
-                const token = authTokensRef.current?.accessToken;
-                if (!token) return;
-                const payload = aiChatArchivesRef.current.map((arc) => ({
-                    ...arc,
-                    messages: (arc.messages || []).map((m) => ({
-                        ...m,
-                        timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : String(m.timestamp),
-                    })),
-                }));
-                await saveAiChatArchives(payload as any[], token);
-            } catch (error) {
-                console.warn('AppStateProvider - Failed to sync AI chat archives', error);
-            }
-        }, 800);
-
-        return () => {
-            if (aiArchiveSyncTimeoutRef.current) {
-                clearTimeout(aiArchiveSyncTimeoutRef.current);
-            }
-        };
-    }, [aiChatArchives, isLoggedIn, userId, authTokens?.accessToken]);
-
-    // Sync AI chat history to backend (debounced)
-    useEffect(() => {
-        if (!isLoggedIn || !userId || !authTokens?.accessToken) return;
-        if (aiChatSyncTimeoutRef.current) {
-            clearTimeout(aiChatSyncTimeoutRef.current);
-        }
-        aiChatSyncTimeoutRef.current = setTimeout(async () => {
-            try {
-                const token = authTokensRef.current?.accessToken;
-                if (!token) return;
-                const payload = aiMessagesRef.current.map((m) => ({
-                    ...m,
-                    timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : String(m.timestamp),
-                }));
-                await saveAiChatHistory(payload as any[], token);
-            } catch (error) {
-                console.warn('AppStateProvider - Failed to sync AI chat history', error);
-            }
-        }, 800);
-
-        return () => {
-            if (aiChatSyncTimeoutRef.current) {
-                clearTimeout(aiChatSyncTimeoutRef.current);
-            }
-        };
-    }, [aiMessages, isLoggedIn, userId, authTokens?.accessToken]);
-
     // Sync cart to backend (debounced, avoids re-triggering from mutation state changes)
     useEffect(() => {
         if (!authTokensRef.current?.accessToken) return;
@@ -2026,20 +1135,16 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     useEffect(() => {
         if (isLoggedIn && authTokens?.accessToken) {
             loadUserProfile(undefined, { silent: true }).catch(() => { });
-            loadOrders().catch(() => { });
             loadFavorites().catch(() => { });
             loadVouchers().catch(() => { });
-            loadNotifications(undefined, { silent: true }).catch(() => { });
             loadAddresses().catch(() => { });
             loadCart(undefined, { silent: true }).catch(() => { });
         } else if (!isLoggedIn) {
-            setOrders([]);
             setWishlist([]);
             setVouchers([]);
-            setNotifications([]);
             setAddresses(DEFAULT_ADDRESSES);
         }
-    }, [isLoggedIn, authTokens?.accessToken, loadOrders, loadNotifications, loadUserProfile, loadCart]);
+    }, [isLoggedIn, authTokens?.accessToken, loadUserProfile, loadCart]);
 
     // Configure API auth
     useEffect(() => {
@@ -2050,38 +1155,29 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         });
     }, [handleAuthFailure, syncAuthTokens]);
 
-    // FCM Setup
-    useEffect(() => {
-        const setupFcm = async () => {
-            const enabled = await requestUserPermission();
-            if (enabled) {
-                const token = await getFcmToken(authTokensRef.current?.accessToken);
-                if (token) {
-                    hasRegisteredFcmRef.current = true;
-                }
-            }
-        };
-
-        if (isPushEnabled) {
-            setupFcm();
-
-            // Subscribe to token refresh
-            const unsubscribe = subscribeToFcmTokenRefresh(authTokensRef.current?.accessToken);
-            fcmRefreshUnsubRef.current = unsubscribe;
-        }
-
-        return () => {
-            if (fcmRefreshUnsubRef.current) {
-                // @ts-ignore - type mismatch in library vs usage sometimes, but safe to call if function
-                fcmRefreshUnsubRef.current();
-                fcmRefreshUnsubRef.current = null;
-            }
-        };
-    }, [isPushEnabled]);
-
     // ========================================================================
     // Context value
     // ========================================================================
+    const cartContextValue: CartContextValue = useMemo(() => ({
+        cartItems,
+        addToCart,
+        updateCartQuantity,
+        removeFromCart,
+        updateCartItemOptions,
+        appliedVoucher,
+        setAppliedVoucher,
+        clearCart,
+    }), [
+        cartItems,
+        addToCart,
+        updateCartQuantity,
+        removeFromCart,
+        updateCartItemOptions,
+        appliedVoucher,
+        setAppliedVoucher,
+        clearCart,
+    ]);
+
     const contextValue: AppContextValue = useMemo(() => ({
         // Products
         products,
@@ -2090,13 +1186,6 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         isLoadingProducts,
         productsError,
         loadProducts,
-
-        // Cart
-        cartItems,
-        addToCart,
-        updateCartQuantity,
-        removeFromCart,
-        updateCartItemOptions,
 
         // Auth
         isLoggedIn,
@@ -2116,61 +1205,12 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         toggleFavorite,
         isFavorite,
 
-        // Orders
-        orders,
-        selectedOrderId,
-        isPlacingOrder,
-        isRefreshingOrders,
-        placeOrder,
-        refreshOrders,
-        refreshOrderDetail,
-        setSelectedOrderId,
-
         // Vouchers
         vouchers,
-        appliedVoucher,
-        setAppliedVoucher,
-
-        // Notifications
-        notifications,
-        isRefreshingNotifications,
-        refreshNotifications,
-        markNotificationRead,
-        markAllNotificationsRead,
 
         // Addresses
         addresses,
         updateAddresses: setAddresses,
-
-        // AI Chat
-        aiMessages,
-        setAiMessages,
-        aiChatArchives,
-        archiveCurrentAiChat,
-        openAiChatArchive,
-        deleteAiChatArchive,
-        clearAiChatArchives,
-
-        // Filters
-        filters,
-        setFilters,
-        searchQuery,
-        setSearchQuery,
-        availableCategories,
-        catalogFilters,
-        setCatalogFilters,
-        catalogSearchQuery,
-        setCatalogSearchQuery,
-
-        // Theme
-        themeMode,
-        setThemeMode: handleThemeModeChange,
-
-        // Settings
-        isPushEnabled,
-        setIsPushEnabled,
-        isBiometricEnabled,
-        setIsBiometricEnabled,
 
         // Network
         networkStatus,
@@ -2181,40 +1221,23 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         requireLogin,
     }), [
         products, relatedProducts, banners, isLoadingProducts, productsError, loadProducts,
-        cartItems, addToCart, updateCartQuantity, removeFromCart, updateCartItemOptions,
         isLoggedIn, authTokens, userId, userProfile, userRole, handleCreateProduct, login, handleAuthFailure, updateProfile, loadUserProfile,
         wishlist, toggleFavorite, isFavorite,
-        orders, selectedOrderId, isPlacingOrder, isRefreshingOrders, placeOrder, refreshOrders, refreshOrderDetail,
-        vouchers, appliedVoucher,
-        notifications, isRefreshingNotifications, refreshNotifications, markNotificationRead, markAllNotificationsRead,
+        vouchers,
         addresses,
-        aiMessages,
-        aiChatArchives, archiveCurrentAiChat, openAiChatArchive, deleteAiChatArchive, clearAiChatArchives,
-        filters, searchQuery, availableCategories,
-        catalogFilters, catalogSearchQuery,
-        themeMode, handleThemeModeChange,
-        isPushEnabled,
-        isBiometricEnabled,
-        setIsBiometricEnabled,
         networkStatus,
         navigateToProduct, navigateToCart, requireLogin,
     ]);
 
     return (
         <AppProvider value={contextValue}>
-            {children}
-            {isAppLocked && (
-                <View className="absolute inset-0">
-                    <BiometricLockScreen onUnlock={() => {
-                        if (AppState.currentState === 'active') {
-                            setIsAppLocked(false);
-                            pendingUnlockRef.current = false;
-                        } else {
-                            pendingUnlockRef.current = true;
-                        }
-                    }} />
-                </View>
-            )}
+            <CartProvider value={cartContextValue}>
+                <OrdersStateProvider>
+                    <NotificationsStateProvider>
+                        {children}
+                    </NotificationsStateProvider>
+                </OrdersStateProvider>
+            </CartProvider>
         </AppProvider>
     );
 }

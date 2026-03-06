@@ -12,7 +12,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { GOOGLE_WEB_CLIENT_ID } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { AppStateProvider, useAppOptional } from './src/context';
+import { AppStateProvider, SettingsStateProvider, ThemeModeStateProvider, useAppOptional, useThemeModeOptional } from './src/context';
 import { AppNavigator } from './src/navigation';
 import { darkTheme, lightTheme, ThemeProvider } from './src/theme';
 import { useToast, ToastProvider } from './src/components/common/ToastProvider';
@@ -64,7 +64,8 @@ function AppContent() {
     const systemColorScheme = useColorScheme();
     const systemDarkMode = systemColorScheme === 'dark';
     const app = useAppOptional();
-    const themeMode: 'light' | 'dark' | 'system' = app?.themeMode || 'system';
+    const themeModeCtx = useThemeModeOptional();
+    const themeMode: 'light' | 'dark' | 'system' = themeModeCtx?.themeMode || 'system';
     const isDarkMode = themeMode === 'system' ? systemDarkMode : themeMode === 'dark';
     const theme = isDarkMode ? darkTheme : lightTheme;
     const networkStatus = useNetworkStatus();
@@ -168,9 +169,13 @@ function App(): React.JSX.Element {
         <GestureHandlerRootView className="flex-1">
             <QueryClientProvider client={queryClient}>
                 <ToastProvider>
-                    <AppStateProvider>
-                        <AppContent />
-                    </AppStateProvider>
+                    <ThemeModeStateProvider>
+                        <AppStateProvider>
+                            <SettingsStateProvider>
+                                <AppContent />
+                            </SettingsStateProvider>
+                        </AppStateProvider>
+                    </ThemeModeStateProvider>
                 </ToastProvider>
             </QueryClientProvider>
         </GestureHandlerRootView>

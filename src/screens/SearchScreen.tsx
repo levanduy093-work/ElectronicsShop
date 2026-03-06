@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, useDeferredValue } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -54,6 +54,7 @@ export function SearchScreen({
   const { t: translate } = useTranslation();
   const t = theme || ctxTheme || lightTheme;
   const [query, setQuery] = useState(initialQuery);
+  const deferredQuery = useDeferredValue(query);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const searchInputTextAlignStyle = useMemo(
     () =>
@@ -240,9 +241,10 @@ export function SearchScreen({
     onlyInStock = false
   } = (props.filters || {});
 
-  const filteredProducts = query
-    ? filterProducts(products, query, { priceRange, categories, rating, onlyInStock })
-    : [];
+  const filteredProducts = useMemo(() => {
+    if (!deferredQuery) return [];
+    return filterProducts(products, deferredQuery, { priceRange, categories, rating, onlyInStock });
+  }, [products, deferredQuery, priceRange, categories, rating, onlyInStock]);
 
   const [trendingSearches, setTrendingSearches] = useState(['Raspberry Pi 5', 'ESP32 Cam', 'Mỏ hàn', 'Cảm biến nhiệt độ', 'Led RGB']);
 

@@ -1,26 +1,22 @@
 import React from 'react';
-import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../types';
-import { useAppOptional } from '../../context';
+import { useAppOptional, useOrdersOptional } from '../../context';
 import { useTheme } from '../../theme';
 import { Profile as ProfileScreen } from '../../screens/Profile';
 import { Auth as AuthScreen } from '../../screens/Auth';
 
-export function ProfileTab() {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-    const route = useRoute<any>();
+export function ProfileTab({ navigation, route }: { navigation: any; route: any }) {
     const { theme } = useTheme();
     const app = useAppOptional();
+    const ordersCtx = useOrdersOptional();
 
-    // Refresh user profile when screen is focused
-    useFocusEffect(
-        React.useCallback(() => {
+    React.useEffect(() => {
+        const unsubscribe = navigation.addListener('focus', () => {
             if (app?.isLoggedIn && app?.authTokens?.accessToken && app?.loadUserProfile) {
                 app.loadUserProfile(app.authTokens.accessToken, { silent: true }).catch(() => { });
             }
-        }, [app])
-    );
+        });
+        return unsubscribe;
+    }, [app, navigation]);
 
     const initialAuthMode: 'login' | 'register' =
         route?.params?.authMode === 'register' ? 'register' : 'login';
@@ -41,7 +37,7 @@ export function ProfileTab() {
             theme={theme}
             userProfile={app?.userProfile || { name: '', email: '', avatar: '' }}
             isAdmin={app?.isAdmin || false}
-            orderCount={app?.orders?.length || 0}
+            orderCount={ordersCtx?.orders?.length || 0}
             vouchers={app?.vouchers || []}
             onLogout={app?.logout || (() => { })}
             onNavigateToOrders={() => navigation.navigate('OrderHistory')}

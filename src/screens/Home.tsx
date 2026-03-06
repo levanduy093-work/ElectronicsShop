@@ -5,6 +5,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   RefreshControl,
+  InteractionManager,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { HomeBanner, Product } from '../types';
@@ -75,17 +76,27 @@ export function Home({
 
   // Real-time listener
   React.useEffect(() => {
-    socketService.connect();
+    let isMounted = true;
+    let listenerAttached = false;
 
     const handleProductUpdate = (updatedProduct: any) => {
       console.log('Received product update:', updatedProduct);
       onRefreshProducts?.();
     };
 
-    socketService.on('product_updated', handleProductUpdate);
+    const task = InteractionManager.runAfterInteractions(() => {
+      if (!isMounted) return;
+      socketService.connect();
+      socketService.on('product_updated', handleProductUpdate);
+      listenerAttached = true;
+    });
 
     return () => {
-      socketService.off('product_updated');
+      isMounted = false;
+      task.cancel?.();
+      if (listenerAttached) {
+        socketService.off('product_updated', handleProductUpdate);
+      }
     };
   }, [onRefreshProducts]);
 

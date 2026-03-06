@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import type { Product, CartItem, Order, Voucher, HomeBanner, ChatMessage, Address, AiChatArchive } from '../types';
+import type { Product, Voucher, HomeBanner, Address } from '../types';
 import type { CreateProductInput } from '../services/api';
 
 // ============================================================================
@@ -14,13 +14,6 @@ export interface AppContextValue {
     isLoadingProducts: boolean;
     productsError: string | null;
     loadProducts: () => Promise<Product[] | undefined>;
-
-    // Cart
-    cartItems: CartItem[];
-    addToCart: (product: Product, quantity: number, selectedOption?: string, selectedClassification?: string) => void;
-    updateCartQuantity: (productId: string, quantity: number, selectedOption?: string, selectedClassification?: string) => void;
-    removeFromCart: (productId: string, selectedOption?: string, selectedClassification?: string) => void;
-    updateCartItemOptions: (productId: string, selectedOption?: string, selectedClassification?: string, previousOption?: string, previousClassification?: string) => void;
 
     // Auth
     isLoggedIn: boolean;
@@ -40,71 +33,12 @@ export interface AppContextValue {
     toggleFavorite: (productId: string) => void;
     isFavorite: (productId: string) => boolean;
 
-    // Orders
-    orders: Order[];
-    selectedOrderId: string | null;
-    isPlacingOrder: boolean;
-    isRefreshingOrders: boolean;
-    placeOrder: (orderData: any) => Promise<any>;
-    refreshOrders: () => Promise<void>;
-    refreshOrderDetail: (orderId: string) => Promise<void>;
-    setSelectedOrderId: (orderId: string | null) => void;
-
     // Vouchers
     vouchers: Voucher[];
-    appliedVoucher: Voucher | null;
-    setAppliedVoucher: (voucher: Voucher | null) => void;
-
-    // Notifications
-    notifications: any[];
-    isRefreshingNotifications: boolean;
-    refreshNotifications: () => Promise<void>;
-    markNotificationRead: (id: string) => void;
-    markAllNotificationsRead: () => void;
 
     // Addresses
     addresses: Address[];
     updateAddresses: React.Dispatch<React.SetStateAction<Address[]>>;
-
-    // AI Chat
-    aiMessages: ChatMessage[];
-    setAiMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
-    aiChatArchives: AiChatArchive[];
-    archiveCurrentAiChat: () => void;
-    openAiChatArchive: (archiveId: string) => void;
-    deleteAiChatArchive: (archiveId: string) => void;
-    clearAiChatArchives: () => void;
-
-    // Filters
-    filters: {
-        priceRange: [number, number];
-        categories: string[];
-        rating: number | null;
-        onlyInStock: boolean;
-    };
-    setFilters: (filters: any) => void;
-    searchQuery: string;
-    setSearchQuery: (query: string) => void;
-    availableCategories: string[];
-    catalogFilters: {
-        priceRange: [number, number];
-        categories: string[];
-        rating: number | null;
-        onlyInStock: boolean;
-    };
-    setCatalogFilters: (filters: any) => void;
-    catalogSearchQuery: string;
-    setCatalogSearchQuery: (query: string) => void;
-
-    // Theme
-    themeMode: 'light' | 'dark' | 'system';
-    setThemeMode: (mode: 'light' | 'dark' | 'system') => void;
-
-    // Settings
-    isPushEnabled: boolean;
-    setIsPushEnabled: (enabled: boolean) => void;
-    isBiometricEnabled: boolean;
-    setIsBiometricEnabled: (enabled: boolean) => void;
 
     // Network
     networkStatus: { isConnected: boolean | null };

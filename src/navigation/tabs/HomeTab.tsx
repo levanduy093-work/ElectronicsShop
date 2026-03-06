@@ -1,19 +1,13 @@
 import React from 'react';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../types';
-import { useAppOptional } from '../../context';
+import { useAppOptional, useNotificationsOptional } from '../../context';
 import { useTheme } from '../../theme';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { Home as HomeScreen } from '../../screens/Home';
-import { useProductsQuery, useBannersQuery } from '../../hooks/useCatalogQueries';
 
-export function HomeTab() {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+export function HomeTab({ navigation }: { navigation: any }) {
     const { theme } = useTheme();
     const app = useAppOptional();
-    const productsQuery = useProductsQuery(app?.products);
-    const bannersQuery = useBannersQuery(app?.banners);
+    const notificationsCtx = useNotificationsOptional();
 
     const handleNavigate = (screen: string) => {
         if (screen === 'search') {
@@ -34,7 +28,7 @@ export function HomeTab() {
         navigation.navigate('ProductDetail', { productId: product.id });
     };
 
-    const hasUnread = (app?.notifications || []).some(n => !n.read);
+    const hasUnread = (notificationsCtx?.notifications || []).some(n => !n.read);
 
     return (
         <ScreenLayout
@@ -46,8 +40,8 @@ export function HomeTab() {
         >
             <HomeScreen
                 theme={theme}
-                products={productsQuery.data || []}
-                banners={bannersQuery.data || []}
+                products={app?.products || []}
+                banners={app?.banners || []}
                 onNavigate={handleNavigate}
                 onProductClick={handleProductClick}
                 onSelectCategory={(cat: string) => {
@@ -57,8 +51,8 @@ export function HomeTab() {
                         params: { screen: 'Catalog', params: { category: cat } },
                     });
                 }}
-                onRefreshProducts={() => productsQuery.refetch()}
-                isLoading={productsQuery.isLoading || productsQuery.isFetching}
+                onRefreshProducts={() => app?.loadProducts?.()}
+                isLoading={app?.isLoadingProducts || false}
                 error={app?.productsError || null}
                 isOffline={app?.networkStatus.isConnected === false}
             />

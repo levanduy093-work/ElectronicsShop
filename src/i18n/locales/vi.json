@@ -155,6 +155,7 @@
   "inStock": "Còn hàng",
   "standard": "Tiêu chuẩn",
   "cannotShare": "Không thể chia sẻ",
+  "openInAppLink": "Mở trực tiếp trên ứng dụng: {{link}}",
   "openInAppFallback": "Nếu liên kết web không mở ứng dụng, hãy thử: {{link}}",
   "loginRequiredFavorite": "Vui lòng đăng nhập để thêm vào danh sách yêu thích",
   "loginRequiredCart": "Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng",

@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from './types';
-import { useAppOptional } from '../context';
+import { useAiChatOptional, useAppOptional, useOrdersOptional, useNotificationsOptional, useCartOptional, useSettingsOptional, useThemeModeOptional } from '../context';
 import { useTheme } from '../theme';
 import { TabNavigator } from './TabNavigator';
 
@@ -26,7 +26,9 @@ import { AdminAddProduct as AdminAddProductScreen } from '../screens/AdminAddPro
 import { AIChatHistory as AIChatHistoryScreen } from '../screens/AIChatHistory';
 import { filterProducts } from '../utils/filterUtils';
 import { getOrderById } from '../services/api';
-import { useProductsQuery } from '../hooks/useCatalogQueries';
+import { CATEGORIES } from '../constants/data';
+import { extractCategoriesFromProducts } from '../utils/product';
+import { setCatalogFilters, setFilters, setSearchQuery, useFiltersStore } from '../store/filtersStore';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -34,10 +36,10 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 // Screen Wrappers
 // ============================================================================
 
-function ProductDetailWrapper({ route }: { route: { params: { productId: string } } }) {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+function ProductDetailWrapper({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'ProductDetail'>) {
     const { theme } = useTheme();
     const app = useAppOptional();
+    const cartCtx = useCartOptional();
     const handleNavigateToCart = () => {
         navigation.reset({
             index: 0,
@@ -58,7 +60,7 @@ function ProductDetailWrapper({ route }: { route: { params: { productId: string 
             productId={productId}
             product={product}
             onBack={() => navigation.goBack()}
-            onAddToCart={app?.addToCart || (() => { })}
+            onAddToCart={cartCtx?.addToCart || (() => { })}
             isFavorite={app?.isFavorite(productId) || false}
             onToggleFavorite={() => app?.toggleFavorite(productId)}
             isLoggedIn={app?.isLoggedIn || false}
@@ -69,17 +71,16 @@ function ProductDetailWrapper({ route }: { route: { params: { productId: string 
             theme={theme}
             relatedProducts={app?.relatedProducts || []}
             onProductClick={(p) => navigation.push('ProductDetail', { productId: p.id })}
-            cartItemCount={app?.cartItems.length || 0}
+            cartItemCount={cartCtx?.cartItems.length || 0}
             onNavigateToCart={handleNavigateToCart}
         />
     );
 }
 
-function SearchWrapper({ route }: { route: { params?: { initialQuery?: string } } }) {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+function SearchWrapper({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'Search'>) {
     const { theme } = useTheme();
     const app = useAppOptional();
-    const productsQuery = useProductsQuery(app?.products);
+    const filters = useFiltersStore((state) => state.filters);
 
     return (
         <SearchScreenComponent
@@ -87,89 +88,105 @@ function SearchWrapper({ route }: { route: { params?: { initialQuery?: string } 
             onProductClick={(p) => navigation.navigate('ProductDetail', { productId: p.id })}
             onFilterClick={() => navigation.navigate('Filter', { type: 'global' })}
             initialQuery={route.params?.initialQuery || ''}
-            onQueryChange={app?.setSearchQuery}
+            onQueryChange={setSearchQuery}
             theme={theme}
-            products={productsQuery.data || []}
+            products={app?.products || []}
             userId={app?.userId || undefined}
             isLoggedIn={app?.isLoggedIn || false}
             accessToken={app?.authTokens?.accessToken}
-            filters={app?.filters}
+            filters={filters}
         />
     );
 }
 
-function FilterWrapper({ route }: { route: { params: { type?: 'global' | 'catalog' } } }) {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+function FilterWrapper({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'Filter'>) {
     const { theme } = useTheme();
     const app = useAppOptional();
     const isCatalog = route.params?.type === 'catalog';
+    const searchQuery = useFiltersStore((state) => state.searchQuery);
+    const catalogSearchQuery = useFiltersStore((state) => state.catalogSearchQuery);
+    const filters = useFiltersStore((state) => state.filters);
+    const catalogFilters = useFiltersStore((state) => state.catalogFilters);
+
+    const categories = React.useMemo(() => {
+        const base = (CATEGORIES.length ? CATEGORIES : extractCategoriesFromProducts(app?.products || [])).map(c => c.name);
+        return Array.from(new Set(base.filter(Boolean)));
+    }, [app?.products]);
 
     const getFilteredCount = React.useCallback((filters: any) => {
         if (!app?.products) return 0;
-        const query = isCatalog ? app.catalogSearchQuery : app.searchQuery;
+        const query = isCatalog ? catalogSearchQuery : searchQuery;
         return filterProducts(app.products, query || '', filters).length;
-    }, [app?.products, app?.searchQuery, app?.catalogSearchQuery, isCatalog]);
+    }, [app?.products, catalogSearchQuery, searchQuery, isCatalog]);
 
     return (
         <FilterScreenComponent
             onClose={() => navigation.goBack()}
             onApply={(filters) => {
                 if (isCatalog) {
-                    app?.setCatalogFilters(filters);
+                    setCatalogFilters(filters);
                 } else {
-                    app?.setFilters(filters);
+                    setFilters(filters);
                 }
             }}
-            currentFilters={isCatalog ? app?.catalogFilters : app?.filters}
+            currentFilters={isCatalog ? catalogFilters : filters}
             theme={theme}
-            categories={app?.availableCategories || []}
+            categories={categories}
             getFilteredCount={getFilteredCount}
         />
     );
 }
 
-function NotificationsWrapper() {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+function NotificationsWrapper({ navigation }: NativeStackScreenProps<RootStackParamList, 'Notifications'>) {
     const { theme } = useTheme();
-    const app = useAppOptional();
+    const notificationsCtx = useNotificationsOptional();
+
+    useFocusEffect(
+        React.useCallback(() => {
+            notificationsCtx?.setNotificationsActive?.(true);
+            return () => {
+                notificationsCtx?.setNotificationsActive?.(false);
+            };
+        }, [notificationsCtx])
+    );
 
     return (
         <NotificationsScreen
             onBack={() => navigation.goBack()}
             theme={theme}
-            notifications={app?.notifications || []}
-            onMarkAllRead={app?.markAllNotificationsRead || (() => { })}
-            onMarkRead={app?.markNotificationRead || (() => { })}
-            refreshing={app?.isRefreshingNotifications || false}
-            onRefresh={app?.refreshNotifications || (() => Promise.resolve())}
+            notifications={notificationsCtx?.notifications || []}
+            onMarkAllRead={notificationsCtx?.markAllNotificationsRead || (() => { })}
+            onMarkRead={notificationsCtx?.markNotificationRead || (() => { })}
+            refreshing={notificationsCtx?.isRefreshingNotifications || false}
+            onRefresh={notificationsCtx?.refreshNotifications || (() => Promise.resolve())}
         />
     );
 }
 
-function AIChatHistoryWrapper() {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+function AIChatHistoryWrapper({ navigation }: NativeStackScreenProps<RootStackParamList, 'AIChatHistory'>) {
     const { theme } = useTheme();
-    const app = useAppOptional();
+    const aiChatCtx = useAiChatOptional();
 
     return (
         <AIChatHistoryScreen
             theme={theme}
-            archives={app?.aiChatArchives || []}
+            archives={aiChatCtx?.aiChatArchives || []}
             onBack={() => navigation.goBack()}
             onOpenArchive={(archiveId) => {
-                app?.openAiChatArchive?.(archiveId);
+                aiChatCtx?.openAiChatArchive?.(archiveId);
                 navigation.goBack();
             }}
-            onDeleteArchive={(archiveId) => app?.deleteAiChatArchive?.(archiveId)}
-            onClearAll={() => app?.clearAiChatArchives?.()}
+            onDeleteArchive={(archiveId) => aiChatCtx?.deleteAiChatArchive?.(archiveId)}
+            onClearAll={() => aiChatCtx?.clearAiChatArchives?.()}
         />
     );
 }
 
-function CheckoutWrapper() {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+function CheckoutWrapper({ navigation }: NativeStackScreenProps<RootStackParamList, 'Checkout'>) {
     const { theme } = useTheme();
     const app = useAppOptional();
+    const ordersCtx = useOrdersOptional();
+    const cartCtx = useCartOptional();
 
     const handleCheckPaymentStatus = React.useCallback(async (orderId: string) => {
         const token = app?.authTokens?.accessToken;
@@ -190,10 +207,10 @@ function CheckoutWrapper() {
     return (
         <CheckoutScreen
             onBack={() => navigation.goBack()}
-            cartItems={app?.cartItems || []}
+            cartItems={cartCtx?.cartItems || []}
             theme={theme}
-            onPlaceOrder={app?.placeOrder || (() => Promise.resolve())}
-            placingOrder={app?.isPlacingOrder || false}
+            onPlaceOrder={ordersCtx?.placeOrder || (() => Promise.resolve())}
+            placingOrder={ordersCtx?.isPlacingOrder || false}
             onSuccess={() => {
                 // After successful checkout, return user to Home tab (matches button label)
                 navigation.reset({
@@ -210,26 +227,27 @@ function CheckoutWrapper() {
             onAddAddress={undefined}
             onUpdateAddresses={app?.updateAddresses || (() => { })}
             accessToken={app?.authTokens?.accessToken}
-            voucher={app?.appliedVoucher || null}
+            voucher={cartCtx?.appliedVoucher || null}
             onCheckPaymentStatus={handleCheckPaymentStatus}
         />
     );
 }
 
-function OrderDetailWrapper({ route }: { route: { params: { orderId: string } } }) {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+function OrderDetailWrapper({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'OrderDetail'>) {
     const { theme } = useTheme();
     const app = useAppOptional();
+    const ordersCtx = useOrdersOptional();
+    const cartCtx = useCartOptional();
 
     const orderId = route.params.orderId;
-    const order = app?.orders?.find(o => o.id === orderId);
+    const order = ordersCtx?.orders?.find(o => o.id === orderId);
 
     useEffect(() => {
-        app?.setSelectedOrderId?.(orderId);
+        ordersCtx?.setSelectedOrderId?.(orderId);
         return () => {
-            app?.setSelectedOrderId?.(null);
+            ordersCtx?.setSelectedOrderId?.(null);
         };
-    }, [app, orderId]);
+    }, [ordersCtx, orderId]);
 
     return (
         <OrderDetailScreen
@@ -240,7 +258,7 @@ function OrderDetailWrapper({ route }: { route: { params: { orderId: string } } 
             products={app?.products || []}
             onProductPress={(productId) => navigation.navigate('ProductDetail', { productId })}
             onReorder={(product, quantity, selectedOption, selectedClassification) => {
-                app?.addToCart(product, quantity, selectedOption, selectedClassification);
+                cartCtx?.addToCart(product, quantity, selectedOption, selectedClassification);
             }}
             onNavigateToCart={() => {
                 navigation.reset({
@@ -257,8 +275,7 @@ function OrderDetailWrapper({ route }: { route: { params: { orderId: string } } 
     );
 }
 
-function AuthWrapper({ route }: { route: { params?: { mode?: 'login' | 'register' } } }) {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+function AuthWrapper({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'Auth'>) {
     const { theme } = useTheme();
     const app = useAppOptional();
 
@@ -295,8 +312,7 @@ function AuthWrapper({ route }: { route: { params?: { mode?: 'login' | 'register
     );
 }
 
-function AdminAddProductWrapper() {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+function AdminAddProductWrapper({ navigation }: NativeStackScreenProps<RootStackParamList, 'AdminAddProduct'>) {
     const app = useAppOptional();
 
     return (
@@ -308,44 +324,51 @@ function AdminAddProductWrapper() {
     );
 }
 
-function SettingsWrapper() {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+function SettingsWrapper({ navigation }: NativeStackScreenProps<RootStackParamList, 'Settings'>) {
     const { theme } = useTheme();
-    const app = useAppOptional();
+    const themeModeCtx = useThemeModeOptional();
+    const settingsCtx = useSettingsOptional();
     return (
         <SettingsScreen
             onBack={() => navigation.goBack()}
             theme={theme}
-            themeMode={app?.themeMode || 'system'}
-            onThemeModeChange={app?.setThemeMode || (() => { })}
+            themeMode={themeModeCtx?.themeMode || 'system'}
+            onThemeModeChange={themeModeCtx?.setThemeMode || (() => { })}
             onChangePassword={() => navigation.navigate('ChangePassword')}
             onNavigateToLanguage={() => navigation.navigate('LanguageSelection')}
-            isPushEnabled={app?.isPushEnabled || false}
-            onTogglePush={app?.setIsPushEnabled ? () => app.setIsPushEnabled(!app.isPushEnabled) : undefined}
-            onBiometricChange={app?.setIsBiometricEnabled}
+            isPushEnabled={settingsCtx?.isPushEnabled || false}
+            onTogglePush={settingsCtx?.setIsPushEnabled ? () => settingsCtx.setIsPushEnabled(!settingsCtx.isPushEnabled) : undefined}
+            onBiometricChange={settingsCtx?.setIsBiometricEnabled}
         />
     );
 }
 
-function OrderHistoryWrapper() {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+function OrderHistoryWrapper({ navigation }: NativeStackScreenProps<RootStackParamList, 'OrderHistory'>) {
     const { theme } = useTheme();
-    const app = useAppOptional();
+    const ordersCtx = useOrdersOptional();
+
+    useFocusEffect(
+        React.useCallback(() => {
+            ordersCtx?.setOrdersActive?.(true);
+            return () => {
+                ordersCtx?.setOrdersActive?.(false);
+            };
+        }, [ordersCtx])
+    );
 
     return (
         <OrderHistoryScreen
             onBack={() => navigation.goBack()}
             onViewDetail={(orderId) => navigation.navigate('OrderDetail', { orderId })}
-            orders={app?.orders || []}
+            orders={ordersCtx?.orders || []}
             theme={theme}
-            onRefresh={app?.refreshOrders || (() => Promise.resolve())}
-            refreshing={app?.isRefreshingOrders || false}
+            onRefresh={ordersCtx?.refreshOrders || (() => Promise.resolve())}
+            refreshing={ordersCtx?.isRefreshingOrders || false}
         />
     );
 }
 
-function AddressBookWrapper() {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+function AddressBookWrapper({ navigation }: NativeStackScreenProps<RootStackParamList, 'AddressBook'>) {
     const { theme } = useTheme();
     const app = useAppOptional();
 
@@ -360,8 +383,7 @@ function AddressBookWrapper() {
     );
 }
 
-function WishlistWrapper() {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+function WishlistWrapper({ navigation }: NativeStackScreenProps<RootStackParamList, 'Wishlist'>) {
     const { theme } = useTheme();
     const app = useAppOptional();
 
@@ -376,8 +398,7 @@ function WishlistWrapper() {
     );
 }
 
-function SupportCenterWrapper() {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+function SupportCenterWrapper({ navigation }: NativeStackScreenProps<RootStackParamList, 'SupportCenter'>) {
     const { theme } = useTheme();
 
     return (
@@ -388,8 +409,7 @@ function SupportCenterWrapper() {
     );
 }
 
-function ChangePasswordWrapper() {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+function ChangePasswordWrapper({ navigation }: NativeStackScreenProps<RootStackParamList, 'ChangePassword'>) {
     const { theme } = useTheme();
     const app = useAppOptional();
 
@@ -404,8 +424,7 @@ function ChangePasswordWrapper() {
     );
 }
 
-function LanguageSelectionWrapper() {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+function LanguageSelectionWrapper({ navigation }: NativeStackScreenProps<RootStackParamList, 'LanguageSelection'>) {
     const { isDarkMode } = useTheme();
 
     return (

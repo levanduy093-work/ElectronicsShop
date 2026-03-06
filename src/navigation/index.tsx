@@ -1,8 +1,12 @@
 import React, { Suspense } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, type LinkingOptions } from '@react-navigation/native';
 import { RootStack } from './RootStack';
 import { useTheme } from '../theme';
+import type { RootStackParamList } from './types';
+import { APP_LINK_DOMAIN as ENV_APP_LINK_DOMAIN, APP_LINK_SCHEME as ENV_APP_LINK_SCHEME } from '@env';
+import { sanitizeAppLinkDomain, sanitizeAppLinkScheme } from '../utils/appLinks';
+import { AiChatStateProvider } from '../context';
 
 function LoadingFallback() {
     const { theme } = useTheme();
@@ -20,9 +24,27 @@ interface AppNavigatorProps {
 
 export function AppNavigator({ cartCount = 0, initialAuthMode = null }: AppNavigatorProps) {
     const { theme } = useTheme();
+    const appLinkDomain = sanitizeAppLinkDomain(ENV_APP_LINK_DOMAIN);
+    const appLinkScheme = sanitizeAppLinkScheme(ENV_APP_LINK_SCHEME);
+
+    const prefixes = [`${appLinkScheme}://`];
+    if (appLinkDomain) {
+        prefixes.push(`https://${appLinkDomain}`);
+        prefixes.push(`https://www.${appLinkDomain}`);
+    }
+
+    const linking: LinkingOptions<RootStackParamList> = {
+        prefixes,
+        config: {
+            screens: {
+                ProductDetail: 'product/:productId',
+            },
+        },
+    };
 
     return (
         <NavigationContainer
+            linking={linking}
             theme={{
                 dark: theme.isDark,
                 colors: {
@@ -54,7 +76,9 @@ export function AppNavigator({ cartCount = 0, initialAuthMode = null }: AppNavig
             }}
         >
             <Suspense fallback={<LoadingFallback />}>
-                <RootStack cartCount={cartCount} initialAuthMode={initialAuthMode || undefined} />
+                <AiChatStateProvider>
+                    <RootStack cartCount={cartCount} initialAuthMode={initialAuthMode || undefined} />
+                </AiChatStateProvider>
             </Suspense>
         </NavigationContainer>
     );
