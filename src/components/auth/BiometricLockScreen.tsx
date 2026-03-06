@@ -15,12 +15,23 @@ export function BiometricLockScreen({ onUnlock }: BiometricLockScreenProps) {
     const insets = useSafeAreaInsets();
     const { theme, isDarkMode } = useTheme();
     const [biometricStatus, setBiometricStatus] = useState<BiometricStatus | null>(null);
+    const [isLoadingBiometric, setIsLoadingBiometric] = useState(true);
     const [authFailed, setAuthFailed] = useState(false);
     const isAuthenticatingRef = useRef(false);
     const hasUnlockedRef = useRef(false);
 
     useEffect(() => {
-        checkBiometricSupport().then(setBiometricStatus);
+        let mounted = true;
+        checkBiometricSupport()
+            .then((status) => {
+                if (mounted) setBiometricStatus(status);
+            })
+            .finally(() => {
+                if (mounted) setIsLoadingBiometric(false);
+            });
+        return () => {
+            mounted = false;
+        };
     }, []);
 
     useEffect(() => {
@@ -88,7 +99,11 @@ export function BiometricLockScreen({ onUnlock }: BiometricLockScreenProps) {
                     className="w-[120px] h-[120px] rounded-full justify-center items-center mb-8"
                     style={{ backgroundColor: theme.primary + '20' }}
                 >
-                    <BiometricIcon type={biometricStatus?.biometryType || null} size={64} color={theme.primary} />
+                    <BiometricIcon
+                        type={!isLoadingBiometric ? (biometricStatus?.biometryType || null) : null}
+                        size={64}
+                        color={theme.primary}
+                    />
                 </View>
 
                 <Text className="text-2xl font-bold mb-2 text-center" style={{ color: theme.text }}>
@@ -119,7 +134,11 @@ export function BiometricLockScreen({ onUnlock }: BiometricLockScreenProps) {
                     onPress={handleAuthenticate}
                     activeOpacity={0.8}
                 >
-                    <BiometricIcon type={biometricStatus?.biometryType || null} size={24} color="#FFFFFF" />
+                    <BiometricIcon
+                        type={!isLoadingBiometric ? (biometricStatus?.biometryType || null) : null}
+                        size={24}
+                        color="#FFFFFF"
+                    />
                     <Text className="text-white text-base font-semibold">
                         {biometricStatus?.displayName
                             ? t('biometric_unlock_btn', { method: biometricStatus.displayName })

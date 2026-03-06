@@ -309,6 +309,12 @@ const mapApiCartToUi = (cart: ApiCart, products: Product[]): CartItem[] => {
     });
 };
 
+const getCartSignature = (items: CartItem[]) =>
+    (items || [])
+        .map((item) => `${item.id}:${item.quantity}:${item.selectedOption || ''}:${item.selectedClassification || ''}`)
+        .sort()
+        .join('|');
+
 // ============================================================================
 // Persistence helpers
 // ============================================================================
@@ -486,6 +492,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const cartIdRef = useRef<string | null>(null);
     const cartSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const suppressNextCartSyncRef = useRef(false);
 
     // Auth
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -674,6 +681,31 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         },
     });
 
+    const applyCartSnapshot = useCallback((apiCarts: ApiCart[] = []) => {
+        const activeCart = pickMostRecentCart(apiCarts);
+        if (!activeCart) {
+            cartIdRef.current = null;
+            setCartItems((prev) => {
+                if (prev.length === 0) return prev;
+                suppressNextCartSyncRef.current = true;
+                return [];
+            });
+            return;
+        }
+
+        cartIdRef.current = activeCart._id;
+        const mapped = mapApiCartToUi(activeCart, productsRef.current);
+        const nextSignature = getCartSignature(mapped);
+        setCartItems((prev) => {
+            const currentSignature = getCartSignature(prev);
+            if (currentSignature === nextSignature) {
+                return prev;
+            }
+            suppressNextCartSyncRef.current = true;
+            return mapped;
+        });
+    }, []);
+
     const favoritesMutation = useMutation({
         mutationFn: async (params: { productId: string; action: 'add' | 'remove' }) => {
             const token = authTokensRef.current?.accessToken;
@@ -760,19 +792,9 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         if (!isAuthed) return;
         if (!cartQuery.data) return;
         if (hasFetchedCartRef.current) return;
-        if (cartQuery.data.length === 0) {
-            cartIdRef.current = null;
-            setCartItems([]);
-            hasFetchedCartRef.current = true;
-            return;
-        }
-        const activeCart = pickMostRecentCart(cartQuery.data);
-        if (!activeCart) return;
-        cartIdRef.current = activeCart._id;
-        const mapped = mapApiCartToUi(activeCart, productsRef.current);
-        setCartItems(mapped);
+        applyCartSnapshot(cartQuery.data);
         hasFetchedCartRef.current = true;
-    }, [cartQuery.data, isAuthed, products]);
+    }, [cartQuery.data, isAuthed, applyCartSnapshot]);
 
     useEffect(() => {
         if (!isAuthed) {
@@ -971,6 +993,34 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         await addressesQuery.refetch();
     };
 
+    const loadCart = useCallback(async (tokenOverride?: string, options?: { silent?: boolean }) => {
+        const token = tokenOverride || authTokensRef.current?.accessToken;
+        if (!token) return;
+        const currentUid = userId || 'me';
+        const cacheKey = `cart-${currentUid}`;
+
+        if (isOffline) {
+            const cached = await cacheManager.get<ApiCart[]>(cacheKey);
+            if (cached) {
+                applyCartSnapshot(cached);
+                hasFetchedCartRef.current = true;
+            }
+            return;
+        }
+
+        try {
+            const result = await fetchMyCart(token);
+            await cacheManager.set(cacheKey, result);
+            queryClient.setQueryData(['cart', currentUid], result);
+            applyCartSnapshot(result);
+            hasFetchedCartRef.current = true;
+        } catch (error: any) {
+            if (!options?.silent) {
+                console.warn('AppStateProvider - Failed to load cart', error?.message || error);
+            }
+        }
+    }, [userId, isOffline, queryClient, applyCartSnapshot]);
+
     const loadUserProfile = useCallback(async (tokenOverride?: string, options?: { silent?: boolean }) => {
         const token = tokenOverride || authTokensRef.current?.accessToken;
         if (!token) return;
@@ -1070,13 +1120,23 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
                 }
                 loadOrders(undefined, { silent: true });
             }
+
+            if (collection === 'carts') {
+                loadCart(undefined, { silent: true });
+            }
+        };
+
+        const cartHandler = () => {
+            loadCart(undefined, { silent: true });
         };
 
         socketService.on('db_change', handler);
+        socketService.on('cart_updated', cartHandler);
         return () => {
             socketService.off('db_change', handler);
+            socketService.off('cart_updated', cartHandler);
         };
-    }, [isAuthed, selectedOrderId, loadNotifications, loadOrders, fetchOrderDetail]);
+    }, [isAuthed, selectedOrderId, loadNotifications, loadOrders, fetchOrderDetail, loadCart]);
 
     useEffect(() => {
         if (!isAuthed || isOffline) return;
@@ -1133,6 +1193,8 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         if (tokens?.accessToken) {
             getFcmToken(tokens.accessToken).catch(() => { });
         }
+
+        socketService.setAuthToken(tokens?.accessToken || null);
     }, [userId]);
 
     const handleAuthFailure = useCallback(() => {
@@ -1140,7 +1202,12 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         setAuthTokens(null);
         authTokensRef.current = null;
         cartIdRef.current = null;
+        suppressNextCartSyncRef.current = false;
         hasFetchedCartRef.current = false;
+        if (cartSyncTimeoutRef.current) {
+            clearTimeout(cartSyncTimeoutRef.current);
+            cartSyncTimeoutRef.current = null;
+        }
         setUserProfile(DEFAULT_PROFILE);
         setUserRole(undefined);
         setUserId(null);
@@ -1149,6 +1216,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         setIsRefreshingNotifications(false);
         setAddresses(DEFAULT_ADDRESSES);
         setCartItems([]);
+        socketService.setAuthToken(null);
         void clearPersistedAuthState();
         deleteFcmToken().catch(() => { });
     }, []);
@@ -1159,6 +1227,9 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
             refreshToken: data.refreshToken,
         };
         const newUserId = data.user?._id ?? null;
+        hasFetchedCartRef.current = false;
+        cartIdRef.current = null;
+        suppressNextCartSyncRef.current = false;
         setAddresses([]);
         syncAuthTokens(tokens, data.user, newUserId);
         loadUserProfile(tokens.accessToken, { silent: true }).catch(() => { });
@@ -1167,7 +1238,8 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         loadVouchers(tokens.accessToken).catch(() => { });
         loadNotifications(tokens.accessToken, { silent: true }).catch(() => { });
         loadAddresses(tokens.accessToken).catch(() => { });
-    }, [syncAuthTokens, loadOrders, loadNotifications, loadUserProfile]);
+        loadCart(tokens.accessToken, { silent: true }).catch(() => { });
+    }, [syncAuthTokens, loadOrders, loadNotifications, loadUserProfile, loadCart]);
 
     // ========================================================================
     // Cart functions
@@ -1850,6 +1922,11 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     // Sync cart to backend (debounced, avoids re-triggering from mutation state changes)
     useEffect(() => {
         if (!authTokensRef.current?.accessToken) return;
+        if (!hasFetchedCartRef.current) return;
+        if (suppressNextCartSyncRef.current) {
+            suppressNextCartSyncRef.current = false;
+            return;
+        }
         if (cartSyncTimeoutRef.current) {
             clearTimeout(cartSyncTimeoutRef.current);
         }
@@ -1885,6 +1962,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
             loadVouchers().catch(() => { });
             loadNotifications(undefined, { silent: true }).catch(() => { });
             loadAddresses().catch(() => { });
+            loadCart(undefined, { silent: true }).catch(() => { });
         } else if (!isLoggedIn) {
             setOrders([]);
             setWishlist([]);
@@ -1892,7 +1970,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
             setNotifications([]);
             setAddresses(DEFAULT_ADDRESSES);
         }
-    }, [isLoggedIn, authTokens?.accessToken, loadOrders, loadNotifications, loadUserProfile]);
+    }, [isLoggedIn, authTokens?.accessToken, loadOrders, loadNotifications, loadUserProfile, loadCart]);
 
     // Configure API auth
     useEffect(() => {

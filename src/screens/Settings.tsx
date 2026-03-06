@@ -48,25 +48,48 @@ export function Settings({
   // Biometric state
   const [biometricStatus, setBiometricStatus] = useState<BiometricStatus | null>(null);
   const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
+  const [isLoadingBiometric, setIsLoadingBiometric] = useState(true);
+  const [isTogglingBiometric, setIsTogglingBiometric] = useState(false);
 
   useEffect(() => {
-    // Load biometric support status
-    checkBiometricSupport().then(setBiometricStatus);
-    // Load saved biometric preference
-    isBiometricLockEnabled().then(setIsBiometricEnabled);
+    let mounted = true;
+    const loadBiometric = async () => {
+      try {
+        const [status, enabled] = await Promise.all([
+          checkBiometricSupport(),
+          isBiometricLockEnabled(),
+        ]);
+        if (!mounted) return;
+        setBiometricStatus(status);
+        setIsBiometricEnabled(enabled);
+      } finally {
+        if (mounted) setIsLoadingBiometric(false);
+      }
+    };
+    loadBiometric();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const handleBiometricToggle = async (enabled: boolean) => {
+    if (isLoadingBiometric || isTogglingBiometric) return;
+    setIsTogglingBiometric(true);
     if (enabled) {
       // Require biometric auth before enabling
       const authenticated = await authenticateBiometric('Xác thực để bật khóa sinh trắc học');
       if (!authenticated) {
+        setIsTogglingBiometric(false);
         return; // Don't enable if auth failed
       }
     }
-    setIsBiometricEnabled(enabled);
-    await setBiometricEnabled(enabled);
-    onBiometricChange?.(enabled);
+    try {
+      setIsBiometricEnabled(enabled);
+      await setBiometricEnabled(enabled);
+      onBiometricChange?.(enabled);
+    } finally {
+      setIsTogglingBiometric(false);
+    }
   };
 
   const handleChangeLanguage = () => {
@@ -257,23 +280,23 @@ export function Settings({
                 <View className="flex-row items-center gap-3 flex-1">
                   <View className="w-9 h-9 rounded-full justify-center items-center" style={{ backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }}>
                     <BiometricIcon
-                      type={biometricStatus?.biometryType || null}
+                      type={!isLoadingBiometric ? (biometricStatus?.biometryType || null) : null}
                       size={18}
                       color={theme.muted}
                     />
                   </View>
                   <View className="flex-1">
                     <Text className={TYPO_CLASS.bodyStrong} style={{ color: theme.text }}>
-                      {biometricStatus?.isSupported
+                      {!isLoadingBiometric && biometricStatus?.isSupported
                         ? (biometricStatus.biometryType === 'FaceID'
                           ? t('biometric_lock_faceid')
                           : t('biometric_lock_fingerprint'))
                         : t('biometric_lock')}
                     </Text>
                     <Text className="text-xs font-medium mt-0.5" style={{ color: theme.muted }}>
-                      {biometricStatus?.isSupported
+                      {!isLoadingBiometric && biometricStatus?.isSupported
                         ? t('biometric_lock_desc')
-                        : t('biometric_not_supported')}
+                        : (isLoadingBiometric ? t('biometric_lock_desc') : t('biometric_not_supported'))}
                     </Text>
                   </View>
                 </View>
@@ -282,7 +305,7 @@ export function Settings({
                   onValueChange={handleBiometricToggle}
                   trackColor={{ false: '#E5E7EB', true: theme.primary }}
                   thumbColor={isDarkMode ? '#F9FAFB' : '#FFFFFF'}
-                  disabled={!biometricStatus?.isSupported}
+                  disabled={isLoadingBiometric || isTogglingBiometric || !biometricStatus?.isSupported}
                 />
               </View>
             </>

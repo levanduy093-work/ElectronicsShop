@@ -82,6 +82,11 @@ function FaceIDIcon({ size = 24, color = '#000' }: { size?: number; color?: stri
  * - TouchID/Biometrics: Fingerprint icon
  */
 export function BiometricIcon({ type, size = 24, color = '#000' }: BiometricIconProps) {
+    // While sensor type is unresolved, show neutral security icon to avoid UI flicker.
+    if (!type || type === 'Unknown' || type === 'None') {
+        return <AppIcon name="shield" size={size} color={color} />;
+    }
+
     // Use Face ID icon for FaceID on iOS
     if (type === 'FaceID' && Platform.OS === 'ios') {
         return <FaceIDIcon size={size} color={color} />;

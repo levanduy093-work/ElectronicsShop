@@ -86,6 +86,9 @@ export function ProductDetail({
 
   // Gallery state
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [showImageViewer, setShowImageViewer] = useState(false);
+  const [viewerImageIndex, setViewerImageIndex] = useState(0);
+  const imageViewerRef = useRef<ScrollView>(null);
   const productImages = product.images && product.images.length > 0 ? product.images : [product.image];
 
   // Options and Classifications state
@@ -236,7 +239,20 @@ export function ProductDetail({
 
   useEffect(() => {
     setActiveImageIndex(0);
+    setViewerImageIndex(0);
   }, [activeProductId]);
+
+  useEffect(() => {
+    if (!showImageViewer) return;
+    const id = setTimeout(() => {
+      imageViewerRef.current?.scrollTo({
+        x: viewerImageIndex * slideWidth,
+        y: 0,
+        animated: false,
+      });
+    }, 0);
+    return () => clearTimeout(id);
+  }, [showImageViewer, viewerImageIndex, slideWidth]);
 
   useEffect(() => {
     const handler = (payload: any) => {
@@ -258,6 +274,18 @@ export function ProductDetail({
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return value;
     return d.toLocaleDateString('vi-VN');
+  };
+
+  const openImageViewer = (index: number) => {
+    setViewerImageIndex(index);
+    setShowImageViewer(true);
+  };
+
+  const handleViewerScroll = (e: any) => {
+    const slide = Math.round(e.nativeEvent.contentOffset.x / slideWidth);
+    if (slide !== viewerImageIndex) {
+      setViewerImageIndex(slide);
+    }
   };
 
   const handleShare = async () => {
@@ -561,11 +589,17 @@ export function ProductDetail({
           >
             {productImages.map((img, index) => (
               <View key={index} style={{ width: slideWidth, height: slideWidth, justifyContent: 'center', alignItems: 'center' }}>
-                <ImageWithFallback
-                  source={{ uri: img }}
+                <TouchableOpacity
                   className="w-[75%] h-[75%]"
-                  resizeMode="contain"
-                />
+                  activeOpacity={0.9}
+                  onPress={() => openImageViewer(index)}
+                >
+                  <ImageWithFallback
+                    source={{ uri: img }}
+                    className="w-full h-full"
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
               </View>
             ))}
           </ScrollView>
@@ -952,6 +986,67 @@ export function ProductDetail({
           }
         </View >
       </ScrollView >
+
+      <Modal
+        visible={showImageViewer}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowImageViewer(false)}
+      >
+        <View className="flex-1 bg-black">
+          <View
+            className="absolute top-0 left-0 right-0 z-20 flex-row items-center justify-between px-4"
+            style={{ paddingTop: Math.max(insets.top, 12) }}
+          >
+            <TouchableOpacity
+              className="w-10 h-10 rounded-full items-center justify-center bg-black/45"
+              onPress={() => setShowImageViewer(false)}
+              activeOpacity={0.85}
+            >
+              <AppIcon name="arrow-left" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text className="text-white text-sm font-semibold">
+              {viewerImageIndex + 1}/{productImages.length}
+            </Text>
+          </View>
+
+          <ScrollView
+            ref={imageViewerRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={handleViewerScroll}
+            className="flex-1"
+            contentInsetAdjustmentBehavior="never"
+          >
+            {productImages.map((img, index) => (
+              <View
+                key={`viewer-${index}`}
+                style={{ width: slideWidth, height }}
+                className="items-center justify-center"
+              >
+                <ImageWithFallback
+                  source={{ uri: img }}
+                  className="w-full h-[82%]"
+                  resizeMode="contain"
+                />
+              </View>
+            ))}
+          </ScrollView>
+
+          {productImages.length > 1 && (
+            <View className="absolute bottom-10 self-center flex-row gap-2">
+              {productImages.map((_, index) => (
+                <View
+                  key={`viewer-dot-${index}`}
+                  className={`rounded-full ${index === viewerImageIndex ? 'w-5 h-2' : 'w-2 h-2'}`}
+                  style={{ backgroundColor: index === viewerImageIndex ? '#FFFFFF' : 'rgba(255,255,255,0.45)' }}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+      </Modal>
 
       <Modal
         visible={showReviewModal}

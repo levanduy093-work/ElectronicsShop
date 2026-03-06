@@ -55,12 +55,26 @@ const SOCKET_URL = pickSocketUrl();
 
 class SocketService {
   private socket: Socket | null = null;
+  private authToken: string | null = null;
+
+  setAuthToken(token?: string | null) {
+    const nextToken = token?.trim() || null;
+    if (this.authToken === nextToken) return;
+    this.authToken = nextToken;
+
+    if (!this.socket) return;
+
+    this.socket.auth = nextToken ? { token: `Bearer ${nextToken}` } : {};
+    this.socket.disconnect();
+    this.socket.connect();
+  }
 
   connect() {
     if (this.socket) return;
 
     this.socket = io(SOCKET_URL, {
       transports: ['polling', 'websocket'], // Thêm polling để fallback nếu websocket lỗi
+      auth: this.authToken ? { token: `Bearer ${this.authToken}` } : undefined,
     });
 
     this.socket.on('connect', () => {
