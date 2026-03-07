@@ -581,7 +581,8 @@ export function AIChat({
       const response = await aiChat({ message: content, history, imageUrl }, accessToken);
       const adviceIntent = isAdviceIntent(content);
       const productIntent = isProductSearchIntent(content);
-      let filteredCards = filterAiCards(response.cards, content);
+      // Image analysis often returns already-filtered cards; avoid filtering again.
+      let filteredCards = response.cards;
       if (adviceIntent && !productIntent) {
         filteredCards = [];
       }
