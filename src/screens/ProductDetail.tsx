@@ -167,6 +167,8 @@ export function ProductDetail({
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewContent, setReviewContent] = useState('');
   const [reviewImages, setReviewImages] = useState<string[]>([]);
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
+  const editingReviewRef = useRef<ApiReview | null>(null);
   const [showDatasheetModal, setShowDatasheetModal] = useState(false);
   const [downloadedPath, setDownloadedPath] = useState<string | null>(null);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
@@ -339,6 +341,8 @@ export function ProductDetail({
     setReviewContent('');
     setReviewRating(5);
     setReviewImages([]);
+    setEditingReviewId(null);
+    editingReviewRef.current = null;
   };
 
   const handleWriteReview = () => {
@@ -353,6 +357,8 @@ export function ProductDetail({
       setReviewRating(myReview.rating || 5);
       setReviewContent(myReview.comment || '');
       setReviewImages(myReview.images || []);
+      setEditingReviewId(myReview._id);
+      editingReviewRef.current = myReview;
     } else {
       resetReviewForm();
     }
@@ -372,20 +378,38 @@ export function ProductDetail({
     }
 
     const imagesToUpload = [...reviewImages];
-    const tempId = `temp-${Date.now()}`;
+    const isEditing = Boolean(editingReviewId);
+    const tempId = isEditing ? null : `temp-${Date.now()}`;
+    const optimisticId = (editingReviewId || tempId) as string;
+    const previousReview = editingReviewRef.current;
     const optimisticReview: ApiReview = {
-      _id: tempId,
+      _id: optimisticId,
       productId: activeProductId,
-      userId: currentUserId || 'me',
-      userName: currentUserName || t('you'),
+      userId: currentUserId || previousReview?.userId || 'me',
+      userName: currentUserName || previousReview?.userName || t('you'),
       rating: reviewRating,
       comment: content,
       images: imagesToUpload,
-      createdAt: new Date().toISOString(),
+      createdAt: previousReview?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     queryClient.setQueryData<ApiReview[]>(['reviews', activeProductId], (prev = []) => {
-      const next = [optimisticReview, ...prev];
+      let next: ApiReview[];
+      if (isEditing) {
+        let replaced = false;
+        next = prev.map((r) => {
+          if (r._id === optimisticId) {
+            replaced = true;
+            return optimisticReview;
+          }
+          return r;
+        });
+        if (!replaced) {
+          next = [optimisticReview, ...next];
+        }
+      } else {
+        next = [optimisticReview, ...prev];
+      }
       const avg =
         next.length > 0 ? next.reduce((sum, r) => sum + (r.rating || 0), 0) / next.length : 0;
       onReviewStatsChange?.(activeProductId, { averageRating: avg, reviewCount: next.length });
@@ -421,9 +445,15 @@ export function ProductDetail({
         await createReview(activeProductId, reviewRating, content, uploadedUrls.filter(Boolean), accessToken);
         await queryClient.invalidateQueries({ queryKey: ['reviews', activeProductId] });
       } catch (error: any) {
-        queryClient.setQueryData<ApiReview[]>(['reviews', activeProductId], (prev = []) =>
-          prev.filter(r => r._id !== tempId),
-        );
+        queryClient.setQueryData<ApiReview[]>(['reviews', activeProductId], (prev = []) => {
+          if (isEditing) {
+            if (!previousReview) {
+              return prev.filter(r => r._id !== optimisticId);
+            }
+            return prev.map(r => (r._id === optimisticId ? previousReview : r));
+          }
+          return prev.filter(r => r._id !== optimisticId);
+        });
         showToast(error?.message || t('cannotSendReview'), 'error');
       }
     };

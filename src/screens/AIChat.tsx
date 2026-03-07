@@ -162,6 +162,103 @@ export function AIChat({
     });
   };
 
+  const isAdviceIntent = (text: string) => {
+    const q = normalizeText(text);
+    if (!q) return false;
+    const patterns = [
+      'can mua nhung gi',
+      'nen mua',
+      'tu van',
+      'goi y',
+      'de lam',
+      'lam mach',
+      'lap mach',
+      'lap rap',
+      'build',
+      'project',
+      'huong dan',
+      'cach lam',
+      'tu van mua hang',
+      'chon gi',
+      'lua chon',
+      'thiet ke',
+      'can nhung gi',
+      'nhung gi can',
+    ];
+    return patterns.some((p) => q.includes(p));
+  };
+
+  const isProductSearchIntent = (text: string) => {
+    const q = normalizeText(text);
+    if (!q) return false;
+    const patterns = [
+      'mua',
+      'gia',
+      'bao nhieu',
+      'tim',
+      'kiem',
+      'co ban',
+      'ban co',
+      'san pham',
+      'linh kien',
+      'datasheet',
+      'ma',
+      'model',
+      'hang',
+      'order',
+      'dat hang',
+      'them vao gio',
+    ];
+    return patterns.some((p) => q.includes(p));
+  };
+
+  const sanitizeAdviceReply = (reply: string, query: string) => {
+    if (!reply) return reply;
+    const stripped = reply
+      .replace(/.*tìm thấy.*sản phẩm.*(\n|$)/gi, '')
+      .replace(/.*tim thay.*san pham.*(\n|$)/gi, '')
+      .replace(/.*found.*products?.*(\n|$)/gi, '')
+      .replace(/\(xem thẻ bên dưới\)\.?/gi, '')
+      .trim();
+
+    if (stripped.length >= 10) return stripped;
+
+    return [
+      'Mình sẽ tư vấn đúng theo nhu cầu của bạn.',
+      'Bạn cho mình thêm:',
+      '- Điện áp vào/ra?',
+      '- Dòng tải dự kiến?',
+      '- Nguồn cấp hiện có?',
+      '- Ưu tiên kích thước/giá/hiệu suất?',
+    ].join('\n');
+  };
+
+  const patchReplyCount = (
+    reply: string,
+    filteredCards?: AiProductCard[],
+    originalCards?: AiProductCard[],
+  ) => {
+    if (!reply || !filteredCards || !originalCards) return reply;
+    const filteredCount = filteredCards.length;
+    const originalCount = originalCards.length;
+    if (filteredCount === originalCount) return reply;
+
+    const vnPattern = /(tìm thấy\s+)(\d+)(\s+sản phẩm)/i;
+    if (vnPattern.test(reply)) {
+      return reply.replace(vnPattern, `$1${filteredCount}$3`);
+    }
+    const vnPatternNoTone = /(tim thay\s+)(\d+)(\s+san pham)/i;
+    if (vnPatternNoTone.test(reply)) {
+      return reply.replace(vnPatternNoTone, `$1${filteredCount}$3`);
+    }
+    const enPattern = /(found\s+)(\d+)(\s+products?)/i;
+    if (enPattern.test(reply)) {
+      return reply.replace(enPattern, `$1${filteredCount}$3`);
+    }
+
+    return `${reply}\n(Hiển thị ${filteredCount} sản phẩm.)`;
+  };
+
   const getLocalReply = (text: string) => {
     const q = normalizeText(text);
     if (!q) return null;
@@ -356,13 +453,21 @@ export function AIChat({
       }
       const history = nextMessages.slice(-12).map((m) => ({ role: m.role, content: m.content }));
       const response = await aiChat({ message: userMessage.content, history }, accessToken);
-      const filteredCards = filterAiCards(response.cards, userMessage.content);
+      const adviceIntent = isAdviceIntent(userMessage.content);
+      const productIntent = isProductSearchIntent(userMessage.content);
+      let filteredCards = filterAiCards(response.cards, userMessage.content);
+      if (adviceIntent && !productIntent) {
+        filteredCards = [];
+      }
       const filteredActions = filterAiActions(response.actions, filteredCards);
+      const replyContent = adviceIntent && !productIntent
+        ? sanitizeAdviceReply(response.reply, userMessage.content)
+        : patchReplyCount(response.reply, filteredCards, response.cards);
 
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'ai',
-        content: response.reply,
+        content: replyContent,
         timestamp: new Date(),
         type: 'text',
         cards: filteredCards,
@@ -474,13 +579,21 @@ export function AIChat({
 
       const history = nextMessages.slice(-12).map((m) => ({ role: m.role, content: m.content }));
       const response = await aiChat({ message: content, history, imageUrl }, accessToken);
-      const filteredCards = filterAiCards(response.cards, content);
+      const adviceIntent = isAdviceIntent(content);
+      const productIntent = isProductSearchIntent(content);
+      let filteredCards = filterAiCards(response.cards, content);
+      if (adviceIntent && !productIntent) {
+        filteredCards = [];
+      }
       const filteredActions = filterAiActions(response.actions, filteredCards);
+      const replyContent = adviceIntent && !productIntent
+        ? sanitizeAdviceReply(response.reply, content)
+        : patchReplyCount(response.reply, filteredCards, response.cards);
 
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'ai',
-        content: response.reply,
+        content: replyContent,
         timestamp: new Date(),
         type: 'text',
         cards: filteredCards,
