@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   RefreshControl,
+  InteractionManager,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../types';
@@ -59,6 +60,7 @@ export const Catalog = React.memo(function Catalog({
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState<string>(controlledCategory ?? initialCategory ?? 'All');
   const [searchQuery, setSearchQuery] = useState(controlledSearchQuery ?? '');
+  const [deferRender, setDeferRender] = useState(true);
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const searchInputTextAlignStyle = useMemo(
     () =>
@@ -80,6 +82,19 @@ export const Catalog = React.memo(function Catalog({
       }),
     [],
   );
+
+  useEffect(() => {
+    let active = true;
+    const task = InteractionManager.runAfterInteractions(() => {
+      if (active) {
+        setDeferRender(false);
+      }
+    });
+    return () => {
+      active = false;
+      task.cancel?.();
+    };
+  }, []);
 
   const normalizeCategory = useCallback((value?: string) => {
     const key = (value || '').trim().toLowerCase();
@@ -116,6 +131,9 @@ export const Catalog = React.memo(function Catalog({
   }, []);
 
   const filteredProducts = useMemo(() => {
+    if (deferRender) {
+      return [];
+    }
     // Start with all products
     let next = products;
 
@@ -134,12 +152,12 @@ export const Catalog = React.memo(function Catalog({
     }
 
     return next;
-  }, [products, applyFilters, deferredSearchQuery, filters, activeCategory, normalizeCategory]);
+  }, [deferRender, products, applyFilters, deferredSearchQuery, filters, activeCategory, normalizeCategory]);
 
   // Extract categories from products if CATEGORIES is empty
   const displayCategories = useMemo(
-    () => (CATEGORIES.length > 0 ? CATEGORIES : extractCategoriesFromProducts(products)),
-    [products],
+    () => (deferRender ? [] : (CATEGORIES.length > 0 ? CATEGORIES : extractCategoriesFromProducts(products))),
+    [deferRender, products],
   );
   const categories = useMemo(
     () => [{ name: 'All', icon: 'grid' as const }, ...displayCategories.map(c => ({
@@ -259,23 +277,36 @@ export const Catalog = React.memo(function Catalog({
 
       {/* Category Tabs */}
       <View className="max-h-[72px]">
-        <FlatList
-          data={categories}
-          horizontal
-          keyExtractor={(item) => item.name}
-          renderItem={renderCategoryItem}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingVertical: 12, gap: 8, alignItems: 'center' }}
-        />
+        {deferRender ? (
+          <View className="flex-row items-center" style={{ paddingVertical: 12, gap: 8 }}>
+            <View className="h-9 w-24 rounded-full" style={{ backgroundColor: theme.card }} />
+            <View className="h-9 w-24 rounded-full" style={{ backgroundColor: theme.card }} />
+            <View className="h-9 w-24 rounded-full" style={{ backgroundColor: theme.card }} />
+          </View>
+        ) : (
+          <FlatList
+            data={categories}
+            horizontal
+            keyExtractor={(item) => item.name}
+            renderItem={renderCategoryItem}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingVertical: 12, gap: 8, alignItems: 'center' }}
+          />
+        )}
       </View>
 
       {/* Product Count */}
-      <Text className="text-sm font-semibold mb-4" style={{ color: theme.muted }}>
-        {t('products_count', { count: filteredProducts.length })}
-      </Text>
+      {deferRender ? (
+        <View className="h-4 w-32 rounded-md mb-4" style={{ backgroundColor: theme.card }} />
+      ) : (
+        <Text className="text-sm font-semibold mb-4" style={{ color: theme.muted }}>
+          {t('products_count', { count: filteredProducts.length })}
+        </Text>
+      )}
     </View>
   ), [
     categories,
+    deferRender,
     filteredProducts.length,
     onFilterClick,
     onSearchQueryChange,
@@ -319,7 +350,7 @@ export const Catalog = React.memo(function Catalog({
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         ListHeaderComponent={listHeader}
-        ListEmptyComponent={listEmptyComponent}
+        ListEmptyComponent={!deferRender ? listEmptyComponent : null}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }}
         columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 16 }}
         showsVerticalScrollIndicator={false}

@@ -64,6 +64,20 @@ export const Home = React.memo(function Home({
   const listRef = React.useRef<FlatList<Product>>(null);
   const hasRestoredScroll = React.useRef(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [deferRender, setDeferRender] = React.useState(true);
+
+  React.useEffect(() => {
+    let active = true;
+    const task = InteractionManager.runAfterInteractions(() => {
+      if (active) {
+        setDeferRender(false);
+      }
+    });
+    return () => {
+      active = false;
+      task.cancel?.();
+    };
+  }, []);
 
   React.useEffect(() => {
     if (initialVisibleCount !== undefined && initialVisibleCount !== visibleCount) {
@@ -158,8 +172,8 @@ export const Home = React.memo(function Home({
   }, [onRefreshProducts, isRefreshing]);
 
   const visibleProducts = React.useMemo(
-    () => (products.length ? products : []).slice(0, visibleCount),
-    [products, visibleCount],
+    () => (deferRender ? [] : (products.length ? products : []).slice(0, visibleCount)),
+    [deferRender, products, visibleCount],
   );
 
   const handleLoadMore = React.useCallback(() => {
@@ -207,6 +221,27 @@ export const Home = React.memo(function Home({
     </View>
   ), [banners, displayCategories, handleBannerPressInternal, onNavigate, onSelectCategory, raspberryProduct, resolvedTheme, t]);
 
+  const placeholderHeader = React.useMemo(() => (
+    <View>
+      <View
+        className="w-full rounded-2xl mb-6"
+        style={{ height: 180, backgroundColor: resolvedTheme.card }}
+      />
+      <View
+        className="w-full rounded-2xl mb-6"
+        style={{ height: 92, backgroundColor: resolvedTheme.card }}
+      />
+      <View
+        className="w-full rounded-2xl mb-6"
+        style={{ height: 120, backgroundColor: resolvedTheme.card }}
+      />
+      <View
+        className="w-40 rounded-xl mb-4"
+        style={{ height: 18, backgroundColor: resolvedTheme.card }}
+      />
+    </View>
+  ), [resolvedTheme.card]);
+
   const listEmpty = React.useMemo(() => (
     <View className="items-center justify-center py-12 px-8">
       <AppIcon name={error ? 'alert-circle-outline' : 'package-variant'} size={64} color={resolvedTheme.muted} />
@@ -242,7 +277,7 @@ export const Home = React.memo(function Home({
     </View>
   ), [error, isOffline, onRefreshProducts, resolvedTheme, t]);
 
-  const listFooter = products.length > visibleCount ? (
+  const listFooter = !deferRender && products.length > visibleCount ? (
     <TouchableOpacity
       onPress={handleLoadMore}
       className="mt-3 self-center flex-row items-center gap-1.5 px-4 py-2.5 rounded-xl border"
@@ -274,8 +309,8 @@ export const Home = React.memo(function Home({
       showsVerticalScrollIndicator={false}
       onScroll={handleScroll}
       scrollEventThrottle={16}
-      ListHeaderComponent={listHeader}
-      ListEmptyComponent={!isLoading ? listEmpty : null}
+      ListHeaderComponent={deferRender ? placeholderHeader : listHeader}
+      ListEmptyComponent={!isLoading && !deferRender ? listEmpty : null}
       ListFooterComponent={listFooter}
       refreshControl={
         <RefreshControl
