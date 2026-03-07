@@ -146,8 +146,10 @@ export function AiChatStateProvider({ children }: AiChatStateProviderProps) {
         }));
     }, []);
 
-    const archiveCurrentAiChat = useCallback(() => {
-        const current = aiMessagesRef.current || [];
+    const archiveCurrentAiChat = useCallback((messagesOverride?: ChatMessage[]) => {
+        const current = messagesOverride && messagesOverride.length
+            ? messagesOverride
+            : (aiMessagesRef.current || []);
         if (!current.length) {
             setAiMessages([]);
             activeAiArchiveIdRef.current = null;

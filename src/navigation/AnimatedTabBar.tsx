@@ -76,7 +76,7 @@ function AnimatedTabButton({
             <TouchableOpacity
                 onPress={onPress}
                 onLongPress={onLongPress}
-                className="items-center justify-center -mt-3"
+                className="flex-1 items-center justify-center -mt-3"
                 activeOpacity={0.7}
             >
                 <Animated.View

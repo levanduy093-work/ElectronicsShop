@@ -36,7 +36,7 @@ interface AIChatProps {
   onOpenOrderDetail?: (orderId: string) => void;
   onOpenAddressBook?: () => void;
   onOpenChatHistory?: () => void;
-  onArchiveCurrentChat?: () => void;
+  onArchiveCurrentChat?: (messagesOverride?: ChatMessage[]) => void;
   messages?: ChatMessage[];
   onMessagesChange?: (messages: ChatMessage[]) => void;
 }
@@ -616,7 +616,7 @@ export function AIChat({
 
   const handleNewChat = () => {
     if (onArchiveCurrentChat) {
-      onArchiveCurrentChat();
+      onArchiveCurrentChat(messagesRef.current);
     } else {
       setMessages([]);
     }

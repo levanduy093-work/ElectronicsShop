@@ -5,7 +5,7 @@ export interface AiChatContextValue {
     aiMessages: ChatMessage[];
     setAiMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
     aiChatArchives: AiChatArchive[];
-    archiveCurrentAiChat: () => void;
+    archiveCurrentAiChat: (messagesOverride?: ChatMessage[]) => void;
     openAiChatArchive: (archiveId: string) => void;
     deleteAiChatArchive: (archiveId: string) => void;
     clearAiChatArchives: () => void;

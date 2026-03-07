@@ -512,6 +512,13 @@ export function ProductDetail({
       return;
     }
 
+    if (Platform.OS === 'android') {
+      if (result && result.success) {
+        showToast('Đang tải file...', 'success');
+      }
+      return;
+    }
+
     if (result && result.success && result.path) {
       setDownloadedPath(result.path);
       setShowDatasheetModal(true);
@@ -1186,7 +1193,10 @@ export function ProductDetail({
                 onPress={() => {
                   setShowDatasheetModal(false);
                   if (downloadedPath) {
-                    Linking.openURL(downloadedPath).catch(() => {
+                    const targetPath = downloadedPath.startsWith('file://')
+                      ? downloadedPath
+                      : `file://${downloadedPath}`;
+                    Linking.openURL(targetPath).catch(() => {
                       showToast('Không thể mở file', 'error');
                     });
                   }

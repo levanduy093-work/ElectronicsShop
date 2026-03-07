@@ -1,10 +1,13 @@
-import { Alert, Linking, PermissionsAndroid, Platform } from 'react-native';
+import { Alert, Linking, PermissionsAndroid, Platform, NativeModules } from 'react-native';
 import RNFS from 'react-native-fs';
 
 async function requestStoragePermission(): Promise<'granted' | 'denied' | 'blocked'> {
   if (Platform.OS !== 'android') return 'granted';
 
   try {
+    const androidVersion = Number(Platform.Version);
+    // Android 10+ uses scoped storage; Android 13+ removes WRITE_EXTERNAL_STORAGE.
+    if (androidVersion >= 29) return 'granted';
     const permission = PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE;
 
     // Nếu đã được cấp trước đó thì không hỏi lại
@@ -56,6 +59,14 @@ export async function downloadDatasheetPdf(
 
   try {
     const safeName = (fileName || 'datasheet.pdf').replace(/[^a-zA-Z0-9._-]/g, '_');
+    if (Platform.OS === 'android') {
+      const dm = NativeModules.DownloadManagerModule;
+      if (!dm?.downloadAndOpen) {
+        return { success: false, error: 'DownloadManagerModule missing' };
+      }
+      await dm.downloadAndOpen(trimmedUrl, safeName);
+      return { success: true };
+    }
     const targetPath =
       Platform.OS === 'android'
         ? `${RNFS.DownloadDirectoryPath}/${safeName}`
@@ -108,4 +119,3 @@ export async function downloadDatasheetPdf(
     return { success: false, error };
   }
 }
-
