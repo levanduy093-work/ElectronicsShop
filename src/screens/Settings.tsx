@@ -19,6 +19,8 @@ interface SettingsProps {
   themeMode: 'light' | 'dark' | 'system';
   onThemeModeChange: (mode: 'light' | 'dark' | 'system') => void;
   onChangePassword: () => void;
+  canChangePassword?: boolean;
+  changePasswordHint?: string;
   onNavigateToLanguage?: () => void;
   theme?: any;
   isPushEnabled?: boolean;
@@ -31,6 +33,8 @@ export function Settings({
   themeMode,
   onThemeModeChange,
   onChangePassword,
+  canChangePassword = true,
+  changePasswordHint,
   onNavigateToLanguage,
   isPushEnabled = true,
   onTogglePush,
@@ -263,7 +267,13 @@ export function Settings({
         <View className="mb-6">
           <Text className="text-xs font-bold uppercase tracking-wider mb-3 ml-2" style={{ color: theme.muted }}>{t('account')}</Text>
           <View className="rounded-2xl border overflow-hidden" style={{ backgroundColor: theme.card, borderColor: theme.border }}>
-            <TouchableOpacity className="flex-row items-center justify-between p-4" activeOpacity={0.7} onPress={onChangePassword}>
+            <TouchableOpacity
+              className="flex-row items-center justify-between p-4"
+              activeOpacity={0.7}
+              onPress={canChangePassword ? onChangePassword : undefined}
+              disabled={!canChangePassword}
+              style={!canChangePassword ? { opacity: 0.5 } : undefined}
+            >
               <View className="flex-row items-center gap-3 flex-1">
                 <View className="w-9 h-9 rounded-full justify-center items-center" style={{ backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }}>
                   <AppIcon name="lock" size={18} color={theme.muted} />
@@ -272,6 +282,11 @@ export function Settings({
               </View>
               <AppIcon name="chevron-right" size={18} color={theme.muted} />
             </TouchableOpacity>
+            {!canChangePassword && changePasswordHint ? (
+              <View className="px-4 pb-4">
+                <Text className="text-xs" style={{ color: theme.muted }}>{changePasswordHint}</Text>
+              </View>
+            ) : null}
 
             {/* Biometric Lock */}
             <>

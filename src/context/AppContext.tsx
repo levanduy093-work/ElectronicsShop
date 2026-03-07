@@ -19,7 +19,7 @@ export interface AppContextValue {
     isLoggedIn: boolean;
     authTokens: { accessToken: string; refreshToken: string } | null;
     userId: string | null;
-    userProfile: { name: string; email: string; avatar: string; role?: string };
+    userProfile: { name: string; email: string; avatar: string; role?: string; authProvider?: string; hasPassword?: boolean };
     userRole?: string;
     isAdmin: boolean;
     login: (response: any) => void;

@@ -503,6 +503,7 @@
   "admin_ok": "OK",
   "or_continue_with": "Hoặc tiếp tục với",
   "sign_in_with_google": "Tiếp tục với Google",
+  "google_only_password_hint": "Tài khoản này đăng nhập bằng Google. Hãy dùng Google để đăng nhập.",
   "sign_in_with_apple": "Tiếp tục với Apple",
   "social_login_failed": "Đăng nhập không thành công. Vui lòng thử lại.",
   "social_login_cancelled": "Bạn đã hủy đăng nhập.",

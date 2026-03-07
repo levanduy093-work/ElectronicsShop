@@ -56,6 +56,8 @@ const DEFAULT_PROFILE = {
     email: '',
     avatar: "",
     role: undefined as string | undefined,
+    authProvider: undefined as string | undefined,
+    hasPassword: undefined as boolean | undefined,
 };
 
 const normalizeUserProfile = (profile?: Partial<typeof DEFAULT_PROFILE> | null) => ({
@@ -63,6 +65,8 @@ const normalizeUserProfile = (profile?: Partial<typeof DEFAULT_PROFILE> | null) 
     email: typeof profile?.email === 'string' ? profile.email.trim() : '',
     avatar: typeof profile?.avatar === 'string' ? profile.avatar.trim() : '',
     role: profile?.role || undefined,
+    authProvider: typeof profile?.authProvider === 'string' ? profile?.authProvider : undefined,
+    hasPassword: typeof profile?.hasPassword === 'boolean' ? profile?.hasPassword : undefined,
 });
 
 // ============================================================================
@@ -663,6 +667,8 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
                     email: result.email,
                     avatar: result.avatar,
                     role: result.role,
+                    authProvider: result.authProvider || result.provider || result.loginProvider || result.authType || result.socialProvider,
+                    hasPassword: typeof result.hasPassword === 'boolean' ? result.hasPassword : undefined,
                 });
                 setUserProfile(normalized);
                 setUserRole(normalized.role);
@@ -717,7 +723,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     // ========================================================================
     const syncAuthTokens = useCallback((
         tokens: { accessToken: string; refreshToken: string },
-        user?: { name?: string; email?: string; avatar?: string; _id?: string; role?: string },
+        user?: { name?: string; email?: string; avatar?: string; _id?: string; role?: string; authProvider?: string; provider?: string; loginProvider?: string; authType?: string; socialProvider?: string; hasPassword?: boolean },
         userIdOverride?: string | null,
     ) => {
         authTokensRef.current = tokens;
@@ -730,6 +736,8 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
             email: user?.email,
             avatar: user?.avatar,
             role: user?.role,
+            authProvider: user?.authProvider || user?.provider || user?.loginProvider || user?.authType || user?.socialProvider,
+            hasPassword: typeof user?.hasPassword === 'boolean' ? user?.hasPassword : undefined,
         });
         setUserProfile(nextProfile);
         setUserRole(nextProfile.role);

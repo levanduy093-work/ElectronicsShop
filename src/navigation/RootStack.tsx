@@ -6,6 +6,7 @@ import type { RootStackParamList } from './types';
 import { useAiChatOptional, useAppOptional, useOrdersOptional, useNotificationsOptional, useCartOptional, useSettingsOptional, useThemeModeOptional } from '../context';
 import { useTheme } from '../theme';
 import { MainTabsLayout } from './MainTabsLayout';
+import { useTranslation } from 'react-i18next';
 
 // Direct imports
 import { ProductDetail as ProductDetailScreen } from '../screens/ProductDetail';
@@ -328,6 +329,11 @@ function SettingsWrapper({ navigation }: NativeStackScreenProps<RootStackParamLi
     const { theme } = useTheme();
     const themeModeCtx = useThemeModeOptional();
     const settingsCtx = useSettingsOptional();
+    const app = useAppOptional();
+    const { t } = useTranslation();
+    const authProvider = app?.userProfile?.authProvider;
+    const hasPassword = app?.userProfile?.hasPassword;
+    const isGoogleOnly = authProvider === 'google' && hasPassword !== true;
     return (
         <SettingsScreen
             onBack={() => navigation.goBack()}
@@ -335,6 +341,8 @@ function SettingsWrapper({ navigation }: NativeStackScreenProps<RootStackParamLi
             themeMode={themeModeCtx?.themeMode || 'system'}
             onThemeModeChange={themeModeCtx?.setThemeMode || (() => { })}
             onChangePassword={() => navigation.navigate('ChangePassword')}
+            canChangePassword={!isGoogleOnly}
+            changePasswordHint={isGoogleOnly ? t('google_only_password_hint') : undefined}
             onNavigateToLanguage={() => navigation.navigate('LanguageSelection')}
             isPushEnabled={settingsCtx?.isPushEnabled || false}
             onTogglePush={settingsCtx?.setIsPushEnabled ? () => settingsCtx.setIsPushEnabled(!settingsCtx.isPushEnabled) : undefined}
@@ -412,6 +420,10 @@ function SupportCenterWrapper({ navigation }: NativeStackScreenProps<RootStackPa
 function ChangePasswordWrapper({ navigation }: NativeStackScreenProps<RootStackParamList, 'ChangePassword'>) {
     const { theme } = useTheme();
     const app = useAppOptional();
+    const { t } = useTranslation();
+    const authProvider = app?.userProfile?.authProvider;
+    const hasPassword = app?.userProfile?.hasPassword;
+    const isGoogleOnly = authProvider === 'google' && hasPassword !== true;
 
     return (
         <ChangePasswordScreen
@@ -420,6 +432,8 @@ function ChangePasswordWrapper({ navigation }: NativeStackScreenProps<RootStackP
             theme={theme}
             email={app?.userProfile.email}
             accessToken={app?.authTokens?.accessToken}
+            canChangePassword={!isGoogleOnly}
+            changePasswordHint={isGoogleOnly ? t('google_only_password_hint') : undefined}
         />
     );
 }

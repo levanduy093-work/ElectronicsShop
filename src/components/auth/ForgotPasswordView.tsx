@@ -73,6 +73,12 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBack, 
 
     const emailValue = emailForm.watch('email');
 
+    const isGoogleOnlyError = (error: any) => {
+        const message = String(error?.message || '').toLowerCase();
+        const code = String(error?.code || '').toLowerCase();
+        return message.includes('google') || message.includes('oauth') || message.includes('social') || code.includes('google') || code.includes('oauth');
+    };
+
     const handleResetPassword = async (values: EmailFormValues) => {
         const cleanedEmail = values.email.trim().toLowerCase();
         setIsSubmitting(true);
@@ -81,6 +87,10 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBack, 
             setResetStep('otp');
             showToast(translate('otp_sent'), 'success');
         } catch (error: any) {
+            if (isGoogleOnlyError(error)) {
+                showToast(translate('google_only_password_hint'), 'info');
+                return;
+            }
             showToast(error?.message || translate('otp_send_error'), 'error');
         } finally {
             setIsSubmitting(false);

@@ -503,6 +503,7 @@
   "admin_ok": "OK",
   "or_continue_with": "Or continue with",
   "sign_in_with_google": "Continue with Google",
+  "google_only_password_hint": "This account uses Google sign-in. Please use Google to log in.",
   "sign_in_with_apple": "Continue with Apple",
   "social_login_failed": "Sign in failed. Please try again.",
   "social_login_cancelled": "You cancelled the sign in.",

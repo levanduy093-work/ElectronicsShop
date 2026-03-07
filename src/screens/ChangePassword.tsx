@@ -17,6 +17,8 @@ interface ChangePasswordProps {
   theme?: Theme;
   email?: string;
   accessToken?: string;
+  canChangePassword?: boolean;
+  changePasswordHint?: string;
 }
 
 type ChangePasswordFormValues = {
@@ -26,12 +28,13 @@ type ChangePasswordFormValues = {
   otp: string;
 };
 
-export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }: ChangePasswordProps) {
+export function ChangePassword({ onBack, onSuccess, theme, email, accessToken, canChangePassword = true, changePasswordHint }: ChangePasswordProps) {
   const insets = useSafeAreaInsets();
   const { theme: ctxTheme } = useTheme();
   const { t: translate } = useTranslation();
   const { showToast } = useToast();
   const t = theme || ctxTheme || lightTheme;
+  const isDisabled = !canChangePassword;
 
   const [secure, setSecure] = useState({ old: true, next: true, confirm: true });
   const [sendingOtp, setSendingOtp] = useState(false);
@@ -80,7 +83,7 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
   });
 
   const handleSubmitForm = handleSubmit(async (values) => {
-    if (!accessToken) {
+    if (!accessToken || isDisabled) {
       showToast(translate('login_required_change_password'), 'error');
       return;
     }
@@ -106,7 +109,7 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
   };
 
   const handleSendOtp = async () => {
-    if (!accessToken) {
+    if (!accessToken || isDisabled) {
       showToast(translate('login_required_send_otp'), 'error');
       return;
     }
@@ -152,11 +155,11 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
               secureTextEntry={secure[secureKey]}
               className="flex-1 py-3 text-base"
               style={{ color: t.text, ...TEXT_INPUT_BASE_STYLE }}
-              editable={!saving}
+              editable={!saving && !isDisabled}
             />
           )}
         />
-        <TouchableOpacity onPress={() => setSecure(prev => ({ ...prev, [secureKey]: !prev[secureKey] }))} activeOpacity={0.7}>
+        <TouchableOpacity onPress={() => setSecure(prev => ({ ...prev, [secureKey]: !prev[secureKey] }))} activeOpacity={0.7} disabled={isDisabled}>
           <AppIcon name={secure[secureKey] ? 'eye-off' : 'eye'} size={18} color={t.muted} />
         </TouchableOpacity>
       </View>
@@ -169,10 +172,11 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
       <View className="flex-row justify-between items-center">
         <Text className={TYPO_CLASS.fieldLabel} style={{ color: t.text }}>{translate('verify_otp')}</Text>
         <TouchableOpacity
-          onPress={handleSendOtp}
+          onPress={isDisabled ? undefined : handleSendOtp}
           className="py-1.5 px-3 rounded-full border"
           style={{ borderColor: t.primary, backgroundColor: t === lightTheme ? '#EFF6FF' : 'rgba(37,99,235,0.12)' }}
           activeOpacity={0.8}
+          disabled={isDisabled}
         >
           <Text className="text-xs font-bold" style={{ color: t.primary }}>{sendingOtp ? translate('sending') : translate('send_code')}</Text>
         </TouchableOpacity>
@@ -198,7 +202,7 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
               className="flex-1 py-3 text-base"
               style={{ color: t.text, ...TEXT_INPUT_BASE_STYLE }}
               maxLength={6}
-              editable={!saving}
+              editable={!saving && !isDisabled}
             />
           )}
         />
@@ -244,6 +248,11 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
         contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
+        {!canChangePassword && changePasswordHint ? (
+          <View className="rounded-2xl border px-4 py-3" style={{ backgroundColor: t.card, borderColor: t.border }}>
+            <Text className="text-sm" style={{ color: t.muted }}>{changePasswordHint}</Text>
+          </View>
+        ) : null}
         <Text className="text-[13px] mb-2" style={{ color: t.muted }}>
           {translate('change_password_helper')}
         </Text>
@@ -258,7 +267,7 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
           {renderOtpInput()}
 
           <TouchableOpacity
-            onPress={handleSubmitForm}
+            onPress={isDisabled ? undefined : handleSubmitForm}
             className="w-full py-3.5 rounded-xl items-center mt-2 shadow-sm"
             style={{
               backgroundColor: t.primary,
@@ -267,10 +276,10 @@ export function ChangePassword({ onBack, onSuccess, theme, email, accessToken }:
               shadowOpacity: 0.2,
               shadowRadius: 3,
               elevation: 3,
-              opacity: saving ? 0.9 : 1
+              opacity: saving || isDisabled ? 0.6 : 1
             }}
             activeOpacity={0.8}
-            disabled={saving}
+            disabled={saving || isDisabled}
           >
             <Text className="text-base font-bold text-white">{saving ? translate('updating') : translate('update')}</Text>
           </TouchableOpacity>
