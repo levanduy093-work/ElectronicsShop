@@ -67,15 +67,184 @@ export function AIChat({
   const { showToast } = useToast();
   const { t: translate } = useTranslation();
 
-  const setMessages = (updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
-    setMessagesState((prev) => (typeof updater === 'function' ? (updater as any)(prev) : updater));
+  const normalizeText = (value?: string) =>
+    (value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+
+  const extractKeywords = (text: string) => {
+    const stopwords = new Set([
+      'co', 'cai', 'nao', 'khong', 'khong?', 'khong.', 'khong,',
+      'toi', 'minh', 'ban', 'gi', 'muon', 'tim', 'kiem', 'san', 'pham',
+      'loai', 'cho', 'voi', 'giup', 'can', 'timkiem', 'hang', 'shop',
+      'vai', 'mau', 'loai', 'duoc', 'khong', 'khong', 'hay', 'nhu',
+    ]);
+    return normalizeText(text)
+      .split(/\s+/)
+      .filter(Boolean)
+      .filter((token) => {
+        if (stopwords.has(token)) return false;
+        if (/\d/.test(token)) return token.length >= 2;
+        return token.length >= 3;
+      });
   };
+
+  const buildKeywordGroups = (query: string) => {
+    const q = normalizeText(query);
+    const groups: string[][] = [];
+
+    const pushGroup = (variants: string[]) => {
+      const cleaned = variants.map(normalizeText).filter(Boolean);
+      if (cleaned.length) groups.push(Array.from(new Set(cleaned)));
+    };
+
+    if (q.includes('wifi') || q.includes('wi-fi') || q.includes('wireless') || q.includes('802.11')) {
+      pushGroup(['wifi', 'wi-fi', 'wireless', '802.11', 'esp32', 'esp8266', 'esp32-cam', 'esp32s']);
+    }
+
+    if (q.includes('mcu') || q.includes('vi dieu khien') || q.includes('microcontroller') || q.includes('controller')) {
+      pushGroup(['mcu', 'microcontroller', 'vi dieu khien', 'controller', 'esp32', 'esp8266', 'arduino', 'stm32']);
+    }
+
+    if (q.includes('cam bien') || q.includes('sensor')) {
+      pushGroup(['cam bien', 'sensor']);
+    }
+
+    if (q.includes('nhiet do') || q.includes('temperature')) {
+      pushGroup(['nhiet do', 'temperature', 'thermal', 'thermo', 'ds18b20', 'dht11', 'dht22']);
+    }
+
+    if (q.includes('camera')) {
+      pushGroup(['camera', 'cam', 'ov2640', 'ov7670']);
+    }
+
+    const tokens = extractKeywords(q);
+    tokens.forEach((t) => pushGroup([t]));
+
+    return groups;
+  };
+
+  const filterAiCards = (cards: AiProductCard[] | undefined, query: string) => {
+    if (!cards || cards.length === 0) return cards;
+    const groups = buildKeywordGroups(query);
+    if (!groups.length) return cards;
+
+    const scored = cards.map((card) => {
+      const haystack = normalizeText(`${card.name} ${card.code || ''} ${card.category || ''}`);
+      let matchCount = 0;
+      groups.forEach((group) => {
+        if (group.some((k) => haystack.includes(k))) {
+          matchCount += 1;
+        }
+      });
+      return { card, matchCount };
+    });
+
+    let filtered = scored.filter((item) => item.matchCount >= 1);
+    if (groups.length >= 2 && filtered.length > 12) {
+      const tighter = scored.filter((item) => item.matchCount >= 2);
+      if (tighter.length > 0) filtered = tighter;
+    }
+
+    if (!filtered.length) return cards;
+    return filtered.sort((a, b) => b.matchCount - a.matchCount).map((item) => item.card);
+  };
+
+  const filterAiActions = (actions: AiAction[] | undefined, cards: AiProductCard[] | undefined) => {
+    if (!actions || actions.length === 0) return actions;
+    if (!cards || cards.length === 0) return actions.filter((a) => a.type !== 'ADD_TO_CART');
+    const allowed = new Set(cards.map((c) => c.productId));
+    return actions.filter((a) => {
+      if (a.type !== 'ADD_TO_CART') return true;
+      return allowed.has(a.payload.productId);
+    });
+  };
+
+  const getLocalReply = (text: string) => {
+    const q = normalizeText(text);
+    if (!q) return null;
+    const words = q.split(/\s+/).filter(Boolean);
+    if (q.length > 28 || words.length > 4) return null;
+    const greetings = [
+      'xin chao',
+      'chao',
+      'hello',
+      'hi',
+      'hey',
+      'alo',
+    ];
+    const identity = [
+      'ban ten gi',
+      'ban ten la gi',
+      'ban la ai',
+      'ai la ban',
+      'who are you',
+      'ten gi',
+    ];
+    const thanks = ['cam on', 'thanks', 'thank you', 'thx'];
+    const productIntents = [
+      'linh kien', 'san pham', 'mua', 'gia', 'bao nhieu', 'co ban', 'can tim',
+      'muon', 'thong so', 'datasheet', 'mcu', 'esp', 'esp32', 'esp8266',
+      'sensor', 'cam bien', 'nhiet do', 'camera', 'wifi', 'bluetooth',
+      'module', 'mach', 'kit', 'board', 'arduino', 'raspberry', 'ic',
+      'dien tro', 'tu dien', 'day', 'cap', 'pin', 'nguon', 'relay', 'driver',
+      'motor', 'dc', 'ac',
+    ];
+
+    if (productIntents.some((k) => q.includes(k))) return null;
+
+    const hasGreeting = greetings.some((k) => q === k);
+    const hasIdentity = identity.some((k) => q.includes(k));
+    const hasThanks = thanks.some((k) => q.includes(k));
+
+    if (hasIdentity) {
+      return 'Mình là trợ lý AI của ElectroAI Shop. Bạn muốn tìm linh kiện nào?';
+    }
+    if (hasGreeting) {
+      return 'Mình là trợ lý AI của ElectroAI Shop. Bạn muốn tìm linh kiện nào?';
+    }
+    if (hasThanks) {
+      return 'Rất vui được giúp bạn. Bạn cần tìm linh kiện nào nữa không?';
+    }
+    return null;
+  };
+
+  const messagesRef = useRef<ChatMessage[]>(externalMessages || []);
+  const pendingSyncRef = useRef<ChatMessage[] | null>(null);
+  const skipSyncRef = useRef(false);
+
+  const setMessages = React.useCallback((updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
+    setMessagesState((prev) => {
+      const next = typeof updater === 'function' ? (updater as any)(prev) : updater;
+      pendingSyncRef.current = next;
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (externalMessages) {
+      skipSyncRef.current = true;
       setMessagesState(externalMessages);
     }
   }, [externalMessages]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    if (skipSyncRef.current) {
+      skipSyncRef.current = false;
+      pendingSyncRef.current = null;
+      return;
+    }
+    if (!pendingSyncRef.current) return;
+    const next = pendingSyncRef.current;
+    pendingSyncRef.current = null;
+    onMessagesChange?.(next);
+  }, [messages, onMessagesChange]);
 
   useEffect(() => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -117,9 +286,7 @@ export function AIChat({
     const handleNewMessage = (newMessage: ChatMessage) => {
       setMessages((prev) => {
         if (prev.some(m => m.id === newMessage.id)) return prev;
-        const next = [...prev, newMessage];
-        onMessagesChange?.(next);
-        return next;
+        return [...prev, newMessage];
       });
     };
 
@@ -168,16 +335,29 @@ export function AIChat({
       type: 'text',
     };
 
-    const nextMessages = [...messages, userMessage];
+    const nextMessages = [...(messagesRef.current || []), userMessage];
     setMessages(nextMessages);
-    onMessagesChange?.(nextMessages);
     setInputValue('');
     setIsTyping(true);
     setIsSending(true);
 
     try {
+      const localReply = getLocalReply(userMessage.content);
+      if (localReply) {
+        const aiMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'ai',
+          content: localReply,
+          timestamp: new Date(),
+          type: 'text',
+        };
+        setMessages((prev) => [...prev, aiMessage]);
+        return;
+      }
       const history = nextMessages.slice(-12).map((m) => ({ role: m.role, content: m.content }));
       const response = await aiChat({ message: userMessage.content, history }, accessToken);
+      const filteredCards = filterAiCards(response.cards, userMessage.content);
+      const filteredActions = filterAiActions(response.actions, filteredCards);
 
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -185,17 +365,13 @@ export function AIChat({
         content: response.reply,
         timestamp: new Date(),
         type: 'text',
-        cards: response.cards,
+        cards: filteredCards,
         orderCards: response.orderCards,
         addressCards: response.addressCards,
-        actions: response.actions,
+        actions: filteredActions,
       };
 
-      setMessages((prev) => {
-        const next = [...prev, aiMessage];
-        onMessagesChange?.(next);
-        return next;
-      });
+      setMessages((prev) => [...prev, aiMessage]);
     } catch (error: any) {
       console.warn('AIChat.tsx - aiChat error', error);
       showToast(error?.message || translate('cannotSendAIRequest'), 'error');
@@ -290,15 +466,16 @@ export function AIChat({
         metadata: { imageUrl },
       };
 
-      const nextMessages = [...messages, userMessage];
+      const nextMessages = [...(messagesRef.current || []), userMessage];
       setMessages(nextMessages);
-      onMessagesChange?.(nextMessages);
       setInputValue('');
       setIsTyping(true);
       setIsSending(true);
 
       const history = nextMessages.slice(-12).map((m) => ({ role: m.role, content: m.content }));
       const response = await aiChat({ message: content, history, imageUrl }, accessToken);
+      const filteredCards = filterAiCards(response.cards, content);
+      const filteredActions = filterAiActions(response.actions, filteredCards);
 
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -306,17 +483,13 @@ export function AIChat({
         content: response.reply,
         timestamp: new Date(),
         type: 'text',
-        cards: response.cards,
+        cards: filteredCards,
         orderCards: response.orderCards,
         addressCards: response.addressCards,
-        actions: response.actions,
+        actions: filteredActions,
       };
 
-      setMessages((prev) => {
-        const next = [...prev, aiMessage];
-        onMessagesChange?.(next);
-        return next;
-      });
+      setMessages((prev) => [...prev, aiMessage]);
     } catch (error: any) {
       console.warn('AIChat.tsx - pickAndSendImage error', error);
       showToast(error?.message || translate('cannotUploadImage'), 'error');
@@ -332,7 +505,6 @@ export function AIChat({
       onArchiveCurrentChat();
     } else {
       setMessages([]);
-      onMessagesChange?.([]);
     }
     setInputValue('');
   };
