@@ -52,6 +52,16 @@ function ProductDetailWrapper({ route, navigation }: NativeStackScreenProps<Root
             ],
         });
     };
+    const handleBack = () => {
+        if (navigation.canGoBack()) {
+            navigation.goBack();
+            return;
+        }
+        navigation.reset({
+            index: 0,
+            routes: [{ name: 'MainTabs' }],
+        });
+    };
 
     const productId = route.params.productId;
     const product = app?.products.find(p => p.id === productId);
@@ -60,7 +70,7 @@ function ProductDetailWrapper({ route, navigation }: NativeStackScreenProps<Root
         <ProductDetailScreen
             productId={productId}
             product={product}
-            onBack={() => navigation.goBack()}
+            onBack={handleBack}
             onAddToCart={cartCtx?.addToCart || (() => { })}
             isFavorite={app?.isFavorite(productId) || false}
             onToggleFavorite={() => app?.toggleFavorite(productId)}
