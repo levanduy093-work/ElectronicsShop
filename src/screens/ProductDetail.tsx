@@ -4,6 +4,8 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Reanimated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from 'react-native-reanimated';
 import { Product } from '../types';
 import { ImageWithFallback } from '../components/common/ImageWithFallback';
 import { AppIcon } from '../components/common/Icon';
@@ -19,6 +21,8 @@ import { cacheManager } from '../utils/cache';
 import { mapApiProductToUi } from '../utils/mappers';
 import { APP_LINK_DOMAIN as ENV_APP_LINK_DOMAIN, APP_LINK_SCHEME as ENV_APP_LINK_SCHEME } from '@env';
 import { buildProductShareLinks } from '../utils/appLinks';
+
+const clampValue = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
 interface ProductDetailProps {
   productId: string;
@@ -90,6 +94,7 @@ export function ProductDetail({
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [viewerImageIndex, setViewerImageIndex] = useState(0);
   const imageViewerRef = useRef<ScrollView>(null);
+  const [viewerScrollEnabled, setViewerScrollEnabled] = useState(true);
   const productImages = product.images && product.images.length > 0 ? product.images : [product.image];
 
   // Options and Classifications state
@@ -201,7 +206,37 @@ export function ProductDetail({
     };
   }, [activeProductId, queryClient, activeTab]);
 
-  const reviews = useMemo(() => reviewsQuery.data ?? [], [reviewsQuery.data]);
+  const reviews = useMemo(() => {
+    const data = reviewsQuery.data ?? [];
+    if (data.length <= 1) return data;
+
+    const bestByUser = new Map<string, ApiReview>();
+    data.forEach((review) => {
+      if (!review.userId) return;
+      const existing = bestByUser.get(review.userId);
+      if (!existing) {
+        bestByUser.set(review.userId, review);
+        return;
+      }
+      const existingTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
+      const newTime = new Date(review.updatedAt || review.createdAt || 0).getTime();
+      if (newTime >= existingTime) {
+        bestByUser.set(review.userId, review);
+      }
+    });
+
+    const seenIds = new Set<string>();
+    return data.filter((review) => {
+      if (review.userId) {
+        return bestByUser.get(review.userId) === review;
+      }
+      if (review._id) {
+        if (seenIds.has(review._id)) return false;
+        seenIds.add(review._id);
+      }
+      return true;
+    });
+  }, [reviewsQuery.data]);
   const reviewsLoading = reviewsQuery.isLoading && reviews.length === 0;
   const reviewsFetched = reviewsQuery.data !== undefined;
   const ratingCounts = reviews.reduce(
@@ -256,6 +291,12 @@ export function ProductDetail({
     }, 0);
     return () => clearTimeout(id);
   }, [showImageViewer, viewerImageIndex, slideWidth]);
+
+  useEffect(() => {
+    if (!showImageViewer) {
+      setViewerScrollEnabled(true);
+    }
+  }, [showImageViewer]);
 
   useEffect(() => {
     const handler = (payload: any) => {
@@ -541,6 +582,108 @@ export function ProductDetail({
         : [],
     [hasDatasheet, product?.datasheet],
   );
+
+  const ZoomableImage = ({
+    uri,
+    onZoomChange,
+  }: {
+    uri: string;
+    onZoomChange?: (zoomed: boolean) => void;
+  }) => {
+    const MIN_SCALE = 1;
+    const MAX_SCALE = 3;
+
+    const scale = useSharedValue(1);
+    const savedScale = useSharedValue(1);
+    const translateX = useSharedValue(0);
+    const translateY = useSharedValue(0);
+    const savedX = useSharedValue(0);
+    const savedY = useSharedValue(0);
+
+    const setZoomed = React.useCallback((zoomed: boolean) => {
+      onZoomChange?.(zoomed);
+    }, [onZoomChange]);
+
+    const pinch = Gesture.Pinch()
+      .onBegin(() => {
+        savedScale.value = scale.value;
+      })
+      .onUpdate((e) => {
+        scale.value = clampValue(savedScale.value * e.scale, MIN_SCALE, MAX_SCALE);
+      })
+      .onEnd(() => {
+        if (scale.value <= 1.02) {
+          scale.value = withTiming(1);
+          translateX.value = withTiming(0);
+          translateY.value = withTiming(0);
+          runOnJS(setZoomed)(false);
+        } else {
+          runOnJS(setZoomed)(true);
+        }
+      });
+
+    const pan = Gesture.Pan()
+      .onBegin(() => {
+        savedX.value = translateX.value;
+        savedY.value = translateY.value;
+      })
+      .onUpdate((e) => {
+        if (scale.value > 1) {
+          translateX.value = savedX.value + e.translationX;
+          translateY.value = savedY.value + e.translationY;
+        }
+      })
+      .onEnd(() => {
+        if (scale.value <= 1.02) {
+          translateX.value = withTiming(0);
+          translateY.value = withTiming(0);
+          runOnJS(setZoomed)(false);
+        }
+      });
+
+    const doubleTap = Gesture.Tap()
+      .numberOfTaps(2)
+      .onEnd(() => {
+        const nextScale = scale.value > 1 ? 1 : 2;
+        scale.value = withTiming(nextScale);
+        if (nextScale === 1) {
+          translateX.value = withTiming(0);
+          translateY.value = withTiming(0);
+          runOnJS(setZoomed)(false);
+        } else {
+          runOnJS(setZoomed)(true);
+        }
+      });
+
+    const composed = Gesture.Simultaneous(pinch, pan, doubleTap);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { scale: scale.value },
+      ],
+    }));
+
+    return (
+      <View style={{ width: slideWidth, height }} className="items-center justify-center">
+        <GestureDetector gesture={composed}>
+          <Reanimated.View
+            style={[
+              { width: '100%', height: '70%', alignItems: 'center', justifyContent: 'center' },
+              animatedStyle,
+            ]}
+          >
+            <ImageWithFallback
+              source={{ uri }}
+              className="w-full h-full"
+              resizeMode="contain"
+            />
+          </Reanimated.View>
+        </GestureDetector>
+      </View>
+    );
+  };
 
   if (!product) {
     return <View style={{ flex: 1, backgroundColor: theme.background }} />;
@@ -1054,19 +1197,14 @@ export function ProductDetail({
             onMomentumScrollEnd={handleViewerScroll}
             className="flex-1"
             contentInsetAdjustmentBehavior="never"
+            scrollEnabled={viewerScrollEnabled}
           >
             {productImages.map((img, index) => (
-              <View
+              <ZoomableImage
                 key={`viewer-${index}`}
-                style={{ width: slideWidth, height }}
-                className="items-center justify-center"
-              >
-                <ImageWithFallback
-                  source={{ uri: img }}
-                  className="w-full h-[70%]"
-                  resizeMode="contain"
-                />
-              </View>
+                uri={img}
+                onZoomChange={(zoomed) => setViewerScrollEnabled(!zoomed)}
+              />
             ))}
           </ScrollView>
 

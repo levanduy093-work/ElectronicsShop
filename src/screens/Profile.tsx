@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, ScrollView, TouchableOpacity, Text, StatusBar, Modal, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Reanimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { AppIcon } from '../components/common/Icon';
 import { Voucher } from '../types';
 import { AVAILABLE_VOUCHERS } from '../constants/data';
@@ -14,6 +16,8 @@ import { ProfileMenu } from '../components/profile/ProfileMenu';
 import { VoucherListModal } from '../components/profile/VoucherListModal';
 import { EditProfileModal } from '../components/profile/EditProfileModal';
 import { TYPO_CLASS } from '../theme/typography';
+
+const clampValue = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
 interface UserProfile {
   name: string;
@@ -93,6 +97,90 @@ export function Profile({
       setFullImageUri(imageUri);
       setShowFullImageModal(true);
     }
+  };
+
+  const ZoomableAvatar = ({ uri }: { uri: string }) => {
+    const MIN_SCALE = 1;
+    const MAX_SCALE = 3;
+    const scale = useSharedValue(1);
+    const savedScale = useSharedValue(1);
+    const translateX = useSharedValue(0);
+    const translateY = useSharedValue(0);
+    const savedX = useSharedValue(0);
+    const savedY = useSharedValue(0);
+
+    const pinch = Gesture.Pinch()
+      .onBegin(() => {
+        savedScale.value = scale.value;
+      })
+      .onUpdate((e) => {
+        scale.value = clampValue(savedScale.value * e.scale, MIN_SCALE, MAX_SCALE);
+      })
+      .onEnd(() => {
+        if (scale.value <= 1.02) {
+          scale.value = withTiming(1);
+          translateX.value = withTiming(0);
+          translateY.value = withTiming(0);
+        }
+      });
+
+    const pan = Gesture.Pan()
+      .onBegin(() => {
+        savedX.value = translateX.value;
+        savedY.value = translateY.value;
+      })
+      .onUpdate((e) => {
+        if (scale.value > 1) {
+          translateX.value = savedX.value + e.translationX;
+          translateY.value = savedY.value + e.translationY;
+        }
+      })
+      .onEnd(() => {
+        if (scale.value <= 1.02) {
+          translateX.value = withTiming(0);
+          translateY.value = withTiming(0);
+        }
+      });
+
+    const doubleTap = Gesture.Tap()
+      .numberOfTaps(2)
+      .onEnd(() => {
+        const nextScale = scale.value > 1 ? 1 : 2;
+        scale.value = withTiming(nextScale);
+        if (nextScale === 1) {
+          translateX.value = withTiming(0);
+          translateY.value = withTiming(0);
+        }
+      });
+
+    const composed = Gesture.Simultaneous(pinch, pan, doubleTap);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { scale: scale.value },
+      ],
+    }));
+
+    return (
+      <View className="w-full h-full items-center justify-center">
+        <GestureDetector gesture={composed}>
+          <Reanimated.View
+            style={[
+              { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
+              animatedStyle,
+            ]}
+          >
+            <Image
+              source={{ uri }}
+              className="w-full h-full"
+              resizeMode="contain"
+            />
+          </Reanimated.View>
+        </GestureDetector>
+      </View>
+    );
   };
 
   return (
@@ -184,11 +272,7 @@ export function Profile({
               <AppIcon name="close" size={28} color="#FFFFFF" />
             </TouchableOpacity>
             {fullImageUri ? (
-              <Image
-                source={{ uri: fullImageUri }}
-                className="w-full h-full"
-                resizeMode="contain"
-              />
+              <ZoomableAvatar uri={fullImageUri} />
             ) : null}
           </View>
         </View>
