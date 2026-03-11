@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { RootTabParamList } from './types';
 import { AnimatedTabBar } from './AnimatedTabBar';
 import { HomeTab, CatalogTab, AITab, CartTab, ProfileTab } from './tabs';
+import { useTheme } from '../theme';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
@@ -13,6 +14,7 @@ interface TabNavigatorProps {
 
 export function TabNavigator({ cartCount = 0, initialAuthMode }: TabNavigatorProps) {
     const initialRouteName: keyof RootTabParamList = initialAuthMode ? 'ProfileTab' : 'HomeTab';
+    const { theme } = useTheme();
 
     return (
         <Tab.Navigator
@@ -21,8 +23,9 @@ export function TabNavigator({ cartCount = 0, initialAuthMode }: TabNavigatorPro
             lazy={false}
             screenOptions={{
                 headerShown: false,
-                animation: 'fade',
+                animation: 'shift',
                 freezeOnBlur: true,
+                sceneContainerStyle: { backgroundColor: theme.background },
             }}
             tabBar={(props) => <AnimatedTabBar {...props} cartCount={cartCount} />}
         >

@@ -187,13 +187,11 @@ export const Catalog = React.memo(function Catalog({
   }, [onProductClick]);
 
   const renderItem = useCallback(({ item }: { item: Product }) => (
-    <View className="flex-1">
-      <ProductCard
-        product={item}
-        theme={theme}
-        onPress={() => handleProductPress(item)}
-      />
-    </View>
+    <ProductCard
+      product={item}
+      theme={theme}
+      onPress={() => handleProductPress(item)}
+    />
   ), [handleProductPress, theme]);
 
   const renderCategoryItem = useCallback(({ item: cat }: { item: typeof categories[number] }) => {
