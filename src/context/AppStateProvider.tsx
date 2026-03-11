@@ -28,7 +28,6 @@ import {
     getFavorites as apiGetFavorites,
     getMyVouchers,
     getProducts,
-    getRelatedProducts,
     removeFavorite,
     updateProfile as apiUpdateProfile,
     getCurrentUser,
@@ -255,7 +254,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
 
     // Products and banners
     const [products, setProducts] = useState<Product[]>(PRODUCTS);
-    const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+    const [relatedProducts, _setRelatedProducts] = useState<Product[]>([]);
     const [banners, setBanners] = useState<HomeBanner[]>([]);
     const productsRef = useRef<Product[]>(PRODUCTS);
     const [isLoadingProducts, setIsLoadingProducts] = useState(false);
@@ -452,9 +451,6 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         setProductsError(null);
 
         const isNoInternet = networkStatus.isConnected === false || networkStatus.isInternetReachable === false;
-        // Construct cache key based on limit
-        const cacheSuffix = options?.limit ? `_limit_${options.limit}` : '_all';
-
         if (isNoInternet || options?.useCache || options?.onlyCache) {
             const cached = await getCachedProducts(); // currently this gets 'all' or 'default' key
             if (cached && cached.length > 0) {
@@ -545,7 +541,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         } finally {
             setIsLoadingProducts(false);
         }
-    }, [networkStatus.isConnected, products.length]);
+    }, [networkStatus.isConnected, networkStatus.isInternetReachable, products.length, showToast]);
 
     const handleCreateProduct = useCallback(async (payload: CreateProductInput) => {
         const token = authTokensRef.current?.accessToken;
@@ -593,14 +589,15 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
                 setBanners(cached.map(mapApiBannerToUi));
             }
         }
-    }, [networkStatus.isConnected]);
+    }, [networkStatus.isConnected, networkStatus.isInternetReachable, showToast, t]);
 
-    const loadFavorites = async (_tokenOverride?: string) => {
+    const refetchFavorites = favoritesQuery.refetch;
+    const loadFavorites = useCallback(async (_tokenOverride?: string) => {
         if (!isAuthed) return;
-        await favoritesQuery.refetch();
-    };
+        await refetchFavorites();
+    }, [isAuthed, refetchFavorites]);
 
-    const loadVouchers = async (tokenOverride?: string) => {
+    const loadVouchers = useCallback(async (tokenOverride?: string) => {
         const token = tokenOverride || authTokensRef.current?.accessToken;
         const currentUid = userId || 'me';
         if (!token) return;
@@ -621,12 +618,13 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         } catch (error: any) {
             console.warn('AppStateProvider - Failed to load vouchers', error?.message || error);
         }
-    };
+    }, [userId]);
 
-    const loadAddresses = async (_tokenOverride?: string) => {
+    const refetchAddresses = addressesQuery.refetch;
+    const loadAddresses = useCallback(async (_tokenOverride?: string) => {
         if (!isAuthed) return;
-        await addressesQuery.refetch();
-    };
+        await refetchAddresses();
+    }, [isAuthed, refetchAddresses]);
 
     const loadCart = useCallback(async (tokenOverride?: string, options?: { silent?: boolean }) => {
         const token = tokenOverride || authTokensRef.current?.accessToken;
@@ -789,7 +787,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         loadVouchers(tokens.accessToken).catch(() => { });
         loadAddresses(tokens.accessToken).catch(() => { });
         loadCart(tokens.accessToken, { silent: true }).catch(() => { });
-    }, [syncAuthTokens, loadUserProfile, loadCart]);
+    }, [syncAuthTokens, loadUserProfile, loadFavorites, loadVouchers, loadAddresses, loadCart]);
 
     // ========================================================================
     // Cart functions
@@ -1152,7 +1150,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
             setVouchers([]);
             setAddresses(DEFAULT_ADDRESSES);
         }
-    }, [isLoggedIn, authTokens?.accessToken, loadUserProfile, loadCart]);
+    }, [isLoggedIn, authTokens?.accessToken, loadUserProfile, loadFavorites, loadVouchers, loadAddresses, loadCart]);
 
     // Configure API auth
     useEffect(() => {

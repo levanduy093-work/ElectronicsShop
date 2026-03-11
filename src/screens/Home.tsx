@@ -275,7 +275,7 @@ export const Home = React.memo(function Home({
         </TouchableOpacity>
       )}
     </View>
-  ), [error, isOffline, onRefreshProducts, resolvedTheme, t]);
+  ), [error, isOffline, onRefreshProducts, resolvedTheme]);
 
   const listFooter = !deferRender && products.length > visibleCount ? (
     <TouchableOpacity

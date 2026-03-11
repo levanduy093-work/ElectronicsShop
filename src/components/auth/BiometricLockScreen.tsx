@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, Platform, StatusBar, AppState, AppStateStatus } from 'react-native';
+import { View, Text, TouchableOpacity, StatusBar, AppState, AppStateStatus } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { BiometricIcon } from '../common/BiometricIcon';

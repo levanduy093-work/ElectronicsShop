@@ -5,6 +5,7 @@ import {
     TouchableOpacity,
     Platform,
     Animated,
+    Easing,
 } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -49,26 +50,41 @@ function AnimatedTabButton({
     const { t } = useTranslation();
     const scaleAnim = useRef(new Animated.Value(1)).current;
     const colorAnim = useRef(new Animated.Value(isFocused ? 1 : 0)).current;
+    const focusAnim = useRef(new Animated.Value(isFocused ? 1 : 0)).current;
 
     useEffect(() => {
         Animated.parallel([
-            Animated.spring(scaleAnim, {
-                toValue: isFocused ? 1.1 : 1,
+            Animated.timing(scaleAnim, {
+                toValue: isFocused ? 1.08 : 1,
+                duration: 170,
+                easing: Easing.out(Easing.cubic),
                 useNativeDriver: true,
-                friction: 8,
-                tension: 100,
             }),
             Animated.timing(colorAnim, {
                 toValue: isFocused ? 1 : 0,
                 duration: 150,
                 useNativeDriver: false,
             }),
+            Animated.timing(focusAnim, {
+                toValue: isFocused ? 1 : 0,
+                duration: 180,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: false,
+            }),
         ]).start();
-    }, [isFocused, scaleAnim, colorAnim]);
+    }, [isFocused, scaleAnim, colorAnim, focusAnim]);
 
     const labelColor = colorAnim.interpolate({
         inputRange: [0, 1],
         outputRange: [inactiveColor, activeColor],
+    });
+    const labelOpacity = focusAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.6, 1],
+    });
+    const labelTranslateY = focusAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [2, 0],
     });
 
     if (config.isSpecial) {
@@ -132,7 +148,10 @@ function AnimatedTabButton({
                     color={isFocused ? activeColor : inactiveColor}
                 />
             </Animated.View>
-            <Animated.Text className="text-[11px] font-medium" style={{ color: labelColor }}>
+            <Animated.Text
+                className="text-[11px] font-medium"
+                style={{ color: labelColor, opacity: labelOpacity, transform: [{ translateY: labelTranslateY }] }}
+            >
                 {t(config.label)}
             </Animated.Text>
         </TouchableOpacity>
@@ -150,12 +169,13 @@ export function AnimatedTabBar({ state, navigation, cartCount = 0 }: AnimatedTab
     const inactiveColor = theme.tabInactive;
 
     const minBottomPadding = Platform.OS === 'android' ? 36 : 16;
+    const bottomInset = Math.max(insets.bottom, minBottomPadding);
 
     return (
         <View
             className="h-[86px] px-4 pt-3 flex-row items-center justify-between border-t"
             style={{
-                paddingBottom: Math.max(insets.bottom, minBottomPadding),
+                paddingBottom: bottomInset,
                 backgroundColor: theme.surface,
                 borderTopColor: theme.border,
                 ...(Platform.OS === 'ios'

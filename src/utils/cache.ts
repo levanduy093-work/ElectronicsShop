@@ -76,7 +76,7 @@ class CacheManager {
           entry = JSON.parse(stored);
           this.memoryCache.set(storageKey, entry!);
         }
-      } catch (e) {
+      } catch {
         return null;
       }
     }

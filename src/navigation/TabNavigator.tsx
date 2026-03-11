@@ -21,7 +21,7 @@ export function TabNavigator({ cartCount = 0, initialAuthMode }: TabNavigatorPro
             lazy={false}
             screenOptions={{
                 headerShown: false,
-                animation: 'none',
+                animation: 'fade',
                 freezeOnBlur: true,
             }}
             tabBar={(props) => <AnimatedTabBar {...props} cartCount={cartCount} />}

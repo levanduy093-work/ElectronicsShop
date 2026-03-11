@@ -7,6 +7,7 @@ import { Home as HomeScreen } from '../../screens/Home';
 export const HomeTab = React.memo(function HomeTab({ navigation }: { navigation: any }) {
     const { theme } = useTheme();
     const app = useAppOptional();
+    const loadProducts = app?.loadProducts;
 
     const handleNavigate = React.useCallback((screen: string) => {
         if (screen === 'search') {
@@ -36,8 +37,8 @@ export const HomeTab = React.memo(function HomeTab({ navigation }: { navigation:
     }, [navigation]);
 
     const handleRefreshProducts = React.useCallback(() => {
-        return app?.loadProducts?.();
-    }, [app?.loadProducts]);
+        return loadProducts?.();
+    }, [loadProducts]);
 
     return (
         <ScreenLayout

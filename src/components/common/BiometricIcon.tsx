@@ -1,6 +1,5 @@
-import React from 'react';
-import { View, Platform } from 'react-native';
-import Svg, { Path, Rect, Circle } from 'react-native-svg';
+import { Platform } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { AppIcon } from './Icon';
 
 interface BiometricIconProps {

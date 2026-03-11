@@ -212,7 +212,7 @@ export function AIChat({
     return patterns.some((p) => q.includes(p));
   };
 
-  const sanitizeAdviceReply = (reply: string, query: string) => {
+  const sanitizeAdviceReply = (reply: string) => {
     if (!reply) return reply;
     const stripped = reply
       .replace(/.*tìm thấy.*sản phẩm.*(\n|$)/gi, '')
@@ -392,7 +392,7 @@ export function AIChat({
     return () => {
       socketService.off('chat_message');
     };
-  }, [onMessagesChange]);
+  }, [setMessages]);
 
   const bottomNavHeight = Platform.OS === 'ios' ? 2 + insets.bottom : 16 + insets.bottom;
   const isKeyboardVisible = keyboardHeight > 0;
@@ -461,7 +461,7 @@ export function AIChat({
       }
       const filteredActions = filterAiActions(response.actions, filteredCards);
       const replyContent = adviceIntent && !productIntent
-        ? sanitizeAdviceReply(response.reply, userMessage.content)
+        ? sanitizeAdviceReply(response.reply)
         : patchReplyCount(response.reply, filteredCards, response.cards);
 
       const aiMessage: ChatMessage = {
@@ -588,7 +588,7 @@ export function AIChat({
       }
       const filteredActions = filterAiActions(response.actions, filteredCards);
       const replyContent = adviceIntent && !productIntent
-        ? sanitizeAdviceReply(response.reply, content)
+        ? sanitizeAdviceReply(response.reply)
         : patchReplyCount(response.reply, filteredCards, response.cards);
 
       const aiMessage: ChatMessage = {

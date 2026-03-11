@@ -19,7 +19,7 @@ interface AuthProps {
   initialMode?: 'login' | 'register';
 }
 
-export function Auth({ onBack, onLoginSuccess, theme, initialMode = 'login' }: AuthProps) {
+export function Auth({ onBack: _onBack, onLoginSuccess, theme, initialMode = 'login' }: AuthProps) {
   const { t: translate } = useTranslation();
   const { theme: ctxTheme } = useTheme();
   const { showToast } = useToast();

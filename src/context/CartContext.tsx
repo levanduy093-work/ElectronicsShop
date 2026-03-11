@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import { createContext, useContext } from 'react';
 import type { CartItem, Product, Voucher } from '../types';
 
 export interface CartContextValue {

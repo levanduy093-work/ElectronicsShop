@@ -32,7 +32,7 @@ export function OrdersStateProvider({ children }: OrdersStateProviderProps) {
     const isAuthed = Boolean(app?.isLoggedIn && accessToken);
     const currentUserKey = app?.userId || 'me';
     const isOffline = app?.networkStatus?.isConnected === false;
-    const products = app?.products || [];
+    const products = useMemo(() => app?.products || [], [app?.products]);
     const clearCart = cartCtx?.clearCart;
 
     const ordersQuery = useQuery({
@@ -74,10 +74,12 @@ export function OrdersStateProvider({ children }: OrdersStateProviderProps) {
         setIsRefreshingOrders(ordersQuery.isFetching);
     }, [ordersQuery.isFetching, isAuthed]);
 
+    const refetchOrders = ordersQuery.refetch;
+
     const refreshOrders = useCallback(async () => {
         if (!isAuthed) return;
-        await ordersQuery.refetch();
-    }, [ordersQuery.refetch, isAuthed]);
+        await refetchOrders();
+    }, [refetchOrders, isAuthed]);
 
     const refreshOrderDetail = useCallback(async (orderId: string) => {
         if (!accessToken) return;

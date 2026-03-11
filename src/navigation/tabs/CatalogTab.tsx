@@ -9,6 +9,7 @@ import { setCatalogSearchQuery, useFiltersStore } from '../../store/filtersStore
 export const CatalogTab = React.memo(function CatalogTab({ navigation, route }: { navigation: any; route: any }) {
     const { theme } = useTheme();
     const app = useAppOptional();
+    const loadProducts = app?.loadProducts;
     const catalogFilters = useFiltersStore((state) => state.catalogFilters);
     const catalogSearchQuery = useFiltersStore((state) => state.catalogSearchQuery);
 
@@ -33,8 +34,8 @@ export const CatalogTab = React.memo(function CatalogTab({ navigation, route }: 
     }, [navigation]);
 
     const handleRefresh = React.useCallback(() => {
-        return app?.loadProducts?.();
-    }, [app?.loadProducts]);
+        return loadProducts?.();
+    }, [loadProducts]);
 
     const applyFilters = React.useCallback((products: any[]) => {
         return filterProducts(products, catalogSearchQuery || '', catalogFilters || {});
