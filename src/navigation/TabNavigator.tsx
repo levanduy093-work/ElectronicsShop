@@ -20,12 +20,11 @@ export function TabNavigator({ cartCount = 0, initialAuthMode }: TabNavigatorPro
         <Tab.Navigator
             initialRouteName={initialRouteName}
             detachInactiveScreens={false}
-            lazy={false}
             screenOptions={{
                 headerShown: false,
                 animation: 'shift',
                 freezeOnBlur: true,
-                sceneContainerStyle: { backgroundColor: theme.background },
+                tabBarStyle: { backgroundColor: theme.background },
             }}
             tabBar={(props) => <AnimatedTabBar {...props} cartCount={cartCount} />}
         >

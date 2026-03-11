@@ -80,6 +80,7 @@ export function AIChat({
       'toi', 'minh', 'ban', 'gi', 'muon', 'tim', 'kiem', 'san', 'pham',
       'loai', 'cho', 'voi', 'giup', 'can', 'timkiem', 'hang', 'shop',
       'vai', 'mau', 'loai', 'duoc', 'khong', 'khong', 'hay', 'nhu',
+      'cam', 'bien', 'sensor', 'module', 'board', 'kit', 'mach', 'linh', 'kien',
     ]);
     return normalizeText(text)
       .split(/\s+/)
@@ -113,7 +114,7 @@ export function AIChat({
     }
 
     if (q.includes('nhiet do') || q.includes('temperature')) {
-      pushGroup(['nhiet do', 'temperature', 'thermal', 'thermo', 'ds18b20', 'dht11', 'dht22']);
+      pushGroup(['nhiet do', 'temperature', 'thermal', 'thermo', 'ds18b20', 'dht11', 'dht22', 'lm35', 'ntc', 'pt100', 'pt1000', 'thermistor', 'thermocouple', 'max6675', 'max31855', 'mlx90614']);
     }
 
     if (q.includes('camera')) {
@@ -126,13 +127,43 @@ export function AIChat({
     return groups;
   };
 
+  const buildMustHaveGroups = (query: string) => {
+    const q = normalizeText(query);
+    const groups: string[][] = [];
+
+    if (q.includes('nhiet do') || q.includes('temperature')) {
+      groups.push(['nhiet do', 'temperature', 'thermal', 'thermo', 'ds18b20', 'dht11', 'dht22', 'lm35', 'ntc', 'pt100', 'pt1000', 'thermistor', 'thermocouple', 'max6675', 'max31855', 'mlx90614']);
+    }
+    if (q.includes('do am') || q.includes('humidity')) {
+      groups.push(['do am', 'humidity', 'dht11', 'dht22', 'am2301', 'am2302', 'sht', 'si70', 'htu']);
+    }
+    if (q.includes('anh sang') || q.includes('light') || q.includes('lux')) {
+      groups.push(['anh sang', 'light', 'lux', 'bh1750', 'tsl2561', 'tsl2591', 'ldr', 'photoresistor']);
+    }
+    if (q.includes('chuyen dong') || q.includes('motion') || q.includes('pir')) {
+      groups.push(['chuyen dong', 'motion', 'pir', 'hc-sr501', 'am312']);
+    }
+    if (q.includes('khoang cach') || q.includes('distance') || q.includes('sieu am') || q.includes('ultrasonic')) {
+      groups.push(['khoang cach', 'distance', 'sieu am', 'ultrasonic', 'hc-sr04', 'us-100']);
+    }
+
+    return groups;
+  };
+
   const filterAiCards = (cards: AiProductCard[] | undefined, query: string) => {
     if (!cards || cards.length === 0) return cards;
     const groups = buildKeywordGroups(query);
     if (!groups.length) return cards;
+    const mustHaveGroups = buildMustHaveGroups(query);
 
     const scored = cards.map((card) => {
       const haystack = normalizeText(`${card.name} ${card.code || ''} ${card.category || ''}`);
+      if (mustHaveGroups.length) {
+        const hasAllMust = mustHaveGroups.every((group) => group.some((k) => haystack.includes(k)));
+        if (!hasAllMust) {
+          return { card, matchCount: 0, excluded: true };
+        }
+      }
       let matchCount = 0;
       groups.forEach((group) => {
         if (group.some((k) => haystack.includes(k))) {
@@ -142,7 +173,7 @@ export function AIChat({
       return { card, matchCount };
     });
 
-    let filtered = scored.filter((item) => item.matchCount >= 1);
+    let filtered = scored.filter((item) => item.matchCount >= 1 && !(item as any).excluded);
     if (groups.length >= 2 && filtered.length > 12) {
       const tighter = scored.filter((item) => item.matchCount >= 2);
       if (tighter.length > 0) filtered = tighter;
@@ -257,6 +288,112 @@ export function AIChat({
     }
 
     return `${reply}\n(Hiển thị ${filteredCount} sản phẩm.)`;
+  };
+
+  const resolveAiError = (error: any, fallbackKey: string) => {
+    const rawMessage = typeof error === 'string' ? error : error?.message || '';
+    const message = rawMessage.trim();
+    const normalized = message.toLowerCase();
+
+    const matches = (patterns: string[]) => patterns.some((p) => normalized.includes(p));
+
+    if (matches(['session', 'token', 'unauthorized', '401', 'đăng nhập', 'het han', 'hết hạn'])) {
+      return { key: 'sessionExpired', shouldRequireLogin: true };
+    }
+
+    if (matches(['no network', 'khong co ket noi', 'không có kết nối', 'offline'])) {
+      return { key: 'noNetworkConnection' };
+    }
+
+    if (matches(['timeout', 'qua lau', 'quá lâu'])) {
+      return { key: 'requestTimeout' };
+    }
+
+    if (matches(['khong the ket noi', 'không thể kết nối', 'cannot connect'])) {
+      return { key: 'cannotConnectServer' };
+    }
+
+    if (matches(['server', 'máy chủ', 'he thong', 'hệ thống', 'service unavailable'])) {
+      return { key: 'serverUnavailable' };
+    }
+
+    if (message) {
+      return { message };
+    }
+
+    return { message: translate(fallbackKey) };
+  };
+
+  const normalizeAiResponse = (response: any, fallbackKey: string) => {
+    const reply = typeof response?.reply === 'string' ? response.reply.trim() : '';
+    return {
+      reply: reply || translate(fallbackKey),
+      cards: Array.isArray(response?.cards) ? response.cards : [],
+      orderCards: Array.isArray(response?.orderCards) ? response.orderCards : [],
+      addressCards: Array.isArray(response?.addressCards) ? response.addressCards : [],
+      actions: Array.isArray(response?.actions) ? response.actions : [],
+    };
+  };
+
+  const refineCardsWithAi = async (
+    query: string,
+    candidates: AiProductCard[],
+  ) => {
+    if (!accessToken) return candidates;
+    if (!candidates || candidates.length <= 5) return candidates;
+
+    const trimmedCandidates = candidates.slice(0, 12);
+    const lines = trimmedCandidates.map((c, index) => (
+      `${index + 1}. ${c.name} | code:${c.code || 'N/A'} | id:${c.productId} | category:${c.category || 'N/A'}`
+    ));
+    const prompt = [
+      'Bạn là bộ lọc sản phẩm của cửa hàng linh kiện.',
+      `Yêu cầu: "${query}"`,
+      'Danh sách ứng viên:',
+      ...lines,
+      'Chọn tối đa 5 sản phẩm phù hợp nhất.',
+      'Chỉ trả về danh sách id hoặc code có trong danh sách, phân tách bằng dấu phẩy.',
+      'Nếu không chắc, trả về 5 sản phẩm đầu tiên.',
+    ].join('\n');
+
+    try {
+      const response = await aiChat({ message: prompt }, accessToken);
+      const reply = normalizeText(response?.reply || '');
+      if (!reply) return trimmedCandidates.slice(0, 5);
+
+      const selectedIds = new Set<string>();
+      const normalizedReply = reply;
+      const indexMatches = Array.from(normalizedReply.matchAll(/\b([1-9]|1[0-2])\b/g))
+        .map((m) => Number(m[1]))
+        .filter((n) => n >= 1 && n <= trimmedCandidates.length);
+      indexMatches.forEach((idx) => selectedIds.add(trimmedCandidates[idx - 1].productId));
+
+      trimmedCandidates.forEach((card) => {
+        const idNorm = normalizeText(card.productId);
+        if (idNorm && normalizedReply.includes(idNorm)) {
+          selectedIds.add(card.productId);
+          return;
+        }
+        if (card.code) {
+          const codeNorm = normalizeText(card.code);
+          if (codeNorm && normalizedReply.includes(codeNorm)) {
+            selectedIds.add(card.productId);
+            return;
+          }
+        }
+        const nameNorm = normalizeText(card.name);
+        if (nameNorm.length >= 8 && normalizedReply.includes(nameNorm)) {
+          selectedIds.add(card.productId);
+        }
+      });
+
+      if (!selectedIds.size) return trimmedCandidates.slice(0, 5);
+      const selected = trimmedCandidates.filter((card) => selectedIds.has(card.productId));
+      return selected.slice(0, 5);
+    } catch (error: any) {
+      console.warn('AIChat.tsx - refineCardsWithAi error', error);
+      return trimmedCandidates.slice(0, 5);
+    }
   };
 
   const getLocalReply = (text: string) => {
@@ -453,16 +590,20 @@ export function AIChat({
       }
       const history = nextMessages.slice(-12).map((m) => ({ role: m.role, content: m.content }));
       const response = await aiChat({ message: userMessage.content, history }, accessToken);
+      const normalized = normalizeAiResponse(response, 'cannotSendAIRequest');
       const adviceIntent = isAdviceIntent(userMessage.content);
       const productIntent = isProductSearchIntent(userMessage.content);
-      let filteredCards = filterAiCards(response.cards, userMessage.content);
+      let filteredCards = filterAiCards(normalized.cards, userMessage.content);
       if (adviceIntent && !productIntent) {
         filteredCards = [];
       }
-      const filteredActions = filterAiActions(response.actions, filteredCards);
+      if (productIntent && filteredCards.length > 5) {
+        filteredCards = await refineCardsWithAi(userMessage.content, filteredCards);
+      }
+      const filteredActions = filterAiActions(normalized.actions, filteredCards);
       const replyContent = adviceIntent && !productIntent
-        ? sanitizeAdviceReply(response.reply)
-        : patchReplyCount(response.reply, filteredCards, response.cards);
+        ? sanitizeAdviceReply(normalized.reply)
+        : patchReplyCount(normalized.reply, filteredCards, normalized.cards);
 
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -471,15 +612,19 @@ export function AIChat({
         timestamp: new Date(),
         type: 'text',
         cards: filteredCards,
-        orderCards: response.orderCards,
-        addressCards: response.addressCards,
+        orderCards: normalized.orderCards,
+        addressCards: normalized.addressCards,
         actions: filteredActions,
       };
 
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error: any) {
       console.warn('AIChat.tsx - aiChat error', error);
-      showToast(error?.message || translate('cannotSendAIRequest'), 'error');
+      const resolved = resolveAiError(error, 'cannotSendAIRequest');
+      if (resolved.shouldRequireLogin) {
+        onRequireLogin?.();
+      }
+      showToast(resolved.key || resolved.message || translate('cannotSendAIRequest'), 'error');
     } finally {
       setIsTyping(false);
       setIsSending(false);
@@ -497,6 +642,10 @@ export function AIChat({
       const card =
         sourceMessage.cards?.find((c) => c.productId === action.payload.productId) ||
         sourceMessage.cards?.[0];
+      if (!action.payload?.productId && !action.confirmationId) {
+        showToast(translate('cannotPerformAction'), 'error');
+        return;
+      }
       if (card && card.stock <= 0) {
         showToast(translate('productOutOfStockCart'), 'error');
         return;
@@ -511,16 +660,25 @@ export function AIChat({
             action.payload?.productId,
           );
         } else if (action.payload?.productId) {
-          await addCartItem(action.payload.productId, action.payload.quantity || 1, accessToken);
+          const quantity = Math.max(1, action.payload.quantity || 1);
+          if (card && card.stock > 0 && quantity > card.stock) {
+            showToast(translate('not_enough_stock'), 'error');
+            return;
+          }
+          await addCartItem(action.payload.productId, quantity, accessToken);
         }
 
-        if (card && onAddToCart) {
-          onAddToCart(toProduct(card), action.payload.quantity || 1);
+        if (card && onAddToCart && action.payload?.productId) {
+          onAddToCart(toProduct(card), Math.max(1, action.payload.quantity || 1));
         }
         showToast(translate('productAddedToCart'), 'success');
       } catch (error: any) {
         console.warn('AIChat.tsx - handleAction error', error);
-        showToast(error?.message || translate('cannotPerformAction'), 'error');
+        const resolved = resolveAiError(error, 'cannotPerformAction');
+        if (resolved.shouldRequireLogin) {
+          onRequireLogin?.();
+        }
+        showToast(resolved.key || resolved.message || translate('cannotPerformAction'), 'error');
       }
     }
   };
@@ -539,6 +697,16 @@ export function AIChat({
         quality: 0.8,
         selectionLimit: 1,
       });
+      if (result?.didCancel) {
+        setIsUploading(false);
+        return;
+      }
+      if (result?.errorCode) {
+        console.warn('AIChat.tsx - image picker error', result.errorCode, result.errorMessage);
+        showToast(translate('image_picker_error'), 'error');
+        setIsUploading(false);
+        return;
+      }
       const asset = result?.assets?.[0];
       if (!asset?.uri) {
         setIsUploading(false);
@@ -579,17 +747,21 @@ export function AIChat({
 
       const history = nextMessages.slice(-12).map((m) => ({ role: m.role, content: m.content }));
       const response = await aiChat({ message: content, history, imageUrl }, accessToken);
+      const normalized = normalizeAiResponse(response, 'cannotSendAIRequest');
       const adviceIntent = isAdviceIntent(content);
       const productIntent = isProductSearchIntent(content);
       // Image analysis often returns already-filtered cards; avoid filtering again.
-      let filteredCards = response.cards;
+      let filteredCards = normalized.cards;
       if (adviceIntent && !productIntent) {
         filteredCards = [];
       }
-      const filteredActions = filterAiActions(response.actions, filteredCards);
+      if (productIntent && filteredCards.length > 5) {
+        filteredCards = await refineCardsWithAi(content, filteredCards);
+      }
+      const filteredActions = filterAiActions(normalized.actions, filteredCards);
       const replyContent = adviceIntent && !productIntent
-        ? sanitizeAdviceReply(response.reply)
-        : patchReplyCount(response.reply, filteredCards, response.cards);
+        ? sanitizeAdviceReply(normalized.reply)
+        : patchReplyCount(normalized.reply, filteredCards, normalized.cards);
 
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -598,15 +770,19 @@ export function AIChat({
         timestamp: new Date(),
         type: 'text',
         cards: filteredCards,
-        orderCards: response.orderCards,
-        addressCards: response.addressCards,
+        orderCards: normalized.orderCards,
+        addressCards: normalized.addressCards,
         actions: filteredActions,
       };
 
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error: any) {
       console.warn('AIChat.tsx - pickAndSendImage error', error);
-      showToast(error?.message || translate('cannotUploadImage'), 'error');
+      const resolved = resolveAiError(error, 'cannotUploadImage');
+      if (resolved.shouldRequireLogin) {
+        onRequireLogin?.();
+      }
+      showToast(resolved.key || resolved.message || translate('cannotUploadImage'), 'error');
     } finally {
       setIsUploading(false);
       setIsTyping(false);

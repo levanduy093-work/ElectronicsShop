@@ -61,7 +61,7 @@ export type RootTabParamList = {
     CatalogTab: NavigatorScreenParams<CatalogStackParamList>;
     AITab: NavigatorScreenParams<AIStackParamList>;
     CartTab: NavigatorScreenParams<CartStackParamList>;
-    ProfileTab: NavigatorScreenParams<ProfileStackParamList>;
+    ProfileTab: { authMode?: 'login' | 'register' } | undefined;
 };
 
 
