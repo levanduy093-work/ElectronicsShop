@@ -33,6 +33,23 @@ export function MessageBubble({
     return date.toLocaleDateString('vi-VN');
   };
 
+  const getActionLabel = (action: AiAction) => {
+    if (action.note) return action.note;
+    if (action.type === 'ADD_TO_CART') return 'Xác nhận thêm giỏ';
+    if (action.type === 'CONTACT_CALL') return 'Gọi hotline';
+    if (action.type === 'CONTACT_ZALO') return 'Chat Zalo';
+    if (action.type === 'CONTACT_EMAIL') return 'Gửi email';
+    return action.type;
+  };
+
+  const getActionIcon = (action: AiAction) => {
+    if (action.type === 'ADD_TO_CART') return 'shopping-cart';
+    if (action.type === 'CONTACT_CALL') return 'phone';
+    if (action.type === 'CONTACT_ZALO') return 'message-circle';
+    if (action.type === 'CONTACT_EMAIL') return 'mail';
+    return 'flash';
+  };
+
   const renderProductCard = (card: AiProductCard, index: number) => {
     const isOutOfStock = (card.stock ?? 0) <= 0;
     const action = message.actions?.find(
@@ -315,11 +332,9 @@ export function MessageBubble({
                   onPress={() => onAction?.(action, message)}
                   activeOpacity={0.8}
                 >
-                  <AppIcon name="flash" size={12} color={theme.primary} />
+                  <AppIcon name={getActionIcon(action)} size={12} color={theme.primary} />
                   <Text className="text-xs font-semibold" style={{ color: theme.text }}>
-                    {action.type === 'ADD_TO_CART'
-                      ? 'Xác nhận thêm giỏ'
-                      : action.note || action.type}
+                    {getActionLabel(action)}
                   </Text>
                 </TouchableOpacity>
               ))}

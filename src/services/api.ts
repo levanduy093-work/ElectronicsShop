@@ -228,6 +228,11 @@ export type AiAction =
     requiresConfirmation: boolean;
     confirmationId?: string;
     note?: string;
+  }
+  | {
+    type: 'CONTACT_CALL' | 'CONTACT_ZALO' | 'CONTACT_EMAIL';
+    payload?: { value?: string };
+    note?: string;
   };
 
 export type AiChatResponse = {
@@ -336,7 +341,7 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-const DEFAULT_TIMEOUT = 45000; // 45 seconds
+const DEFAULT_TIMEOUT = 20000; // 20 seconds
 
 async function requestJson<TResponse>(
   path: string,

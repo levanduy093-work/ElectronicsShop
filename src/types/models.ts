@@ -88,6 +88,11 @@ export type AiAction =
     requiresConfirmation: boolean;
     confirmationId?: string;
     note?: string;
+  }
+  | {
+    type: 'CONTACT_CALL' | 'CONTACT_ZALO' | 'CONTACT_EMAIL';
+    payload?: { value?: string };
+    note?: string;
   };
 
 export interface ChatMessage {

@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView,
   KeyboardEvent,
   LayoutAnimation,
+  Linking,
   Platform,
   ScrollView,
   Text,
@@ -282,12 +283,85 @@ export function AIChat({
     if (vnPatternNoTone.test(reply)) {
       return reply.replace(vnPatternNoTone, `$1${filteredCount}$3`);
     }
+    const vnBomPattern = /(san pham(?:\s+he thong)?\s+dang co:\s*)(\d+)(\s+mon)/i;
+    if (vnBomPattern.test(reply)) {
+      return reply.replace(vnBomPattern, `$1${filteredCount}$3`);
+    }
+    const vnBomPatternAccented = /(sản phẩm(?:\s+hệ thống)?\s+đang có:\s*)(\d+)(\s+món)/i;
+    if (vnBomPatternAccented.test(reply)) {
+      return reply.replace(vnBomPatternAccented, `$1${filteredCount}$3`);
+    }
     const enPattern = /(found\s+)(\d+)(\s+products?)/i;
     if (enPattern.test(reply)) {
       return reply.replace(enPattern, `$1${filteredCount}$3`);
     }
 
     return `${reply}\n(Hiển thị ${filteredCount} sản phẩm.)`;
+  };
+
+  const extractBomLinesFromReply = (reply: string) => {
+    if (!reply) return [];
+    const lines = reply.split('\n').map((line) => line.trim()).filter(Boolean);
+    const startIdx = lines.findIndex((line) => normalizeText(line).includes('linh kien can cho mach'));
+    if (startIdx < 0) return [];
+
+    const result: string[] = [];
+    for (let i = startIdx + 1; i < lines.length; i += 1) {
+      const line = lines[i];
+      const normalized = normalizeText(line);
+      if (normalized.startsWith('san pham dang co') || normalized.startsWith('con thieu')) {
+        break;
+      }
+      if (!line.startsWith('-')) continue;
+
+      const cleaned = line
+        .replace(/^-+\s*/, '')
+        .replace(/\s*-\s*\d+\s*cai$/i, '')
+        .replace(/\s*-\s*\d+\s*bo$/i, '')
+        .trim();
+      if (cleaned.length >= 2) result.push(cleaned);
+    }
+    return result;
+  };
+
+  const alignCardsWithReplyRequirements = (
+    reply: string,
+    cards: AiProductCard[] | undefined,
+  ) => {
+    if (!cards || cards.length === 0 || !reply) return cards;
+    const bomLines = extractBomLinesFromReply(reply);
+    if (!bomLines.length) return cards;
+
+    const generic = new Set([
+      'bo', 'vi', 'dieu', 'khien', 'cam', 'bien', 'mach', 'module', 'kit',
+      'day', 'noi', 'nguon', 'man', 'hinh', 'lcd', 'ca', 'cho', 'mua',
+      'linh', 'kien', 'cai', 'bo',
+    ]);
+
+    const tokenGroups = bomLines
+      .map((line) => extractKeywords(line))
+      .map((tokens) => Array.from(new Set(tokens.map((t) => normalizeText(t)))))
+      .map((tokens) => tokens.filter((t) => !generic.has(t)))
+      .filter((tokens) => tokens.length > 0)
+      .slice(0, 12);
+
+    if (!tokenGroups.length) return cards;
+
+    const aligned = cards.filter((card) => {
+      const haystack = normalizeText(
+        `${card.name || ''} ${card.code || ''} ${card.category || ''}`,
+      );
+      return tokenGroups.some((group) => {
+        const strong = group.filter((t) => /\d/.test(t) || t.length >= 4);
+        if (strong.length) {
+          return strong.some((t) => haystack.includes(t));
+        }
+        return group.some((t) => haystack.includes(t));
+      });
+    });
+
+    if (!aligned.length) return cards;
+    return aligned;
   };
 
   const resolveAiError = (error: any, fallbackKey: string) => {
@@ -335,65 +409,74 @@ export function AIChat({
     };
   };
 
-  const refineCardsWithAi = async (
-    query: string,
-    candidates: AiProductCard[],
-  ) => {
-    if (!accessToken) return candidates;
-    if (!candidates || candidates.length <= 5) return candidates;
+  const MAX_RENDERED_AI_CARDS = 10;
+  const SUPPORT_PHONE = '0123456789';
+  const SUPPORT_EMAIL = 'levanduy.dev@gmail.com';
 
-    const trimmedCandidates = candidates.slice(0, 12);
-    const lines = trimmedCandidates.map((c, index) => (
-      `${index + 1}. ${c.name} | code:${c.code || 'N/A'} | id:${c.productId} | category:${c.category || 'N/A'}`
-    ));
-    const prompt = [
-      'Bạn là bộ lọc sản phẩm của cửa hàng linh kiện.',
-      `Yêu cầu: "${query}"`,
-      'Danh sách ứng viên:',
-      ...lines,
-      'Chọn tối đa 5 sản phẩm phù hợp nhất.',
-      'Chỉ trả về danh sách id hoặc code có trong danh sách, phân tách bằng dấu phẩy.',
-      'Nếu không chắc, trả về 5 sản phẩm đầu tiên.',
-    ].join('\n');
+  const getSupportPolicyReply = (text: string): { content: string; actions?: AiAction[] } | null => {
+    const q = normalizeText(text);
+    if (!q) return null;
 
-    try {
-      const response = await aiChat({ message: prompt }, accessToken);
-      const reply = normalizeText(response?.reply || '');
-      if (!reply) return trimmedCandidates.slice(0, 5);
+    const hasAny = (patterns: string[]) => patterns.some((p) => q.includes(p));
 
-      const selectedIds = new Set<string>();
-      const normalizedReply = reply;
-      const indexMatches = Array.from(normalizedReply.matchAll(/\b([1-9]|1[0-2])\b/g))
-        .map((m) => Number(m[1]))
-        .filter((n) => n >= 1 && n <= trimmedCandidates.length);
-      indexMatches.forEach((idx) => selectedIds.add(trimmedCandidates[idx - 1].productId));
-
-      trimmedCandidates.forEach((card) => {
-        const idNorm = normalizeText(card.productId);
-        if (idNorm && normalizedReply.includes(idNorm)) {
-          selectedIds.add(card.productId);
-          return;
-        }
-        if (card.code) {
-          const codeNorm = normalizeText(card.code);
-          if (codeNorm && normalizedReply.includes(codeNorm)) {
-            selectedIds.add(card.productId);
-            return;
-          }
-        }
-        const nameNorm = normalizeText(card.name);
-        if (nameNorm.length >= 8 && normalizedReply.includes(nameNorm)) {
-          selectedIds.add(card.productId);
-        }
-      });
-
-      if (!selectedIds.size) return trimmedCandidates.slice(0, 5);
-      const selected = trimmedCandidates.filter((card) => selectedIds.has(card.productId));
-      return selected.slice(0, 5);
-    } catch (error: any) {
-      console.warn('AIChat.tsx - refineCardsWithAi error', error);
-      return trimmedCandidates.slice(0, 5);
+    if (hasAny(['theo doi don', 'trang thai don', 'kiem tra don', 'don hang cua toi'])) {
+      return { content: translate('supportA1') };
     }
+
+    if (hasAny(['doi tra', 'hoan tra', 'tra hang', 'chinh sach doi', 'chinh sach tra'])) {
+      return { content: translate('supportA2') };
+    }
+
+    if (hasAny(['phi van chuyen', 'tien ship', 'cuoc ship', 'freeship', 'mien phi van chuyen'])) {
+      return { content: translate('supportA3') };
+    }
+
+    if (hasAny(['huy don', 'huy don hang', 'cancel order', 'huy mua'])) {
+      return { content: translate('supportA4') };
+    }
+
+    if (hasAny([
+      'lien he',
+      'thong tin lien he',
+      'so dien thoai cua shop',
+      'so hotline',
+      'hotline',
+      'zalo',
+      'email shop',
+      'gmail shop',
+      'contact',
+      'support',
+      'cham soc khach hang',
+    ])) {
+      return {
+        content: [
+          'Thông tin liên hệ cửa hàng:',
+          `- Hotline: ${SUPPORT_PHONE}`,
+          `- Zalo: ${SUPPORT_PHONE}`,
+          `- Email: ${SUPPORT_EMAIL}`,
+        ].join('\n'),
+        actions: [
+          { type: 'CONTACT_CALL', payload: { value: SUPPORT_PHONE }, note: 'Gọi hotline' },
+          { type: 'CONTACT_ZALO', payload: { value: SUPPORT_PHONE }, note: 'Chat Zalo' },
+          { type: 'CONTACT_EMAIL', payload: { value: SUPPORT_EMAIL }, note: 'Gửi email' },
+        ],
+      };
+    }
+
+    if (hasAny(['chinh sach', 'policy', 'ho tro he thong', 'tro giup'])) {
+      return {
+        content: [
+          'Mình có thể hỗ trợ nhanh các chính sách ngay trong chat:',
+          `1. ${translate('supportQ1')}`,
+          `2. ${translate('supportQ2')}`,
+          `3. ${translate('supportQ3')}`,
+          `4. ${translate('supportQ4')}`,
+          'Bạn chỉ cần hỏi đúng mục bạn cần, mình trả lời ngay.',
+        ].join('\n'),
+      };
+    }
+
+    return null;
   };
 
   const getLocalReply = (text: string) => {
@@ -555,12 +638,6 @@ export function AIChat({
   const handleSend = async () => {
     if (!inputValue.trim()) return;
 
-    if (!accessToken) {
-      showToast(translate('loginRequiredAI'), 'error');
-      onRequireLogin?.();
-      return;
-    }
-
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -576,6 +653,20 @@ export function AIChat({
     setIsSending(true);
 
     try {
+      const supportReply = getSupportPolicyReply(userMessage.content);
+      if (supportReply) {
+        const aiMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'ai',
+          content: supportReply.content,
+          timestamp: new Date(),
+          type: 'text',
+          actions: supportReply.actions,
+        };
+        setMessages((prev) => [...prev, aiMessage]);
+        return;
+      }
+
       const localReply = getLocalReply(userMessage.content);
       if (localReply) {
         const aiMessage: ChatMessage = {
@@ -588,17 +679,25 @@ export function AIChat({
         setMessages((prev) => [...prev, aiMessage]);
         return;
       }
+
+      if (!accessToken) {
+        showToast(translate('loginRequiredAI'), 'error');
+        onRequireLogin?.();
+        return;
+      }
+
       const history = nextMessages.slice(-12).map((m) => ({ role: m.role, content: m.content }));
       const response = await aiChat({ message: userMessage.content, history }, accessToken);
       const normalized = normalizeAiResponse(response, 'cannotSendAIRequest');
       const adviceIntent = isAdviceIntent(userMessage.content);
       const productIntent = isProductSearchIntent(userMessage.content);
       let filteredCards = filterAiCards(normalized.cards, userMessage.content);
+      filteredCards = alignCardsWithReplyRequirements(normalized.reply, filteredCards);
       if (adviceIntent && !productIntent) {
         filteredCards = [];
       }
-      if (productIntent && filteredCards.length > 5) {
-        filteredCards = await refineCardsWithAi(userMessage.content, filteredCards);
+      if (productIntent && filteredCards.length > MAX_RENDERED_AI_CARDS) {
+        filteredCards = filteredCards.slice(0, MAX_RENDERED_AI_CARDS);
       }
       const filteredActions = filterAiActions(normalized.actions, filteredCards);
       const replyContent = adviceIntent && !productIntent
@@ -632,6 +731,36 @@ export function AIChat({
   };
 
   const handleAction = async (action: AiAction, sourceMessage: ChatMessage) => {
+    if (action.type === 'CONTACT_CALL') {
+      const phone = String(action.payload?.value || SUPPORT_PHONE).replace(/\s+/g, '');
+      try {
+        await Linking.openURL(`tel:${phone}`);
+      } catch {
+        showToast(translate('cannotPerformAction'), 'error');
+      }
+      return;
+    }
+
+    if (action.type === 'CONTACT_ZALO') {
+      const phone = String(action.payload?.value || SUPPORT_PHONE).replace(/\s+/g, '');
+      try {
+        await Linking.openURL(`https://zalo.me/${phone}`);
+      } catch {
+        showToast(translate('cannotPerformAction'), 'error');
+      }
+      return;
+    }
+
+    if (action.type === 'CONTACT_EMAIL') {
+      const email = String(action.payload?.value || SUPPORT_EMAIL).trim();
+      try {
+        await Linking.openURL(`mailto:${email}`);
+      } catch {
+        showToast(translate('cannotPerformAction'), 'error');
+      }
+      return;
+    }
+
     if (!accessToken) {
       showToast(translate('loginRequiredAction'), 'error');
       onRequireLogin?.();
@@ -690,6 +819,7 @@ export function AIChat({
       return;
     }
 
+    let optimisticMessageId: string | null = null;
     try {
       setIsUploading(true);
       const result = await launchImageLibrary({
@@ -713,8 +843,29 @@ export function AIChat({
         return;
       }
 
+      const localImageUri = asset.uri;
+      const content = inputValue.trim() || translate('analyzeImageDefault');
+      optimisticMessageId = Date.now().toString();
+      const optimisticMessage: ChatMessage = {
+        id: optimisticMessageId,
+        role: 'user',
+        content,
+        timestamp: new Date(),
+        type: 'text',
+        metadata: {
+          imageUrl: localImageUri,
+          isUploadingImage: true,
+        },
+      };
+
+      const nextMessages = [...(messagesRef.current || []), optimisticMessage];
+      setMessages(nextMessages);
+      setInputValue('');
+      setIsTyping(true);
+      setIsSending(true);
+
       const file: UploadImageFile = {
-        uri: asset.uri.replace('file://', ''),
+        uri: localImageUri.replace('file://', ''),
         name: asset.fileName || 'upload.jpg',
         type: asset.type || 'image/jpeg',
       };
@@ -729,21 +880,20 @@ export function AIChat({
         throw new Error(translate('cannotGetImageUrl'));
       }
 
-      const content = inputValue.trim() || translate('analyzeImageDefault');
-      const userMessage: ChatMessage = {
-        id: Date.now().toString(),
-        role: 'user',
-        content,
-        timestamp: new Date(),
-        type: 'text',
-        metadata: { imageUrl },
-      };
-
-      const nextMessages = [...(messagesRef.current || []), userMessage];
-      setMessages(nextMessages);
-      setInputValue('');
-      setIsTyping(true);
-      setIsSending(true);
+      setMessages((prev) =>
+        prev.map((m) => (
+          m.id === optimisticMessageId
+            ? {
+              ...m,
+              metadata: {
+                ...(m.metadata || {}),
+                imageUrl,
+                isUploadingImage: false,
+              },
+            }
+            : m
+        )),
+      );
 
       const history = nextMessages.slice(-12).map((m) => ({ role: m.role, content: m.content }));
       const response = await aiChat({ message: content, history, imageUrl }, accessToken);
@@ -752,11 +902,12 @@ export function AIChat({
       const productIntent = isProductSearchIntent(content);
       // Image analysis often returns already-filtered cards; avoid filtering again.
       let filteredCards = normalized.cards;
+      filteredCards = alignCardsWithReplyRequirements(normalized.reply, filteredCards);
       if (adviceIntent && !productIntent) {
         filteredCards = [];
       }
-      if (productIntent && filteredCards.length > 5) {
-        filteredCards = await refineCardsWithAi(content, filteredCards);
+      if (productIntent && filteredCards.length > MAX_RENDERED_AI_CARDS) {
+        filteredCards = filteredCards.slice(0, MAX_RENDERED_AI_CARDS);
       }
       const filteredActions = filterAiActions(normalized.actions, filteredCards);
       const replyContent = adviceIntent && !productIntent
@@ -778,6 +929,21 @@ export function AIChat({
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error: any) {
       console.warn('AIChat.tsx - pickAndSendImage error', error);
+      if (optimisticMessageId) {
+        setMessages((prev) =>
+          prev.map((m) => (
+            m.id === optimisticMessageId
+              ? {
+                ...m,
+                metadata: {
+                  ...(m.metadata || {}),
+                  isUploadingImage: false,
+                },
+              }
+              : m
+          )),
+        );
+      }
       const resolved = resolveAiError(error, 'cannotUploadImage');
       if (resolved.shouldRequireLogin) {
         onRequireLogin?.();
